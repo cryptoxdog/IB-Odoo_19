@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- S9 (BRS-EXP-09-R007, BRS-EXP-11-R010): typed shipment-event proposals.
+         A proposal is a reviewable candidate; Accept runs the owner command with
+         its own guards. Nothing on this screen writes a load, transaction or
+         stock record directly. -->
+
+    <record id="view_shipment_event_proposal_search" model="ir.ui.view">
+        <field name="name">plasticos.shipment.event.proposal.search</field>
+        <field name="model">plasticos.shipment.event.proposal</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="load_id"/>
+                <field name="journey_id"/>
+                <field name="source_reference"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <filter name="filter_candidate" string="To Review" domain="[('state', '=', 'candidate')]"/>
+                <filter name="filter_accepted" string="Accepted" domain="[('state', '=', 'accepted')]"/>
+                <filter name="filter_rejected" string="Rejected" domain="[('state', '=', 'rejected')]"/>
+                <separator/>
+                <filter name="group_event_kind" string="Event" context="{'group_by': 'event_kind'}"/>
+                <filter name="group_asserted_by" string="Asserted By" context="{'group_by': 'asserted_by'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_shipment_event_proposal_list" model="ir.ui.view">
+        <field name="name">plasticos.shipment.event.proposal.list</field>
+        <field name="model">plasticos.shipment.event.proposal</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="event_kind"/>
+                <field name="load_id"/>
+                <field name="journey_id"/>
+                <field name="occurred_at"/>
+                <field name="asserted_by"/>
+                <field name="source_reference" optional="show"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'candidate'"
+                       decoration-success="state == 'accepted'"
+                       decoration-muted="state == 'rejected'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_shipment_event_proposal_form" model="ir.ui.view">
+        <field name="name">plasticos.shipment.event.proposal.form</field>
+        <field name="model">plasticos.shipment.event.proposal</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_accept" string="Accept" type="object" class="btn-primary"
+                            invisible="state != 'candidate' or not id"/>
+                    <button name="action_reject" string="Reject" type="object"
+                            invisible="state != 'candidate' or not id"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group string="Event">
+                            <field name="event_kind" readonly="id"/>
+                            <field name="load_id" readonly="id"
+                                   invisible="event_kind not in ('supplier_ready', 'loaded')"
+                                   required="event_kind in ('supplier_ready', 'loaded')"/>
+                            <field name="journey_id" readonly="id"
+                                   invisible="event_kind not in ('gate_accepted', 'sailed')"
+                                   required="event_kind in ('gate_accepted', 'sailed')"/>
+                            <field name="occurred_at" readonly="id"/>
+                            <field name="facility_partner_id" readonly="id" invisible="event_kind != 'gate_accepted'"/>
+                            <field name="vessel" readonly="id" invisible="event_kind != 'sailed'"/>
+                            <field name="voyage" readonly="id" invisible="event_kind != 'sailed'"/>
+                        </group>
+                        <group string="Source">
+                            <field name="asserted_by" readonly="id"/>
+                            <field name="evidence_attachment_id" readonly="id"/>
+                            <field name="linda_response_id" readonly="id"/>
+                            <field name="source_reference" readonly="id"/>
+                            <field name="operation_key" readonly="id"/>
+                            <field name="company_id" readonly="1" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+                    <group string="Decision" invisible="state == 'candidate'">
+                        <field name="command_status"/>
+                        <field name="decided_by"/>
+                        <field name="decided_at"/>
+                        <field name="decision_note"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_shipment_event_proposal" model="ir.actions.act_window">
+        <field name="name">Shipment Event Proposals</field>
+        <field name="res_model">plasticos.shipment.event.proposal</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_shipment_event_proposal_search"/>
+        <field name="context">{'search_default_filter_candidate': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No shipment events to review</p>
+            <p>Propose a supplier-ready, loaded, gate-in or sailing event from its original. Accepting runs the owner's command.</p>
+        </field>
+    </record>
+
+    <!-- Domestic road equipment catalog (BRS-EXP-07-R002). -->
+    <record id="view_road_equipment_type_list" model="ir.ui.view">
+        <field name="name">plasticos.road.equipment.type.list</field>
+        <field name="model">plasticos.road.equipment.type</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="nominal_length_ft"/>
+                <field name="description" optional="show"/>
+                <field name="active" column_invisible="True"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_road_equipment_type" model="ir.actions.act_window">
+        <field name="name">Road Equipment Types</field>
+        <field name="res_model">plasticos.road.equipment.type</field>
+        <field name="view_mode">list</field>
+    </record>
+
+    <!-- Container journey facts (BRS-EXP-08-R007): read-only; written only by the
+         Logistics record commands from an original attached to the journey. -->
+    <record id="view_iso_journey_fact_search" model="ir.ui.view">
+        <field name="name">plasticos.iso.journey.fact.search</field>
+        <field name="model">plasticos.iso.journey.fact</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="journey_id"/>
+                <field name="vessel"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <filter name="group_journey" string="Journey" context="{'group_by': 'journey_id'}"/>
+                <filter name="group_fact_kind" string="Fact" context="{'group_by': 'fact_kind'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_iso_journey_fact_list" model="ir.ui.view">
+        <field name="name">plasticos.iso.journey.fact.list</field>
+        <field name="model">plasticos.iso.journey.fact</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" delete="0">
+                <field name="journey_id"/>
+                <field name="fact_kind"/>
+                <field name="occurred_at"/>
+                <field name="facility_partner_id" optional="show"/>
+                <field name="vessel" optional="show"/>
+                <field name="voyage" optional="show"/>
+                <field name="customs_filer_id" optional="show"/>
+                <field name="delivery_partner_id" optional="show"/>
+                <field name="weight" optional="show"/>
+                <field name="weight_uom_id" optional="show"/>
+                <field name="weight_basis" optional="show"/>
+                <field name="evidence_reference" optional="show"/>
+                <field name="evidence_attachment_id"/>
+                <field name="recorded_by" optional="hide"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_iso_journey_fact" model="ir.actions.act_window">
+        <field name="name">Container Journey Facts</field>
+        <field name="res_model">plasticos.iso.journey.fact</field>
+        <field name="view_mode">list</field>
+        <field name="search_view_id" ref="view_iso_journey_fact_search"/>
+    </record>
+
+    <menuitem id="menu_shipment_event_proposal" name="Shipment Event Proposals"
+              parent="menu_plasticos_logistics_root" action="action_shipment_event_proposal" sequence="42"/>
+    <menuitem id="menu_iso_journey_fact" name="Container Journey Facts"
+              parent="menu_plasticos_logistics_root" action="action_iso_journey_fact" sequence="44"/>
+    <menuitem id="menu_road_equipment_type" name="Road Equipment Types"
+              parent="menu_plasticos_logistics_root" action="action_road_equipment_type" sequence="43"
+              groups="base.group_system"/>
+</odoo>

@@ -224,6 +224,8 @@
                         <group string="Carrier Details">
                             <field name="carrier_contact_name"/>
                             <field name="carrier_contact_phone"/>
+                            <field name="road_equipment_type_id" options="{'no_create': True}"/>
+                            <field name="road_equipment_requirements" invisible="not road_equipment_type_id"/>
                             <field name="trailer_number"/>
                             <field name="seal_number"/>
                         </group>

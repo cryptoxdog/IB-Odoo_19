@@ -7,3 +7,4 @@ from . import test_same_as_last
 from . import test_iso_journey
 from . import test_export_release_guards
 from . import test_linda_booking_source
+from . import test_s9_logistics_features

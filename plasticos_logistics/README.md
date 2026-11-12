@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_logistics
 component_name: Plasticos Logistics Engine
-module_version: 19.0.1.14.22
+module_version: 19.0.1.14.23
 layer: 5
 installable: true
 auto_install: true
@@ -78,6 +78,9 @@ Moves material from supplier to buyer: loads, readiness, rates, scheduling, disp
   - The native send claim locks the source row, then the request row, and re-reads the source before SMTP. A revision that wins first withholds the old mail; a claim that wins first is kept as history, and the later revision is held. Unknown outcomes are never resent.
   - A carrier dispatch or document composer re-checks the physical-release guard when it sends, not only when it opens, and cannot be scheduled.
 - **Linda replies.** `plasticos.logistics.response` records which request an incoming message answers, proven by `In-Reply-To` / `References`. Only exact standard replies ("confirmed", "confirm", "not ready") are classified; free-form replies stay unresolved. It changes no order, load, picking, or transaction. `data/linda_inbound_ai.xml` wires it to new `mail.message` records.
+- **Road equipment (S9).** `plasticos.road.equipment.type` is the one domestic trailer catalog: 53 ft trailer, 48 ft trailer and flatbed are seeded (`data/road_equipment_type_data.xml`); more are added as data. A load names it in `road_equipment_type_id` and states the actual dimensions in `road_equipment_requirements`. A flatbed has no assumed length. No payload, VGM or container is inferred from it (BRS-EXP-07-R002).
+- **Container journey facts (S9).** A J1 `plasticos.iso.journey` stays identity only. `plasticos.iso.journey.fact` (`models/iso_journey_fact.py`) records what later happened to it, one immutable row per kind: terminal `gate_in`, vessel `departure` (after its gate-in), and `regulatory_parties` (customs filer, delivery partner). Only `action_record_gate_in`, `action_record_departure` and `action_record_regulatory_parties` write them, from an original attached to the journey. A later buyer, sale order or resale cannot rewrite them (BRS-EXP-08-R007, BRS-EXP-10-R007).
+- **Shipment event proposals (S9).** `plasticos.shipment.event.proposal` is a reviewable candidate that one shipment event happened: `supplier_ready` or `loaded` for a load, `gate_accepted` or `sailed` for a journey. Proposing writes nothing else. Accept runs the owner command (`action_confirm_ready`, `action_record_actual_event('pickup')`, `plasticos.iso.journey.fact.action_record_gate_in` / `action_record_departure`) with its own guards. A supplier report cannot attest gate-in or a sailing (BRS-EXP-09-R007, BRS-EXP-11-R010).
 - **Dashboard.** `plasticos.load.dashboard` is a read-only SQL view, one row per non-cancelled load.
 - **Extensions.** `plasticos.transaction` gets `load_ids`, `load_count`, and `action_view_loads`. `sale.order` gets `action_create_load`. Both order models get `linda_request_ids`.
 - **Install hook.** `post_init_hook` in `hooks.py` grants this module's groups to the users of the crons it owns.
@@ -99,6 +102,11 @@ Moves material from supplier to buyer: loads, readiness, rates, scheduling, disp
 | `plasticos.rate.memory.reconciliation`       | owned            | `models/freight_governance.py`                |
 | `plasticos.logistics.request`                | owned            | `models/linda_request.py`                     |
 | `plasticos.logistics.response`               | owned            | `models/linda_response.py`                    |
+| `plasticos.iso.journey`                      | owned            | `models/iso_journey.py`                       |
+| `plasticos.iso.journey.source`               | owned            | `models/iso_journey.py`                       |
+| `plasticos.iso.journey.fact`                 | owned            | `models/iso_journey_fact.py`                  |
+| `plasticos.road.equipment.type`              | owned            | `models/road_equipment.py`                    |
+| `plasticos.shipment.event.proposal`          | owned            | `models/shipment_event_proposal.py`           |
 | `plasticos.freight.actual.correction.wizard` | owned, transient | `wizards/freight_actual_correction_wizard.py` |
 | `plasticos.load.bulk.update.wizard`          | owned, transient | `wizards/load_bulk_update_wizard.py`          |
 | `plasticos.transaction`                      | extended         | `models/transaction_inherit.py`               |

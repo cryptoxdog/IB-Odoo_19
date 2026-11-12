@@ -114,6 +114,17 @@ The seven clauses keep their source text in `plasticos_documents`. Their clocks 
 | `BRS-06-R039` | Every route that issues a new instruction (schedule, dispatch, the packet and document composers, direct send, standalone dispatch) passes one Logistics release guard. A hold withholds new release; it never blocks recording a pickup or delivery that already happened. |
 | `BRS-07-R051` | Document chase clocks start from `actual_pickup_at` / `actual_delivery_at`, recorded only from evidence attached to the load. A state change, schedule or dispatch time never fills them; a missing actual time leaves the clock unknown. |
 
+## 2026-11-12 Export campaign S9: road equipment, container journey facts, shipment event proposals
+
+**Source:** operator decision 2026-11-12 ("Everything, building features") and contract `PLASTICOS-EXPORT-C10-S9-LOGISTICS-FEATURES`. Architecture: `docs/adr/ADR-130-export-physical-evidence-and-owner-contracts.md`. This section adds interpretations; it does not edit an earlier section or any source BRS file. The J1 journey stays identity only, as the 2026-11-11 section records.
+
+| Rule ID | Amended interpretation (2026-11-12) |
+| --- | --- |
+| `BRS-EXP-07-R002` | Logistics owns the one domestic road equipment catalog, `plasticos.road.equipment.type`, seeded with 53 ft trailer, 48 ft trailer and flatbed; other types are added as data. A load names its type and states the actual move's dimensions and restrictions. A flatbed has no assumed length, and no payload, VGM or container is inferred from any type. |
+| `BRS-EXP-08-R007` | Terminal gate-in, vessel departure, customs filer and delivery partner of a container are Logistics facts on `plasticos.iso.journey.fact`, one immutable row per kind per J1 journey. Only `action_record_gate_in`, `action_record_departure` and `action_record_regulatory_parties` write them, from an original attached to the journey. A later buyer allocation, sale order or resale cannot set, change or delete them. |
+| `BRS-EXP-09-R007` | Supplier ready, loaded, gate accepted and sailed are distinct typed proposals on `plasticos.shipment.event.proposal`, each tied to one exact load or journey and its original. Proposing writes nothing else. Accepting runs the owner command with its own prerequisites. A supplier report may support `loaded` for the one load it names; it can never attest a gate-in or a sailing. |
+| `BRS-EXP-11-R010` | No proposal or extraction writes `plasticos.load.state`, `plasticos.transaction.state`, a picking or a stock record. One accepted loaded event records that load's actual pickup only; sibling loads, the purchase order's received quantity and its pickings are unchanged. |
+
 ## Change control
 
 Amend this register only for an explicit operator decision or an admitted repository architectural ruling, cite exact BRS IDs, update any associated acceptance tests, and preserve source document bytes. In-scope rule proposals that are unresolved must be marked **proposed**, not disguised as accepted.
