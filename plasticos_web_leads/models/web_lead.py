@@ -1335,7 +1335,11 @@ class PlasticosWebLead(models.Model):
             valid_vision = [v for v in vision_results if not v.get("error")]
             best_vision = max(valid_vision, key=lambda v: v.get("confidence", 0), default={})
             if best_vision:
-                vision_form = _FORM_NORMALIZE.get((best_vision.get("observed_form") or "").lower().strip())
+                observed_form = (best_vision.get("observed_form") or "").lower().strip()
+                vision_form = _FORM_NORMALIZE.get(observed_form)
+                if not merged.get("packaging"):
+                    # A photo of bales is a packaging fact too (operator decision 2026-11-12).
+                    merged["packaging"] = _PACKAGING_NORMALIZE.get(observed_form)
                 v_color = (best_vision.get("observed_color") or "").lower().strip()
                 if v_color and not merged["color"]:
                     merged["color"] = v_color

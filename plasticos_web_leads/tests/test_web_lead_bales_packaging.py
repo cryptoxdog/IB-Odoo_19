@@ -50,6 +50,19 @@ class TestWebLeadBalesPackaging(TransactionCase):
         self.assertIsNone(regrind["packaging"])
         seen = lead._merge_ai_and_vision({}, [{"observed_form": "bales", "confidence": 0.9}])
         self.assertNotEqual(seen["form"], "BALES")
+        self.assertEqual(seen["packaging"], "bales")
+        text_wins = lead._merge_ai_and_vision({"form": "regrind"}, [{"observed_form": "bales", "confidence": 0.9}])
+        self.assertEqual(text_wins["form"], "REGRIND")
+        self.assertEqual(text_wins["packaging"], "bales")
+
+    def test_photo_of_bales_sets_packaging_on_the_intake(self):
+        """Codex review on PR #482: a bale form seen only in a photo still records packaging Bales."""
+        lead = self._lead("bales-vision", "HDPE scrap")
+        merged = lead._merge_ai_and_vision({"polymer": "HDPE"}, [{"observed_form": "baled", "confidence": 0.9}])
+        merged["estimated_lbs"] = 40000
+        intake = lead._create_intake(merged, self.config)
+        self.assertEqual(intake.packaging_type_id, self.bales)
+        self.assertEqual(intake.form_id, self.form_other)
 
     def test_bales_intake_gets_packaging_bales_and_the_other_form(self):
         lead = self._lead("bales-intake", "HDPE scrap")
