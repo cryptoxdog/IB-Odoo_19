@@ -88,3 +88,5 @@ extended_audit_report.json
 plasticos_crm_sync/Vanillasoft-Scrap-Management.csv
 # make pr: the author's pr-intent.json and SSOT composer scratch (scripts/git_open_pr.sh)
 .l9/pr/
+# PlasticOS Export: private PO 64014 originals. Removed 2026-11-12 by operator decision; held privately, never committed.
+/docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/
