@@ -1,7 +1,7 @@
 Plasticos Documents — Native Bridge
 ###################################
 
-Bridge to Odoo Enterprise Documents with AI auto-sort, email alias, and plastics-specific field extensions
+Plastics fields on Odoo Enterprise Documents, pending evidence rows for classified originals with manager review, and a posting guard on digitized vendor bills
 
 **Features:**
 

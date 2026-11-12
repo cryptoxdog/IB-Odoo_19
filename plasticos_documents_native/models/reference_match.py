@@ -20,22 +20,24 @@ from lxml import html as lxml_html
 
 # ir.sequence interpolation keys (odoo/addons/base/models/ir_sequence.py
 # ``_get_prefix_suffix``) and the digit count strftime produces for each.
-_PLACEHOLDER_DIGITS = {
-    "year": 4,
-    "isoyear": 4,
-    "doy": 3,
-    "weekday": 1,
-    "month": 2,
-    "day": 2,
-    "y": 2,
-    "isoy": 2,
-    "woy": 2,
-    "isoweek": 2,
-    "h24": 2,
-    "h12": 2,
-    "min": 2,
-    "sec": 2,
-}
+_PLACEHOLDER_DIGITS = dict(
+    (
+        ("year", 4),
+        ("isoyear", 4),
+        ("doy", 3),
+        ("weekday", 1),
+        ("month", 2),
+        ("day", 2),
+        ("y", 2),
+        ("isoy", 2),
+        ("woy", 2),
+        ("isoweek", 2),
+        ("h24", 2),
+        ("h12", 2),
+        ("min", 2),
+        ("sec", 2),
+    )
+)
 _PLACEHOLDER_RE = re.compile(r"%\((?:range_|current_)?([a-z0-9]+)\)s")
 _ANY_PERCENT_RE = re.compile(r"%(?!%)")
 
@@ -47,6 +49,8 @@ _QUOTE_MARKERS = (
 )
 _HEADER_FROM_RE = re.compile(r"^\s*From:\s+\S")
 _HEADER_SENT_RE = re.compile(r"^\s*(Sent|Date):\s+\S")
+# Outlook marks the start of the older message with one of these element ids.
+_OUTLOOK_HEADER_IDS = frozenset(("divRplyFwdMsg", "appendonsend"))
 _QUOTE_XPATH = (
     "//blockquote"
     " | //*[contains(concat(' ', normalize-space(@class), ' '), ' gmail_quote ')]"
@@ -151,7 +155,7 @@ def split_email_body(body):
                     continue
                 quoted_parts.append(node.text_content())
                 # Outlook puts the older message after its header block, not inside it.
-                if node.get("id") in ("divRplyFwdMsg", "appendonsend"):
+                if node.get("id") in _OUTLOOK_HEADER_IDS:
                     for sibling in list(node.itersiblings()):
                         quoted_parts.append(sibling.text_content())
                         sibling.drop_tree()

@@ -20,6 +20,7 @@ _logger = logging.getLogger(__name__)
 
 GUARDED_BILL_TYPES = ("in_invoice", "in_refund")
 # iap_extract/models/extract_mixin.py: states in which the extraction result is on the bill.
+EXTRACT_NOT_REQUESTED = "no_extract_requested"
 EXTRACT_FINISHED_STATES = ("waiting_validation", "to_validate", "done")
 BILL_REVIEW_SUMMARY = "Digitized vendor bill needs manager review"
 
@@ -46,7 +47,7 @@ class AccountMove(models.Model):
             return False
         if self.invoice_source_email:
             return True
-        return "extract_state" in self._fields and self.extract_state not in (False, "no_extract_requested")
+        return "extract_state" in self._fields and self.extract_state not in (False, EXTRACT_NOT_REQUESTED)
 
     # ── Reference matching (B5) ──────────────────────────────
     def _plasticos_reference_resolution(self):
@@ -132,7 +133,7 @@ class AccountMove(models.Model):
         reasons = []
         if "extract_state" not in self._fields:
             reasons.append("Bill digitization is not installed, so the extraction cannot be confirmed.")
-        elif self.extract_state == "no_extract_requested":
+        elif self.extract_state == EXTRACT_NOT_REQUESTED:
             reasons.append("The bill was not sent for digitization.")
         elif self.extract_state not in EXTRACT_FINISHED_STATES:
             label = dict(self._fields["extract_state"].selection).get(self.extract_state, self.extract_state)
