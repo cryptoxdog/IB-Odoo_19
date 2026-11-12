@@ -2169,6 +2169,19 @@ class PlasticosLoad(models.Model):
         template = self._get_email_template("email_template_dispatch_packet")
         return self._open_mail_composer(template, operation="dispatch_packet")
 
+    def _carrier_sender_error(self):
+        """Why this load's company cannot be the sender of carrier mail, or ``False`` (S4, D5).
+
+        Carrier mail is sent only from the load company's own address. Odoo 19 fills an
+        empty rendered sender with a default one, so the absence is refused here.
+        """
+        self.ensure_one()
+        company = self.company_id
+        if not company or not (company.email or "").strip():
+            name = company.name if company else "(none)"
+            return f"Company {name} of load {self.name} has no email address to send carrier mail from."
+        return False
+
     def action_send_dispatch_direct(self):
         """Send the dispatch packet now; stamp ``dispatch_sent`` only on a confirmed send.
 
@@ -2182,6 +2195,11 @@ class PlasticosLoad(models.Model):
             raise UserError(f"Load {self.name}: Carrier is required to send dispatch.")
         if not self.carrier_id.email:
             raise UserError(f"Carrier {self.carrier_id.name} has no email address.")
+        sender_error = self._carrier_sender_error()
+        if sender_error:
+            # Fail closed before any mail exists: Odoo would fill an empty sender with its own default.
+            self.message_post(body=f"Dispatch packet not sent. {sender_error} Dispatch Sent was not stamped.")
+            return False
 
         template = self._get_email_template("email_template_dispatch_packet")
         mail_id = template.send_mail(self.id, force_send=True)

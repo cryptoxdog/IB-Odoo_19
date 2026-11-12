@@ -62,6 +62,11 @@ class MailComposeMessagePlasticosLoad(models.TransientModel):
                 raise UserError(_("The load is being changed right now. Nothing was sent; try again.")) from exc
             loads.invalidate_recordset()
             loads._require_physical_release(operation)
+            for load in loads:
+                # D5: never let native Mail substitute a default sender for the load company's own.
+                sender_error = load._carrier_sender_error()
+                if sender_error:
+                    raise UserError(f"{sender_error} Nothing was sent.")
 
     def _plasticos_refuse_scheduled_release(self):
         """A carrier release must leave now, after the recheck; a scheduled send would skip it."""

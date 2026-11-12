@@ -28,6 +28,8 @@ class TestExportReleaseGuards(TransactionCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.company = cls.env.company
+        # D5: carrier mail is sent only from the load company's own address.
+        cls.company.email = "dispatch@s4-guard-company.example"
         cls.supplier = cls.env["res.partner"].create(
             {"name": "S4 Guard Mill", "is_company": True, "supplier_rank": 1, "street": "5 Mill Rd"}
         )

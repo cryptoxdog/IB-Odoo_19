@@ -1,6 +1,7 @@
 """A transaction has zero or more loads. Each load has one stored parent."""
 
 import importlib.util
+import re
 import threading
 import time
 from datetime import timedelta
@@ -1568,8 +1569,30 @@ class TestCarrierComposerSendTimeRelease(TransactionCase):
         sink = self._sink()
         with sink[0], sink[1], sink[2]:
             self.assertFalse(load.action_send_dispatch_direct())
-        self.assertNotEqual(self._last_load_mail(load).state, "sent")
+        self.assertFalse(
+            self.env["mail.mail"].search(
+                [("model", "=", "plasticos.load"), ("res_id", "=", load.id), ("state", "=", "sent")]
+            ),
+            "no load mail reached sent",
+        )
         self.assertFalse(load.dispatch_sent, "an unsent packet never starts the clock")
+
+    def test_a_composer_for_a_company_without_its_own_sender_refuses_the_send(self):
+        """D5 fails closed on the composer path too: a UserError naming the company, and no mail."""
+        load = self._scheduled_load()
+        load.action_dispatch()
+        composer = self._open(load.action_send_dispatch_packet())
+        self.company.email = False
+        before = self._outgoing_for(load)
+        with self.assertRaisesRegex(UserError, re.escape(self.company.name)), self.env.cr.savepoint():
+            composer.action_send_mail()
+        self.assertEqual(self._outgoing_for(load), before, "no carrier mail is queued")
+        self.assertFalse(
+            self.env["mail.mail"].search(
+                [("model", "=", "plasticos.load"), ("res_id", "=", load.id), ("state", "=", "sent")]
+            )
+        )
+        self.assertFalse(load.dispatch_sent)
 
     def test_one_invalid_co_recipient_does_not_stop_the_clock(self):
         """Review O2: the transport's sent state is the gate, not the absence of any failure_type."""
