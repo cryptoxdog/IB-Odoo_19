@@ -42,6 +42,8 @@ IR_ATTACHMENT = "ir.attachment"
 RES_PARTNER = "res.partner"
 _RECORD_WRITE = "plasticos_iso_journey_fact_record"
 _RECORD_WRITE_TOKEN = object()
+# Returned by _create_fact when a concurrent writer won a unique index first.
+_UNIQUE_RACE = object()
 # The facts of each kind that a replay must match exactly.
 _KIND_FACTS = {
     "gate_in": ("occurred_at", "facility_partner_id", "evidence_attachment_id"),
@@ -272,7 +274,7 @@ class PlasticosIsoJourneyFact(models.Model):
     def _create_fact(self, journey, kind, facts, extra=None):
         """Insert one row inside a savepoint. Returns ``(fact, error_result)``.
 
-        ``error_result`` is ``None`` on success, ``"unique"`` when a concurrent
+        ``error_result`` is ``None`` on success, ``_UNIQUE_RACE`` when a concurrent
         writer won a unique index first, or a blocked result for any other
         constraint, never a raw IntegrityError.
         """
@@ -292,7 +294,7 @@ class PlasticosIsoJourneyFact(models.Model):
                 )
         except psycopg2.errors.UniqueViolation:
             self.env.invalidate_all()
-            return None, "unique"
+            return None, _UNIQUE_RACE
         except psycopg2.IntegrityError as error:
             return None, _result("blocked", journey, f"constraint violated: {error.diag.constraint_name or 'database'}")
         return fact, None
@@ -308,7 +310,7 @@ class PlasticosIsoJourneyFact(models.Model):
         if existing:
             return existing
         fact, error = self._create_fact(journey, kind, facts)
-        if error == "unique":
+        if error is _UNIQUE_RACE:
             # A concurrent record of the same fact won the unique index; answer from its row.
             return self._existing_result(journey, kind, facts) or _result(
                 "blocked", journey, "constraint violated: a concurrent record of this fact could not be read back"
@@ -363,7 +365,7 @@ class PlasticosIsoJourneyFact(models.Model):
             return None, "record the terminal gate-in before the departure"
         if when < gate_in.occurred_at:
             return None, "a vessel cannot sail before the container's gate-in"
-        return {"occurred_at": when, "vessel": vessel, "voyage": _normalize_text(values.get("voyage"))}, None
+        return dict(occurred_at=when, vessel=vessel, voyage=_normalize_text(values.get("voyage"))), None
 
     @api.model
     def _regulatory_facts(self, journey, values):
@@ -640,7 +642,7 @@ class PlasticosIsoJourneyFact(models.Model):
             "operation_key": key,
         }
         corrected, error = self._create_fact(journey, fact.fact_kind, facts, extra)
-        if error == "unique":
+        if error is _UNIQUE_RACE:
             return self._correction_replay(fact, journey, facts, reason, key) or _result(
                 "blocked", journey, "a concurrent correction of this fact was recorded first"
             )
