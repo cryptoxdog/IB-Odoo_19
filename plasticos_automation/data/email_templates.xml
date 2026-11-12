@@ -160,6 +160,9 @@ Please confirm receipt at your earliest convenience.</p>
             </field>
             <field name="email_from">{{ object.company_id.email_formatted }}</field>
             <field name="email_to">{{ object.carrier_id.email }}</field>
+            <!-- Odoo 19: with default recipients on, email_to is ignored and the record's default
+                 recipients (none for a load) are used, so the carrier got no mail. -->
+            <field name="use_default_to" eval="False"/>
             <field name="report_template_ids" eval="[(4, ref('plasticos_logistics.action_report_delivery_order'))]"/>
             <field name="auto_delete" eval="False"/>
         </record>
@@ -201,6 +204,9 @@ Use this BOL document at the pickup location. Do NOT share delivery destination 
             </field>
             <field name="email_from">{{ object.company_id.email_formatted }}</field>
             <field name="email_to">{{ object.carrier_id.email }}</field>
+            <!-- Odoo 19: with default recipients on, email_to is ignored and the record's default
+                 recipients (none for a load) are used, so the carrier got no mail. -->
+            <field name="use_default_to" eval="False"/>
             <field name="report_template_ids" eval="[(4, ref('plasticos_logistics.action_report_bol_pickup'))]"/>
             <field name="auto_delete" eval="False"/>
         </record>
@@ -241,6 +247,9 @@ Use this BOL document at the pickup location. Do NOT share delivery destination 
             </field>
             <field name="email_from">{{ object.company_id.email_formatted }}</field>
             <field name="email_to">{{ object.carrier_id.email }}</field>
+            <!-- Odoo 19: with default recipients on, email_to is ignored and the record's default
+                 recipients (none for a load) are used, so the carrier got no mail. -->
+            <field name="use_default_to" eval="False"/>
             <field name="report_template_ids" eval="[(4, ref('plasticos_logistics.action_report_bol_delivery'))]"/>
             <field name="auto_delete" eval="False"/>
         </record>
@@ -296,6 +305,9 @@ Use this BOL document at the pickup location. Do NOT share delivery destination 
             </field>
             <field name="email_from">{{ object.company_id.email_formatted }}</field>
             <field name="email_to">{{ object.carrier_id.email }}</field>
+            <!-- Odoo 19: with default recipients on, email_to is ignored and the record's default
+                 recipients (none for a load) are used, so the carrier got no mail. -->
+            <field name="use_default_to" eval="False"/>
             <field name="report_template_ids" eval="[(4, ref('plasticos_logistics.action_report_delivery_order')), (4, ref('plasticos_logistics.action_report_bol_pickup')), (4, ref('plasticos_logistics.action_report_bol_delivery'))]"/>
             <field name="auto_delete" eval="False"/>
         </record>

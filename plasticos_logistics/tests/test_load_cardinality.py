@@ -1518,10 +1518,20 @@ class TestCarrierComposerSendTimeRelease(TransactionCase):
         )
         self.assertTrue(packet_mails, "the packet mail is tagged for the acknowledgement clock")
         self.assertFalse(load.dispatch_sent, "queueing is not sending")
+        to_carrier = packet_mails.filtered(
+            lambda mail: (
+                self.carrier.email in (mail.email_to or "") or self.carrier.email in mail.recipient_ids.mapped("email")
+            )
+        )
+        self.assertTrue(
+            to_carrier, "the composer emails the carrier: " + "; ".join(map(self._mail_diagnosis, packet_mails))
+        )
+        packet_ids = packet_mails.ids
         with sink[0], sink[1], sink[2]:
-            self.env["mail.mail"].process_email_queue(email_ids=packet_mails.ids)
-        for mail in packet_mails.exists():
-            self.assertEqual(mail.state, "sent", self._mail_diagnosis(mail))
+            self.env["mail.mail"].process_email_queue(email_ids=packet_ids)
+        for mail in self.env["mail.mail"].browse(packet_ids):
+            if mail.exists():
+                self.assertEqual(mail.state, "sent", f"{self._mail_diagnosis(mail)} headers={mail.headers}")
         load.invalidate_recordset()
         self.assertTrue(load.dispatch_sent, "a confirmed send stamps the clock")
         stamped = load.dispatch_sent
@@ -1589,6 +1599,9 @@ class TestCarrierComposerSendTimeRelease(TransactionCase):
         load = self._scheduled_load()
         load.action_dispatch()
         sink = self._sink()
+        template = self.env.ref("plasticos_automation.email_template_dispatch_packet")
+        self.assertFalse(template.use_default_to, "default recipients would replace the carrier")
+        self.assertEqual(template._render_field("email_to", load.ids)[load.id], self.carrier.email)
         with sink[0], sink[1], sink[2]:
             sent = load.action_send_dispatch_direct()
             self.assertTrue(sent, self._mail_diagnosis(self._last_load_mail(load)))

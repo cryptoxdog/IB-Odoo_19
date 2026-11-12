@@ -110,6 +110,15 @@ class TestBuyerlessCarrierTemplates(TransactionCase):
                 for literal in FORBIDDEN_LITERALS:
                     self.assertNotIn(literal, body)
 
+    def test_each_template_addresses_the_carrier_itself(self):
+        """The carrier is the recipient: default record recipients would leave a load mail with none."""
+        load = self._load(company_id=self.issuer.id)
+        for xmlid in CARRIER_TEMPLATES:
+            with self.subTest(template=xmlid):
+                template = self.env.ref(xmlid)
+                self.assertFalse(template.use_default_to)
+                self.assertEqual(template._render_field("email_to", load.ids)[load.id], self.carrier.email)
+
     def test_each_template_attaches_only_its_carrier_reports(self):
         for xmlid, expected in EXPECTED_REPORTS.items():
             with self.subTest(template=xmlid):
