@@ -1247,3 +1247,103 @@ class TestLoadSourceCompanyAndPhysicalEvents(TransactionCase):
         post.migrate(self.env.cr, "19.0.1.14.19")
         self.assertEqual(self.env["plasticos.iso.journey"].search_count([]), journeys)
         self.assertEqual(post.discrepancies(self.env.cr), [])
+
+    # ── Verification round 1 (C01-REAUTH-2): D1, D3 and refinements ──────
+
+    def test_user_cannot_clear_the_company_of_a_load(self):
+        """D1: a cleared company would hide the load behind the global rule for every user."""
+        user = self._logistics_user("s2.clearco")
+        load = self.env["plasticos.load"].with_user(user).create({"company_id": self.company.id})
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            load.with_user(user).write({"company_id": False})
+        load.invalidate_recordset(["company_id"])
+        self.assertEqual(load.company_id, self.company)
+        load.write({"company_id": False})
+        self.assertFalse(load.company_id, "only the superuser may clear a company")
+
+    def test_actual_event_replay_ignores_sub_second_precision(self):
+        load = self._buyerless_load()
+        evidence = self._attach(load)
+        when = fields.Datetime.now() - timedelta(hours=3)
+        first = load.action_record_actual_event("pickup", when.replace(microsecond=250000), evidence)
+        replay = load.action_record_actual_event("pickup", when.replace(microsecond=750000), evidence)
+        self.assertEqual((first["status"], replay["status"]), ("applied", "already_applied"))
+        self.assertEqual(load.actual_pickup_at, when.replace(microsecond=0))
+        corrected = self.env["plasticos.freight.event"].search_count(
+            [("load_id", "=", load.id), ("event_type", "=", "actual_event_corrected")]
+        )
+        self.assertEqual(corrected, 0)
+
+    def _null_company(self, load):
+        self.env.cr.execute("UPDATE plasticos_load SET company_id = NULL WHERE id = %s", (load.id,))
+        load.invalidate_recordset(["company_id"])
+
+    def test_company_census_repairs_from_a_purchase_backed_parent(self):
+        pre = _migration_1420("pre-migrate.py")
+        load = self._buyerless_load()
+        tx = self._purchase_transaction()
+        load.transaction_id = tx
+        self._null_company(load)
+        repairs, refusals = pre.census(self.env.cr)
+        self.assertIn((load.id, self.company.id, "transaction_purchase_order"), repairs)
+        self.assertFalse([row for row in refusals if row[0] == load.id])
+
+    def test_company_census_refuses_conflicting_and_disagreeing_sources(self):
+        pre = _migration_1420("pre-migrate.py")
+        other = self.env["res.company"].create({"name": "S2 Census Other"})
+        order_a = self.env["sale.order"].create({"partner_id": self.buyer.id})
+        order_b = (
+            self.env["sale.order"].with_company(other).create({"partner_id": self.buyer.id, "company_id": other.id})
+        )
+        tx_b = self.env["plasticos.transaction"].create({"name": "TX-S2-CENSUS-B", "sale_order_id": order_b.id})
+        conflicting = self.env["plasticos.load"].create({"sale_order_id": order_a.id})
+        self.env.cr.execute("UPDATE plasticos_load SET transaction_id = %s WHERE id = %s", (tx_b.id, conflicting.id))
+        disagreeing = self.env["plasticos.load"].create({"sale_order_id": order_a.id})
+        self.env.cr.execute("UPDATE plasticos_load SET company_id = %s WHERE id = %s", (other.id, disagreeing.id))
+        _repairs, refusals = pre.census(self.env.cr)
+        reasons = {load_id: reason for load_id, reason, _detail in refusals}
+        self.assertEqual(reasons.get(conflicting.id), "conflicting_source_companies")
+        self.assertEqual(reasons.get(disagreeing.id), "company_disagrees_with_source")
+        message = pre.refusal_message(refusals)
+        self.assertIn("correct the wrong link", message)
+        self.assertIn("correct one of them", message)
+
+    def test_company_census_reads_the_pre_14_6_parent_column(self):
+        """Old-column path: before 14.6 the parent was plasticos_transaction.load_id."""
+        pre = _migration_1420("pre-migrate.py")
+        order = self.env["sale.order"].create({"partner_id": self.buyer.id})
+        tx_one = self.env["plasticos.transaction"].create({"name": "TX-S2-OLD-1", "sale_order_id": order.id})
+        tx_two = self.env["plasticos.transaction"].create({"name": "TX-S2-OLD-2", "sale_order_id": order.id})
+        repairable = self._buyerless_load()
+        doubled = self._buyerless_load()
+        cr = self.env.cr
+        cr.execute("ALTER TABLE plasticos_transaction ADD COLUMN IF NOT EXISTS load_id integer")
+        cr.execute("UPDATE plasticos_transaction SET load_id = %s WHERE id = %s", (repairable.id, tx_one.id))
+        cr.execute("UPDATE plasticos_transaction SET load_id = %s WHERE id = %s", (doubled.id, tx_two.id))
+        tx_three = self.env["plasticos.transaction"].create({"name": "TX-S2-OLD-3", "sale_order_id": order.id})
+        cr.execute("UPDATE plasticos_transaction SET load_id = %s WHERE id = %s", (doubled.id, tx_three.id))
+        self._null_company(repairable)
+        real_has_column = pre.has_column
+
+        def old_schema(cursor, table, column):
+            if (table, column) == ("plasticos_load", "transaction_id"):
+                return False
+            return real_has_column(cursor, table, column)
+
+        with patch.object(pre, "has_column", old_schema):
+            self.assertIn("plasticos_transaction t", pre._parent_link_sql(cr))
+            repairs, refusals = pre.census(cr)
+        self.assertIn((repairable.id, order.company_id.id, "transaction_sale_order"), repairs)
+        self.assertIn((doubled.id, "several_parent_transactions", sorted([tx_two.id, tx_three.id])), refusals)
+
+    def test_refusal_message_names_the_remedy_and_caps_the_listing(self):
+        pre = _migration_1420("pre-migrate.py")
+        refusals = [(load_id, "no_source_company", []) for load_id in range(1, 31)]
+        refusals.append((99, "several_parent_transactions", [7, 8]))
+        message = pre.refusal_message(refusals, cap=5)
+        self.assertIn("no_source_company (30 load(s))", message)
+        self.assertIn("attach its sale order", message)
+        self.assertIn("delete it if it is a stray draft", message)
+        self.assertIn("and 25 more", message)
+        self.assertNotIn(" 6,", message)
+        self.assertIn("keep exactly one parent transaction", message)

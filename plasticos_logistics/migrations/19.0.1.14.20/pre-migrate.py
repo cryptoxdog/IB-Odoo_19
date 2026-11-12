@@ -171,15 +171,43 @@ def mark_migration_done(cr):
     )
 
 
+# What an operator does about each refusal, before rerunning the upgrade.
+REMEDIES = {
+    "no_source_company": (
+        "attach its sale order, link it to a transaction backed by a purchase order of its company, "
+        "or delete it if it is a stray draft"
+    ),
+    "conflicting_source_companies": (
+        "its sale order and its parent transaction belong to different companies; correct the wrong link"
+    ),
+    "company_disagrees_with_source": "its stored company differs from its sale order or parent; correct one of them",
+    "several_parent_transactions": "keep exactly one parent transaction for the load",
+}
+REFUSAL_LISTING_CAP = 20
+
+
+def refusal_message(refusals, cap=REFUSAL_LISTING_CAP):
+    """One line per reason: count, remedy, and at most ``cap`` load ids."""
+    by_reason = {}
+    for load_id, reason, detail in refusals:
+        by_reason.setdefault(reason, []).append((load_id, detail))
+    lines = ["plasticos load company migration refused. No row was changed."]
+    for reason in sorted(by_reason):
+        rows = by_reason[reason]
+        shown = ", ".join(f"{load_id}{detail if detail else ''}" for load_id, detail in rows[:cap])
+        more = f" and {len(rows) - cap} more" if len(rows) > cap else ""
+        lines.append(
+            f"- {reason} ({len(rows)} load(s)): {REMEDIES.get(reason, 'resolve the source')}. Loads: {shown}{more}."
+        )
+    return "\n".join(lines)
+
+
 def migrate(cr, version):
     if not version:
         return
     repairs, refusals = census(cr)
     if refusals:
-        raise RuntimeError(
-            "plasticos load company migration refused. No row was changed. Give each load one "
-            f"authoritative source company before upgrading: {refusals}"
-        )
+        raise RuntimeError(refusal_message(refusals))
     for load_id, company_id, source in repairs:
         cr.execute(
             "UPDATE plasticos_load SET company_id = %s WHERE id = %s AND company_id IS NULL",

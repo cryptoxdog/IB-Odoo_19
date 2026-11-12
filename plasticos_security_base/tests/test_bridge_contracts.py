@@ -863,3 +863,36 @@ class TestLoadCompanyIsolationContract(PlasticosTestCase):
         rep = self._user("iso.rep", "plasticos_security_base.group_sales_rep")
         with self.assertRaises(AccessError):
             self.env["plasticos.iso.journey"].with_user(rep).search([])
+
+    def _security_pre_migration(self):
+        import importlib.util
+
+        from odoo.modules.module import get_module_path
+
+        path = get_module_path("plasticos_security_base") + "/migrations/19.0.1.2.25/pre-migrate.py"
+        spec = importlib.util.spec_from_file_location("security_base_pre_1912025", path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_pre_migration_preflights_active_user_company_scopes(self):
+        """M-SEC (RP-07-E012): refuse to tighten while a load-owning company has no active user."""
+        pre = self._security_pre_migration()
+        cr = self.env.cr
+        isolated = self.env["res.company"].create({"name": "Isolation Unstaffed Co"})
+        cr.execute("DELETE FROM res_company_users_rel WHERE cid = %s", (isolated.id,))
+        self._load(isolated)
+        self.assertIn(isolated.id, pre.load_companies_without_users(cr))
+        with self.assertRaises(RuntimeError):
+            pre.migrate(cr, "19.0.1.2.24")
+        self._user("iso.staffed", "plasticos_security_base.group_logistics", companies=isolated)
+        self.assertNotIn(isolated.id, pre.load_companies_without_users(cr))
+        self.assertEqual(pre.users_without_company_scope(cr), [])
+        pre.migrate(cr, "19.0.1.2.24")
+
+    def test_pre_migration_refuses_a_company_less_load(self):
+        pre = self._security_pre_migration()
+        companyless = self.env["plasticos.load"].create({"pickup_partner_id": self.pickup.id})
+        self.assertIn(companyless.id, pre.missing_company_loads(self.env.cr))
+        with self.assertRaises(RuntimeError):
+            pre.migrate(self.env.cr, "19.0.1.2.24")

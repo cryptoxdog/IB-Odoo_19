@@ -239,8 +239,9 @@
                         </group>
                         <group string="Dispatch Tracking">
                             <field name="dispatch_method"/>
-                            <!-- Stamped only by a confirmed send, never typed in. -->
-                            <field name="dispatch_sent" readonly="1"/>
+                            <!-- Direct send stamps it only on a confirmed send; an operator
+                                 records a manual (phone/SMS) dispatch here. -->
+                            <field name="dispatch_sent"/>
                             <field name="dispatch_acknowledged"/>
                         </group>
                     </group>

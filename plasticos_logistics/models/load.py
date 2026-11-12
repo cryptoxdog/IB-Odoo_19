@@ -447,6 +447,12 @@ class PlasticosLoad(models.Model):
         for rec in self:
             if rec.company_id.id == (new_company_id or False):
                 continue
+            # A load whose company is cleared would vanish behind the global
+            # company rule for every user. Only the superuser may clear it.
+            if rec.company_id and not new_company_id and not self.env.su:
+                raise ValidationError(
+                    f"Load {rec.name} keeps its company. Choose another company in Draft instead of clearing it."
+                )
             if rec.company_id and rec._company_is_locked():
                 raise ValidationError(f"Load {rec.name} has an accepted company. It cannot move to another company.")
 
@@ -1899,13 +1905,15 @@ class PlasticosLoad(models.Model):
         occurred_at = fields.Datetime.to_datetime(occurred_at)
         if not occurred_at:
             raise UserError("The actual event time is required.")
+        # Stored datetimes have whole seconds; compare a replay on the same precision.
+        occurred_at = occurred_at.replace(microsecond=0)
         if occurred_at > fields.Datetime.now():
             raise ValidationError("An actual event cannot be in the future.")
         attachment = self._require_actual_event_attachment(attachment)
         self._lock_freight_advisories("actual-event")
         self.invalidate_recordset()
         time_field, evidence_field, event_type = _ACTUAL_EVENT_KINDS[event_kind]
-        previous_at = self[time_field]
+        previous_at = self[time_field].replace(microsecond=0) if self[time_field] else self[time_field]
         previous_attachment = self[evidence_field]
         if previous_at == occurred_at and previous_attachment == attachment:
             return {"status": "already_applied", "record_id": self.id}
