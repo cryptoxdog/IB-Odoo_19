@@ -1175,7 +1175,8 @@ class PlasticosLogisticsRequest(models.Model):
         overdue after 2 business days). Linda only reads that status; it never re-times
         the rule and never writes a reminder flag. Without Documents nothing is chased.
         """
-        approved = (self.env["ir.config_parameter"].sudo().get_param(DOCUMENT_CHASE_PARAM) or "").strip().lower()
+        params = self.env["ir.config_parameter"].sudo()  # sudo: operators who chase cannot read ir.config_parameter
+        approved = (params.get_param(DOCUMENT_CHASE_PARAM) or "").strip().lower()
         if approved not in ("1", "true", "on"):
             return "document_chase_not_approved"
         if "scale_ticket_reminder_sent" not in load._fields:
