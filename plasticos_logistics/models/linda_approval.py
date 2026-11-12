@@ -218,6 +218,11 @@ class PlasticosLindaApproval(models.Model):
 
     # ── Decisions ─────────────────────────────────────────────────────
 
+    def _decided(self):
+        """The manager's decision write; approval rows are read-only to every role."""
+        decider = self.sudo()  # sudo: the manager decides; approval rows grant no write to any role
+        return decider.with_context(**{_DECISION_WRITE: _DECISION_TOKEN})
+
     def _require_approver(self):
         linda = linda_user(self.env)
         if linda and self.env.uid == linda.id:
@@ -242,9 +247,7 @@ class PlasticosLindaApproval(models.Model):
                 results.append({"status": "already_applied", "approval_id": rec.id, "reason": f"already {rec.state}"})
                 continue
             result = rec._execute()
-            rec.sudo().with_context(
-                **{_DECISION_WRITE: _DECISION_TOKEN}
-            ).write(  # sudo: the manager decides; rows stay read-only
+            rec._decided().write(
                 {
                     "state": "approved",
                     "decided_by": self.env.uid,
@@ -263,9 +266,7 @@ class PlasticosLindaApproval(models.Model):
         for rec in self:
             if not rec._locked_pending():
                 continue
-            rec.sudo().with_context(
-                **{_DECISION_WRITE: _DECISION_TOKEN}
-            ).write(  # sudo: the manager decides; rows stay read-only
+            rec._decided().write(
                 {
                     "state": "rejected",
                     "decided_by": self.env.uid,
