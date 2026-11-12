@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the single material mapping file for the ERP and VanillaSoft importers.
+"""Draft a material mapping file. The committed sheet is edited by hand.
 
 Every distinct material, form, type, and color value in the two sources gets one row
 per field role. Every target is an existing ``plasticos_material_profile`` master
@@ -13,14 +13,15 @@ Statuses:
     ambiguous          names more than one polymer, or a generic label that fits several
     unknown            names no existing master
 
-Precedence, first match wins: call notes, not-material lines, approved code phrases
-(``material_normalizer.py`` plus the 2026-11-03 decisions), grade templates, the October 14
-open statuses, then the text rule: a value that names exactly one polymer maps to it, with
+Precedence, first match wins: call notes, not-material lines, the 2026-11-03 decisions,
+grade templates, the October 14 open statuses, then the text rule: a value that names exactly
+one polymer maps to it, with
 form, source, color, attribute, filler, and process set only where an existing master is named.
 VanillaSoft free text carrying contact details is left out; an unlisted value is unresolved.
 
 Usage:
-    python3 scripts/build_material_mapping.py --vanillasoft <export.csv> [--erp WKSDetail.csv] [--out <csv>]
+    python3 scripts/build_material_mapping.py --vanillasoft <export.csv> [--erp WKSDetail.csv] --out <draft.csv>
+    Refuses to write plasticos_material_profile/data/material_mapping.csv.
 """
 
 from __future__ import annotations
@@ -334,11 +335,7 @@ def _import_repo_module(name: str, path: Path):
 
 
 def load_rules() -> dict[str, tuple[tuple, str]]:
-    normalizer = _import_repo_module("plasticos_material_normalizer", NORMALIZER)
     rules: dict[str, tuple[tuple, str]] = {}
-    for table, rule in (("_CRM_ALIASES", "approved_alias"), ("_CRM_EXACT", "crm_code"), ("_SPECS", "worksheet_phrase")):
-        for key, spec in getattr(normalizer, table).items():
-            rules[key] = (spec, rule)
     for key, spec in DECIDED_ALIASES.items():
         rules[key] = (spec, "approved_alias")
     for key, spec in DECIDED_CODES.items():
@@ -445,7 +442,7 @@ def load_web_lead_vocabulary() -> dict[str, tuple[str, str]]:
             }
     vocabulary = {}
     normalizer = _import_repo_module("plasticos_material_normalizer_words", NORMALIZER)
-    for word, code in normalizer._FORM_WORDS.items():
+    for word, code in normalizer.form_words().items():
         vocabulary[word] = ("form", code)
     for word, code in tables["_SOURCE_NORMALIZE"].items():
         vocabulary[word] = ("source_type", code.upper())
@@ -886,6 +883,9 @@ def main() -> int:
     parser.add_argument("--workbook", type=Path, help="October 14 polymer mapping decisions workbook")
     parser.add_argument("--out", default=DEFAULT_OUT, type=Path)
     args = parser.parse_args()
+    if args.out.resolve() == DEFAULT_OUT.resolve():
+        print("material_mapping.csv is edited by hand; this script does not write it", file=sys.stderr)
+        return 2
     rows = build(args.erp, args.vanillasoft, args.workbook)
     with args.out.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=COLUMNS, lineterminator="\n")

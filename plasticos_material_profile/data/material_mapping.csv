@@ -766,7 +766,7 @@ material,ldpe pallets,LDPE Pallets,erp:InvoiceDesc,2,0,mapped,names_one_polymer,
 material,ldpe post industrial rolls - clear,LDPE Post Industrial Rolls - Clear,erp:InvoiceDesc,2,0,mapped,names_one_polymer,LDPE,,ROLLSTOCK,POST_INDUSTRIAL,,,,CLEAR,,,,
 material,ldpe rolls - post industrial,LDPE Rolls - Post Industrial,erp:InvoiceDesc,2,0,mapped,names_one_polymer,LDPE,,ROLLSTOCK,POST_INDUSTRIAL,,,,,,,,
 material,"ldpe/hdpe/mdpe purge clean, no paper, no metal","LDPE/HDPE/MDPE Purge clean, no paper, no metal",erp:InvoiceDesc,2,0,ambiguous,,,,,,,,,,,,,names polymers HDPE LDPE
-material,ldpe/mdpe film rolls and post industrial bales,LDPE/MDPE Film Rolls and Post Industrial Bales,erp:InvoiceDesc,2,0,mapped,names_one_polymer,LDPE,,,POST_INDUSTRIAL,,,,,,,bales,
+material,ldpe/mdpe film rolls and post industrial bales,LDPE/MDPE Film Rolls and Post Industrial Bales,erp:InvoiceDesc,2,0,ambiguous,names_one_polymer,LDPE,,,POST_INDUSTRIAL,,,,,,,bales,names two polymers
 material,lldpe film,LLDPE Film,erp:InvoiceDesc,2,0,mapped,names_one_polymer,LLDPE,,FILM,,,,,,,,,
 material,lldpe rolls,LLDPE Rolls,erp:InvoiceDesc,2,0,mapped,names_one_polymer,LLDPE,,ROLLSTOCK,,,,,,,,,
 material,lldpe roto m/c 4-8mi,LLDPE ROTO M/C 4-8MI,erp:InvoiceDesc,2,0,mapped,names_one_polymer,LLDPE,,,,,,,,,,,
@@ -1565,7 +1565,7 @@ material,ld,ld,vanillasoft:Material (LDPE),0,1,mapped,names_one_polymer,LDPE,,,,
 material,ld film,LD Film,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE,,FILM,,,,,,,,,
 material,ld totes with metal,LD Totes With Metal,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE,TOTES,,,with_metal,,,,,,,
 material,ld/lldpe repro,LD/LLDPE Repro,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE_LLDPE,,REPRO,,,,,,,,,
-material,ldpe / mdpe mixed color film,LDPE / MDPE Mixed Color Film,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE,,FILM,,,,,MIXED,,,,
+material,ldpe / mdpe mixed color film,LDPE / MDPE Mixed Color Film,erp:InvoiceDesc,1,0,ambiguous,names_one_polymer,LDPE,,FILM,,,,,MIXED,,,,names two polymers
 material,ldpe 95% clear,LDPE 95% clear,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE,,,,,,,CLEAR,,,,
 material,ldpe 99% clear film,LDPE 99% Clear Film,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE,,FILM,,,,,CLEAR,,,,
 material,ldpe a - stretch,LDPE A - Stretch,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE,,FILM,,clean,A,LDPE_FILM_A,,,,bales,
@@ -1642,7 +1642,7 @@ material,ldpe/lldpe blue repro,LDPE/LLDPE Blue Repro,erp:InvoiceDesc,1,0,mapped,
 material,ldpe/lldpe blue/white purge,LDPE/LLDPE Blue/White Purge,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE_LLDPE,,PURGE,,,,,BLUE WHITE,,,,
 material,ldpe/lldpe repro,LDPE/LLDPE Repro,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE_LLDPE,,REPRO,,,,,,,,,
 material,ldpe/mdpe film rolls and post industrial,LDPE/MDPE Film Rolls and Post Industrial,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE,,FILM,POST_INDUSTRIAL,,,,,,,,
-material,ldpe/mdpe printed rolls,LDPE/MDPE printed rolls,erp:InvoiceDesc,1,0,mapped,names_one_polymer,LDPE,,ROLLSTOCK,,printed,,,,,,,
+material,ldpe/mdpe printed rolls,LDPE/MDPE printed rolls,erp:InvoiceDesc,1,0,ambiguous,names_one_polymer,LDPE,,ROLLSTOCK,,printed,,,,,,,names two polymers
 material,left a vm 6/6,left a vm 6/6,vanillasoft:Material (LDPE),0,1,note_not_material,call_note,,,,,,,,,,,,call-note text; kept as a note
 material,left a vm for kurt on contact date.,left a vm for kurt on contact date.,vanillasoft:Material (LDPE),0,1,note_not_material,call_note,,,,,,,,,,,,call-note text; kept as a note
 material,left a vm on 3rd,Left a VM on 3rd,vanillasoft:Material (LDPE),0,1,note_not_material,call_note,,,,,,,,,,,,call-note text; kept as a note
@@ -2143,7 +2143,7 @@ material,re-usable knockdown bins 48x45x34,Re-Usable Knockdown bins 48x45x34,erp
 material,re-usable knockdown crates - grey,Re-Usable Knockdown Crates - Grey,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,CRATES,,,reusable,,,GRAY,,,,
 material,regrinds.,regrinds.,vanillasoft:Material (LDPE),0,1,unknown,,,,,,,,,,,,,no Odoo polymer master for this material
 material,rejected - landfill charge,REJECTED - LANDFILL CHARGE,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,,names no polymer master
-material,rejected material - pet clear sheet w/ petg contamination,Rejected Material - PET Clear Sheet w/ PETG Contamination,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PET,,SHEET,,,,,CLEAR,,,,
+material,rejected material - pet clear sheet w/ petg contamination,Rejected Material - PET Clear Sheet w/ PETG Contamination,erp:InvoiceDesc,1,0,ambiguous,names_one_polymer,PET,,SHEET,,,,,CLEAR,,,,names two polymers
 material,rejected material - pet clear sheet w/ pvc contamination,Rejected Material - PET Clear Sheet w/ PVC Contamination,erp:InvoiceDesc,1,0,mapped,names_one_polymer,PET,,SHEET,,pvc_contaminated,,,CLEAR,,,,
 material,ret green trays,RET Green Trays,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,,names no polymer master
 material,reusable knockdowns,Reusable Knockdowns,erp:InvoiceDesc,1,0,mapped,names_one_polymer,HDPE,CRATES,,,reusable,,,,,,,

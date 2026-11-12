@@ -1,8 +1,7 @@
 """Filler and process survive the phrase table.
 
-The matrix columns are not a second runtime table. A phrase carries them only
-when its ``_SPECS`` entry names them, and HDPE Crates is the first phrase that
-names the injection process.
+The sheet is the phrase table. A phrase carries filler and process only when
+its mapped row names them, and HDPE Crates names the injection process.
 """
 
 from __future__ import annotations
@@ -28,7 +27,7 @@ def _load_normalizer():
 
 def test_hdpe_crates_spec_names_injection_and_the_matrix_matches():
     normalizer = _load_normalizer()
-    spec = normalizer._SPECS["hdpe crates"]
+    spec = normalizer.phrase_table()["hdpe crates"]
     assert spec == normalizer._spec(
         polymer="HDPE",
         material_grade="CRATES",

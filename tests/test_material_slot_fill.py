@@ -40,22 +40,34 @@ def test_shrink_phrases_take_shrink_wrap_and_stretch_film_stays():
     shrink = [row for row in rows.values() if "shrink" in row["match_key"]]
     assert shrink
     assert {row["material_grade"] for row in shrink} == {"SHRINK_WRAP"}
-    assert "shrink wrap" not in _load_normalizer()._SPECS
+    assert "shrink wrap" not in _load_normalizer().phrase_table()
 
 
 def test_changed_specs_match_the_matrix_and_the_drum_regrind_stores_both_colors():
     normalizer = _load_normalizer()
+    phrases = normalizer.phrase_table()
     rows = {row["match_key"]: row for row in _rows()}
-    drum = normalizer._SPECS["hdpe blue/white drum regrind"]
+    drum = phrases["hdpe blue/white drum regrind"]
     assert drum.polymer == "HDPE"
     assert drum.material_grade == "DRUMS"
     assert drum.form == "REGRIND"
     assert drum.color == ("BLUE", "WHITE")
-    skipped = normalizer._SPECS["hmw dunnage trays"]
+    skipped = phrases["hmw dunnage trays"]
     assert skipped.polymer == "HDPE_HMW"
     assert skipped.material_grade is None
-    for key, spec in normalizer._SPECS.items():
+    blends = (
+        "ldpe/mdpe film rolls and post industrial bales",
+        "ldpe / mdpe mixed color film",
+        "ldpe/mdpe printed rolls",
+        "rejected material - pet clear sheet w/ petg contamination",
+    )
+    for key in blends:
+        assert rows[key]["status"] == "ambiguous"
+        assert "two polymers" in rows[key]["note"]
+        assert key not in phrases
+    for key, spec in phrases.items():
         row = rows[key]
+        assert row["status"] == "mapped"
         assert spec.polymer == row["polymer"]
         assert (spec.material_grade or "") == row["material_grade"]
         assert (spec.form or "") == row["form"]

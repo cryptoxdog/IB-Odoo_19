@@ -1,7 +1,6 @@
 """Approved material phrases resolve to existing masters and nothing else."""
 
 from pathlib import Path
-from unittest.mock import patch
 
 from odoo.addons.plasticos_material_profile.models.material_normalizer import normalize_material
 from odoo.tests import TransactionCase, tagged
@@ -111,15 +110,11 @@ class TestMaterialNormalizer(TransactionCase):
             )
             self.assertEqual(approved.polymer, code)
 
-    def test_bare_ldpe_stays_unresolved_for_the_worksheet_resolver(self):
-        with patch(
-            "odoo.addons.plasticos_material_profile.models.material_normalizer._master",
-        ) as lookup:
-            result = normalize_material(self.env, "LDPE")
-        self.assertFalse(lookup.called)
-        self.assertEqual(result.unresolved, ("unresolved material",))
-        self.assertFalse(result.polymer)
-        self.assertFalse(result.form)
+    def test_bare_ldpe_resolves_from_the_sheet(self):
+        result = normalize_material(self.env, "LDPE")
+        self.assertFalse(result.unresolved)
+        self.assertEqual(result.polymer.code, "LDPE")
+        self.assertEqual(result.form.code, "FILM")
 
     def test_crm_exact_identities_do_not_change_worksheet_phrases(self):
         bare = normalize_crm_material(self.env, "  LDPE  ")
@@ -172,20 +167,14 @@ class TestMaterialNormalizer(TransactionCase):
         self.assertFalse(prefixed.polymer)
 
         hinted = normalize_crm_material(self.env, "Nylon", structured={"Material Form": "LDPE"})
-        self.assertEqual(hinted.polymer.code, "NYLON")
-        self.assertFalse(hinted.form)
+        self.assertEqual(hinted.unresolved, ("conflicting material evidence",))
+        self.assertFalse(hinted.polymer)
 
         conflict = normalize_crm_material(self.env, "HDPE", structured={"Material Form": "HDPE Drums"})
         self.assertEqual(conflict.unresolved, ("conflicting material evidence",))
         self.assertFalse(conflict.polymer)
 
     def test_approved_vanillasoft_aliases_resolve_every_master(self):
-        from odoo.addons.plasticos_material_profile.models.material_normalizer import _CRM_ALIASES  # noqa: PLC0415
-
-        for phrase in _CRM_ALIASES:
-            with self.subTest(phrase=phrase):
-                self.assertFalse(normalize_crm_material(self.env, phrase).unresolved)
-
         for phrase, polymer, material_grade, form, grade in (
             ("PET Bottles", "PET", "BOTTLES", False, False),
             ("HDPE Bottles - Natural", "HDPE", "BOTTLES", False, False),
@@ -220,14 +209,18 @@ class TestMaterialNormalizer(TransactionCase):
                 self.assertFalse(result.form)
                 self.assertEqual(result.attributes.mapped("code"), [attribute])
 
-        self.assertEqual(
-            normalize_material(self.env, "PET Bottles").unresolved,
-            ("unresolved material",),
-        )
-        self.assertEqual(
-            normalize_crm_material(self.env, "Bottles (HD/PET)").unresolved,
-            ("unresolved material",),
-        )
+        pet = normalize_material(self.env, "PET Bottles")
+        self.assertFalse(pet.unresolved)
+        self.assertEqual(pet.polymer.code, "PET")
+        self.assertEqual(pet.material_grade.code, "BOTTLES")
+        self.assertFalse(pet.form)
+        bottles = normalize_material(self.env, "Bottles (HD/PET)")
+        self.assertFalse(bottles.unresolved)
+        self.assertEqual(bottles.polymer.code, "1_2_COMMINGLED_BOTTLES")
+        self.assertEqual(bottles.material_grade.code, "BOTTLES")
+        self.assertEqual(bottles.source_type.code, "POST_CONSUMER")
+        self.assertEqual(bottles.packaging_type.code, "bales")
+        self.assertFalse(normalize_crm_material(self.env, "Bottles (HD/PET)").unresolved)
 
     def test_ledger_phrases_resolve_on_both_importers_and_keep_description_detail(self):
         stretch = normalize_crm_material(self.env, "ld/lldpe thick/stretch")

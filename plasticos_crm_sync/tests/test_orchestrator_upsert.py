@@ -2296,12 +2296,13 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
             )
         )
 
-    def test_worksheet_normalizer_rejects_bare_ldpe_and_conflicts(self):
+    def test_worksheet_normalizer_resolves_bare_ldpe_and_keeps_conflicts(self):
         from odoo.addons.plasticos_material_profile.models.material_normalizer import normalize_material
 
         bare = normalize_material(self.env, "LDPE")
-        self.assertEqual(bare.unresolved, ("unresolved material",))
-        self.assertFalse(bare.polymer)
+        self.assertFalse(bare.unresolved)
+        self.assertEqual(bare.polymer.code, "LDPE")
+        self.assertEqual(bare.form.code, "FILM")
         conflict = normalize_material(self.env, "HDPE Drums", structured={"type": "LDPE Film"})
         self.assertEqual(conflict.unresolved, ("conflicting material evidence",))
         self.assertFalse(conflict.polymer)
