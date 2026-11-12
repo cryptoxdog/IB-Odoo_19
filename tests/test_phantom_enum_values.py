@@ -726,6 +726,7 @@ GLOBAL_ALLOWLIST = frozenset(
         "openai",
         "anthropic",
         "mistral",
+        "deepseek",
         "gemini",
         "perplexity",
         # Gate SDK error code compared in gate_client.py — not an Odoo Selection.
