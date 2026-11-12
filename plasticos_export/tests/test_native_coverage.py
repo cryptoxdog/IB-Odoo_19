@@ -8,6 +8,8 @@ commits planned cargo through its frozen commands; these witnesses prove it
 writes none of the owners' facts. No outbound mail: Linda stays ``off``.
 """
 
+import base64
+
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import AccessError, UserError
 from odoo.tests.common import new_test_user, tagged
@@ -66,10 +68,15 @@ class TestNativeCoverage(NativeExportFixtureMixin, PlasticosTestCase):
             "applied",
         )
         self.env.flush_all()
+        pickings = self.sale.picking_ids | self.purchases.picking_ids
         watched = (
             self.sale,
+            self.sale.order_line,
             self.purchases,
-            self.sale.picking_ids | self.purchases.picking_ids,
+            self.purchases.order_line,
+            pickings,
+            pickings.move_ids,
+            pickings.move_line_ids,
             self.sale.transaction_id,
             load,
         )
@@ -82,13 +89,25 @@ class TestNativeCoverage(NativeExportFixtureMixin, PlasticosTestCase):
         self.assertEqual(self.env["stock.move"].search_count([]), moves_before)
         self.assertEqual(load.state, "draft")
 
+    def test_stamps_detect_any_stored_field_write(self):
+        """Self-test of the AC-EXP-01-004 / AC-EXP-02-006 witnesses: a non-state write is detected."""
+        before = self.stamps(self.sale, self.sale_line, self.purchase, self.purchase_line)
+        self.assertEqual(self.stamps(self.sale, self.sale_line, self.purchase, self.purchase_line), before)
+        # Neither field is ``state`` and neither moves ``write_date`` inside this transaction.
+        self.sale.note = "<p>S8 stamp self-test</p>"
+        self.purchase.note = "<p>S8 stamp self-test</p>"
+        after = self.stamps(self.sale, self.sale_line, self.purchase, self.purchase_line)
+        self.assertNotEqual(after[("sale.order", self.sale.id)], before[("sale.order", self.sale.id)])
+        self.assertNotEqual(after[("purchase.order", self.purchase.id)], before[("purchase.order", self.purchase.id)])
+
     def test_export_never_writes_an_order_incoterm(self):
         """AC-EXP-02-006 (BRS-EXP-02-R006), negative: a trade label is displayed, the order Incoterm never written."""
         fca = self.env.ref("account.incoterm_FCA")
         self.purchase.incoterm_id = fca
         self.purchase_line.name = "S8 MRP Regrind, FOB buyer pickup at mill"
         self.env.flush_all()
-        stamp = self.stamps(self.purchase, self.sale)
+        watched = (self.purchase, self.purchase_line, self.sale, self.sale_line)
+        stamp = self.stamps(*watched)
         booking, _revision = self.accepted_booking(confirmed=1)
         applied = self.commit_cargo(booking.slot_ids, {"purchase_line_id": self.purchase_line.id})
         self.assertEqual(applied["status"], "applied", applied)
@@ -99,7 +118,7 @@ class TestNativeCoverage(NativeExportFixtureMixin, PlasticosTestCase):
         self.env.flush_all()
         self.assertEqual(self.purchase.incoterm_id, fca)
         self.assertFalse(self.sale.incoterm)
-        self.assertEqual(self.stamps(self.purchase, self.sale), stamp)
+        self.assertEqual(self.stamps(*watched), stamp)
         self.assertFalse([name for name in self._export_field_names() if "incoterm" in name])
 
     def test_company_and_audience_isolation_on_native_sources(self):
@@ -126,7 +145,9 @@ class TestNativeCoverage(NativeExportFixtureMixin, PlasticosTestCase):
         )
         link = self.env[LINK].with_user(self.actor).browse(applied["record_id"])
         for text in (html, link.po_constraint_display):
-            self.assertNotIn(f"{SUPPLIER_PRICE:g}", text)
+            for rendering in ("987.65", "987,65", "987.6", "988"):
+                self.assertNotIn(rendering, text)
+        self.assertEqual(self.purchase_line.price_unit, SUPPLIER_PRICE)
         # A Logistics reader without purchase rights sees that a PO exists, not its terms.
         reader = new_test_user(
             self.env,
@@ -140,6 +161,21 @@ class TestNativeCoverage(NativeExportFixtureMixin, PlasticosTestCase):
             self.env[LINK].with_user(reader).browse(applied["record_id"]).po_constraint_display,
             "PO not readable for your role.",
         )
+        # Negative: that Export reader opens no native Documents original and no supplier invoice.
+        original = self.env["documents.document"].create(
+            {
+                "name": "supplier-invoice-original.pdf",
+                "datas": base64.b64encode(b"supplier invoice original"),
+                "access_internal": "none",
+                "company_id": self.company.id,
+            }
+        )
+        self.purchase.action_create_invoice()
+        bill = self.purchase.invoice_ids
+        self.assertEqual(bill.move_type, "in_invoice")
+        for record in (original, bill):
+            with self.assertRaises(AccessError, msg=record._name), self.env.cr.savepoint():
+                record.with_user(reader).check_access("read")
 
     def test_order_shipment_and_invoice_states_stay_scoped(self):
         """AC-EXP-06-003 (BRS-EXP-06-R003): one week's receipt keeps three PO loads and 29 SO loads open."""
@@ -193,44 +229,71 @@ class TestNativeCoverage(NativeExportFixtureMixin, PlasticosTestCase):
         )
 
     def test_partial_purchase_fulfilment_through_native_backorders(self):
-        """AC-EXP-08-003 (BRS-EXP-08-R003): four weekly receipts on one PO; three remain after week 1."""
+        """AC-EXP-08-003 (BRS-EXP-08-R003): four weekly receipts on one PO, each committed to cargo through
+        Export; three remain after week 1, and Export issues no PO and keeps no receipt counter."""
         purchases_before = self.env["purchase.order"].search_count([])
-        for week in range(1, PO_LOADS + 1):
-            self.receive_week()
-            self.assertEqual(self.purchase_line.qty_received, week)
+        po_lines_before = self.env["purchase.order.line"].search_count([])
+        booking, _revision = self.accepted_booking(confirmed=PO_LOADS)
+        slots = booking.slot_ids.sorted("slot_key")
+        for week, slot in enumerate(slots, start=1):
+            received = self.receive_week()
+            self.assertEqual(received.picking_id.state, "done")
+            facts = (self.purchase_line.product_qty, self.purchase_line.qty_received, self.purchase_line.price_unit)
+            stamp = self.stamps(self.purchase, self.purchase_line, self.purchase.picking_ids)
+            applied = self.commit_cargo(slot, self.stock_refs(received))
+            self.assertEqual(applied["status"], "applied", applied)
+            # The commitment changed no PO, PO line or receipt row, and created no PO.
+            self.assertEqual(self.stamps(self.purchase, self.purchase_line, self.purchase.picking_ids), stamp)
+            self.assertEqual(
+                (self.purchase_line.product_qty, self.purchase_line.qty_received, self.purchase_line.price_unit), facts
+            )
+            self.assertEqual(self.env["purchase.order"].search_count([]), purchases_before, week)
+            self.assertEqual(self.env["purchase.order.line"].search_count([]), po_lines_before, week)
             remaining = self.purchase_line.product_qty - self.purchase_line.qty_received
             self.assertEqual(remaining, PO_LOADS - week)
             if week == 1:
                 self.assertEqual(remaining, 3)
                 self.assertEqual(self.purchase.receipt_status, "partial")
+                self.assertEqual(len(self._open_picking(self.purchase)), 1, "native backorder, not a new PO")
         self.assertEqual(self.purchase.receipt_status, "full")
         self.assertEqual(len(self.purchase.picking_ids), PO_LOADS, "one native receipt per weekly load")
-        self.assertEqual(self.env["purchase.order"].search_count([]), purchases_before)
+        links = self.env[LINK].search([("booking_id", "=", booking.id)])
+        self.assertEqual(links.stock_move_line_id.picking_id, self.purchase.picking_ids)
+        counters = ("qty_received", "qty_done", "received", "remaining", "backorder", "quantity_done")
+        stored = self._export_field_names()
+        self.assertFalse(sorted(name for name in stored if any(word in name for word in counters)), stored)
 
     def test_partial_sale_fulfilment_and_unvalidated_booking_association(self):
-        """AC-EXP-08-004 (BRS-EXP-08-R004): one shipment leaves 29 loads open; a booking validates no picking."""
+        """AC-EXP-08-004 (BRS-EXP-08-R004): one shipment leaves 29 loads open; committing a reserved,
+        not yet delivered move line to a booking validates no picking and changes no reservation."""
         self.receive_week()
         self.receive_week()
-        delivered = self.deliver()
+        self.deliver()
         self.assertEqual(self.sale_line.qty_delivered, 1.0)
         self.assertEqual(self.sale_line.product_uom_qty - self.sale_line.qty_delivered, SO_LOADS - 1)
-        booking, _revision = self.accepted_booking(confirmed=2)
         delivery = self._open_picking(self.sale)
-        state = delivery.state
+        delivery.action_assign()
+        self.assertEqual(delivery.state, "assigned", "the backorder holds the second received load")
+        reserved = delivery.move_line_ids
+        self.assertEqual(len(reserved), 1)
+        self.assertEqual(reserved.quantity, 1.0)
+        facts = (delivery.state, delivery.move_ids.quantity, reserved.quantity, self.sale_line.qty_delivered)
+        stamp = self.stamps(self.sale, self.sale_line, delivery, delivery.move_ids, reserved)
+        booking, _revision = self.accepted_booking(confirmed=1)
         applied = self.commit_cargo(
-            booking.slot_ids[0],
+            booking.slot_ids,
             {
                 "sale_line_id": self.sale_line.id,
-                "stock_move_line_id": delivered.id,
+                "stock_move_line_id": reserved.id,
                 "physical_source_kind": "native_stock",
             },
         )
         self.assertEqual(applied["status"], "applied", applied)
-        # Cargo with no buyer yet stays unallocated to any sale.
-        unsold = self.commit_cargo(booking.slot_ids[1], {"purchase_line_id": self.purchases[1].order_line.id})
-        self.assertFalse(self.env[LINK].browse(unsold["record_id"]).sale_line_id)
-        self.assertEqual(self.sale_line.qty_delivered, 1.0, "assigning a booking decrements no SO delivery")
-        self.assertEqual(delivery.state, state, "a booking association validates no picking")
+        self.assertEqual(self.stamps(self.sale, self.sale_line, delivery, delivery.move_ids, reserved), stamp)
+        self.assertEqual(
+            (delivery.state, delivery.move_ids.quantity, reserved.quantity, self.sale_line.qty_delivered), facts
+        )
+        self.assertEqual(self.sale_line.product_uom_qty - self.sale_line.qty_delivered, SO_LOADS - 1)
 
     def test_no_direct_state_write_on_load_or_transaction(self):
         """AC-EXP-09-007 (BRS-EXP-09-R007), negative: no direct load or transaction state write."""

@@ -125,15 +125,47 @@ class TestAllocationGuard(NativeExportFixtureMixin, PlasticosTestCase):
         self.assertEqual(so_over["status"], "blocked")
         self.assertIn("SO line quantity 30", so_over["reason"])
         # Units convert natively; a unit that does not convert to the line's unit is refused.
-        dozen = self.env.ref("uom.product_uom_dozen", raise_if_not_found=False)
-        if dozen:
-            dozen_over = self.commit_cargo(slots[0], po_refs, 1.0, dozen)
-            self.assertIn("planned 16 Units would exceed", dozen_over.get("reason", ""))
+        dozen_over = self.commit_cargo(slots[0], po_refs, 1.0, self.env.ref("uom.product_uom_dozen"))
+        self.assertEqual(dozen_over["status"], "blocked")
+        self.assertIn("planned 16 Units would exceed", dozen_over["reason"])
         foreign_unit = self.commit_cargo(slots[0], po_refs, 1.0, self.lb)
         self.assertEqual(foreign_unit["status"], "blocked")
         self.assertIn("does not convert", foreign_unit["reason"])
         # An unknown planned quantity claims no number.
         self.assertEqual(self.commit_cargo(slots[0], po_refs, None, False)["status"], "applied")
+
+    def test_commits_on_one_order_line_serialize_on_one_claim_row(self):
+        """AC-EXP-08-006 (BRS-EXP-08-R006, review B3): every commit that plans on a PO or SO line bumps that
+        line's one Export-owned claim row before it counts the line, so a concurrent second commit fails to
+        serialize on that row and its retry sees the first one's quantity. No native row is written."""
+        Claim = self.env["plasticos.export.source.line.claim"]
+        first, second, third = self._slots(3)
+        refs = {"purchase_line_id": self.purchase_line.id, "sale_line_id": self.sale_line.id}
+        po_stamp = self.stamps(self.purchase, self.purchase_line, self.sale, self.sale_line)
+        self.assertEqual(self.commit_cargo(first, refs, PO_LOADS - 1)["status"], "applied")
+        po_claim = Claim.search([("purchase_line_id", "=", self.purchase_line.id)])
+        so_claim = Claim.search([("sale_line_id", "=", self.sale_line.id)])
+        self.assertEqual((len(po_claim), len(so_claim)), (1, 1))
+        self.assertEqual((po_claim.claim_count, so_claim.claim_count), (1, 1))
+        self.assertEqual(po_claim.company_id, self.company)
+        over = self.commit_cargo(second, refs, 2.0)
+        self.assertEqual(over["status"], "blocked", "the second commit counts the first one's 3 loads")
+        self.assertIn("would exceed the PO line quantity 4", over["reason"])
+        self.assertEqual(self.commit_cargo(third, refs, 1.0)["status"], "applied")
+        po_claim.invalidate_recordset()
+        so_claim.invalidate_recordset()
+        # The same row each time: one row per line, bumped by every commit that planned on it.
+        self.assertEqual(Claim.search([("purchase_line_id", "=", self.purchase_line.id)]), po_claim)
+        self.assertEqual((po_claim.claim_count, so_claim.claim_count), (3, 3))
+        self.assertEqual(self.stamps(self.purchase, self.purchase_line, self.sale, self.sale_line), po_stamp)
+        # An unknown quantity claims no number, so it takes no claim.
+        self.assertEqual(
+            self.commit_cargo(first, {"purchase_line_id": self.purchase_line.id}, None, False)["status"], "applied"
+        )
+        po_claim.invalidate_recordset()
+        self.assertEqual(po_claim.claim_count, 3)
+        # The claim row is Export's own and written only by the command: the Export actor has no write right.
+        self.assertFalse(Claim.with_user(self.actor).has_access("write"))
 
     def test_correction_and_split_are_attributed(self):
         """AC-EXP-08-006 (BRS-EXP-08-R006): corrections and splits write replaces_link_id and are attributed."""
@@ -179,6 +211,33 @@ class TestAllocationGuard(NativeExportFixtureMixin, PlasticosTestCase):
         )
         self.assertEqual(stray["status"], "blocked")
         self.assertIn("released, not replaced", stray["reason"])
+
+    def test_correction_across_bookings_checks_the_other_booking(self):
+        """AC-EXP-08-006 (BRS-EXP-08-R006, review N4): replacing cargo on another booking locks that booking
+        and requires its current revision; a stale or missing revision changes nothing."""
+        source_booking, source_revision = self.accepted_booking(confirmed=1)
+        target_booking, _target_revision = self.accepted_booking(confirmed=1)
+        refs = {"purchase_line_id": self.purchase_line.id}
+        original = self.commit_cargo(source_booking.slot_ids, refs, 2.0)
+        link = self.env[LINK].browse(original["record_id"])
+        correction = {**refs, "replaces_link_id": link.id, "correction_reason": "moved to the next sailing"}
+        missing = self.commit_cargo(target_booking.slot_ids, correction, 2.0)
+        self.assertEqual(missing["status"], "stale", missing)
+        self.assertEqual(link.state, "committed", "a stale correction releases nothing")
+        roll = self.candidate(source_booking, terms=self.terms(confirmed=1, erd_local="2026-10-09 08:00"))
+        self.assertEqual(
+            self.accept(source_booking, roll["record_id"], expected=source_revision.id)["status"], "applied"
+        )
+        stale = self.commit_cargo(
+            target_booking.slot_ids, {**correction, "replaced_booking_revision_id": source_revision.id}, 2.0
+        )
+        self.assertEqual(stale["status"], "stale", stale)
+        self.assertEqual(link.state, "committed")
+        current = source_booking.current_revision_id.id
+        moved = self.commit_cargo(target_booking.slot_ids, {**correction, "replaced_booking_revision_id": current}, 2.0)
+        self.assertEqual(moved["status"], "applied", moved)
+        self.assertEqual(link.state, "released")
+        self.assertEqual(self.env[LINK].browse(moved["record_id"]).replaces_link_id, link)
 
     def test_double_commit_past_the_command_is_refused(self):
         """AC-EXP-08-006 (BRS-EXP-08-R006): concurrency backstop: the model and a unique index refuse a twin."""

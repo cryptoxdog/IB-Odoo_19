@@ -17,13 +17,15 @@ import base64
 import itertools
 
 from odoo.tests.common import new_test_user
+from odoo.tools import SQL
 
 from .test_booking_and_revision import ExportFixtureMixin
 
 _BYTES = itertools.count(1)
 SO_LOADS = 30
 PO_LOADS = 4
-SUPPLIER_PRICE = 0.4321
+# Distinctive at any display rounding, so its absence from Export output is meaningful.
+SUPPLIER_PRICE = 987.65
 
 
 class NativeExportFixtureMixin(ExportFixtureMixin):
@@ -180,11 +182,24 @@ class NativeExportFixtureMixin(ExportFixtureMixin):
             **extra,
         }
 
-    @staticmethod
-    def stamps(*recordsets):
-        """Write date and state of native records, to prove Export wrote none of them."""
-        return {
-            (record._name, record.id): (record.write_date, record["state"] if "state" in record._fields else None)
-            for records in recordsets
-            for record in records
-        }
+    def stamps(self, *recordsets):
+        """The physical row version (``ctid``) of native records, to prove Export wrote none of them.
+
+        ``write_date`` cannot: inside one test transaction ``cr.now()`` is constant, so every
+        write stamps the same time. PostgreSQL gives every UPDATE a new row version, so any
+        write to any stored column changes the ``ctid`` even inside one transaction.
+        """
+        self.env.flush_all()
+        versions = {}
+        for records in recordsets:
+            if not records:
+                continue
+            self.env.cr.execute(
+                SQL(
+                    "SELECT id, ctid::text FROM %s WHERE id IN %s",
+                    SQL.identifier(records._table),
+                    tuple(records.ids),
+                )
+            )
+            versions.update({(records._name, row_id): ctid for row_id, ctid in self.env.cr.fetchall()})
+        return versions
