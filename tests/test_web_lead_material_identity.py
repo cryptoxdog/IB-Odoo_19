@@ -58,8 +58,8 @@ def _form_normalize_values() -> list[str]:
 
 FORM_NORMALIZE_VALUES = sorted(set(_form_normalize_values()))
 NORMALIZER = _load(PROFILE / "models" / "material_normalizer.py", "_web_lead_identity_normalizer")
-FORM_WORD_CODES = sorted(set(NORMALIZER._FORM_WORDS.values()))
-GRADE_WORD_CODES = sorted(set(NORMALIZER._GRADE_WORDS.values()))
+FORM_WORD_CODES = sorted(set(NORMALIZER.form_words().values()))
+GRADE_WORD_CODES = sorted(set(NORMALIZER.grade_words().values()))
 
 
 def _eligibility(lbs: float, *, polymer=None, form=None, grade=None):
@@ -81,7 +81,7 @@ def test_grade_and_form_registries_are_disjoint() -> None:
 def test_normalizer_word_tables_keep_forms_and_grades_apart() -> None:
     assert [code for code in FORM_WORD_CODES if code not in FORM_CODES] == []
     assert [code for code in GRADE_WORD_CODES if code not in GRADE_CODES] == []
-    assert not set(NORMALIZER._FORM_WORDS) & set(NORMALIZER._GRADE_WORDS)
+    assert not set(NORMALIZER.form_words()) & set(NORMALIZER.grade_words())
 
 
 def test_every_web_lead_material_code_is_a_form_or_a_grade() -> None:
@@ -219,7 +219,7 @@ def test_broker_snapshot_carries_the_intake_material_grade() -> None:
         ("crates.", None, "CRATES"),
         ("(totes)", None, "TOTES"),
         ("film.", "FILM", None),
-        ("re-useable,", "OTHER", None),
+        ("regrind,", "REGRIND", None),
         ("pal,lets", None, None),
         ("...", None, None),
     ],

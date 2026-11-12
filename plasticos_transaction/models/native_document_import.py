@@ -1594,11 +1594,12 @@ def _material_line_values(importer, report, model_name, existing, detail_id, nor
         ("source_type_id", "source_type"),
         ("color_id", "color"),
         ("packaging_type_id", "packaging_type"),
+        ("filler_type_id", "filler_type"),
     ):
         if field_name not in fields:
             continue
         resolved = getattr(normalized, attr, None)
-        if not resolved:
+        if not resolved or len(resolved) != 1:
             continue
         current = existing[field_name] if existing is not None else resolved.browse()
         if not current:
@@ -1607,6 +1608,17 @@ def _material_line_values(importer, report, model_name, existing, detail_id, nor
             stored = getattr(current, "code", None) or current.display_name
             wanted = getattr(resolved, "code", None) or resolved.display_name
             report.anomaly("WKSDetail", detail_id, f"{field_name} stored {stored}, normalizer {wanted}; kept")
+    process = getattr(normalized, "process_type", None)
+    if process and "origin_process_type" in fields:
+        current = existing.origin_process_type if existing is not None else False
+        if not current:
+            values["origin_process_type"] = process
+        elif current != process:
+            report.anomaly(
+                "WKSDetail",
+                detail_id,
+                f"origin_process_type stored {current}, normalizer {process}; kept",
+            )
     if normalized.attributes and "material_attribute_ids" in fields:
         current = existing.material_attribute_ids if existing is not None else normalized.attributes.browse()
         missing = normalized.attributes - current

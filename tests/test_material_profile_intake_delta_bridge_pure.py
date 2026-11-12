@@ -75,6 +75,12 @@ def _fake_intake(**kwargs):
 
 
 class TestIntakeToProfileValueMapping(unittest.TestCase):
+    def test_intake_color_is_written_as_profile_colors(self):
+        color = SimpleNamespace(id=7)
+        vals = build_material_profile_vals_from_intake(_fake_intake(color_id=color))
+        self.assertNotIn("color_id", vals)
+        self.assertEqual(vals["color_ids"], [(6, 0, [7])])
+
     def test_intake_mfi_maps_to_melt_flow_index(self):
         intake = _fake_intake(mfi_value=22.5)
         vals = build_material_profile_vals_from_intake(intake)

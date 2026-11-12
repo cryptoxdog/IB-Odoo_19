@@ -17,7 +17,6 @@ RELATION_FIELDS = (
     "polymer_id",
     "material_grade_id",
     "form_id",
-    "color_id",
     "packaging_type_id",
     "source_type_id",
     "filler_type_id",
@@ -185,6 +184,7 @@ class PlasticosOpportunityMaterial(models.Model):
             "freeform_notes": profile.freeform_notes or False,
             "material_attribute_ids": [(6, 0, profile.material_attribute_ids.ids)],
         }
+        vals["color_id"] = profile._sole_color().id or False
         for name in RELATION_FIELDS:
             related = profile[name]
             vals[name] = related.id if related else False

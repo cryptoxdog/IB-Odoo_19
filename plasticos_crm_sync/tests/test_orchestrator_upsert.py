@@ -2256,14 +2256,28 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(profile.packaging_type_id.code, "bales")
         self.assertEqual(profile.material_attribute_ids.mapped("code"), ["lined"])
         red = self.env["plasticos.material.color"].search([("code", "=", "RED")], limit=1)
-        profile.write({"packaging_type_id": False, "color_id": red.id})
+        profile.write({"packaging_type_id": False, "color_ids": [(6, 0, [red.id])]})
         orch.error_rows.clear()
         orch._upsert_lead(self.connection, self._lead("vs-sacks", custom_fields={"Materials": "Super Sacks"}))
         profile = self._profiles(facility)
         self.assertEqual(profile.packaging_type_id.code, "bales")
-        self.assertEqual(profile.color_id.code, "RED")
+        self.assertEqual(profile.color_ids.mapped("code"), ["RED"])
         self.assertEqual(profile.material_attribute_ids.mapped("code"), ["lined"])
         self.assertFalse(any(row.get("category") == REQUIRED_MAPPING for row in orch.error_rows))
+
+    def test_hdpe_crates_fill_injection_process(self):
+        facility = self._facility("HDPE Crate Facility")
+        orch = SyncOrchestrator(self.env)
+        orch.outcomes = _new_outcomes()
+        lead = orch._upsert_lead(self.connection, self._lead("vs-crates"))
+        lead.partner_id = facility
+        orch._upsert_lead(self.connection, self._lead("vs-crates", custom_fields={"Materials": "HDPE Crates"}))
+        profile = self._profiles(facility)
+        self.assertEqual(profile.polymer_id.code, "HDPE")
+        self.assertEqual(profile.material_grade_id.code, "CRATES")
+        self.assertEqual(profile.packaging_type_id.code, "loose")
+        self.assertFalse(profile.filler_type_id)
+        self.assertEqual(profile.origin_process_type, "injection")
 
     def test_mixed_density_repro_stays_unresolved(self):
         facility = self._facility("Regrind Replay")
@@ -2282,12 +2296,13 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
             )
         )
 
-    def test_worksheet_normalizer_rejects_bare_ldpe_and_conflicts(self):
+    def test_worksheet_normalizer_resolves_bare_ldpe_and_keeps_conflicts(self):
         from odoo.addons.plasticos_material_profile.models.material_normalizer import normalize_material
 
         bare = normalize_material(self.env, "LDPE")
-        self.assertEqual(bare.unresolved, ("unresolved material",))
-        self.assertFalse(bare.polymer)
+        self.assertFalse(bare.unresolved)
+        self.assertEqual(bare.polymer.code, "LDPE")
+        self.assertEqual(bare.form.code, "FILM")
         conflict = normalize_material(self.env, "HDPE Drums", structured={"type": "LDPE Film"})
         self.assertEqual(conflict.unresolved, ("conflicting material evidence",))
         self.assertFalse(conflict.polymer)

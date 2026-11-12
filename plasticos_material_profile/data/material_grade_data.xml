@@ -179,6 +179,12 @@
     <field name="description">Stretch and pallet wrap film.</field>
     <field name="sequence">190</field>
   </record>
+  <record id="material_grade_shrink_wrap" model="plasticos.material.grade">
+    <field name="name">Shrink Wrap</field>
+    <field name="code">SHRINK_WRAP</field>
+    <field name="description">Shrink wrap film.</field>
+    <field name="sequence">191</field>
+  </record>
   <record id="material_grade_silage_film" model="plasticos.material.grade">
     <field name="name">Silage Film</field>
     <field name="code">SILAGE_FILM</field>

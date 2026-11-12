@@ -202,7 +202,7 @@ PVB,5,5,UNMAPPED,mapped,crm_code,PVB,,,,,master added 2026-11-03; wired 2026-11-
 UBC,5,5,UNMAPPED,mapped,crm_code,UBC,,,,,master added 2026-11-03; wired 2026-11-05
 TPV,4,4,UNMAPPED,mapped,crm_code,TPV,,,,,master added 2026-11-03; wired 2026-11-05
 Other,3,3,UNMAPPED,not_material,no_polymer_identity,,,,,,generic/non-plastic/compound description; cannot resolve to single polymer profile
-Compression Molded,2,2,UNMAPPED,not_material,no_polymer_identity,,,,,,generic/non-plastic/compound description; cannot resolve to single polymer profile
+Compression Molded,2,2,UNMAPPED,mapped,operator_named,PLASTIC_PALLETS,PALLETS,,,,,
 etc.,2,2,UNMAPPED,not_material,no_polymer_identity,,,,,,generic/non-plastic/compound description; cannot resolve to single polymer profile
 IBC Totes (HMW),2,2,UNMAPPED,mapped,approved_alias,HDPE_HMW,,,,,wired 2026-11-05
 Knock-Down Crates,2,2,UNMAPPED,mapped,approved_alias,HDPE,CRATES,,,,wired 2026-11-05

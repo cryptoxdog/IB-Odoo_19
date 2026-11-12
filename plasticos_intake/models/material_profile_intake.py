@@ -70,7 +70,7 @@ class PlasticosMaterialProfileIntake(models.Model):
                 "default_facility_id": self.partner_id.id,
                 "default_polymer_id": self.polymer_id.id,
                 "default_form_id": self.form_id.id if self.form_id else False,
-                "default_color_id": self.color_id.id if self.color_id else False,
+                "default_color_id": self._sole_color().id or False,
                 "default_source_type_id": self.source_type_id.id if self.source_type_id else False,
                 "default_packaging_type_id": self.packaging_type_id.id if self.packaging_type_id else False,
                 "default_material_grade_id": self.material_grade_id.id if self.material_grade_id else False,

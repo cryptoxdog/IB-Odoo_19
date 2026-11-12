@@ -429,7 +429,7 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
         self.assertEqual(len(profile), 1)
         self.assertEqual(profile.quantity_per_load_lbs, 40000)
         self.assertEqual(profile.loads_per_month, 4)
-        self.assertEqual(profile.color_id.code, "BLUE")
+        self.assertEqual(profile.color_ids.mapped("code"), ["BLUE"])
         profile.quantity_per_load_lbs = 1000
         orch._upsert_lead(
             self.connection,
@@ -445,7 +445,7 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
         )
         self.assertEqual(profile.quantity_per_load_lbs, 1000)
         self.assertEqual(profile.loads_per_month, 4)
-        self.assertEqual(profile.color_id.code, "BLUE")
+        self.assertEqual(profile.color_ids.mapped("code"), ["BLUE"])
 
     def test_pps_notes_attach_only_to_a_distinguished_profile(self):
         orch = SyncOrchestrator(self.env)

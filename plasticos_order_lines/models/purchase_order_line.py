@@ -111,7 +111,7 @@ class PurchaseOrderLine(models.Model):
 
         # Pre-fill material fields
         self.material_grade_id = profile.material_grade_id.id if profile.material_grade_id else False
-        self.color_id = profile.color_id.id if profile.color_id else False
+        self.color_id = profile._sole_color().id or False
         self.form_id = profile.form_id.id if profile.form_id else False
         self.packaging_type_id = profile.packaging_type_id.id if profile.packaging_type_id else False
         self.source_type_id = profile.source_type_id.id if profile.source_type_id else False
