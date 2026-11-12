@@ -111,6 +111,11 @@ def _ledger(ledger_id, number, source, adj_type, approved, sale="0", cost="0", c
 
 
 @tagged("post_install", "-at_install")
+def _origin_key(origin):
+    """Total order over Odoo Char values that may be False."""
+    return (origin is not False, origin or "")
+
+
 class TestErpWorksheetImport(TransactionCase):
     @classmethod
     def setUpClass(cls):
@@ -220,8 +225,10 @@ class TestErpWorksheetImport(TransactionCase):
                 for tx in self.Transaction.search([])
             ),
             "moves": sorted((move.id, move.move_type, move.state, round(move.amount_total, 2)) for move in moves),
-            "sale_origins": sorted(self.env["sale.order"].search([]).mapped("origin")),
-            "purchase_origins": sorted(self.env["purchase.order"].search([]).mapped("origin")),
+            # S6: orders that already exist may have no origin (False). Sort False before text,
+            # keeping every value, so the whole-database replay comparison stays exact.
+            "sale_origins": sorted(self.env["sale.order"].search([]).mapped("origin"), key=_origin_key),
+            "purchase_origins": sorted(self.env["purchase.order"].search([]).mapped("origin"), key=_origin_key),
         }
 
     # ── F1: tax configuration is never written ──────────────────────────────
