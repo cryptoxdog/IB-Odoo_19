@@ -342,6 +342,35 @@ class TestOpportunityApproval(PlasticosTestCase):
         self.assertEqual(self.profile.quantity_per_load_lbs, 40000, "the sheet never writes the profile")
         self.assertEqual(self.profile.contamination_percent, 2.5)
 
+    def test_lot_names_the_profile_the_sheet_was_copied_from(self):
+        """Switching the opportunity's profile does not recopy the sheet, so the lot keeps the sheet's own profile."""
+        opportunity = self._opportunity()
+        sheet = opportunity.opportunity_material_ids
+        other_polymer = self._get_or_create_polymer(code="LDPE", name="LDPE")
+        other_profile = self.env["plasticos.material.profile"].create(
+            {
+                "partner_id": self.supplier.id,
+                "polymer_id": other_polymer.id,
+                "form_id": self.form.id,
+                "quantity_per_load_lbs": 15000,
+                "contamination_percent": 7.0,
+            }
+        )
+        opportunity.material_profile_id = other_profile
+        self.assertEqual(opportunity.opportunity_material_ids, sheet, "a profile change does not recopy the sheet")
+        self.assertEqual(sheet.source_profile_id, self.profile)
+
+        run, sent = self._match(opportunity)
+
+        lot = run.approval_id
+        self.assertEqual(lot.material_profile_id, self.profile, "the lot names the sheet's source profile")
+        self.assertEqual(lot.snapshot["material_profile_id"], self.profile.id)
+        self.assertEqual(lot.snapshot["opportunity_material_id"], sheet.id)
+        self.assertEqual(
+            lot.snapshot["quantity_per_load_lbs"], 40000, "values come from the sheet, not the new profile"
+        )
+        self.assertEqual(sent["payload"]["query"]["material_profile_id"], self.profile.id)
+
     def test_sheet_edit_after_match_does_not_rewrite_the_lot(self):
         opportunity = self._opportunity()
         run, _sent = self._match(opportunity)

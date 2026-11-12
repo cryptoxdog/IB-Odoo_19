@@ -243,7 +243,10 @@ class PlasticosOpportunityApproval(models.Model):
         Every call is a new lot: two commands on one partner and profile are two
         independent snapshots and are never collapsed. The material values are
         the opportunity's material sheet as it stands now; the profile supplies
-        them only when the opportunity has no sheet.
+        them only when the opportunity has no sheet. When the sheet names the
+        profile it was copied from, the lot records that profile, not
+        ``material_profile``, so the lot never pairs one profile's id with
+        another profile's values.
         """
         from odoo.addons.plasticos_matching.canonical_digest import _canonical_digest  # noqa: PLC0415
 
@@ -253,6 +256,11 @@ class PlasticosOpportunityApproval(models.Model):
         if source not in dict(APPROVAL_SOURCES):
             raise ValidationError(_("Unknown approval source %s.") % source)
         material = opportunity.opportunity_material_ids[:1] or None
+        if material and material.source_profile_id:
+            # The sheet is copied once; a later profile change on the opportunity
+            # does not recopy it. The lot names the profile its frozen values came
+            # from, so values and provenance never describe two different profiles.
+            material_profile = material.source_profile_id
         snapshot = self._material_snapshot(
             partner, material_profile, facility_profile, source_intake, material=material
         )
