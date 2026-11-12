@@ -1,6 +1,6 @@
 {
     "name": "Plasticos Logistics Engine",
-    "version": "19.0.1.14.19",
+    "version": "19.0.1.14.20",
     "summary": "Load management and dispatch",
     "author": "Igor Beylin",
     "license": "LGPL-3",
@@ -34,6 +34,7 @@
         "views/load_ux.xml",
         "views/transaction_load_views.xml",
         "views/linda_response_views.xml",
+        "views/iso_journey_views.xml",
         "report/load_reports.xml",
         "report/report_bol_pickup.xml",
         "report/report_bol_delivery.xml",

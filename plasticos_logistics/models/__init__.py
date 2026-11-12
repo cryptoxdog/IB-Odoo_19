@@ -11,6 +11,9 @@ from . import linda_response
 from . import purchase_order_inherit
 from . import mail_mail_inherit
 
+# J1/J2 physical journeys: registered before the SQL dashboard and its consumers.
+from . import iso_journey
+
 # load_dashboard MUST import last: its SQL VIEW reads plasticos_load.transaction_id.
 # Importing it before load.py builds the VIEW before that column exists on a fresh
 # install and crashes registry load.

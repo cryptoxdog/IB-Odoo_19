@@ -36,6 +36,26 @@ _PARENT_CORRECTION_TOKEN = object()
 _SCALE_TICKET_INTERNAL_WRITE = "plasticos_load_scale_ticket_status_write"
 _SCALE_TICKET_INTERNAL_WRITE_TOKEN = object()
 _SCALE_TICKET_STATUS_FIELDS = frozenset({"scale_ticket_reminder_sent", "scale_ticket_escalated"})
+# Actual physical event clocks (BRS-EXP-10-R007). Only action_record_actual_event
+# writes them; a state change or an import never does.
+_ACTUAL_EVENT_INTERNAL_WRITE = "plasticos_load_actual_event_write"
+_ACTUAL_EVENT_INTERNAL_WRITE_TOKEN = object()
+_ACTUAL_EVENT_FIELDS = frozenset(
+    {
+        "actual_pickup_at",
+        "actual_delivery_at",
+        "pickup_evidence_attachment_id",
+        "delivery_evidence_attachment_id",
+    }
+)
+_ACTUAL_EVENT_KINDS = {
+    "pickup": ("actual_pickup_at", "pickup_evidence_attachment_id", "actual_pickup_recorded"),
+    "delivery": ("actual_delivery_at", "delivery_evidence_attachment_id", "actual_delivery_recorded"),
+}
+# Operations that issue a NEW physical instruction to a carrier or site. Recording
+# an event that already happened (picked_up, delivered, actual clocks) is not one.
+PHYSICAL_RELEASE_OPERATIONS = ("schedule", "dispatch", "dispatch_packet", "carrier_document")
+_RELEASE_STATES = {"scheduled": "schedule", "dispatched": "dispatch"}
 _MILESTONE_LOAD_STATES = {
     "dispatched": ("dispatched", "picked_up", "delivered", "closed"),
     "in_transit": ("picked_up", "delivered", "closed"),
@@ -63,6 +83,10 @@ _DUPLICATE_CLEARED_FIELDS = (
     "dispatch_acknowledged",
     "scale_ticket_reminder_sent",
     "scale_ticket_escalated",
+    "actual_pickup_at",
+    "actual_delivery_at",
+    "pickup_evidence_attachment_id",
+    "delivery_evidence_attachment_id",
 )
 
 
@@ -75,8 +99,17 @@ class PlasticosLoad(models.Model):
         required=True, default=lambda self: self.env["ir.sequence"].next_by_code(PLASTICOS_LOAD) or "New"
     )
     sale_order_id = fields.Many2one("sale.order", ondelete="restrict")
+    # Source-proven company (ADR-130). Taken from the sale order when there is one;
+    # otherwise named explicitly for a buyerless movement. Never env.company.
+    # Immutable once the load leaves Draft, has a parent, or carries evidence.
     company_id = fields.Many2one(
-        "res.company", related="sale_order_id.company_id", store=True, readonly=True, index=True, ondelete="restrict"
+        "res.company",
+        string="Company",
+        index=True,
+        ondelete="restrict",
+        tracking=True,
+        help="The load's own source company: its sale order's company, or the company named for a "
+        "buyerless movement. It is never the user's current company by default.",
     )
     carrier_id = fields.Many2one(RES_PARTNER, string="Carrier", ondelete="restrict")
     rate_amount = fields.Float(string="Rate Amount")
@@ -153,6 +186,36 @@ class PlasticosLoad(models.Model):
 
     bol_pickup_attached = fields.Boolean(default=False)
     bol_delivery_attached = fields.Boolean(default=False)
+
+    # ── Actual physical event clocks (BRS-EXP-10-R007) ──────────────
+    # Distinct from the scheduled pickup/delivery times and from the workflow
+    # timestamps dispatched_at/delivered_at. Empty means unknown.
+    actual_pickup_at = fields.Datetime(
+        string="Actual Pickup",
+        readonly=True,
+        tracking=True,
+        help="When the cargo was actually picked up, from attributed evidence. Empty means unknown.",
+    )
+    actual_delivery_at = fields.Datetime(
+        string="Actual Delivery",
+        readonly=True,
+        tracking=True,
+        help="When the cargo was actually delivered, from attributed evidence. Empty means unknown.",
+    )
+    pickup_evidence_attachment_id = fields.Many2one(
+        "ir.attachment",
+        string="Pickup Evidence",
+        readonly=True,
+        ondelete="restrict",
+        help="Original document attached to this load that attests the actual pickup.",
+    )
+    delivery_evidence_attachment_id = fields.Many2one(
+        "ir.attachment",
+        string="Delivery Evidence",
+        readonly=True,
+        ondelete="restrict",
+        help="Original document attached to this load that attests the actual delivery.",
+    )
 
     entered_state_at = fields.Datetime(default=fields.Datetime.now, index=True)
     sla_breached = fields.Boolean(default=False, index=True)
@@ -298,6 +361,14 @@ class PlasticosLoad(models.Model):
         audit events.
         """
         internal_freight_write = self.env.context.get(_FREIGHT_INTERNAL_WRITE) is _FREIGHT_INTERNAL_WRITE_TOKEN
+        vals_list = [self._resolve_source_company(dict(vals), creating=True) for vals in vals_list]
+        for vals in vals_list:
+            actual = {name for name in _ACTUAL_EVENT_FIELDS.intersection(vals) if vals.get(name)}
+            if actual:
+                raise UserError(
+                    "Actual pickup and delivery are recorded only from attributed evidence, "
+                    f"through Record Actual Event: {', '.join(sorted(actual))}"
+                )
         if not internal_freight_write:
             for vals in vals_list:
                 if vals.get("state") not in (None, False, "draft"):
@@ -328,6 +399,69 @@ class PlasticosLoad(models.Model):
         if direct_parent_ids:
             records._touch_membership_epoch(direct_parent_ids)
         return records
+
+    # ── Source company (ADR-130, BRS-EXP-08-R008) ─────────────────────
+
+    def _check_company_allowed(self, company):
+        """An explicitly named company must be one the acting user may work in."""
+        if self.env.su or not company:
+            return
+        if company not in self.env.user.company_ids:
+            raise AccessError(f"You cannot create or move a load in company {company.display_name}.")
+
+    def _resolve_source_company(self, vals, creating=False):
+        """Derive the load company from its sale order, or check the named one.
+
+        The sale order is the source when there is one, and a different named
+        company is refused. A buyerless movement names its company explicitly;
+        the acting user's current company is never taken as the source.
+        """
+        sale_order_id = vals.get("sale_order_id")
+        named_company_id = vals.get("company_id")
+        if sale_order_id:
+            source_company = self.env["sale.order"].browse(sale_order_id).company_id
+            if named_company_id and source_company and named_company_id != source_company.id:
+                raise ValidationError("A load's company must be the company of its sale order.")
+            if source_company:
+                vals["company_id"] = source_company.id
+        elif named_company_id:
+            self._check_company_allowed(self.env["res.company"].browse(named_company_id))
+        elif creating and not self.env.su:
+            raise UserError(
+                "A load needs its source company: choose its sale order, or name the company for a buyerless movement."
+            )
+        return vals
+
+    def _company_is_locked(self):
+        """The company is accepted once the load leaves Draft, has a parent, or carries evidence."""
+        self.ensure_one()
+        return bool(
+            self.state != "draft"
+            or self.transaction_id
+            or self._has_freight_provenance()
+            or self.actual_pickup_at
+            or self.actual_delivery_at
+        )
+
+    def _guard_company_change(self, new_company_id):
+        for rec in self:
+            if rec.company_id.id == (new_company_id or False):
+                continue
+            if rec.company_id and rec._company_is_locked():
+                raise ValidationError(f"Load {rec.name} has an accepted company. It cannot move to another company.")
+
+    @api.onchange("sale_order_id")
+    def _onchange_sale_order_company(self):
+        for rec in self:
+            if rec.sale_order_id and rec.sale_order_id.company_id:
+                rec.company_id = rec.sale_order_id.company_id
+
+    @api.constrains("company_id", "sale_order_id")
+    def _check_company_matches_sale_order(self):
+        for rec in self:
+            source_company = rec.sale_order_id.company_id
+            if source_company and rec.company_id != source_company:
+                raise ValidationError(f"Load {rec.name}: its company must be the company of its sale order.")
 
     def _touch_membership_epoch(self, parent_ids=None):
         """Bump parent row versions when load membership changes.
@@ -404,21 +538,50 @@ class PlasticosLoad(models.Model):
         for transaction_id, loads in grouped.items():
             loads._write_transaction_parent(transaction_id)
 
-    def _parent_identity_error(self, transaction):
-        """Refuse a new parent whose commercial identity is missing or different."""
+    def _parent_route(self, transaction):
+        """``sale`` when either side names a sale order, else ``purchase`` (buyerless)."""
         self.ensure_one()
-        if not self.sale_order_id or not transaction.sale_order_id:
-            return "A load and its transaction both need a sale order."
-        if self.sale_order_id != transaction.sale_order_id:
-            return "A load must use the same sale order as its transaction."
+        return "sale" if (self.sale_order_id or transaction.sale_order_id) else "purchase"
+
+    def _parent_identity_error(self, transaction):
+        """Refuse a new parent whose commercial identity is missing or different.
+
+        Two routes (BRS-EXP-08-R008, BRS-EXP-10-R008):
+
+        * sale-backed: the load and its transaction share one sale order and its
+          company, and the transaction names a real supplier and buyer;
+        * purchase-backed (buyerless): neither side has a sale order; the
+          transaction has its supplier purchase orders, all in the load's proven
+          company, and its supplier. No buyer is required or invented.
+
+        Every purchase order on the transaction must belong to the load's company.
+        """
+        self.ensure_one()
         load_company = self.company_id
-        transaction_company = transaction.sale_order_id.company_id
-        if bool(load_company) != bool(transaction_company) or (
-            load_company and transaction_company and load_company != transaction_company
-        ):
+        purchase_companies = transaction.purchase_order_ids.company_id if transaction.purchase_order_ids else None
+        if self._parent_route(transaction) == "sale":
+            if not self.sale_order_id or not transaction.sale_order_id:
+                return "A load and its transaction both need a sale order."
+            if self.sale_order_id != transaction.sale_order_id:
+                return "A load must use the same sale order as its transaction."
+            transaction_company = transaction.sale_order_id.company_id
+            if bool(load_company) != bool(transaction_company) or (
+                load_company and transaction_company and load_company != transaction_company
+            ):
+                return "A load cannot join a transaction across companies or with an unknown company."
+            if purchase_companies and purchase_companies != load_company:
+                return "A load cannot join a transaction whose purchase orders belong to another company."
+            if not transaction.supplier_id or not transaction.buyer_id:
+                return "Cannot link a load until the transaction has both a supplier and a buyer."
+            return None
+        if not load_company:
+            return "A buyerless load needs its proven company before it can join a transaction."
+        if not transaction.purchase_order_ids:
+            return "A load without a sale order can join only a transaction backed by its supplier purchase order."
+        if purchase_companies != load_company:
             return "A load cannot join a transaction across companies or with an unknown company."
-        if not transaction.supplier_id or not transaction.buyer_id:
-            return "Cannot link a load until the transaction has both a supplier and a buyer."
+        if not transaction.supplier_id:
+            return "Cannot link a buyerless load until the transaction has its supplier."
         return None
 
     def _join_milestone_error(self, transaction):
@@ -703,11 +866,24 @@ class PlasticosLoad(models.Model):
         - Cron-managed fields (sla_breached)
         - Chatter fields (message_ids, message_follower_ids)
         """
+        vals = dict(vals)
+        if "sale_order_id" in vals or "company_id" in vals:
+            if vals.get("sale_order_id") or vals.get("company_id"):
+                self._resolve_source_company(vals)
+            if "company_id" in vals:
+                self._guard_company_change(vals.get("company_id"))
         freight_fields = set(vals)
         internal_freight_write = self.env.context.get(_FREIGHT_INTERNAL_WRITE) is _FREIGHT_INTERNAL_WRITE_TOKEN
         internal_scale_ticket_write = (
             self.env.context.get(_SCALE_TICKET_INTERNAL_WRITE) is _SCALE_TICKET_INTERNAL_WRITE_TOKEN
         )
+        internal_actual_event_write = (
+            self.env.context.get(_ACTUAL_EVENT_INTERNAL_WRITE) is _ACTUAL_EVENT_INTERNAL_WRITE_TOKEN
+        )
+        if _ACTUAL_EVENT_FIELDS.intersection(freight_fields) and not internal_actual_event_write:
+            raise UserError(
+                "Actual pickup and delivery are recorded only from attributed evidence, through Record Actual Event."
+            )
         if not internal_freight_write:
             if "state" in freight_fields:
                 raise UserError("Load state may only change through the validated transition workflow.")
@@ -762,6 +938,8 @@ class PlasticosLoad(models.Model):
                     allowed.update(_FREIGHT_ACTUAL_INPUT_FIELDS | {"actual_freight_recorded_at"})
                 if internal_scale_ticket_write:
                     allowed.update(_SCALE_TICKET_STATUS_FIELDS)
+                if internal_actual_event_write:
+                    allowed.update(_ACTUAL_EVENT_FIELDS)
                 blocked = set(vals.keys()) - allowed
                 if blocked:
                     raise UserError(f"Load locked after dispatch. Cannot modify: {', '.join(sorted(blocked))}")
@@ -1329,12 +1507,17 @@ class PlasticosLoad(models.Model):
         return action
 
     def action_confirm_rate(self, rate=None):
-        """Confirm a manually supplied rate through the canonical rate path."""
-        from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
+        """Confirm a manually supplied rate through the canonical rate path.
+
+        An intake-backed load keeps its legacy v3 context. A buyerless or manual
+        load with no repeat stream uses the separately versioned manual context:
+        the missing stream makes Same As Last ineligible, not the manual rate.
+        """
+        from odoo.addons.plasticos_logistics.services.freight_context import select_manual_rate_context
 
         for rec in self:
             rec._require_freight_operator()
-            context = build_freight_context(rec)
+            context = select_manual_rate_context(rec)
             if not context:
                 raise UserError("A complete freight context is required before confirming a manual rate.")
             rec._confirm_freight_rate(
@@ -1343,6 +1526,7 @@ class PlasticosLoad(models.Model):
                 currency=rec.rate_currency_id,
                 resolution_method="manual",
                 context_fingerprint=context.fingerprint,
+                context_version=context.version,
             )
 
     _RFQ_CANCEL_EVENT_TYPES = {
@@ -1481,17 +1665,25 @@ class PlasticosLoad(models.Model):
         context_fingerprint=None,
         sal_source_load=None,
         resolving_request=None,
+        context_version=None,
     ):
         """Single serialized state-machine convergence point for all freight rates.
 
         ``resolving_request`` is the RFQ episode whose selected quote produced this
         confirmation; it is left for the caller to resolve while every other
         active episode on the load is cancelled as orphaned.
+        ``context_version`` defaults to the legacy v3 context. Only a manual rate
+        may use the manual context; SAL and live quotes stay on v3.
         """
         from odoo.addons.plasticos_logistics.services.freight_context import (
+            FREIGHT_CONTEXT_MANUAL_VERSION,
             FREIGHT_CONTEXT_VERSION,
-            build_freight_context,
+            build_freight_context_for_version,
         )
+
+        context_version = context_version or FREIGHT_CONTEXT_VERSION
+        if context_version == FREIGHT_CONTEXT_MANUAL_VERSION and resolution_method != "manual":
+            raise ValidationError("A manual freight context cannot confirm a Same As Last or quoted rate.")
 
         for rec in self:
             rec._require_freight_operator()
@@ -1514,7 +1706,7 @@ class PlasticosLoad(models.Model):
             carrier_company = getattr(carrier, "company_id", False)
             if carrier_company and company and carrier_company != company:
                 raise ValidationError("Confirmed freight carrier belongs to a different company.")
-            current_context = build_freight_context(rec)
+            current_context = build_freight_context_for_version(rec, context_version)
             if not current_context or not context_fingerprint or current_context.fingerprint != context_fingerprint:
                 raise ValidationError("Freight context changed or is incomplete; rate confirmation is blocked.")
             if resolution_method == "sal" and not sal_source_load:
@@ -1522,7 +1714,7 @@ class PlasticosLoad(models.Model):
             values = {
                 "carrier_id": carrier.id if carrier else False,
                 "freight_context_fingerprint": context_fingerprint,
-                "freight_context_version": FREIGHT_CONTEXT_VERSION,
+                "freight_context_version": context_version,
                 "rate_amount": rate,
                 "rate_auto_reused": resolution_method == "sal",
                 "rate_confirmed_at": fields.Datetime.now(),
@@ -1556,6 +1748,7 @@ class PlasticosLoad(models.Model):
                     "carrier_id": carrier.id,
                     "currency_id": currency.id,
                     "sal_source_load_id": sal_source_load.id if sal_source_load else None,
+                    "context_version": context_version,
                 },
                 correlation_id=correlation_id,
             )
@@ -1563,7 +1756,7 @@ class PlasticosLoad(models.Model):
     def action_schedule(self, pickup_dt, delivery_dt):
         for rec in self:
             rec._require_freight_operator()
-            rec._ensure_sal_context_current()
+            rec._require_physical_release("schedule")
             rec.pickup_datetime = pickup_dt
             rec.delivery_datetime = delivery_dt
             rec._transition("scheduled")
@@ -1572,7 +1765,7 @@ class PlasticosLoad(models.Model):
         """Dispatch load to carrier. Validates required fields before dispatch."""
         for rec in self:
             rec._require_freight_operator()
-            rec._ensure_sal_context_current()
+            rec._require_physical_release("dispatch")
             if rec.state != "scheduled":
                 raise UserError(f"Load {rec.name} must be in Scheduled state before dispatch.")
             if not rec.carrier_id:
@@ -1585,19 +1778,80 @@ class PlasticosLoad(models.Model):
                 raise UserError(f"Load {rec.name}: Pickup date/time is required before dispatch.")
             rec._transition("dispatched")
 
+    _FREIGHT_CONTEXT_STALE_MESSAGE = (
+        "Freight context changed after rate confirmation. Scheduling and dispatch are blocked until an "
+        "approved logistics recovery action resolves the exception."
+    )
+
+    def _freight_context_is_stale(self):
+        """True when the confirmed lane no longer matches the context version it recorded.
+
+        The recorded ``freight_context_version`` selects the validator, so an
+        accepted v3 fingerprint is never rehashed as a manual context or the reverse.
+        """
+        from odoo.addons.plasticos_logistics.services.freight_context import (
+            FREIGHT_CONTEXT_VERSION,
+            build_freight_context_for_version,
+        )
+
+        self.ensure_one()
+        if not self.rate_resolution_method or not self.freight_context_fingerprint:
+            return False
+        version = self.freight_context_version or FREIGHT_CONTEXT_VERSION
+        current_context = build_freight_context_for_version(self, version)
+        return not current_context or current_context.fingerprint != self.freight_context_fingerprint
+
     def _ensure_sal_context_current(self):
         """Fail closed when any confirmed freight lane has materially changed."""
-        from odoo.addons.plasticos_logistics.services.freight_context import build_freight_context
-
         for rec in self:
-            if not rec.rate_resolution_method or not rec.freight_context_fingerprint:
-                continue
-            current_context = build_freight_context(rec)
-            if not current_context or current_context.fingerprint != rec.freight_context_fingerprint:
-                raise UserError(
-                    "Freight context changed after rate confirmation. Scheduling and dispatch are blocked until an "
-                    "approved logistics recovery action resolves the exception."
-                )
+            if rec._freight_context_is_stale():
+                raise UserError(self._FREIGHT_CONTEXT_STALE_MESSAGE)
+
+    # ── Physical-operation release guard (C03, BRS-EXP-10-R004/R008) ──
+
+    def _physical_release_errors(self, operation_kind):
+        """Reasons this load may not receive a NEW physical instruction.
+
+        Downstream owners (Documents evidence policy, Export booking holds) extend
+        this by ordinary inheritance and append their own reasons. Recording an
+        event that already happened is never routed through here.
+        """
+        self.ensure_one()
+        errors = []
+        if self._freight_context_is_stale():
+            errors.append(self._FREIGHT_CONTEXT_STALE_MESSAGE)
+        return errors
+
+    def _require_physical_release(self, operation_kind):
+        """Raise when any owner withholds this new physical instruction."""
+        if operation_kind not in PHYSICAL_RELEASE_OPERATIONS:
+            raise ValidationError(f"Unknown physical operation {operation_kind!r}.")
+        for rec in self:
+            errors = rec._physical_release_errors(operation_kind)
+            if errors:
+                raise UserError("\n".join(errors))
+
+    @api.model
+    def assert_can_release_physical_operation(self, load_id, operation_kind, expected_context_token=None):
+        """Frozen Logistics command: may this load receive a new physical instruction now?
+
+        Returns ``applied`` when every owner allows it, ``blocked`` with the joined
+        reasons, ``stale`` when the caller's freight-context token no longer
+        matches, and ``not_available`` for a missing load or unknown operation.
+        It writes nothing.
+        """
+        if operation_kind not in PHYSICAL_RELEASE_OPERATIONS:
+            return {"status": "not_available", "reason": f"unknown operation {operation_kind!r}"}
+        load = self.browse(load_id).exists()
+        if not load:
+            return {"status": "not_available", "reason": "load not found"}
+        load.check_access("read")
+        if expected_context_token and expected_context_token != load.freight_context_fingerprint:
+            return {"status": "stale", "record_id": load.id, "reason": "freight context token changed"}
+        errors = load._physical_release_errors(operation_kind)
+        if errors:
+            return {"status": "blocked", "record_id": load.id, "reason": "\n".join(errors)}
+        return {"status": "applied", "record_id": load.id}
 
     def action_close(self):
         for rec in self:
@@ -1605,6 +1859,139 @@ class PlasticosLoad(models.Model):
             if not rec.bol_pickup_attached or not rec.bol_delivery_attached:
                 raise UserError("BOL documents required.")
             rec._transition("closed")
+
+    # ── Actual physical event clocks (C03, BRS-EXP-04-R003, BRS-EXP-10-R007) ──
+
+    def _require_actual_event_attachment(self, attachment):
+        """The evidence must be an original attached to this load, in its company."""
+        self.ensure_one()
+        attachment = attachment.exists() if attachment else attachment
+        if not attachment:
+            raise UserError("An actual pickup or delivery needs the original document that attests it.")
+        attachment.check_access("read")
+        if attachment.res_model != PLASTICOS_LOAD or attachment.res_id != self.id:
+            raise ValidationError(
+                f"Evidence {attachment.display_name} is not attached to load {self.name}. "
+                "Attach the original to this load first."
+            )
+        if attachment.company_id and attachment.company_id != self.company_id:
+            raise ValidationError("Actual-event evidence must belong to the load's company.")
+        return attachment
+
+    def action_record_actual_event(self, event_kind, occurred_at, attachment, reason=None):
+        """Record an actual pickup or delivery that already happened, from its evidence.
+
+        Recording what happened is separate from releasing a new instruction: it is
+        allowed whatever later booking or freight change withholds new release.
+        A first record needs evidence attached to this load. Repeating the same
+        time and evidence is a no-op. A different value is a correction, which
+        needs a reason and appends a correction event; the earlier event stays.
+        Returns ``{"status": "applied" | "already_applied"}``.
+        """
+        from odoo.addons.plasticos_logistics.models.freight_governance import record_freight_event
+
+        self.ensure_one()
+        if event_kind not in _ACTUAL_EVENT_KINDS:
+            raise ValidationError(f"Unknown actual event {event_kind!r}; expected pickup or delivery.")
+        self._require_freight_operator()
+        if not self.company_id:
+            raise UserError(f"Load {self.name} needs its proven company before an actual event is recorded.")
+        occurred_at = fields.Datetime.to_datetime(occurred_at)
+        if not occurred_at:
+            raise UserError("The actual event time is required.")
+        if occurred_at > fields.Datetime.now():
+            raise ValidationError("An actual event cannot be in the future.")
+        attachment = self._require_actual_event_attachment(attachment)
+        self._lock_freight_advisories("actual-event")
+        self.invalidate_recordset()
+        time_field, evidence_field, event_type = _ACTUAL_EVENT_KINDS[event_kind]
+        previous_at = self[time_field]
+        previous_attachment = self[evidence_field]
+        if previous_at == occurred_at and previous_attachment == attachment:
+            return {"status": "already_applied", "record_id": self.id}
+        explanation = (reason or "").strip()
+        if previous_at and not explanation:
+            raise UserError(f"Load {self.name} already has an actual {event_kind}. A correction needs a reason.")
+        pickup_at = occurred_at if event_kind == "pickup" else self.actual_pickup_at
+        delivery_at = occurred_at if event_kind == "delivery" else self.actual_delivery_at
+        if pickup_at and delivery_at and delivery_at < pickup_at:
+            raise ValidationError("Actual delivery cannot be before actual pickup.")
+        self.with_context(**{_ACTUAL_EVENT_INTERNAL_WRITE: _ACTUAL_EVENT_INTERNAL_WRITE_TOKEN}).write(
+            {time_field: occurred_at, evidence_field: attachment.id}
+        )
+        facts = {
+            "event_kind": event_kind,
+            "occurred_at": fields.Datetime.to_string(occurred_at),
+            "evidence_attachment_id": attachment.id,
+            "recorded_by_id": self.env.user.id,
+        }
+        if previous_at:
+            facts.update(
+                {
+                    "previous_occurred_at": fields.Datetime.to_string(previous_at),
+                    "previous_evidence_attachment_id": previous_attachment.id or None,
+                    "correction_reason": explanation,
+                }
+            )
+        record_freight_event(
+            self.env,
+            event_type="actual_event_corrected" if previous_at else event_type,
+            outcome_code=event_kind,
+            load=self,
+            facts=facts,
+            correlation_id=new_correlation_id(),
+        )
+        verb = "corrected" if previous_at else "recorded"
+        self.message_post(body=f"Actual {event_kind} {verb}: {facts['occurred_at']} from {attachment.display_name}.")
+        return {"status": "applied", "record_id": self.id}
+
+    def action_open_actual_event_wizard(self):
+        self.ensure_one()
+        self._require_freight_operator()
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Record Actual Event",
+            "res_model": "plasticos.load.actual.event.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {"default_load_id": self.id},
+        }
+
+    # ── Exact transaction binding (frozen Logistics command) ──────────
+
+    @api.model
+    def action_bind_exact_transaction_load(self, transaction_id, load_id, movement_authorization, operation_key):
+        """Bind one load to its single parent transaction through the ordinary guarded write.
+
+        ``movement_authorization`` names the route (``sale`` or ``purchase``) the
+        caller relies on; a route the records do not support is refused. The parent
+        link is ``plasticos.load.transaction_id``: one transaction may own many
+        loads, and a load has at most one parent (ADR-130, amendment A1).
+        """
+        if not (operation_key or "").strip():
+            return {"status": "blocked", "reason": "operation_key is required"}
+        load = self.browse(load_id).exists()
+        transaction = self.env[PLASTICOS_TRANSACTION].browse(transaction_id).exists()
+        if not load or not transaction:
+            return {"status": "not_available", "reason": "load or transaction not found"}
+        load._require_freight_operator()
+        if load.transaction_id == transaction:
+            return {"status": "already_applied", "record_id": load.id}
+        if load.transaction_id:
+            return {"status": "blocked", "record_id": load.id, "reason": "load already has another transaction"}
+        route = (movement_authorization or {}).get("route")
+        actual_route = load._parent_route(transaction)
+        if route != actual_route:
+            return {
+                "status": "blocked",
+                "record_id": load.id,
+                "reason": f"movement authorization route {route!r} does not match the {actual_route} route",
+            }
+        error = load._parent_identity_error(transaction) or load._join_milestone_error(transaction)
+        if error:
+            return {"status": "blocked", "record_id": load.id, "reason": error}
+        load.write({"transaction_id": transaction.id})
+        return {"status": "applied", "record_id": load.id}
 
     def _transition(self, new_state, *, correlation_id=None):
         """Transition load to new state with validation.
@@ -1618,6 +2005,11 @@ class PlasticosLoad(models.Model):
                     f"Cannot move load '{rec.name}' from '{rec.state}' to '{new_state}'. "
                     f"Allowed: {allowed or ['none — terminal state']}."
                 )
+            # Every route that issues a new instruction meets the same guard here,
+            # including the bulk wizard. picked_up/delivered record what happened.
+            release = _RELEASE_STATES.get(new_state)
+            if release:
+                rec._require_physical_release(release)
 
             correlation_id = correlation_id or new_correlation_id()
             old = rec.state
@@ -1680,10 +2072,12 @@ class PlasticosLoad(models.Model):
 
     @api.model
     def _cron_check_dispatch_acknowledgments(self):
-        """Check for unacknowledged dispatches and escalate.
+        """Escalate dispatches the carrier has not acknowledged within four hours.
 
-        Creates escalation activity and resends dispatch email for loads
-        where carrier has not acknowledged within threshold.
+        The clock is the recorded ``dispatch_sent`` (the confirmed send), and the
+        job creates one internal escalation activity per load per day. It does not
+        resend the full dispatch packet: a blind resend could repeat an
+        instruction whose first delivery outcome is unknown (BRS-EXP-10-R004).
         """
         threshold_hours = 4
         threshold_dt = fields.Datetime.now() - timedelta(hours=threshold_hours)
@@ -1722,14 +2116,11 @@ class PlasticosLoad(models.Model):
                 "mail.mail_activity_data_todo",
                 user_id=user_id,
                 summary=f"URGENT: No carrier acknowledgment for {load.name}",
-                note=f"Carrier has not acknowledged dispatch sent {load.dispatch_sent}.",
+                note=(
+                    f"Carrier has not acknowledged dispatch sent {load.dispatch_sent}. "
+                    "The dispatch packet was not resent automatically."
+                ),
             )
-
-            try:
-                load.action_send_dispatch_direct()
-                _logger.info("Resent dispatch for load %s", load.name)
-            except Exception as e:
-                _logger.error("Failed to resend dispatch for load %s: %s", load.name, str(e))
 
         return True
 
@@ -1738,44 +2129,60 @@ class PlasticosLoad(models.Model):
     def action_send_delivery_order(self):
         """Open email composer with Delivery Order attached."""
         self.ensure_one()
+        self._require_physical_release("carrier_document")
         template = self._get_email_template("email_template_delivery_order")
         return self._open_mail_composer(template)
 
     def action_send_bol_pickup(self):
         """Open email composer with BOL Pickup attached."""
         self.ensure_one()
+        self._require_physical_release("carrier_document")
         template = self._get_email_template("email_template_bol_pickup")
         return self._open_mail_composer(template)
 
     def action_send_bol_delivery(self):
         """Open email composer with BOL Delivery attached."""
         self.ensure_one()
+        self._require_physical_release("carrier_document")
         template = self._get_email_template("email_template_bol_delivery")
         return self._open_mail_composer(template)
 
     def action_send_dispatch_packet(self):
         """Open email composer with full dispatch packet (all 3 docs)."""
         self.ensure_one()
+        self._require_physical_release("dispatch_packet")
         template = self._get_email_template("email_template_dispatch_packet")
         return self._open_mail_composer(template)
 
     def action_send_dispatch_direct(self):
-        """Send dispatch packet directly and track timestamp.
+        """Send the dispatch packet now; stamp ``dispatch_sent`` only on a confirmed send.
 
-        Unlike action_send_dispatch_packet which opens a composer,
-        this method sends immediately and sets dispatch_sent timestamp.
+        Queueing is not sending. ``dispatch_sent`` is the acknowledgment clock, so it
+        is stamped only when native mail reports the message sent. An exception or
+        a still-queued message leaves it empty and says so in the chatter.
         """
         self.ensure_one()
+        self._require_physical_release("dispatch_packet")
         if not self.carrier_id:
             raise UserError(f"Load {self.name}: Carrier is required to send dispatch.")
         if not self.carrier_id.email:
             raise UserError(f"Carrier {self.carrier_id.name} has no email address.")
 
         template = self._get_email_template("email_template_dispatch_packet")
-        template.send_mail(self.id, force_send=True)
-        self.dispatch_sent = fields.Datetime.now()
-        self.message_post(body="Dispatch packet sent to carrier.")
-        return True
+        mail_id = template.send_mail(self.id, force_send=True)
+        mail = self.env["mail.mail"].sudo().browse(mail_id).exists()  # sudo: read own mail outcome only
+        # A force-sent mail with auto_delete is removed only after a successful send.
+        if not mail or mail.state == "sent":
+            self.dispatch_sent = fields.Datetime.now()
+            self.message_post(body="Dispatch packet sent to carrier.")
+            return True
+        self.message_post(
+            body=(
+                f"Dispatch packet not confirmed sent (mail state: {mail.state}). "
+                "Dispatch Sent was not stamped; check the outgoing mail before acting again."
+            )
+        )
+        return False
 
     def _get_email_template(self, template_name):
         """Get email template from plasticos_automation module.
@@ -1828,3 +2235,28 @@ class PlasticosLoad(models.Model):
             "view_mode": "form",
             "target": "current",
         }
+
+
+class PlasticosLoadActualEventWizard(models.TransientModel):
+    """Paperwork entry for an actual pickup or delivery; delegates to the load command."""
+
+    _name = "plasticos.load.actual.event.wizard"
+    _description = "Record Actual Load Event"
+
+    load_id = fields.Many2one(PLASTICOS_LOAD, required=True, ondelete="cascade")
+    event_kind = fields.Selection([("pickup", "Actual Pickup"), ("delivery", "Actual Delivery")], required=True)
+    occurred_at = fields.Datetime(string="Happened At", required=True)
+    attachment_id = fields.Many2one(
+        "ir.attachment",
+        string="Evidence",
+        required=True,
+        ondelete="cascade",
+        domain="[('res_model', '=', 'plasticos.load'), ('res_id', '=', load_id)]",
+        help="The original document attached to this load that attests the event.",
+    )
+    reason = fields.Text(help="Required when this corrects an event already recorded.")
+
+    def action_confirm(self):
+        self.ensure_one()
+        self.load_id.action_record_actual_event(self.event_kind, self.occurred_at, self.attachment_id, self.reason)
+        return {"type": "ir.actions.act_window_close"}

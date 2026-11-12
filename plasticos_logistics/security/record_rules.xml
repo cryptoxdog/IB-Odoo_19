@@ -53,4 +53,17 @@
         <field name="model_id" ref="model_plasticos_logistics_response"/>
         <field name="domain_force">[('company_id', 'in', company_ids)]</field>
     </record>
+    <!-- J1/J2 physical journeys: global company isolation with no company-null
+         escape (ADR-130). Business-role grants live in plasticos_security_base,
+         which owns the groups. -->
+    <record id="rule_iso_journey_company" model="ir.rule">
+        <field name="name">ISO container journey company isolation</field>
+        <field name="model_id" ref="model_plasticos_iso_journey"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_iso_journey_source_company" model="ir.rule">
+        <field name="name">ISO container journey source company isolation</field>
+        <field name="model_id" ref="model_plasticos_iso_journey_source"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
 </odoo>

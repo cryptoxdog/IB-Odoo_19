@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- J1/J2 operator screens (ADR-130). A journey records a real container
+         cycle from its source; nothing here creates a load, picking, buyer or
+         transaction. Identity and accepted sources change only through the
+         guarded buttons. -->
+
+    <record id="view_iso_journey_search" model="ir.ui.view">
+        <field name="name">plasticos.iso.journey.search</field>
+        <field name="model">plasticos.iso.journey</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="iso_number"/>
+                <field name="source_cycle_key"/>
+                <field name="seal_number"/>
+                <field name="equipment_class"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <filter name="filter_candidate" string="Candidate" domain="[('identity_state', '=', 'candidate')]"/>
+                <filter name="filter_attributed" string="Attributed" domain="[('identity_state', '=', 'attributed')]"/>
+                <filter name="filter_verified" string="Verified" domain="[('identity_state', '=', 'verified')]"/>
+                <separator/>
+                <filter name="group_identity_state" string="Identity" context="{'group_by': 'identity_state'}"/>
+                <filter name="group_equipment_class" string="Equipment" context="{'group_by': 'equipment_class'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_iso_journey_list" model="ir.ui.view">
+        <field name="name">plasticos.iso.journey.list</field>
+        <field name="model">plasticos.iso.journey</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="iso_number"/>
+                <field name="source_cycle_key"/>
+                <field name="equipment_class"/>
+                <field name="seal_number" optional="show"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="identity_state" widget="badge"
+                       decoration-muted="identity_state == 'candidate'"
+                       decoration-info="identity_state == 'attributed'"
+                       decoration-success="identity_state == 'verified'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_iso_journey_form" model="ir.ui.view">
+        <field name="name">plasticos.iso.journey.form</field>
+        <field name="model">plasticos.iso.journey</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_confirm_identity" string="Confirm Identity" type="object"
+                            class="btn-primary" invisible="identity_state != 'candidate'"/>
+                    <field name="identity_state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group string="Container Cycle">
+                            <field name="company_id" readonly="identity_state != 'candidate'"/>
+                            <field name="source_cycle_key" readonly="identity_state != 'candidate'"/>
+                            <field name="iso_number" readonly="identity_state != 'candidate'"/>
+                            <field name="seal_number" readonly="identity_state != 'candidate'"/>
+                            <field name="equipment_class" readonly="identity_state != 'candidate'"/>
+                        </group>
+                        <group string="Identity Evidence">
+                            <field name="identity_evidence_attachment_id" readonly="identity_state != 'candidate'"/>
+                            <field name="identity_attested_at" readonly="1"/>
+                            <field name="identity_attested_by" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Sources" name="sources">
+                            <field name="source_ids" readonly="1">
+                                <list>
+                                    <field name="source_kind"/>
+                                    <field name="load_id"/>
+                                    <field name="stock_move_line_id"/>
+                                    <field name="evidence_attachment_id"/>
+                                    <field name="source_party_id"/>
+                                    <field name="state" widget="badge"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_iso_journey" model="ir.actions.act_window">
+        <field name="name">Container Journeys</field>
+        <field name="res_model">plasticos.iso.journey</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_iso_journey_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No container journeys yet</p>
+            <p>Record one real container cycle from the source that attests it.</p>
+        </field>
+    </record>
+
+    <record id="view_iso_journey_source_search" model="ir.ui.view">
+        <field name="name">plasticos.iso.journey.source.search</field>
+        <field name="model">plasticos.iso.journey.source</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="journey_id"/>
+                <field name="load_id"/>
+                <field name="source_party_id"/>
+                <field name="source_reference"/>
+                <filter name="filter_source_candidate" string="Candidate" domain="[('state', '=', 'candidate')]"/>
+                <filter name="filter_source_accepted" string="Accepted" domain="[('state', '=', 'accepted')]"/>
+                <separator/>
+                <filter name="group_source_kind" string="Kind" context="{'group_by': 'source_kind'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_iso_journey_source_list" model="ir.ui.view">
+        <field name="name">plasticos.iso.journey.source.list</field>
+        <field name="model">plasticos.iso.journey.source</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="journey_id"/>
+                <field name="source_kind"/>
+                <field name="load_id"/>
+                <field name="stock_move_line_id" optional="hide"/>
+                <field name="evidence_attachment_id" optional="show"/>
+                <field name="source_party_id"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="state" widget="badge"
+                       decoration-muted="state == 'candidate'"
+                       decoration-success="state == 'accepted'"
+                       decoration-danger="state == 'rejected'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_iso_journey_source_form" model="ir.ui.view">
+        <field name="name">plasticos.iso.journey.source.form</field>
+        <field name="model">plasticos.iso.journey.source</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_accept" string="Accept" type="object" class="btn-primary"
+                            invisible="state != 'candidate'"/>
+                    <button name="action_reject" string="Reject" type="object" invisible="state != 'candidate'"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group string="Journey">
+                            <field name="journey_id" readonly="state != 'candidate'"/>
+                            <field name="company_id" readonly="state != 'candidate'"/>
+                            <field name="source_party_id" readonly="state != 'candidate'"/>
+                        </group>
+                        <group string="Physical Source">
+                            <field name="source_kind" readonly="state != 'candidate'"/>
+                            <field name="load_id" invisible="source_kind != 'load'"
+                                   required="source_kind == 'load'" readonly="state != 'candidate'"/>
+                            <field name="stock_move_line_id" invisible="source_kind != 'stock_move_line'"
+                                   required="source_kind == 'stock_move_line'" readonly="state != 'candidate'"/>
+                            <field name="evidence_attachment_id"
+                                   required="source_kind == 'nonstock_evidence'" readonly="state != 'candidate'"/>
+                            <field name="source_reference" readonly="state != 'candidate'"/>
+                        </group>
+                    </group>
+                    <group string="Acceptance">
+                        <field name="acceptance_basis" nolabel="1" readonly="state != 'candidate'"
+                               placeholder="Why this source attests this container cycle..."/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_iso_journey_source" model="ir.actions.act_window">
+        <field name="name">Container Journey Sources</field>
+        <field name="res_model">plasticos.iso.journey.source</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_iso_journey_source_search"/>
+    </record>
+
+    <menuitem id="menu_iso_journey" name="Container Journeys"
+              parent="menu_plasticos_logistics_root" action="action_iso_journey" sequence="40"/>
+    <menuitem id="menu_iso_journey_source" name="Container Journey Sources"
+              parent="menu_plasticos_logistics_root" action="action_iso_journey_source" sequence="41"/>
+</odoo>
