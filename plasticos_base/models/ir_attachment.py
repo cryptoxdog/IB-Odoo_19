@@ -2,7 +2,7 @@ import logging
 import os
 
 from odoo import api, models
-from odoo.tools import config
+from odoo.tools import SQL, config
 
 _logger = logging.getLogger(__name__)
 
@@ -88,17 +88,20 @@ class IrAttachment(models.Model):
                 if field.comodel_name != IR_ATTACHMENT or not field.store:
                     continue
                 if field.type == "many2one":
-                    cr.execute(
-                        f'SELECT "{field.name}" FROM "{model._table}" WHERE "{field.name}" = ANY(%s)',  # noqa: S608
-                        [ids],
-                    )
+                    column, table = field.name, model._table
                 elif field.type == "many2many":
-                    cr.execute(
-                        f'SELECT "{field.column2}" FROM "{field.relation}" WHERE "{field.column2}" = ANY(%s)',  # noqa: S608
-                        [ids],
-                    )
+                    column, table = field.column2, field.relation
                 else:
                     continue
+                cr.execute(
+                    SQL(
+                        "SELECT %s FROM %s WHERE %s = ANY(%s)",
+                        SQL.identifier(column),
+                        SQL.identifier(table),
+                        SQL.identifier(column),
+                        ids,
+                    )
+                )
                 protected.update(row[0] for row in cr.fetchall())
         # Chatter attachments of a protected record (mail is optional for this module).
         if "mail.message" in self.env:
