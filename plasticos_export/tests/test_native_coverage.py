@@ -134,6 +134,16 @@ class TestNativeCoverage(NativeExportFixtureMixin, PlasticosTestCase):
         for record in (self.purchase_line, received, self.sale):
             with self.assertRaises(AccessError), self.env.cr.savepoint():
                 record.with_user(foreign).check_access("read")
+        # The internal claim row names company A's PO line: company B neither finds nor reads it (C08 OP8-E04).
+        Claim = self.env["plasticos.export.source.line.claim"]
+        claim = Claim.search([("purchase_line_id", "=", self.purchase_line.id)])
+        self.assertEqual(len(claim), 1, "the committed planned quantity took its claim row")
+        foreign_claims = Claim.with_user(foreign)
+        self.assertFalse(foreign_claims.search([]))
+        self.assertFalse(foreign_claims.search_read([], ["purchase_line_id", "sale_line_id", "company_id"]))
+        with self.assertRaises(AccessError), self.env.cr.savepoint():
+            foreign_claims.browse(claim.id).read(["purchase_line_id", "sale_line_id", "company_id"])
+        self.assertEqual(Claim.with_user(self.actor).search([("id", "=", claim.id)]), claim)
         refused = self.commit_cargo(booking.slot_ids, self.stock_refs(received), user=foreign, key=self.key())
         self.assertEqual(refused["status"], "not_available")
         # Audience: the forwarder-facing sheet and the PO display carry no supplier buy price.

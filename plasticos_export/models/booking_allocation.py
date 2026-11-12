@@ -793,11 +793,16 @@ class PlasticosExportSourceLineClaim(models.Model):
     """One Export-owned row per PO or SO line that cargo plans quantity on (BRS-EXP-08-R006).
 
     It stores no quantity: the planned quantities stay on the cargo links, and the
-    order quantity stays on the native line. Its only job is serialization. Each
-    commit that plans on a line upserts and bumps this row before it counts the
-    line's live links. At REPEATABLE READ a second transaction whose snapshot
-    predates the first commit then fails to serialize on this row; Odoo retries it,
-    and the retry sees the first link. The native PO and SO rows are never written.
+    order quantity stays on the native line. Its only job is serialization. The
+    conflict key is (line model, line id), one partial unique index per line model;
+    ``company_id`` is stored but not part of the key, which is equivalent because a
+    line belongs to one company. Each commit that plans on a line upserts and bumps
+    this row before it counts the line's live links. While a first commit is still
+    in flight, a second one is refused earlier with ``cargo_source_busy`` (the
+    SKIP LOCKED source lock). Once the first has committed, a second transaction
+    whose REPEATABLE READ snapshot predates it fails to serialize on this row; Odoo
+    retries it, and the retry sees the first link. The native PO and SO rows are
+    never written.
     """
 
     _name = "plasticos.export.source.line.claim"
@@ -808,7 +813,11 @@ class PlasticosExportSourceLineClaim(models.Model):
     purchase_line_id = fields.Many2one(PURCHASE_LINE, index=True, ondelete="cascade")
     sale_line_id = fields.Many2one(SALE_LINE, index=True, ondelete="cascade")
     claim_count = fields.Integer(
-        default=0, help="How many commitments have planned on this line. Bumped to serialize them."
+        default=0,
+        help=(
+            "Attempt and serialization counter. Bumped by every commit that plans on this line, before the guard "
+            "checks, and it stays bumped when that attempt is refused. Its value is not used for any decision."
+        ),
     )
 
     _one_source_line = models.Constraint(

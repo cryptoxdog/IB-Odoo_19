@@ -74,6 +74,7 @@ DECLARED = {
         "rule_export_cargo_link_sales_own",
         "rule_export_revision_company",
         "rule_export_slot_company",
+        "rule_export_source_line_claim_company",
     ],
     "ir.ui.menu": [
         "menu_export_allocations",

@@ -63,7 +63,8 @@ How refusals reach the caller:
 
 - It stores no quantity. Planned quantities stay on the cargo links, and the order quantity stays on the native line.
 - It has no view, menu, action or command. Only `action_commit_cargo` writes it, through one upsert in `booking_allocation.py`.
-- Logistics and Operations Manager have read-only ACL rows; Sales Reps have none.
+- Logistics and Operations Manager have read-only ACL rows; Sales Reps have none. A global company record rule, `rule_export_source_line_claim_company` (`[('company_id', 'in', company_ids)]`, review D-B1), keeps each row in its company like every other Export model. Without it, a company-B user could have read company A's PO/SO line names through the claim row.
+- The conflict key is (line model, line id). `claim_count` counts attempts and is never used for a decision.
 - The public shapes of TECHNICAL_CONTRACT_v2.7 are unchanged: E1–E4, J1–J2 and the twelve commands. The coordinator confirmed on 2026-11-12 that OP8-E03 governs this model.
 - `test_install.py` (`MODELS` and the `DECLARED` ir.model.access ids) and `test_export_owner_handoff.py` (the model inventory) pin the module's inventory. Each changed only by this model and its two ACL ids.
 
@@ -84,6 +85,9 @@ How refusals reach the caller:
   - N7: move-line quantity is not bounded by contract.
   - N8: superseded by B3.
   - N9: 06-R003 has no gate receipt.
+- **Delta review of `10a4edd3` (coordinator:C08-SCOPE-3, OP8-E04):**
+  - D-B1: the claim model now has its global company rule. `test_install` `DECLARED["ir.rule"]` pins its id. The 06-R001 witness `test_company_and_audience_isolation_on_native_sources` asserts that a company-B Logistics user's `search`, `search_read` and `read` of company A's claim row return nothing or raise AccessError.
+  - D-N1/D-N2: the wording above (in-flight versus committed T1; the attempt counter; the conflict key).
 - **Runtime of the fixes:** the four-module run gave 548 run, 0 failed, 0 errors. The first run had 2 failures, the pinned model inventories, and 1 error, a self-test field name. Both were fixed as described above.
 
 ## Not in S8
@@ -97,7 +101,11 @@ How refusals reach the caller:
 - Index build: the `-u plasticos_export` upgrade created both partial unique indexes on the fixture's seeded data with no constraint warning. `test_replaced_link_frees_its_source` reads them back from `pg_indexes`. `plasticos_export` ships no migration in this slice.
 - Concurrency, layer by layer. This list supersedes the earlier claim, which review B3 of #483 at `3fda2e04` showed was too broad.
   - **Same load or same stock move line, two transactions:** the partial unique indexes `_one_live_link_per_load` and `_one_live_link_per_move_line` refuse the second live link at commit, whatever the snapshot. Witness: a raw second insert raises `UniqueViolation` (`test_double_commit_past_the_command_is_refused`).
-  - **Same PO or SO line, quantity bound, two transactions (review B3):** each commit that plans a known quantity first upserts and bumps the line's one Export-owned row, `plasticos.export.source.line.claim`, with `INSERT … ON CONFLICT DO UPDATE`. Only then does it count the line's live links. At REPEATABLE READ, a second transaction whose snapshot predates the first commit blocks on that row. It then fails to serialize and is retried by Odoo, and the retry counts the first link. No native PO or SO row is written.
+  - **Same PO or SO line, quantity bound, two transactions (review B3, wording per D-N1/D-N2):** each commit that plans a known quantity first upserts and bumps the line's one Export-owned row, `plasticos.export.source.line.claim`, with `INSERT … ON CONFLICT DO UPDATE`. Only then does it count the line's live links. The conflict key is (line model, line id): one partial unique index per line model. `company_id` is stored but is not part of the key; this is equivalent, because a line belongs to one company. Two cases:
+    - while the first commit is still in flight, a second commit naming the same line is refused earlier with `cargo_source_busy`, by the SKIP LOCKED source lock;
+    - once the first has committed, a second transaction whose REPEATABLE READ snapshot predates it fails to serialize on the claim row, Odoo retries it, and the retry counts the first link.
+
+    `claim_count` is an attempt and serialization counter. It is bumped before the check, stays bumped on a refused attempt, and its value is not used for any decision. No native PO or SO row is written.
     - Witness `test_commits_on_one_order_line_serialize_on_one_claim_row`: two commits on one line bump one row, the second counts the first one's quantity, and the native rows' `ctid` is unchanged.
     - The serialization failure itself needs two committing transactions, so it is not run inside a TransactionCase. It follows from PostgreSQL's documented REPEATABLE READ upsert behaviour.
   - **The row locks taken before the check (`lock_for_update(allow_referencing=True)`, `SKIP LOCKED`):** they only refuse a commit while another transaction holds the same source in flight (`blocked: cargo_source_busy`). Alone they do not serialize the quantity bound. That is the claim row's job.
