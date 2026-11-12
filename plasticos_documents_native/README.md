@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_documents_native
 component_name: Plasticos Documents — Native Bridge
-module_version: 19.0.1.2.13
+module_version: 19.0.1.2.14
 layer: 4
 installable: true
 auto_install: true

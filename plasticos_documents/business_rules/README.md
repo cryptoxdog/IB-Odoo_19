@@ -15,6 +15,10 @@
 
 External-send ownership of BRS-POS-09-R006 through BRS-POS-09-R012 moved to `plasticos_logistics` by the dated supersession in `SUPERSESSION.md`. The count 44 is installed verbatim text, not current ownership; 37 rules remain Documents-owned. BRS-POS-04 through BRS-POS-08, BRS-POS-11 and BRS-POS-12 stay with their owners.
 
+## Scoped evidence interface (2026-11-12)
+
+The one authoritative scoped-evidence interface is `plasticos.document.get_scoped_evidence_verdict(company_id, subject_kind, subject_id, obligation_kind, source_revision_key)`. Legacy invoice and close reads stay `plasticos.compliance.service.is_compliant`. The current interpretation is the 2026-11-12 entry in `SUPERSESSION.md`; the acceptance witnesses are `plasticos_documents/tests/test_scoped_evidence.py`, `plasticos_documents_native/tests/test_verification_delegation.py`, `plasticos_documents_native/tests/test_native_search_parity.py`, `plasticos_claims/tests/test_document_export_evidence.py` and `plasticos_commission/tests/test_sales_dashboard_payout_access.py`. The 44 installed source texts and their hashes are unchanged.
+
 ## Ownership and reuse
 
 `plasticos_documents` owns business evidence, validation, compliance and consumer policy. `plasticos_documents_native` binds native `documents.document` original file lifecycle and its configured Enterprise capabilities. Both modules consume this **one** BRS directory. They do not own Linda's external correspondence, Odoo stock, Sales/Purchase commercial releases, or posted Accounting/cash.

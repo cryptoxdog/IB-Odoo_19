@@ -9,3 +9,4 @@ from . import test_selection_contracts
 from . import test_state_machines
 from . import test_claim_reference_uniqueness_batch
 from . import test_claim_reminder_batch
+from . import test_document_export_evidence

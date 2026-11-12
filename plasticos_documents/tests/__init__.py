@@ -5,4 +5,5 @@ from . import test_expiry_final_gate
 from . import test_load_document_association
 from . import test_pr322_findings
 from . import test_scale_ticket_cardinality
+from . import test_scoped_evidence
 from . import test_verification_writer

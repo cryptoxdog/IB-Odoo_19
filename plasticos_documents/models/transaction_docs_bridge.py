@@ -37,9 +37,18 @@ class PlasticosTransactionDocsBridge(models.Model):
         "document_ids.override",
         "document_ids.active",
         "document_ids.tag_id",
+        "document_ids.association_state",
+        "document_ids.is_current",
+        "document_ids.superseded_by",
+        "document_ids.obligation_kind",
     )
     def _compute_compliance(self):
-        """Document-aware compliance. Base stays compliant when this addon is absent."""
+        """Document-aware compliance. Base stays compliant when this addon is absent.
+
+        The service reads exact legacy rows only, so an unrelated operation-scoped
+        row never sets this transaction compliant. Expiry is applied by the
+        midnight recompute, not at search time.
+        """
         service = self.env["plasticos.compliance.service"]
         for rec in self:
             if service.is_compliant("plasticos.transaction", rec.id):

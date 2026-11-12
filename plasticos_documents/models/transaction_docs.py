@@ -261,6 +261,8 @@ class PlasticosTransactionDocs(models.Model):
             [
                 ("tag_id", "=", tag.id),
                 ("active", "=", True),
+                # The scale-ticket rule reads legacy rows. Operation evidence is a separate obligation.
+                ("obligation_kind", "=", "legacy"),
                 "|",
                 ("load_id", "=", load.id),
                 "&",
@@ -272,6 +274,19 @@ class PlasticosTransactionDocs(models.Model):
             if document._association_conflict_reason():
                 document._route_association_conflict()
         return any(document._currently_eligible() for document in documents)
+
+    @staticmethod
+    def _scale_ticket_clock_dates(load):
+        """Actual delivery and pickup dates from the load's attributed evidence clocks.
+
+        Logistics owns these clocks (BRS-07-R051 as amended 2026-11-11). A state
+        change, schedule or dispatch time never fills them. An empty clock is
+        unknown: that reminder or escalation does not start. Documents supplies
+        only the scale-ticket status and internal note/activity.
+        """
+        delivery_date = load.actual_delivery_at.date() if load.actual_delivery_at else None
+        pickup_date = load.actual_pickup_at.date() if load.actual_pickup_at else None
+        return delivery_date, pickup_date
 
     _SCALE_TICKET_BATCH = 300
     _SCALE_TICKET_CURSOR = "plasticos_documents.scale_ticket_scan_cursor"
@@ -448,8 +463,7 @@ class PlasticosTransactionDocs(models.Model):
                     with self.env.cr.savepoint():
                         if self._load_has_current_scale_ticket(load, scale_ticket_tag):
                             continue
-                        delivery_date = load.delivered_at.date() if load.delivered_at else None
-                        pickup_date = load.dispatched_at.date() if load.dispatched_at else None
+                        delivery_date, pickup_date = self._scale_ticket_clock_dates(load)
                         bd_since_delivery = self._count_business_days(delivery_date, today) if delivery_date else 0
                         bd_since_pickup = self._count_business_days(pickup_date, today) if pickup_date else 0
                         due_escalation = bd_since_pickup >= escalation_bd and not load.scale_ticket_escalated

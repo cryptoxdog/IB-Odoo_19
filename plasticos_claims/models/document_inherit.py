@@ -22,7 +22,26 @@ class PlasticosDocumentInherit(models.Model):
         return records
 
     def _claim_subject(self):
-        """Return the transaction and, only for an exact load document, that load."""
+        """Return the transaction and, only for an exact load document, that load.
+
+        Only legacy evidence rows open a claim. An operation-scoped row on the
+        same original is another obligation, not another claim or notification.
+        Both the create and the write path come through here.
+        """
+        self.ensure_one()
+        transactions = self.env["plasticos.transaction"]
+        loads = self.env["plasticos.load"]
+        if (self.obligation_kind or "legacy") != "legacy":
+            return transactions.browse(), loads.browse()
+        transaction, load = self._legacy_claim_subject()
+        if transaction and self.subject_company_id:
+            companies, _requires = self._subject_company_candidates(transaction)
+            if companies and self.subject_company_id not in companies:
+                # The accepted company is not this trade's company: no claim on it.
+                return transactions.browse(), loads.browse()
+        return transaction, load
+
+    def _legacy_claim_subject(self):
         self.ensure_one()
         transactions = self.env["plasticos.transaction"]
         loads = self.env["plasticos.load"]

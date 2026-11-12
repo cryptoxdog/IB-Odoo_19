@@ -98,3 +98,46 @@ class TestNativeSearchParity(PlasticosTestCase):
         self.assertFalse(documents.search([("verified", "=", True), ("id", "=", shared.id)]))
         self.assertEqual(documents.search([("verified", "=", False), ("id", "=", shared.id)]), shared)
         self.assertEqual(documents.search([("verified_by", "=", False), ("id", "=", shared.id)]), shared)
+
+    # ── Export campaign S3: operation scope (RP-05-E031) ──────────────
+
+    def _operation_scope(self, shell, load, revision):
+        return shell.with_user(self.clerk)._associate_scope(
+            "plasticos.load",
+            load.id,
+            "booking mail",
+            obligation_kind="export_gate_receipt",
+            operation_revision_key=revision,
+            coverage_key="container-1",
+        )
+
+    def test_operation_rows_never_satisfy_native_verified_search(self):
+        """V08/V09/V12: computation and positive/negative search agree for operation rows."""
+        self.patch(
+            type(self.env["plasticos.document"]),
+            "_scoped_obligation_kinds",
+            lambda model: frozenset({"export_gate_receipt"}),
+        )
+        sale = self.env["sale.order"].create({"partner_id": self.vendor.id})
+        load = self.env["plasticos.load"].create({"sale_order_id": sale.id})
+        sync = self.env["plasticos.document.sync"]
+        sole = self._binary("operation-sole.pdf")
+        sole_row = self._operation_scope(sync.sync_native_to_legacy(sole), load, "BKG-1/r1")
+        sole_row.with_user(self.clerk).action_verify()
+        mixed = self._binary("operation-mixed.pdf")
+        sync.sync_native_to_legacy(mixed)
+        purchase = self.env["purchase.order"].create({"partner_id": self.vendor.id, "partner_ref": "PO-MIXED"})
+        legacy = mixed.with_user(self.clerk).action_associate_exact(
+            "purchase.order", purchase.id, source_reference="mixed-legacy"
+        )
+        legacy.with_user(self.clerk).action_verify()
+        self._operation_scope(legacy, load, "BKG-2/r1").with_user(self.clerk).action_verify()
+        (sole | mixed).invalidate_recordset()
+        self.assertFalse(sole.verified)
+        self.assertFalse(mixed.verified)
+        documents = self.env["documents.document"]
+        scope = [("id", "in", [sole.id, mixed.id])]
+        self.assertFalse(documents.search([("verified", "=", True), *scope]))
+        self.assertFalse(documents.search([("verified_by", "!=", False), *scope]))
+        self.assertEqual(documents.search([("verified", "=", False), *scope]), sole | mixed)
+        self.assertEqual(documents.search([("verified_by", "=", False), *scope]), sole | mixed)

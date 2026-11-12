@@ -89,6 +89,15 @@ class TestDocumentRuleModel(PlasticosTestCase):
         self.assertEqual(Rule._fields["tag_id"].comodel_name, "plasticos.document.tag")
         self.assertTrue(Rule._fields["tag_id"].required)
 
+    def test_legacy_invoice_and_close_read_legacy_rows_only(self):
+        """Export campaign S3: invoice/close stay legacy; operation rows never contaminate them."""
+        source = inspect.getsource(PlasticosComplianceService.get_missing_documents)
+        self.assertIn('("obligation_kind", "=", LEGACY_OBLIGATION)', source)
+        field = self.env["plasticos.document"]._fields["obligation_kind"]
+        self.assertTrue(field.required)
+        self.assertEqual(self.env["plasticos.document"].default_get(["obligation_kind"])["obligation_kind"], "legacy")
+        self.assertEqual(self.env["plasticos.document"]._scoped_obligation_kinds(), frozenset())
+
     def test_receiving_policy_does_not_sum_partial_rows(self):
         source = inspect.getsource(PlasticosComplianceService._quantity_covers_subject)
         self.assertIn("Partial rows are not summed", source)
