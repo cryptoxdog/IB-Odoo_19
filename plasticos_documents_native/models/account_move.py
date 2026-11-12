@@ -5,16 +5,15 @@ Extraction is the native Odoo pipeline (``account_invoice_extract`` over
 that came from digitization or email until its header, total, duplicate check
 and reference are sound, and it never lets such a bill post without a person.
 
-Every method overridden here except ``_save_form`` is defined by Community
-``account``. ``_save_form`` belongs to ``account_invoice_extract``; when that
-module's override is not below this one the extracted total is simply not
-captured, and the guard then asks a manager to enter it.
+A bill with no reference anywhere cannot be told from an equipment purchase,
+so it is held for a manager, who either fills the source document or records
+that the bill is not load-related.
 """
 
 import logging
 
-from odoo import fields, models
-from odoo.exceptions import UserError
+from odoo import api, fields, models
+from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
 
@@ -22,6 +21,8 @@ GUARDED_BILL_TYPES = ("in_invoice", "in_refund")
 # iap_extract/models/extract_mixin.py: states in which the extraction result is on the bill.
 EXTRACT_NOT_REQUESTED = "no_extract_requested"
 EXTRACT_FINISHED_STATES = ("waiting_validation", "to_validate", "done")
+MANAGER_GROUPS = "plasticos_security_base.group_operations_manager,base.group_system"
+WAIVER_FIELDS = frozenset({"plasticos_not_load_related", "plasticos_not_load_related_reason"})
 BILL_REVIEW_SUMMARY = "Digitized vendor bill needs manager review"
 
 
@@ -33,11 +34,38 @@ class AccountMove(models.Model):
         currency_field="currency_id",
         copy=False,
         tracking=True,
-        groups="plasticos_security_base.group_operations_manager,base.group_system",
+        groups=MANAGER_GROUPS,
         help="Total printed on the vendor's document. Digitization records the extracted total; "
         "an Operations Manager may correct it from the document. A digitized or emailed vendor bill "
         "posts only when its lines and tax add up to this amount.",
     )
+
+    plasticos_not_load_related = fields.Boolean(
+        string="Not Load-Related",
+        copy=False,
+        tracking=True,
+        groups=MANAGER_GROUPS,
+        help="An Operations Manager records that this vendor bill does not relate to a load, "
+        "so it may post without a source document. Every other check still applies.",
+    )
+    plasticos_not_load_related_reason = fields.Char(
+        string="Not Load-Related Reason",
+        copy=False,
+        tracking=True,
+        groups=MANAGER_GROUPS,
+        help="Why the bill is not load-related. Required when the box is ticked.",
+    )
+
+    @api.constrains("plasticos_not_load_related", "plasticos_not_load_related_reason")
+    def _check_not_load_related_reason(self):
+        for move in self.sudo():  # sudo: constraint reads its own manager-only fields
+            if move.plasticos_not_load_related and not (move.plasticos_not_load_related_reason or "").strip():
+                raise ValidationError("A reason is required to record that a bill is not load-related.")
+
+    def write(self, vals):
+        if WAIVER_FIELDS.intersection(vals) and any(move.state == "posted" for move in self):
+            raise UserError("The not load-related record cannot be changed on a posted bill.")
+        return super().write(vals)
 
     # ── Scope ────────────────────────────────────────────────
     def _plasticos_is_digitized_bill(self):
@@ -47,11 +75,15 @@ class AccountMove(models.Model):
             return False
         if self.invoice_source_email:
             return True
-        return "extract_state" in self._fields and self.extract_state not in (False, EXTRACT_NOT_REQUESTED)
+        return self.extract_state not in (False, EXTRACT_NOT_REQUESTED)
 
-    # ── Reference matching (B5) ──────────────────────────────
+    # ── Reference matching (B5, B9) ──────────────────────────
     def _plasticos_reference_resolution(self):
-        """Resolve the email, file name and bill reference to one transaction. Writes nothing."""
+        """Resolve the email, file name and bill reference to one transaction. Writes nothing.
+
+        Returns ``(email, found, party_ok)``. ``party_ok`` is true only when
+        exactly one subject was resolved and the bill's vendor is a party of it.
+        """
         self.ensure_one()
         service = self.env["plasticos.document.sync"]
         email = service._origin_email(self)
@@ -59,32 +91,42 @@ class AccountMove(models.Model):
         sources, quoted = service._email_sources(email, filename)
         if self.ref:
             sources.append(("bill reference", self.ref))
-        return email, service.resolve_references(self.company_id, sources, quoted)
+        found = service.resolve_references(self.company_id, sources, quoted)
+        party_ok = False
+        if found["status"] == "one":
+            vendor = self.partner_id.commercial_partner_id
+            party_ok = bool(vendor) and vendor in service._reference_parties(found["subject"])
+        return email, found, party_ok
 
     def _plasticos_origin_name(self, found):
-        """The order name the transaction resolver reads: the matched SO or PO, else the transaction's."""
+        """The name the transaction resolver reads: the matched SO or PO, else the transaction's order or number."""
         for _label, model, token, _record in found["matches"]:
             if model in ("sale.order", "purchase.order"):
                 return token
         subject = found["subject"]
-        if subject is None or subject._name != "plasticos.transaction":
+        if subject is None:
+            return False
+        if subject._name == "stock.picking":
+            return subject.name
+        if subject._name != "plasticos.transaction":
             return False
         if subject.sale_order_id:
             return subject.sale_order_id.name
         orders = subject.purchase_order_ids
-        return orders.name if len(orders) == 1 else False
+        return orders.name if len(orders) == 1 else subject.name
 
     def _plasticos_apply_reference_match(self):
         """Fill an empty ``invoice_origin`` on a draft bill from exactly one resolved reference.
 
+        Applied only when the bill's vendor is a party of the matched record.
         A non-empty origin is never overwritten and a posted bill is never touched.
-        A conflict leaves the origin empty; the posting guard reports it.
+        A conflict or a party mismatch leaves the origin empty; the posting guard reports it.
         """
         for move in self:
             if move.state != "draft" or move.invoice_origin or not move._plasticos_is_digitized_bill():
                 continue
-            email, found = move._plasticos_reference_resolution()
-            if found["status"] != "one":
+            email, found, party_ok = move._plasticos_reference_resolution()
+            if found["status"] != "one" or not party_ok:
                 continue
             origin = move._plasticos_origin_name(found)
             if not origin:
@@ -105,10 +147,7 @@ class AccountMove(models.Model):
 
     def _save_form(self, ocr_results):
         """Record the extracted total and read the extracted reference. Extraction itself is native."""
-        parent = getattr(super(), "_save_form", None)
-        if parent is None:
-            return None
-        result = parent(ocr_results)
+        result = super()._save_form(ocr_results)
         self._plasticos_record_extracted_total(ocr_results)
         self._plasticos_apply_reference_match()
         return result
@@ -131,11 +170,9 @@ class AccountMove(models.Model):
         if not self._plasticos_is_digitized_bill():
             return []
         reasons = []
-        if "extract_state" not in self._fields:
-            reasons.append("Bill digitization is not installed, so the extraction cannot be confirmed.")
-        elif self.extract_state == EXTRACT_NOT_REQUESTED:
-            reasons.append("The bill was not sent for digitization.")
-        elif self.extract_state not in EXTRACT_FINISHED_STATES:
+        # An emailed bill that was never sent for digitization is reviewed by hand and may post.
+        requested = self.extract_state not in (False, EXTRACT_NOT_REQUESTED)
+        if requested and self.extract_state not in EXTRACT_FINISHED_STATES:
             label = dict(self._fields["extract_state"].selection).get(self.extract_state, self.extract_state)
             reasons.append(f"Digitization is not finished or failed ({label}).")
         if not self.partner_id:
@@ -157,9 +194,22 @@ class AccountMove(models.Model):
         if self.duplicated_ref_ids:
             names = ", ".join(self.duplicated_ref_ids.mapped(lambda m: m.name or m.ref or str(m.id)))
             reasons.append(f"A possible duplicate bill exists: {names}.")
-        _email, found = self._plasticos_reference_resolution()
+        _email, found, party_ok = self._plasticos_reference_resolution()
+        waived = self.sudo().plasticos_not_load_related  # sudo: read-only check of a manager-only field
         if found["status"] == "conflicting":
             reasons.append(found["detail"])
+        elif found["status"] == "one" and not party_ok and not self.invoice_origin:
+            vendor = self.partner_id.display_name or "no vendor"
+            reasons.append(
+                f"{found['detail']} The bill's vendor ({vendor}) is not its supplier, "
+                "purchase order vendor or load carrier, so the source document was not set."
+            )
+        elif not self.invoice_origin and not waived:
+            reasons.append(
+                "The source document is empty and no transaction, order, load or delivery reference "
+                "identifies one. An Operations Manager must fill the source document or record that "
+                "the bill is not load-related."
+            )
         return reasons
 
     def _plasticos_blocked_bills(self):
@@ -178,6 +228,7 @@ class AccountMove(models.Model):
 
         The check runs on every post. Nothing is defaulted or corrected here.
         """
+        self._plasticos_apply_reference_match()
         blocked = self._plasticos_blocked_bills()
         if not blocked:
             return super().action_post()

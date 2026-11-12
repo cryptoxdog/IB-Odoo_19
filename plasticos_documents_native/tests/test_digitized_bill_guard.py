@@ -1,11 +1,11 @@
-"""B4 posting guard on digitized or emailed vendor bills, and B5 on draft bills."""
+"""Posting guard on digitized or emailed vendor bills (B4, B8, B10) and reference matching on draft bills (B5, B9)."""
 
 from datetime import date, timedelta
 
 from markupsafe import Markup
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
-from odoo.exceptions import UserError
+from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests.common import tagged
 from odoo.tools import html2plaintext
 
@@ -17,8 +17,6 @@ class TestDigitizedBillGuard(PlasticosTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        if "extract_state" not in cls.env["account.move"]._fields:
-            raise AssertionError("BLOCKED: account_invoice_extract is not installed")
         cls.company = cls.env.company
         cls.vendor = cls.env["res.partner"].create({"name": "B4 Trucker", "is_company": True, "supplier_rank": 1})
         internal = cls.env.ref("base.group_user")
@@ -31,11 +29,30 @@ class TestDigitizedBillGuard(PlasticosTestCase):
                 "group_ids": [(6, 0, [internal.id, manager_group.id])],
             }
         )
-        cls.sale = cls.env["sale.order"].create({"partner_id": cls.vendor.id})
-        cls.sale_other = cls.env["sale.order"].create({"partner_id": cls.vendor.id})
-        cls.tx = cls.env["plasticos.transaction"].create(
-            {"supplier_id": cls.vendor.id, "buyer_id": cls.vendor.id, "quantity": 1}
+        accountant_group = cls.env.ref("account.group_account_invoice")
+        cls.accountant = cls.env["res.users"].create(
+            {
+                "name": "B10 Accountant",
+                "login": "b10_accountant",
+                "group_ids": [(6, 0, [internal.id, accountant_group.id])],
+            }
         )
+        cls.manager.group_ids = [(4, accountant_group.id)]
+        cls.third_party = cls.env["res.partner"].create(
+            {"name": "B9 Third Party", "is_company": True, "supplier_rank": 1}
+        )
+        cls.buyer = cls.env["res.partner"].create({"name": "B9 Buyer", "is_company": True, "customer_rank": 1})
+        # The vendor is the supplier of this transaction, and the carrier of the load on cls.sale.
+        cls.tx = cls.env["plasticos.transaction"].create(
+            {"supplier_id": cls.vendor.id, "buyer_id": cls.buyer.id, "quantity": 1}
+        )
+        cls.sale = cls.env["sale.order"].create({"partner_id": cls.buyer.id})
+        cls.load = cls.env["plasticos.load"].create({"sale_order_id": cls.sale.id, "carrier_id": cls.vendor.id})
+        cls.sale_other = cls.env["sale.order"].create({"partner_id": cls.buyer.id})
+        cls.load_other = cls.env["plasticos.load"].create(
+            {"sale_order_id": cls.sale_other.id, "carrier_id": cls.vendor.id}
+        )
+        cls.purchase = cls.env["purchase.order"].create({"partner_id": cls.vendor.id})
         cls.company_b = cls.env["res.company"].create({"name": "B4 Other Company"})
         cls.purchase_b = (
             cls.env["purchase.order"]
@@ -44,7 +61,9 @@ class TestDigitizedBillGuard(PlasticosTestCase):
         )
         cls.counter = 0
 
-    def _bill(self, digitized=True, total=100.0, **extra):
+    def _bill(self, digitized=True, total=100.0, waived=True, **extra):
+        """A draft vendor bill. ``waived`` records it as not load-related, so a test
+        about another reason is not held for its empty source document (B10)."""
         type(self).counter += 1
         vals = {
             "move_type": "in_invoice",
@@ -58,6 +77,9 @@ class TestDigitizedBillGuard(PlasticosTestCase):
         if digitized:
             vals["invoice_source_email"] = "trucker@example.com"
             vals["extract_state"] = "waiting_validation"
+        if waived:
+            vals["plasticos_not_load_related"] = True
+            vals["plasticos_not_load_related_reason"] = "Fixture: not a load bill"
         vals.update(extra)
         bill = self.env["account.move"].create(vals)
         if total is not None:
@@ -122,8 +144,18 @@ class TestDigitizedBillGuard(PlasticosTestCase):
             with self.subTest(state=state):
                 self._assert_held(self._bill(extract_state=state), "not finished or failed")
 
-    def test_emailed_bill_never_sent_for_digitization_blocks(self):
-        self._assert_held(self._bill(extract_state="no_extract_requested"), "not sent for digitization")
+    def test_emailed_bill_never_sent_for_digitization_posts_on_review(self):
+        bill = self._bill(extract_state="no_extract_requested")
+        self.assertTrue(bill._plasticos_is_digitized_bill())
+        self.assertEqual(bill._plasticos_bill_block_reasons(), [])
+        bill.action_post()
+        self.assertEqual(bill.state, "posted")
+
+    def test_emailed_bill_never_digitized_is_still_reviewed(self):
+        self._assert_held(self._bill(extract_state="no_extract_requested", ref=False), "bill reference is missing")
+        self._assert_held(
+            self._bill(extract_state="no_extract_requested", total=None), "document total is not recorded"
+        )
 
     def test_missing_vendor_blocks(self):
         self._assert_held(self._bill(partner_id=False), "vendor is missing")
@@ -226,7 +258,7 @@ class TestDigitizedBillGuard(PlasticosTestCase):
         )
 
     def test_email_with_one_order_number_sets_an_empty_origin(self):
-        bill = self._bill()
+        bill = self._bill(waived=False)
         message = self._email(bill, f"Freight bill {self.sale.name}")
         self.assertEqual(bill.invoice_origin, self.sale.name)
         note = bill.message_ids.filtered(lambda m: "Source document set to" in (m.body or ""))
@@ -234,6 +266,7 @@ class TestDigitizedBillGuard(PlasticosTestCase):
         self.assertIn(self.sale.name, note.body)
         self.assertIn(message.message_id, html2plaintext(note.body))
         self.assertEqual(bill.state, "draft")
+        self.assertEqual(bill._plasticos_bill_block_reasons(), [])
 
     def test_non_empty_origin_is_never_overwritten(self):
         bill = self._bill(invoice_origin="KEEP-ME")
@@ -253,27 +286,128 @@ class TestDigitizedBillGuard(PlasticosTestCase):
         self.assertFalse(bill.invoice_origin)
         self._assert_held(bill, "References disagree")
 
-    def test_reference_in_another_company_sets_nothing_and_does_not_block(self):
-        bill = self._bill()
-        self._email(bill, f"Bill for {self.purchase_b.name}")
-        self.assertFalse(bill.invoice_origin)
-        self.assertEqual(bill._plasticos_bill_block_reasons(), [])
-
-    def test_transaction_without_an_order_sets_no_origin(self):
-        bill = self._bill()
+    def test_transaction_number_without_an_order_sets_the_transaction_number(self):
+        bill = self._bill(waived=False)
         self._email(bill, f"Freight bill {self.tx.name}")
-        self.assertFalse(bill.invoice_origin)
-        self.assertEqual(bill._plasticos_bill_block_reasons(), [])
-
-    def test_no_reference_changes_nothing(self):
-        bill = self._bill()
-        self._email(bill, "invoice attached")
-        self.assertFalse(bill.invoice_origin)
+        self.assertEqual(bill.invoice_origin, self.tx.name)
         self.assertEqual(bill._plasticos_bill_block_reasons(), [])
 
     def test_forwarded_email_uses_the_fresh_reference(self):
-        bill = self._bill()
+        bill = self._bill(waived=False)
         body = f"<p>For {self.sale.name}</p><blockquote>earlier: {self.sale_other.name}</blockquote>"
         self._email(bill, "Fwd: freight bill", body)
         self.assertEqual(bill.invoice_origin, self.sale.name)
         self.assertEqual(bill._plasticos_bill_block_reasons(), [])
+
+    # ── B9 party check ───────────────────────────────────────
+    def test_transaction_supplier_passes_the_party_check(self):
+        bill = self._bill(waived=False)
+        self._email(bill, f"Bill for {self.tx.name}")
+        _email, found, party_ok = bill._plasticos_reference_resolution()
+        self.assertEqual(found["status"], "one")
+        self.assertTrue(party_ok)
+        self.assertTrue(bill.invoice_origin)
+
+    def test_purchase_order_vendor_passes_the_party_check(self):
+        bill = self._bill(waived=False)
+        self._email(bill, f"Bill for {self.purchase.name}")
+        self.assertEqual(bill.invoice_origin, self.purchase.name)
+        self.assertEqual(bill._plasticos_bill_block_reasons(), [])
+
+    def test_load_carrier_passes_the_party_check(self):
+        self.assertNotEqual(self.sale.partner_id, self.vendor)
+        bill = self._bill(waived=False)
+        self._email(bill, f"Freight for {self.sale.name}")
+        self.assertEqual(bill.invoice_origin, self.sale.name)
+        self.assertEqual(bill._plasticos_bill_block_reasons(), [])
+
+    def test_third_party_vendor_is_held_and_the_origin_stays_empty(self):
+        bill = self._bill(waived=False, partner_id=self.third_party.id)
+        self._email(bill, f"Freight for {self.sale.name}")
+        self.assertFalse(bill.invoice_origin)
+        self._assert_held(bill, "is not its supplier")
+        self.assertFalse(bill.invoice_origin)
+        activity = self._activities(bill)
+        self.assertIn(self.sale.name, activity.note)
+        self.assertIn(self.third_party.name, activity.note)
+
+    def test_buyer_is_not_a_party_for_a_vendor_bill(self):
+        bill = self._bill(waived=False, partner_id=self.buyer.id)
+        self._email(bill, f"Bill for {self.tx.name}")
+        self.assertFalse(bill.invoice_origin)
+        self._assert_held(bill, "is not its supplier")
+
+    def test_party_mismatch_is_not_lifted_by_the_not_load_related_record(self):
+        bill = self._bill(waived=True, partner_id=self.third_party.id)
+        self._email(bill, f"Freight for {self.sale.name}")
+        self._assert_held(bill, "is not its supplier")
+
+    # ── B10 bill with no reference ───────────────────────────
+    def test_bill_with_no_reference_and_no_origin_is_held(self):
+        bill = self._bill(waived=False)
+        self._email(bill, "invoice attached")
+        self.assertFalse(bill.invoice_origin)
+        self._assert_held(bill, "source document is empty")
+
+    def test_reference_in_another_company_is_no_reference(self):
+        bill = self._bill(waived=False)
+        self._email(bill, f"Bill for {self.purchase_b.name}")
+        self.assertFalse(bill.invoice_origin)
+        reasons = bill._plasticos_bill_block_reasons()
+        self.assertFalse(any("disagree" in reason for reason in reasons))
+        self._assert_held(bill, "source document is empty")
+
+    def test_manager_record_of_not_load_related_releases_the_bill(self):
+        bill = self._bill(waived=False)
+        self._assert_held(bill, "source document is empty")
+        bill.with_user(self.manager).write(
+            {"plasticos_not_load_related": True, "plasticos_not_load_related_reason": "Forklift purchase"}
+        )
+        self.assertEqual(bill._plasticos_bill_block_reasons(), [])
+        bill.action_post()
+        self.assertEqual(bill.state, "posted")
+
+    def test_manager_filled_source_document_clears_the_missing_origin_reason(self):
+        bill = self._bill(waived=False)
+        self._assert_held(bill, "source document is empty")
+        bill.with_user(self.manager).write({"invoice_origin": self.sale.name})
+        self.assertEqual(bill._plasticos_bill_block_reasons(), [])
+
+    def test_not_load_related_record_does_not_bypass_total_or_duplicate(self):
+        self._assert_held(self._bill(waived=True, total=105.0), "document total is")
+        self._assert_held(self._bill(waived=True, total=None), "document total is not recorded")
+        self._bill(waived=True, ref="B10-DUP")
+        duplicate = self._bill(waived=True, ref="B10-DUP")
+        duplicate.invalidate_recordset(["duplicated_ref_ids"])
+        self._assert_held(duplicate, "possible duplicate")
+
+    def test_not_load_related_requires_a_reason(self):
+        bill = self._bill(waived=False)
+        with self.assertRaises(ValidationError):
+            bill.write({"plasticos_not_load_related": True})
+        with self.assertRaises(ValidationError):
+            bill.write({"plasticos_not_load_related": True, "plasticos_not_load_related_reason": "   "})
+
+    def test_non_manager_cannot_record_not_load_related(self):
+        bill = self._bill(waived=False)
+        with self.assertRaises(AccessError):
+            bill.with_user(self.accountant).write(
+                {"plasticos_not_load_related": True, "plasticos_not_load_related_reason": "self-release"}
+            )
+        self.assertFalse(bill.plasticos_not_load_related)
+        self._assert_held(bill, "source document is empty")
+
+    def test_not_load_related_record_is_frozen_once_posted(self):
+        bill = self._bill(waived=True)
+        bill.action_post()
+        self.assertEqual(bill.state, "posted")
+        with self.assertRaises(UserError):
+            bill.write({"plasticos_not_load_related": False})
+        with self.assertRaises(UserError):
+            bill.write({"plasticos_not_load_related_reason": "changed"})
+
+    def test_waiver_fields_are_manager_only(self):
+        fields_by_name = self.env["account.move"]._fields
+        for name in ("plasticos_not_load_related", "plasticos_not_load_related_reason", "plasticos_document_total"):
+            with self.subTest(field=name):
+                self.assertIn("plasticos_security_base.group_operations_manager", fields_by_name[name].groups)

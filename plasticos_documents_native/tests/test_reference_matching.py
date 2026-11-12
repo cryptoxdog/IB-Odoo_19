@@ -178,7 +178,7 @@ class TestReferenceResolution(PlasticosTestCase):
             }
         )
 
-    def _email(self, record, subject, body=""):
+    def _email(self, record, subject, body="", author=None):
         return record.message_post(
             message_type="email",
             subtype_xmlid="mail.mt_comment",
@@ -186,7 +186,7 @@ class TestReferenceResolution(PlasticosTestCase):
             # An inbound email body is HTML. A plain str would be escaped as text by message_post.
             body=Markup(body),
             email_from="trucker@example.com",
-            author_id=self.partner.id,
+            author_id=self.partner.id if author is None else author.id,
         )
 
     def test_document_email_with_one_reference_prefills_the_pending_row(self):
@@ -246,3 +246,39 @@ class TestReferenceResolution(PlasticosTestCase):
     def test_document_without_an_email_is_not_matched_by_file_name_alone(self):
         native = self._native(f"{self.tx_a.name}.pdf")
         self.assertFalse(native.plasticos_doc_id.association_subject_model)
+
+    # ── B9 sender party check ────────────────────────────────
+    def test_document_from_a_sender_that_is_not_a_party_is_not_prefilled(self):
+        stranger = self.env["res.partner"].create({"name": "B9 Stranger", "is_company": True})
+        native = self._native("stranger.pdf")
+        shell = native.plasticos_doc_id
+        self._email(native, f"POD {self.tx_a.name}", author=stranger)
+        self.assertFalse(shell.association_subject_model)
+        self.assertFalse(shell.association_subject_id)
+        self.assertFalse(native.association_subject_model)
+        self.assertIn(self.tx_a.name, shell.pending_reason)
+        self.assertIn("B9 Stranger", shell.pending_reason)
+        self.assertEqual(shell.association_state, "pending")
+        activity = self.env["mail.activity"].search(
+            [("res_model", "=", "documents.document"), ("res_id", "=", native.id), ("summary", "=", SUMMARY)]
+        )
+        self.assertEqual(len(activity), 1)
+        self.assertIn("B9 Stranger", activity.note)
+
+    def test_document_from_an_unknown_sender_is_prefilled_with_a_note(self):
+        native = self._native("unknown-sender.pdf")
+        shell = native.plasticos_doc_id
+        self._email(native, f"POD {self.tx_a.name}", author=self.env["res.partner"])
+        self.assertEqual(shell.association_subject_model, "plasticos.transaction")
+        self.assertEqual(shell.association_subject_id, self.tx_a.id)
+        self.assertIn("sender is unknown", shell.pending_reason)
+        self.assertEqual(shell.association_state, "pending")
+        self.assertFalse(shell.verified)
+
+    def test_parties_are_the_vendor_side_and_carriers_only(self):
+        parties = self.service._reference_parties(self.tx_a)
+        self.assertIn(self.partner, parties)
+        buyer = self.env["res.partner"].create({"name": "B9 Buyer Only", "is_company": True, "customer_rank": 1})
+        sale = self.env["sale.order"].create({"partner_id": buyer.id})
+        self.assertNotIn(buyer, self.service._reference_parties(sale))
+        self.assertFalse(self.service._reference_parties(None))

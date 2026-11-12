@@ -17,6 +17,7 @@
         "documents",  # Enterprise: Document Management
         "documents_account",  # Enterprise: Documents ↔ Accounting bridge
         "account",  # vendor bill posting guard (models/account_move.py)
+        "account_invoice_extract",  # Enterprise: native bill digitization (IAP); the guard reads its state
         "plasticos_documents",
         "plasticos_logistics",
         "plasticos_transaction",
@@ -31,7 +32,7 @@
         "views/document_native_views.xml",
         "views/account_move_views.xml",
     ],
-    # Requires Enterprise modules `documents` and `documents_account` on the host.
+    # Requires Enterprise modules `documents`, `documents_account` and `account_invoice_extract` on the host.
     "installable": True,
     "application": True,
     "auto_install": True,

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- The total printed on the vendor's document. Digitization records it;
-         an Operations Manager corrects it. The posting guard compares it with
-         the lines and tax of a digitized or emailed vendor bill. -->
+    <!-- Manager-only review fields of a digitized or emailed vendor bill: the
+         total printed on the document, the source document, and the record
+         that the bill is not load-related. The posting guard reads them. -->
     <record id="view_move_form_plasticos_document_total" model="ir.ui.view">
         <field name="name">account.move.form.plasticos.document.total</field>
         <field name="model">account.move</field>
@@ -12,6 +12,19 @@
             <xpath expr="//group[@id='header_right_group']" position="inside">
                 <field name="plasticos_document_total"
                        invisible="move_type not in ('in_invoice', 'in_refund')"
+                       readonly="state != 'draft'"
+                       groups="plasticos_security_base.group_operations_manager,base.group_system"/>
+                <field name="invoice_origin" string="Source Document"
+                       invisible="move_type not in ('in_invoice', 'in_refund')"
+                       readonly="state != 'draft'"
+                       groups="plasticos_security_base.group_operations_manager,base.group_system"/>
+                <field name="plasticos_not_load_related"
+                       invisible="move_type not in ('in_invoice', 'in_refund')"
+                       readonly="state != 'draft'"
+                       groups="plasticos_security_base.group_operations_manager,base.group_system"/>
+                <field name="plasticos_not_load_related_reason"
+                       invisible="move_type not in ('in_invoice', 'in_refund') or not plasticos_not_load_related"
+                       required="plasticos_not_load_related"
                        readonly="state != 'draft'"
                        groups="plasticos_security_base.group_operations_manager,base.group_system"/>
             </xpath>

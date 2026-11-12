@@ -285,6 +285,35 @@ class DocumentSyncService(models.AbstractModel):
         return Transaction.browse()
 
     @api.model
+    def _reference_parties(self, subject):
+        """Commercial partners on the vendor side of a resolved record.
+
+        The transaction supplier and carrier, purchase order vendors, and the
+        carrier of every load of the transaction or of its sale order. A buyer
+        is not a party here: this is asked for a vendor's bill or paperwork.
+        """
+        partners = self.env["res.partner"].sudo()  # sudo: party identity only
+        if subject is None:
+            return partners
+        subject = subject.sudo()  # sudo: party identity only
+        sale_orders = self.env["sale.order"].sudo()  # sudo: party identity only
+        if subject._name == "plasticos.transaction":
+            partners |= subject.supplier_id | subject.carrier_id | subject.purchase_order_ids.mapped("partner_id")
+            if "load_ids" in subject._fields:
+                partners |= subject.load_ids.mapped("carrier_id")
+            sale_orders = subject.sale_order_id
+        elif subject._name == "purchase.order":
+            partners |= subject.partner_id
+        elif subject._name == "plasticos.load":
+            partners |= subject.carrier_id
+        elif subject._name == "sale.order":
+            sale_orders = subject
+        if sale_orders and "plasticos.load" in self.env:
+            load_model = self.env["plasticos.load"].sudo()  # sudo: carrier identity only
+            partners |= load_model.search([("sale_order_id", "in", sale_orders.ids)]).mapped("carrier_id")
+        return partners.mapped("commercial_partner_id")
+
+    @api.model
     def resolve_references(self, company, sources, quoted=None):
         """Resolve reference numbers to one transaction, a conflict, or nothing.
 
@@ -392,6 +421,19 @@ class DocumentSyncService(models.AbstractModel):
         if found["status"] != "one":
             return
         subject = found["subject"]
+        sender = email.author_id.commercial_partner_id
+        if sender and sender not in self._reference_parties(subject):
+            reason = (
+                f"{found['detail']} Nothing was pre-filled: the sender ({sender.display_name}) is not its "
+                "supplier, purchase order vendor or load carrier."
+            )
+            if shell.pending_reason != reason:
+                shell.write({"pending_reason": reason})
+            return
+        if not sender:
+            reason = f"{found['detail']} The sender is unknown, so it was not checked as a party of that record."
+            if shell.pending_reason != reason:
+                shell.write({"pending_reason": reason})
         reference = f"email {email.message_id or email.id}: {found['detail']}"
         vals = {
             "association_subject_model": subject._name,
