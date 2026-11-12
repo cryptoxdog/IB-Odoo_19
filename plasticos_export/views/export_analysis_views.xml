@@ -44,7 +44,7 @@
         <field name="search_view_id" ref="view_export_slot_search"/>
     </record>
 
-    <!-- 5. Cutoff & Booking Exceptions: one row per booking. -->
+    <!-- 5. Cutoff and Booking Exceptions: one row per booking. -->
     <record id="action_export_report_exceptions" model="ir.actions.act_window">
         <field name="name">Cutoff &amp; Booking Exceptions</field>
         <field name="res_model">plasticos.export.booking</field>
