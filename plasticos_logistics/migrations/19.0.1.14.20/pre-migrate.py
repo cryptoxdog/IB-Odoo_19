@@ -49,89 +49,113 @@ def has_table(cr, table):
     return cr.fetchone()[0] is not None
 
 
+# Every statement below is a fixed literal. The two schema variants are handled
+# by filling two temporary tables from fixed queries, never by composing SQL text.
+_PARENT_FROM_LOAD = (
+    "INSERT INTO plasticos_s2_census_parent (load_id, transaction_id) "
+    "SELECT l.id, l.transaction_id FROM plasticos_load l WHERE l.transaction_id IS NOT NULL"
+)
+_PARENT_FROM_TRANSACTION = (
+    "INSERT INTO plasticos_s2_census_parent (load_id, transaction_id) "
+    "SELECT t.load_id, t.id FROM plasticos_transaction t WHERE t.load_id IS NOT NULL"
+)
+
+
 def _parent_link_sql(cr):
-    """SQL yielding (load_id, transaction_id) for each load's parent, or None."""
+    """The fixed query that fills each load's parent link for this schema, or None.
+
+    Before 19.0.1.14.6 the parent was ``plasticos_transaction.load_id``; from it on,
+    ``plasticos_load.transaction_id``.
+    """
     if has_column(cr, "plasticos_load", "transaction_id"):
-        return "SELECT l.id AS load_id, l.transaction_id AS transaction_id FROM plasticos_load l"
+        return _PARENT_FROM_LOAD
     if has_column(cr, "plasticos_transaction", "load_id"):
-        return "SELECT t.load_id AS load_id, t.id AS transaction_id FROM plasticos_transaction t"
+        return _PARENT_FROM_TRANSACTION
     return None
 
 
+def _fill_census_tables(cr):
+    """Fill the parent and source temporary tables. Writes nothing persistent."""
+    # Session-local scratch tables; emptied before and after each census.
+    cr.execute("CREATE TEMP TABLE IF NOT EXISTS plasticos_s2_census_parent (load_id integer, transaction_id integer)")
+    cr.execute(
+        "CREATE TEMP TABLE IF NOT EXISTS plasticos_s2_census_source (load_id integer, company_id integer, source varchar)"
+    )
+    cr.execute("DELETE FROM plasticos_s2_census_parent")
+    cr.execute("DELETE FROM plasticos_s2_census_source")
+    parent_insert = _parent_link_sql(cr)
+    if parent_insert:
+        cr.execute(parent_insert)
+    cr.execute(
+        """
+        INSERT INTO plasticos_s2_census_source (load_id, company_id, source)
+        SELECT l.id, so.company_id, 'sale_order'
+          FROM plasticos_load l
+          JOIN sale_order so ON so.id = l.sale_order_id
+         WHERE so.company_id IS NOT NULL
+        """
+    )
+    cr.execute(
+        """
+        INSERT INTO plasticos_s2_census_source (load_id, company_id, source)
+        SELECT p.load_id, so.company_id, 'transaction_sale_order'
+          FROM plasticos_s2_census_parent p
+          JOIN plasticos_transaction t ON t.id = p.transaction_id
+          JOIN sale_order so ON so.id = t.sale_order_id
+         WHERE so.company_id IS NOT NULL
+        """
+    )
+    # Default Many2many table of plasticos.transaction.purchase_order_ids.
+    if has_table(cr, "plasticos_transaction_purchase_order_rel") and has_column(
+        cr, "plasticos_transaction_purchase_order_rel", "plasticos_transaction_id"
+    ):
+        cr.execute(
+            """
+            INSERT INTO plasticos_s2_census_source (load_id, company_id, source)
+            SELECT p.load_id, po.company_id, 'transaction_purchase_order'
+              FROM plasticos_s2_census_parent p
+              JOIN plasticos_load l ON l.id = p.load_id
+              JOIN plasticos_transaction t ON t.id = p.transaction_id
+              JOIN plasticos_transaction_purchase_order_rel rel ON rel.plasticos_transaction_id = t.id
+              JOIN purchase_order po ON po.id = rel.purchase_order_id
+             WHERE l.sale_order_id IS NULL
+               AND t.sale_order_id IS NULL
+               AND po.company_id IS NOT NULL
+            """
+        )
+
+
 def census(cr):
-    """Classify every load. Returns (repairs, refusals); writes nothing.
+    """Classify every load. Returns (repairs, refusals); writes nothing persistent.
 
     ``repairs`` is a list of (load_id, company_id, source); ``refusals`` a list
     of (load_id, reason, detail).
     """
     if not has_table(cr, "plasticos_load") or not has_column(cr, "plasticos_load", "company_id"):
         return [], []
-    parent_sql = _parent_link_sql(cr)
-    # Default Many2many table of plasticos.transaction.purchase_order_ids.
-    has_po_link = has_table(cr, "plasticos_transaction_purchase_order_rel") and has_column(
-        cr, "plasticos_transaction_purchase_order_rel", "plasticos_transaction_id"
-    )
-    # Each source contributes (load_id, company_id, source_name). The SQL is static;
-    # only the parent-link subquery varies between two fixed literals above.
-    sources = [
-        """
-        SELECT l.id, so.company_id, 'sale_order'
-          FROM plasticos_load l
-          JOIN sale_order so ON so.id = l.sale_order_id
-         WHERE so.company_id IS NOT NULL
-        """
-    ]
-    if parent_sql:
-        sources.append(
-            f"""
-            SELECT p.load_id, so.company_id, 'transaction_sale_order'
-              FROM ({parent_sql}) p
-              JOIN plasticos_transaction t ON t.id = p.transaction_id
-              JOIN sale_order so ON so.id = t.sale_order_id
-             WHERE p.load_id IS NOT NULL
-               AND so.company_id IS NOT NULL
-            """  # noqa: S608 -- parent_sql is one of two static literals
-        )
-        if has_po_link:
-            sources.append(
-                f"""
-                SELECT p.load_id, po.company_id, 'transaction_purchase_order'
-                  FROM ({parent_sql}) p
-                  JOIN plasticos_load l ON l.id = p.load_id
-                  JOIN plasticos_transaction t ON t.id = p.transaction_id
-                  JOIN plasticos_transaction_purchase_order_rel rel ON rel.plasticos_transaction_id = t.id
-                  JOIN purchase_order po ON po.id = rel.purchase_order_id
-                 WHERE p.load_id IS NOT NULL
-                   AND l.sale_order_id IS NULL
-                   AND t.sale_order_id IS NULL
-                   AND po.company_id IS NOT NULL
-                """  # noqa: S608 -- parent_sql is one of two static literals
-            )
+    _fill_census_tables(cr)
     refusals = []
-    if parent_sql:
-        cr.execute(
-            f"""
-            SELECT p.load_id, array_agg(DISTINCT p.transaction_id ORDER BY p.transaction_id)
-              FROM ({parent_sql}) p
-             WHERE p.load_id IS NOT NULL AND p.transaction_id IS NOT NULL
-             GROUP BY p.load_id
-            HAVING count(DISTINCT p.transaction_id) > 1
-            """  # noqa: S608 -- parent_sql is one of two static literals
-        )
-        refusals.extend((load_id, "several_parent_transactions", list(tx_ids)) for load_id, tx_ids in cr.fetchall())
-    union = " UNION ".join(sources)
     cr.execute(
-        f"""
+        """
+        SELECT p.load_id, array_agg(DISTINCT p.transaction_id ORDER BY p.transaction_id)
+          FROM plasticos_s2_census_parent p
+         GROUP BY p.load_id
+        HAVING count(DISTINCT p.transaction_id) > 1
+        """
+    )
+    refusals.extend((load_id, "several_parent_transactions", list(tx_ids)) for load_id, tx_ids in cr.fetchall())
+    cr.execute(
+        """
         SELECT l.id,
                l.company_id,
                array_agg(DISTINCT s.company_id ORDER BY s.company_id)
                    FILTER (WHERE s.company_id IS NOT NULL),
                array_agg(DISTINCT s.source ORDER BY s.source) FILTER (WHERE s.source IS NOT NULL)
           FROM plasticos_load l
-          LEFT JOIN ({union}) AS s(load_id, company_id, source) ON s.load_id = l.id
+          LEFT JOIN plasticos_s2_census_source s ON s.load_id = l.id
          GROUP BY l.id, l.company_id
          ORDER BY l.id
-        """  # noqa: S608 -- union is built only from the static literals above
+        """
     )
     repairs = []
     for load_id, company_id, source_companies, source_names in cr.fetchall():
@@ -147,6 +171,8 @@ def census(cr):
             refusals.append((load_id, "no_source_company", []))
             continue
         repairs.append((load_id, source_companies[0], ",".join(source_names or [])))
+    cr.execute("DELETE FROM plasticos_s2_census_parent")
+    cr.execute("DELETE FROM plasticos_s2_census_source")
     return repairs, refusals
 
 

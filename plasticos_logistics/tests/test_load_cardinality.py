@@ -1334,7 +1334,7 @@ class TestLoadSourceCompanyAndPhysicalEvents(TransactionCase):
             return real_has_column(cursor, table, column)
 
         with patch.object(pre, "has_column", old_schema):
-            self.assertIn("plasticos_transaction t", pre._parent_link_sql(cr))
+            self.assertEqual(pre._parent_link_sql(cr), pre._PARENT_FROM_TRANSACTION)
             repairs, refusals = pre.census(cr)
         self.assertIn((repairable.id, order.company_id.id, "transaction_sale_order"), repairs)
         self.assertIn((doubled.id, "several_parent_transactions", sorted([tx_two.id, tx_three.id])), refusals)
