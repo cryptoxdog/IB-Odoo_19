@@ -1391,7 +1391,13 @@ def test_template_admission_from_a_clean_tree_is_not_refused_for_its_source(tmp_
 
 def test_template_ready_marker_records_the_source_head_and_digest():
     script = (ROOT / "scripts" / "test_env.sh").read_text()
-    assert "$(template_source_marker) $ADMISSION" in script
+    assert "$BUILD_SOURCE_MARKER $ADMISSION" in script
+    # The marker names the source when the build starts, and a change before the stamp is refused.
+    assert 'BUILD_SOURCE_MARKER="$(template_source_marker)"' in script
+    assert script.index('BUILD_SOURCE_MARKER="$(template_source_marker)"') < script.index(
+        'preflight_modules "$modules"'
+    )
+    assert "PlasticOS addon source changed while $BUILD_DB was built" in script
     assert 'echo "srchead=$(git -C "$ROOT" rev-parse --verify -q HEAD) srcdigest=$(addon_source)"' in script
 
 

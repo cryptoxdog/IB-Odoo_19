@@ -812,6 +812,10 @@ build_template() {
   fi
   modules="$(module_list)"
   require_declared_template_source
+  # The source is named when the build starts: that is what Odoo installs. A change to
+  # the addon source before the stamp is refused below rather than recorded.
+  BUILD_SOURCE_MARKER="$(template_source_marker)"
+  BUILD_SOURCE_DIGEST="$(addon_source)"
   preflight_modules "$modules"
   mkdir -p "$EVIDENCE_DIR"
   fingerprint_inputs >"$EVIDENCE_DIR/${TEMPLATE_DB}.inputs.txt"
@@ -865,9 +869,11 @@ build_template() {
     set_comment "$BUILD_DB" "$marker state=rejected"
     die "$BUILD_DB failed admission and was not published"
   fi
+  [ "$(addon_source)" = "$BUILD_SOURCE_DIGEST" ] ||
+    die "PlasticOS addon source changed while $BUILD_DB was built; it is not the source that was installed (not published)"
   # Stamp ready on the build name, then rename: the template name only ever
   # exists for an admitted database.
-  set_comment "$BUILD_DB" "$SCHEMA role=template state=ready parity=$PARITY fp=$FP builder=$OWNER built=$(utc_now) enterprise=$(marker_safe "$(enterprise_revision)") $(template_source_marker) $ADMISSION"
+  set_comment "$BUILD_DB" "$SCHEMA role=template state=ready parity=$PARITY fp=$FP builder=$OWNER built=$(utc_now) enterprise=$(marker_safe "$(enterprise_revision)") $BUILD_SOURCE_MARKER $ADMISSION"
   odoo_db publish rename "$BUILD_DB" "$TEMPLATE_DB"
   psql_admin "ALTER DATABASE \"$TEMPLATE_DB\" WITH ALLOW_CONNECTIONS false IS_TEMPLATE true" >/dev/null
   db_comment "$TEMPLATE_DB" >"$EVIDENCE_DIR/${TEMPLATE_DB}.admission.txt"
@@ -1392,6 +1398,8 @@ require_declared_template_source() {
   [ -z "$changes" ] ||
     refuse "PlasticOS addon source in $ROOT differs from its Git head ${head:0:12}; the template installs the source on disk and its fingerprint leaves that source out. Admit it from a clean checkout"
 }
+BUILD_SOURCE_MARKER=""
+BUILD_SOURCE_DIGEST=""
 template_source_marker() {
   echo "srchead=$(git -C "$ROOT" rev-parse --verify -q HEAD) srcdigest=$(addon_source)"
 }
