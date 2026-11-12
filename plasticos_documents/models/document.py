@@ -415,7 +415,23 @@ class PlasticosDocument(models.Model):
             self._trigger_transaction_recompute(self)
         return result
 
+    def _refuse_evidence_unlink(self):
+        """Accepted or decided evidence is deleted only by a Documents Manager.
+
+        BRS-POS-03-R004 and BRS-POS-03-R005: the recorded decision and its
+        exact association are the audit trail. Superuser code paths (module
+        uninstall, data repair) are server-side only and stay open.
+        """
+        if self.env.su or self.env.user.has_group(OVERRIDE_GROUP):
+            return
+        for rec in self:
+            if rec.association_state == "accepted" or rec.verified or rec.override:
+                raise AccessError(
+                    "Accepted, verified, or overridden evidence can be deleted only by a Documents Manager."
+                )
+
     def unlink(self):
+        self._refuse_evidence_unlink()
         # Capture transactions before delete
         transactions = self._get_related_transactions(self)
         attachments = self.attachment_id
@@ -423,7 +439,9 @@ class PlasticosDocument(models.Model):
         self._invalidate_native_attachments(attachments)
         # Trigger recompute after delete (both flags AND compliance)
         if transactions:
-            projected = transactions.sudo()  # sudo: compliance flags; group_user ACL still admits every internal user
+            projected = (
+                transactions.sudo()
+            )  # sudo: compliance flags; group_user read ACL still admits every internal user
             projected._compute_missing_doc_flags()
             if hasattr(projected, "_compute_compliance"):
                 projected._compute_compliance()
@@ -445,7 +463,9 @@ class PlasticosDocument(models.Model):
         """
         transactions = self._get_related_transactions(records)
         if transactions:
-            projected = transactions.sudo()  # sudo: compliance flags; group_user ACL still admits every internal user
+            projected = (
+                transactions.sudo()
+            )  # sudo: compliance flags; group_user read ACL still admits every internal user
             projected._compute_missing_doc_flags()
             # Issue 3 fix: compliance_status depends on documents too
             if hasattr(projected, "_compute_compliance"):
@@ -480,7 +500,8 @@ class PlasticosDocument(models.Model):
         marker = "Conflicting association withheld from evidence."
         if any(marker in (message.body or "") for message in self.message_ids):
             return
-        self.message_post(
+        # sudo: system review note; a read-only internal user can reach this through a recompute
+        self.sudo().message_post(
             body=f"{marker} {reason}",
             message_type="notification",
             subtype_xmlid="mail.mt_note",
@@ -863,7 +884,8 @@ class IrAttachmentEvidenceRevision(models.Model):
         documents = self.env["plasticos.document"].search([("attachment_id", "in", self.ids)])
         replaced = documents.filtered(_replaced_accepted_evidence)
         if replaced:
-            replaced._association_write({"association_review_required": True})
+            # sudo: fail-closed review flag; the actor may hold attachment write but only document read
+            replaced.sudo()._association_write({"association_review_required": True})
         if documents:
             documents._invalidate_native_projection()
             documents._trigger_transaction_recompute(documents)
