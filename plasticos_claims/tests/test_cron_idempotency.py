@@ -644,43 +644,6 @@ class TestCronInDomain(PlasticosTestCase):
         self.assertTrue(document.verified)
         self.assertTrue(document.is_expired)
 
-    def test_attachment_orphan_cron_deletes_missing_filestore_row(self):
-        from odoo.tools import config
-
-        if not config.get("data_dir"):
-            self.fail("data_dir is unset; the orphan cron returns before it can delete a missing blob")
-        partner = self.env["res.partner"].create({"name": "Orphan Attachment Co", "is_company": True})
-        attachment = self.env["ir.attachment"].create(
-            {
-                "name": "present.txt",
-                "datas": "cHJlc2VudA==",
-                "res_model": "res.partner",
-                "res_id": partner.id,
-            }
-        )
-        self.env.cr.execute(
-            "UPDATE ir_attachment SET type = 'binary', store_fname = %s WHERE id = %s",
-            ["cron-lock-missing/absent.bin", attachment.id],
-        )
-        attachment.invalidate_recordset()
-        others = (
-            self.env["ir.attachment"]
-            .sudo()
-            .search_count(
-                [
-                    ("type", "=", "binary"),
-                    ("store_fname", "!=", False),
-                    ("id", "<", attachment.id),
-                ]
-            )
-        )
-        self.assertLess(others, 2000, f"attachment orphan prefix already has {others} rows; limit is 2000")
-        removed = self.env["ir.attachment"]._cron_cleanup_missing_filestore_orphans()
-        self.assertGreaterEqual(removed, 1)
-        self.assertFalse(attachment.exists())
-        self.env["ir.attachment"]._cron_cleanup_missing_filestore_orphans()
-        self.assertFalse(attachment.exists())
-
     def test_trucker_followup_marks_unconfirmed_outgoing_picking(self):
         self._skip_unless_model("plasticos.automation.log")
         picking_type = self.env["stock.picking.type"].search([("code", "=", "outgoing")], limit=1)

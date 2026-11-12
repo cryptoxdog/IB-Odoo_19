@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Base",
-    "version": "19.0.1.1.10",
+    "version": "19.0.1.1.11",
     "summary": "Core seed data, feature gates, and partner tags",
     "license": "LGPL-3",
     "author": "Igor Beylin",
@@ -21,7 +21,6 @@
         "data/partner_tags.xml",
         "data/material_taxonomy.xml",
         "data/sales_reps.xml",
-        "data/attachment_maintenance_cron.xml",
         "data/midnight_recompute_cron.xml",
         "data/uom_defaults.xml",
     ],

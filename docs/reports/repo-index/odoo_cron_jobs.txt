@@ -6,7 +6,6 @@
 ./plasticos_automation/data/invoice_reminder_cron.xml:4:        <record id="cron_invoice_reminder" model="ir.cron">
 ./plasticos_automation/data/sale_approval_cron.xml:4:        <record id="cron_sale_approval_flag" model="ir.cron">
 ./plasticos_automation/data/stock_alert_cron.xml:4:        <record id="cron_stock_reorder_alert" model="ir.cron">
-./plasticos_base/data/attachment_maintenance_cron.xml:3:    <record id="ir_cron_cleanup_attachment_orphans" model="ir.cron">
 ./plasticos_base/data/midnight_recompute_cron.xml:16:    <record id="ir_cron_midnight_recompute" model="ir.cron">
 ./plasticos_claims/data/claim_cron.xml:4:    <record id="cron_claim_sla_check" model="ir.cron">
 ./plasticos_crm_sync/data/ir_cron_data.xml:4:        <record id="cron_crm_sync_all" model="ir.cron">
