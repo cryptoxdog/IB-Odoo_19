@@ -42,7 +42,7 @@ class TestWebLeadBalesPackaging(TransactionCase):
     def test_bale_words_merge_to_packaging_and_no_form(self):
         lead = self._lead("bales-merge", "HDPE scrap")
         for word in ("bale", "baled", "bales", " Bales "):
-            merged = lead._merge_ai_and_vision({"form": word, "polymer": "HDPE"}, [])
+            merged = lead._merge_ai_and_vision(dict(form=word, polymer="HDPE"), [])
             self.assertEqual(merged["packaging"], "bales", word)
             self.assertIsNone(merged["form"], word)
         regrind = lead._merge_ai_and_vision({"form": "regrind"}, [])

@@ -47,7 +47,7 @@ class TestBalesPackaging(PlasticosTestCase):
 
     def test_bale_words_normalize_to_packaging_and_no_form(self):
         for word in ("bale", "bales", "baled", " Bales "):
-            raw = {"polymer": "pp", "form": word, "confidence": 0.9, "source_sentence": f"PP {word} weekly"}
+            raw = dict(polymer="pp", form=word, confidence=0.9, source_sentence=f"PP {word} weekly")
             vals, provenance, unmapped = self.service.normalize_material(raw)
             self.assertEqual(vals.get("packaging_type_id"), self.bales.id, word)
             self.assertNotIn("form", vals, word)
