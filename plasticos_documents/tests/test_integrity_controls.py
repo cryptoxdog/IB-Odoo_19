@@ -257,6 +257,29 @@ class TestMissingDocEscalationOwner(PlasticosTestCase):
         self.assertEqual(model._get_logistics_manager(self.managers), first)
         self.assertEqual(model._get_logistics_manager(self.managers), first)
 
+    def test_owner_is_scoped_to_the_record_company(self):
+        """POS-INV-05: a manager of another legal company never owns the escalation."""
+        model = self.env["plasticos.transaction"]
+        other = self.env["res.company"].create({"name": "Integrity Other Company"})
+        foreign = self.env["res.users"].create(
+            {
+                "name": "integrity.manager.foreign",
+                "login": "integrity.manager.foreign",
+                "company_id": other.id,
+                "company_ids": [(6, 0, [other.id])],
+                "group_ids": [(6, 0, [self.env.ref("base.group_user").id, self.managers.id])],
+            }
+        )
+        home = self.env.company
+        self.assertFalse(model._get_logistics_manager(self.managers, home))
+        self.assertEqual(model._get_logistics_manager(self.managers, other), foreign)
+        local = self._user("integrity.manager.local", self.managers)
+        owners = model._escalation_owners(self.managers, {1: home, 2: other, 3: home | other, 4: home.browse()})
+        self.assertEqual(owners[1], local)
+        self.assertEqual(owners[2], foreign)
+        self.assertFalse(owners[3])
+        self.assertEqual(owners[4], foreign)
+
     def test_implied_membership_counts(self):
         senior = self.env["res.groups"].create(
             {"name": "Integrity Senior Managers", "implied_ids": [fields.Command.link(self.managers.id)]}

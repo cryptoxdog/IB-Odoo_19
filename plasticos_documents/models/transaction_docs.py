@@ -192,9 +192,12 @@ class PlasticosTransactionDocs(models.Model):
             ]
         )
         existing = {(activity.res_id, activity.summary) for activity in activities}
-        manager = self._get_logistics_manager(self._escalation_manager_group())
+        owners = self._escalation_owners(
+            self._escalation_manager_group(),
+            {tx.id: tx.sale_order_id.company_id | tx.purchase_order_ids.company_id for tx in transactions},
+        )
         unassigned_noted = set()
-        if not manager:
+        if not all(owners.values()):
             notes = self.env["mail.message"].search(
                 [
                     ("model", "=", "plasticos.transaction"),
@@ -245,17 +248,19 @@ class PlasticosTransactionDocs(models.Model):
                 summary = summaries[tx.id]
                 if (tx.id, summary) in existing:
                     continue
+                manager = owners[tx.id]
                 if not manager:
                     failures += 1
                     _logger.error(
-                        "Missing-document ESCALATION not assigned: transaction %s has no Operations Manager.",
+                        "Missing-document ESCALATION not assigned: transaction %s has no Operations Manager "
+                        "in its company.",
                         tx.name,
                     )
                     if tx.id not in unassigned_noted:
                         tx.message_post(
                             body=(
                                 f"{self._UNASSIGNED_ESCALATION_MARKER} Transaction {tx.name} has missing "
-                                f"documents for {bd} business days and no active Operations Manager exists."
+                                f"documents for {bd} business days and no active Operations Manager exists in its company."
                             ),
                             message_type="notification",
                             subtype_xmlid="mail.mt_note",
@@ -374,15 +379,17 @@ class PlasticosTransactionDocs(models.Model):
         self._cron_parameters().set_param(self._SCALE_TICKET_CURSOR, str(next_cursor))
         return loads
 
-    def _get_logistics_manager(self, group):
+    def _get_logistics_manager(self, group, company=None):
         """Return the escalation owner from a manager-level group, or an empty recordset.
 
         Active internal users only, never the cron service user or the superuser.
         Implied membership counts. The lowest id wins, so the pick is deterministic.
+        With a company, the owner must be allowed in that company (POS-INV-05).
         """
         users = self.env["res.users"]
         if not group:
             return users
+        scope = [("company_ids", "in", company.ids)] if company else []
         excluded = [SUPERUSER_ID]
         cron_user = self.env.ref("plasticos_base.user_system_cron", raise_if_not_found=False)
         if cron_user:
@@ -393,10 +400,29 @@ class PlasticosTransactionDocs(models.Model):
                 ("active", "=", True),
                 ("share", "=", False),
                 ("id", "not in", excluded),
+                *scope,
             ],
             order="id ASC",
             limit=1,
         )
+
+    def _escalation_owners(self, group, companies_by_record):
+        """Map each record id to its owner, resolved once per legal company.
+
+        A record with no company takes the first eligible manager. A record whose
+        companies conflict gets no owner; the caller reports it.
+        """
+        users = self.env["res.users"]
+        distinct = self.env["res.company"].union(*companies_by_record.values())
+        by_company = {company.id: self._get_logistics_manager(group, company) for company in distinct}
+        unscoped = self._get_logistics_manager(group)
+        owners = {}
+        for record_id, companies in companies_by_record.items():
+            if len(companies) > 1:
+                owners[record_id] = users
+            else:
+                owners[record_id] = by_company[companies.id] if companies else unscoped
+        return owners
 
     def _escalation_manager_group(self):
         """Operations Manager owns document escalations. Logistics and sales members do not."""
@@ -505,7 +531,9 @@ class PlasticosTransactionDocs(models.Model):
             else:
                 overdue_bd = 2
                 escalation_bd = 7
-            manager = self._get_logistics_manager(self._scale_ticket_manager_group())
+            owners = self._escalation_owners(
+                self._scale_ticket_manager_group(), {load.id: load.company_id for load in loads}
+            )
             summaries = {load.id: f"ESCALATION: Missing scale ticket on {load.name}" for load in loads}
             activities = self.env["mail.activity"].search(
                 [
@@ -532,10 +560,11 @@ class PlasticosTransactionDocs(models.Model):
                         due_escalation = bd_since_pickup >= escalation_bd and not load.scale_ticket_escalated
                         due_reminder = bd_since_delivery >= overdue_bd and not load.scale_ticket_reminder_sent
                         if due_escalation:
+                            manager = owners[load.id]
                             if not manager:
                                 failures += 1
                                 _logger.error(
-                                    "Scale ticket ESCALATION skipped: load %s has no Operations Manager.",
+                                    "Scale ticket ESCALATION skipped: load %s has no Operations Manager in its company.",
                                     load.name,
                                 )
                             else:
