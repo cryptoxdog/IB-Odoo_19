@@ -1535,8 +1535,11 @@ migrate_clone() {
   esac
   module_order_append_only "$rev" ||
     refuse "config/odoo_module_order.yaml changed beyond entries appended to default_install_order since ${rev:0:12}"
+  # Split on commas only, never by word splitting: an unquoted expansion would glob.
   local module
-  for module in ${added//,/ }; do
+  local -a added_modules
+  IFS=, read -ra added_modules <<<"$added"
+  for module in "${added_modules[@]}"; do
     [[ "$module" =~ ^[a-z0-9_]+$ ]] || refuse "'$module' is not a module name"
   done
   # The fingerprint leaves addon source out, so <from-rev> is bound to the source the
@@ -1605,14 +1608,23 @@ backup_clone() {
 # Restore a backup taken by backup_clone into an absent or owned target clone. The
 # zip must still hash to its recorded checksum. The target inherits the source
 # clone's lineage (template, fp, migration) and records what it was restored from.
+RESTORE_COPY=""
+# shellcheck disable=SC2329 # invoked by the EXIT trap set in restore_clone
+restore_exit() {
+  [ -z "$RESTORE_COPY" ] || rm -f "$RESTORE_COPY"
+  lease_close
+}
 restore_clone() {
-  local source="$1" target="$2" zip meta sha marker staged copy token
+  local source="$1" target="$2" zip meta sha marker staged copy
   BACKUP_DIR="$EVIDENCE_DIR/backup"
   zip="$BACKUP_DIR/${source}.zip"
   meta="$zip.json"
   [ -f "$zip" ] && [ -f "$meta" ] || refuse "no backup of $source under ${BACKUP_DIR#"$ROOT"/}"
   # Copy first, then verify the copy: what is loaded is exactly what was checked.
   copy="$(mktemp "$BACKUP_DIR/.restore-${target}.XXXXXX")"
+  # Every exit path from here on, including a refusal inside a helper, removes the copy.
+  RESTORE_COPY="$copy"
+  trap restore_exit EXIT
   cp "$zip" "$copy"
   sha="$(sha256 <"$copy")"
   if [ "$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["sha256"])' "$meta")" != "$sha" ]; then
@@ -1620,13 +1632,12 @@ restore_clone() {
     refuse "the backup of $source no longer matches its recorded checksum"
   fi
   marker="$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["marker"])' "$meta")"
-  # The marker is written into a SQL literal below: every token must already be marker-safe.
-  for token in $marker; do
-    if [ "$(marker_safe "$token")" != "$token" ]; then
-      rm -f "$copy"
-      refuse "the backup of $source carries an unsafe marker"
-    fi
-  done
+  # The marker is written into a SQL literal below. Check the whole string, quoted: word
+  # splitting would glob a token, and the expansions would be checked instead of the marker.
+  if [ "$(printf '%s' "$marker" | tr -cd 'A-Za-z0-9._:=/+ -')" != "$marker" ]; then
+    rm -f "$copy"
+    refuse "the backup of $source carries an unsafe marker"
+  fi
   if ! { is_ours "$marker" && [ "$(field "$marker" role)" = "clone" ] && [ "$(field "$marker" owner)" = "$OWNER" ]; }; then
     rm -f "$copy"
     refuse "the backup of $source is not of a clone owned by $OWNER"

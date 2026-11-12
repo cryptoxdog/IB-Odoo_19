@@ -1770,3 +1770,57 @@ def test_restore_refuses_a_marker_that_is_not_sql_safe(tmp_path):
     assert "carries an unsafe marker" in result.stderr
     calls = (tmp_path / "stub.log").read_text()
     assert " load " not in calls and "COMMENT ON" not in calls
+
+
+def test_restore_refuses_an_unsafe_marker_hidden_behind_a_glob(tmp_path):
+    """B2: an unquoted token loop globbed this payload into repository file names and passed it."""
+    base = _backup(tmp_path, "placeholder")
+    fp = _fingerprint(tmp_path, **base)
+    meta = tmp_path / "evidence" / "backup" / "odoo_test_a.zip.json"
+    data = json.loads(meta.read_text())
+    data["marker"] = _ee_clone(fp) + " [A';SELECT(1);--]*"
+    meta.write_text(json.dumps(data))
+    result = _stateful(tmp_path, {PINNED_FIXTURE: _ee_template(fp)}, "restore", "odoo_test_a", "odoo_test_b", **base)
+    assert result.returncode == 2
+    assert "carries an unsafe marker" in result.stderr
+    calls = (tmp_path / "stub.log").read_text()
+    assert " load " not in calls and "COMMENT ON" not in calls
+
+
+def test_restore_removes_its_temporary_copy_when_a_later_check_refuses(tmp_path):
+    """N10: the copy is removed on every exit path, here a refusal of a target owned by someone else."""
+    base = _backup(tmp_path, "placeholder")
+    fp = _fingerprint(tmp_path, **base)
+    meta = tmp_path / "evidence" / "backup" / "odoo_test_a.zip.json"
+    data = json.loads(meta.read_text())
+    data["marker"] = _ee_clone(fp)
+    meta.write_text(json.dumps(data))
+    foreign = _ee_clone(fp).replace("owner=agenta", "owner=agentb")
+    databases = {PINNED_FIXTURE: _ee_template(fp), "odoo_test_b": foreign}
+    result = _stateful(tmp_path, databases, "restore", "odoo_test_a", "odoo_test_b", **base)
+    assert result.returncode == 2, result.stderr
+    assert " load " not in (tmp_path / "stub.log").read_text()
+    assert not list((tmp_path / "evidence" / "backup").glob(".restore-*"))
+
+
+@pytest.mark.parametrize("entry", ["[p']*", "Plasticos_Export2", "bad-name"])
+def test_migrate_refuses_an_appended_entry_that_is_not_a_module_name(tmp_path, entry):
+    """N9: the added roster is split on commas without globbing, and every entry is checked."""
+    root, head, case, _old_fp = _migration_case(tmp_path)
+    case["TEST_ENV_MIGRATE_SOURCE_ACK"] = head
+    order = root / "config" / "odoo_module_order.yaml"
+    text = order.read_text()
+    marker = "default_install_order:\n"
+    assert marker in text
+    head_part, tail = text.split(marker, 1)
+    lines = tail.splitlines(keepends=True)
+    end = 0
+    while end < len(lines) and lines[end].startswith((" ", "\t", "-")):
+        end += 1
+    lines.insert(end, f'  - "{entry}"\n')
+    order.write_text(head_part + marker + "".join(lines))
+    result = _migrate(tmp_path, root, head, case)
+    assert result.returncode == 2, result.stdout + result.stderr
+    assert "is not a module name" in result.stderr, result.stderr
+    calls = (tmp_path / "stub.log").read_text()
+    assert " -i plasticos_export" not in calls and "COMMENT ON DATABASE" not in calls
