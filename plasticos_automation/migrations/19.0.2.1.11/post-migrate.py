@@ -15,8 +15,9 @@ import logging
 
 _logger = logging.getLogger(__name__)
 
-# Moves linked by exactly one transaction; shared by both statements below.
-_OWNERS = """
+# Both statements carry the same "owners" CTE: moves linked by exactly one transaction.
+# It is repeated as literal text so each statement is one constant string.
+_CLEAR = """
     WITH links AS (
         SELECT customer_invoice_id AS move_id, id AS transaction_id
           FROM plasticos_transaction
@@ -32,11 +33,6 @@ _OWNERS = """
          GROUP BY move_id
         HAVING COUNT(DISTINCT transaction_id) = 1
     )
-"""
-
-_CLEAR = (
-    _OWNERS
-    + """
     UPDATE account_move move
        SET transaction_id = NULL, commission_amount = 0
      WHERE move.transaction_id IS NOT NULL
@@ -45,11 +41,23 @@ _CLEAR = (
             WHERE owners.move_id = move.id AND owners.transaction_id = move.transaction_id
        )
 """
-)
 
-_SET = (
-    _OWNERS
-    + """
+_SET = """
+    WITH links AS (
+        SELECT customer_invoice_id AS move_id, id AS transaction_id
+          FROM plasticos_transaction
+         WHERE customer_invoice_id IS NOT NULL
+        UNION
+        SELECT account_move_id, plasticos_transaction_id FROM plasticos_tx_vendor_rel
+        UNION
+        SELECT account_move_id, plasticos_transaction_id FROM plasticos_tx_freight_rel
+    ),
+    owners AS (
+        SELECT move_id, MIN(transaction_id) AS transaction_id
+          FROM links
+         GROUP BY move_id
+        HAVING COUNT(DISTINCT transaction_id) = 1
+    )
     UPDATE account_move move
        SET transaction_id = owners.transaction_id,
            commission_amount = COALESCE(tx.commission_amount, 0)
@@ -61,7 +69,6 @@ _SET = (
            OR move.commission_amount IS DISTINCT FROM COALESCE(tx.commission_amount, 0)
        )
 """
-)
 
 
 def migrate(cr, version):
