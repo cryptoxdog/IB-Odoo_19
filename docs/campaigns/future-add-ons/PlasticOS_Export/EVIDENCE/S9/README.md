@@ -33,6 +33,8 @@ Fixture `odoo_test_tpl_ee_c9e8a81f52f23680` (fingerprint `f44b9807`), Enterprise
 
 | `51a0c1af` (Codex P1/P2 + review closure B1-B3, N2-N8) | same four modules | 662 run, 0 failed, 0 errors (documents 128, export 104, logistics 349, security_base 215); `pytest tests/` 3076 passed, 0 failed; pre-commit `6c7789ef..HEAD` clean; `make audit-baseline` no new finding |
 
+| `2b8879e9` (B4, N10-N12) | same four modules | 665 run, 0 failed, 0 errors (documents 128, export 104, logistics 352, security_base 215); `pytest tests/` 3076 passed, 0 failed; pre-commit `6c7789ef..HEAD` clean; `make audit-baseline` no new finding |
+
 No S9 fixture needed repair for the S8 08-R006 allocation guard: S9 tests create no Export allocation.
 
 ## Not in scope
