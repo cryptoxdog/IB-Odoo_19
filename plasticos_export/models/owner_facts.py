@@ -38,7 +38,6 @@ RESTRICTED = "Restricted: you have no access to this owner record"
 NOT_RECORDED = "Not recorded by its owner"
 NO_CONTAINER_BOUND = "No container journey bound"
 NOT_RECORDED_BY_LOGISTICS = "Not recorded by Logistics"
-JOURNEY_FACT = "plasticos.iso.journey.fact"
 
 # Display order of the Export obligations and their labels.
 OBLIGATION_LABELS = (
@@ -327,9 +326,10 @@ class PlasticosExportSlotOwnerFacts(models.Model):
         compute="_compute_owner_journey_facts",
         string="Shipment History",
         compute_sudo=False,
-        help="The container's recorded gate-in, departure and filing parties from Logistics, then every cargo "
-        "allocation of this slot, oldest first. A buyer assigned after sailing appears as a new allocation; "
-        "the recorded container facts never change with it (BRS-EXP-08-R007).",
+        help="The container's current gate-in, departure and filing parties from Logistics, every correction "
+        "Logistics made to a container fact with its reason, then every cargo allocation of this slot, oldest "
+        "first. A buyer assigned after sailing appears as a new allocation; the recorded container facts never "
+        "change with it (BRS-EXP-08-R007).",
     )
 
     def _live_links(self):
@@ -378,16 +378,19 @@ class PlasticosExportSlotOwnerFacts(models.Model):
             slot.owner_shipment_history = slot._shipment_history(facts)
 
     def _journey_facts(self):
-        """``{fact_kind: fact}`` of the bound journey; ``None`` when unbound; ``RESTRICTED`` when unreadable."""
+        """``{fact_kind: fact}`` of the bound journey; ``None`` when unbound; ``RESTRICTED`` when unreadable.
+
+        Only the current revision of each fact, read through the Logistics owner's
+        ``plasticos.iso.journey.current_facts`` as the acting user (C13 OP12-E01).
+        """
         self.ensure_one()
         journey = self.journey_id
         if not journey or self.journey_binding_state != "active":
             return None
         try:
-            facts = self.env[JOURNEY_FACT].search([("journey_id", "=", journey.id)], order="id ASC")
+            return journey.current_facts()
         except AccessError:
             return RESTRICTED
-        return {fact.fact_kind: fact for fact in facts}
 
     @staticmethod
     def _weight_label(fact):
@@ -424,6 +427,8 @@ class PlasticosExportSlotOwnerFacts(models.Model):
                 if parties
                 else f"Filer and delivery partner: {NOT_RECORDED_BY_LOGISTICS}",
             ]
+        if facts not in (None, RESTRICTED):
+            rows.extend(self._fact_corrections(facts))
         rows.append("Cargo allocations, oldest first:")
         links = self.cargo_link_ids.sorted("id")
         if not links:
@@ -438,6 +443,26 @@ class PlasticosExportSlotOwnerFacts(models.Model):
                 f"{states.get(link.state, link.state)}; buyer SO {buyer}; supplier PO {supplier}{replaces}"
             )
         return "\n".join(rows)
+
+    def _fact_corrections(self, facts):
+        """Every earlier revision of the current container facts, newest first, with its correction reason."""
+        kinds = ("gate_in", "departure", "regulatory_parties", "container_tare", "verified_gross_mass")
+        rows = []
+        try:
+            for kind in kinds:
+                fact = facts.get(kind)
+                labels = dict(fact._fields["fact_kind"]._description_selection(self.env)) if fact else {}
+                while fact and fact.supersedes_id:
+                    who = fact.corrected_by.name if fact.corrected_by else "not stated"
+                    rows.append(
+                        f"  {labels.get(kind, kind)} revision {fact.revision} by {who} at "
+                        f"{self._when(fact.corrected_at)}, replacing revision {fact.supersedes_id.revision}: "
+                        f"{fact.correction_reason}"
+                    )
+                    fact = fact.supersedes_id
+        except AccessError:
+            return ["Container fact corrections:", f"  {RESTRICTED}"]
+        return ["Container fact corrections:", *(rows or ["  none"])]
 
     @api.model
     def _package_summary(self, packages, unit):
