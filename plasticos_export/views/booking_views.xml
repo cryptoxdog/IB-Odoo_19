@@ -73,6 +73,7 @@
         <field name="arch" type="xml">
             <form>
                 <header>
+                    <button name="action_open_manual_candidate" type="object" string="Record Booking Candidate" invisible="not id" groups="plasticos_security_base.group_logistics"/>
                     <field name="display_state" widget="statusbar" statusbar_visible="candidate,confirmed"/>
                 </header>
                 <sheet>
@@ -98,6 +99,7 @@
                             <field name="current_pod_text"/>
                             <field name="current_erd_utc"/>
                             <field name="current_cargo_cutoff_utc"/>
+                            <field name="owner_booking_confirmation_verdict"/>
                         </group>
                     </group>
                     <group string="Capacity">

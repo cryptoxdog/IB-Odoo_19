@@ -18,7 +18,7 @@ from odoo.modules.module import get_module_path
 from odoo.tests import TransactionCase, tagged
 
 MODULE = "plasticos_export"
-VERSION = "19.0.1.1.1"
+VERSION = "19.0.1.2.0"
 DEPENDS = [
     "base_automation",
     "plasticos_documents",
@@ -32,6 +32,8 @@ DEPENDS = [
 MODELS = [
     "plasticos.export.booking",
     "plasticos.export.booking.cargo.link",
+    "plasticos.export.booking.manual.candidate",
+    "plasticos.export.booking.manual.candidate.line",
     "plasticos.export.booking.revision",
     "plasticos.export.booking.revision.accept",
     "plasticos.export.booking.slot",
@@ -62,6 +64,11 @@ DECLARED = {
         ),
         "access_export_revision_accept_logistics",
         "access_export_revision_accept_ops_manager",
+        # S10 (C11 OP10-E03): the manual booking-candidate screen.
+        "access_export_manual_candidate_logistics",
+        "access_export_manual_candidate_ops_manager",
+        "access_export_manual_candidate_line_logistics",
+        "access_export_manual_candidate_line_ops_manager",
     ],
     "ir.rule": [
         "rule_export_booking_company",
@@ -93,6 +100,7 @@ DECLARED = {
         "view_export_booking_calendar",
         "view_export_booking_form",
         "view_export_booking_list",
+        "view_export_booking_manual_candidate_form",
         "view_export_booking_revision_accept_form",
         "view_export_booking_revision_form",
         "view_export_booking_revision_list",
@@ -101,6 +109,7 @@ DECLARED = {
         "view_export_cargo_link_list",
         "view_export_cargo_link_pivot",
         "view_export_cargo_link_search",
+        "view_export_cargo_link_trade_label_form",
         "view_export_shipment_list",
         "view_export_slot_form",
         "view_export_slot_graph",

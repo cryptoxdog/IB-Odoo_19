@@ -3,3 +3,5 @@ from . import booking
 from . import booking_allocation
 from . import document_inherit
 from . import logistics_integration
+from . import owner_facts
+from . import legacy_report

@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Export",
-    "version": "19.0.1.1.1",
+    "version": "19.0.1.2.0",
     "summary": "Export booking and shipment context over native and PlasticOS owners",
     # The Apps page renders this text as reStructuredText. Without it Odoo renders the
     # Markdown README, whose YAML front matter is not valid reStructuredText.
@@ -34,6 +34,7 @@
         "views/shipment_views.xml",
         "views/export_analysis_views.xml",
         "views/export_menus.xml",
+        "wizard/manual_booking_candidate_views.xml",
         "report/export_report_actions.xml",
         "report/report_booking_summary.xml",
         "report/report_container_manifest.xml",
