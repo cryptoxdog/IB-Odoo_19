@@ -292,14 +292,19 @@ class TestAcquisitionSecretsAndDestinations(_WebLeadCase):
             captured["prompt"] = user_prompt
             return {"polymer": "HDPE", "confidence": 0.9}, {"tokens": 1}
 
-        self.config.write({"ai_enabled": True, "openai_api_key": "test-key-not-real"})
+        previous_text_provider = self.config.text_inference_provider
+        self.config.write(
+            {"ai_enabled": True, "openai_api_key": "test-key-not-real", "text_inference_provider": "openai"}
+        )
         try:
             with patch(
                 "odoo.addons.plasticos_web_leads.models.ai_normalizer.call_structured_text", _fake_structured_text
             ):
                 lead = self._approved_hot_lead("HARD-SECRET-001", [_image_attachment()])
         finally:
-            self.config.write({"ai_enabled": False, "openai_api_key": False})
+            self.config.write(
+                {"ai_enabled": False, "openai_api_key": False, "text_inference_provider": previous_text_provider}
+            )
 
         self.assertIn("prompt", captured, "text normalization ran")
         self.assertNotIn("SECRET-SIGNED-TOKEN", captured["prompt"])

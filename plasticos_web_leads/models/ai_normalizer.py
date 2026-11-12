@@ -103,11 +103,22 @@ Rules:
 - Quality tier is only Grade A, Grade B, Grade C, Reusable, or Standard. The spelling reuseable is Reusable.
   Those words are never a material grade and never an attribute. Crate grade, bottle grade, utility grade,
   and injection grade are not quality tiers.
+- When the phrase contains Grade A, Grade B, Grade C, Reusable, Reuseable, or Standard, set quality_tier
+  to the listed code (GRADE_A, GRADE_B, GRADE_C, REUSABLE, STANDARD). Never leave quality_tier null when
+  those words appear.
 - w/ print and with print are attribute printed. No metal is attribute no_metal.
   Post consumer and post industrial are source types even without a hyphen.
+- Bare Mixed or mixed after a material or grade word is attribute mixed.
+  Only Mixed Color or mixed color is color MIXED.
+- When the phrase is essentially gaylord boxes as the product (not regrind in gaylords / in gaylords
+  packaging language), set quality_tier to REUSABLE. Do not set is_plastic=true from that phrase alone;
+  virgin plastic is not proven. Regrind in gaylords still means packaging gaylords only.
+- Stated compression molded or compression mold maps to process_type compression_mold.
+  Stated injection or injection molded maps to process_type injection (still not a quality tier).
+  Stated blow molded or blow mold maps to process_type blow_mold.
 - Do not invent packaging, clean, or dry because a grade letter is present.
 - Hyphens, slashes, and parentheses separate words. A listed code in parentheses is that code.
-  A listed blend code wins over its parts. Color Mixed Color is the color, not attribute mixed.
+  A listed blend code wins over its parts.
   Loose is packaging when the phrase already names a form.
 - Melt numbers, gallon counts, and resin numbers fill no slot.
 - Return a listed code or null. Never invent a code, and never put a grade code in form.

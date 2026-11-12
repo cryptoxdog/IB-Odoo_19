@@ -1,4 +1,5 @@
 import logging
+import os
 import secrets
 
 from odoo import api, fields, models
@@ -25,7 +26,11 @@ LLM_PROVIDER_SELECTION = [
     ("openai", "OpenAI"),
     ("anthropic", "Anthropic"),
     ("mistral", "Mistral"),
+    ("deepseek", "DeepSeek"),
 ]
+
+DEEPSEEK_TEXT_MODEL = "deepseek-flash"
+DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 
 INFERENCE_TRANSPORT_SELECTION = [
     ("openai_compatible", "OpenAI-Compatible Chat Completions"),
@@ -152,9 +157,9 @@ class PlasticosWebLeadConfig(models.Model):
     text_inference_provider = fields.Selection(
         LLM_PROVIDER_SELECTION,
         string="Text Inference Provider",
-        default="openai",
+        default="deepseek",
         required=True,
-        help="Provider used for structured text normalization. Change this setting to swap providers without code changes.",
+        help="Provider used for structured text normalization. Production text normalization uses DeepSeek Flash.",
     )
     vision_inference_provider = fields.Selection(
         LLM_PROVIDER_SELECTION,
@@ -290,6 +295,24 @@ class PlasticosWebLeadConfig(models.Model):
         string="Mistral API Base URL",
         default="https://api.mistral.ai/v1",
         help="OpenAI-compatible Mistral API endpoint.",
+    )
+
+    # ── DeepSeek ──────────────────────────────────────────────
+
+    deepseek_api_key = fields.Char(
+        string="DeepSeek API Key",
+        groups="base.group_system",
+        help="API key for DeepSeek text normalization. When this field is empty, the process environment variable DEEPSEEK_API_KEY is used.",
+    )
+    deepseek_model = fields.Char(
+        string="DeepSeek Text Model",
+        default=DEEPSEEK_TEXT_MODEL,
+        help="OpenAI-compatible DeepSeek model for structured text normalization.",
+    )
+    deepseek_base_url = fields.Char(
+        string="DeepSeek API Base URL",
+        default=DEEPSEEK_BASE_URL,
+        help="OpenAI-compatible DeepSeek API endpoint.",
     )
 
     # ═══════════════════════════════════════════════════════════
@@ -520,7 +543,24 @@ class PlasticosWebLeadConfig(models.Model):
                 KEY_WORKSPACE_ID: None,
                 KEY_TEMPERATURE: self.inference_temperature,
             }
+        if provider == "deepseek" and self._deepseek_api_key():
+            return {
+                KEY_PROVIDER: "deepseek",
+                KEY_TRANSPORT: "openai_compatible",
+                KEY_API_KEY: self._deepseek_api_key(),
+                KEY_MODEL: self.deepseek_model or DEEPSEEK_TEXT_MODEL,
+                KEY_BASE_URL: self.deepseek_base_url or DEEPSEEK_BASE_URL,
+                KEY_WORKSPACE_ID: None,
+                KEY_TEMPERATURE: self.inference_temperature,
+            }
         return None
+
+    def _deepseek_api_key(self):
+        """The Settings key, or DEEPSEEK_API_KEY when Settings is empty."""
+        configured = (self.deepseek_api_key or "").strip()
+        if configured:
+            return configured
+        return (os.environ.get("DEEPSEEK_API_KEY") or "").strip()
 
     def _get_provider_info(self, provider):
         """Return dict with api_key, model, base_url for a given provider slug."""
@@ -544,6 +584,13 @@ class PlasticosWebLeadConfig(models.Model):
                 "api_key": self.mistral_api_key,
                 "model": self.mistral_model or "mistral-large-latest",
                 "base_url": "https://api.mistral.ai/v1/",
+            }
+        if provider == "deepseek" and self._deepseek_api_key():
+            return {
+                "provider": "deepseek",
+                "api_key": self._deepseek_api_key(),
+                "model": self.deepseek_model or DEEPSEEK_TEXT_MODEL,
+                "base_url": self.deepseek_base_url or DEEPSEEK_BASE_URL,
             }
         return None
 
