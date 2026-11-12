@@ -110,12 +110,12 @@ def _ledger(ledger_id, number, source, adj_type, approved, sale="0", cost="0", c
     }
 
 
-@tagged("post_install", "-at_install")
 def _origin_key(origin):
     """Total order over Odoo Char values that may be False."""
     return (origin is not False, origin or "")
 
 
+@tagged("post_install", "-at_install")
 class TestErpWorksheetImport(TransactionCase):
     @classmethod
     def setUpClass(cls):
