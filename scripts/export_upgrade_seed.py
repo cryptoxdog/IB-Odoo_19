@@ -55,9 +55,7 @@ SQL_SET_LEGACY_PARENT = "UPDATE plasticos_transaction SET load_id = %s WHERE id 
 # The current ORM refuses a parent link for a load with no sale order (no company);
 # legacy rows carry it because 19.0.1.14.6 copied the old link without that guard.
 SQL_LEGACY_PARENT_LINK = "UPDATE plasticos_load SET transaction_id = %s WHERE id = ANY(%s)"
-SQL_LEGACY_DISPATCHED = (
-    "UPDATE plasticos_load SET state = 'dispatched', dispatch_sent = %s, dispatch_acknowledged = NULL WHERE id = ANY(%s)"
-)
+SQL_LEGACY_DISPATCHED = "UPDATE plasticos_load SET state = 'dispatched', dispatch_sent = %s, dispatch_acknowledged = NULL WHERE id = ANY(%s)"
 SQL_LEGACY_ACCEPTED_DOCUMENT = """
     UPDATE plasticos_document
        SET association_state = 'accepted',
