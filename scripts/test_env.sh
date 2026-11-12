@@ -811,6 +811,7 @@ build_template() {
     return 0
   fi
   modules="$(module_list)"
+  require_declared_template_source
   preflight_modules "$modules"
   mkdir -p "$EVIDENCE_DIR"
   fingerprint_inputs >"$EVIDENCE_DIR/${TEMPLATE_DB}.inputs.txt"
@@ -866,7 +867,7 @@ build_template() {
   fi
   # Stamp ready on the build name, then rename: the template name only ever
   # exists for an admitted database.
-  set_comment "$BUILD_DB" "$SCHEMA role=template state=ready parity=$PARITY fp=$FP builder=$OWNER built=$(utc_now) enterprise=$(marker_safe "$(enterprise_revision)") $ADMISSION"
+  set_comment "$BUILD_DB" "$SCHEMA role=template state=ready parity=$PARITY fp=$FP builder=$OWNER built=$(utc_now) enterprise=$(marker_safe "$(enterprise_revision)") $(template_source_marker) $ADMISSION"
   odoo_db publish rename "$BUILD_DB" "$TEMPLATE_DB"
   psql_admin "ALTER DATABASE \"$TEMPLATE_DB\" WITH ALLOW_CONNECTIONS false IS_TEMPLATE true" >/dev/null
   db_comment "$TEMPLATE_DB" >"$EVIDENCE_DIR/${TEMPLATE_DB}.admission.txt"
@@ -1206,7 +1207,14 @@ assert_clone() {
   fi
   template="$(field "$comment" template)"
   [ "$template" = "$TEMPLATE_DB" ] || refuse "$target was cloned from $template, not the current template $TEMPLATE_DB"
-  template_ready || refuse "$target's template $template is not an admitted template for the current inputs"
+  local migrated_from
+  migrated_from="$(field "$comment" migrated_from)"
+  if [ -n "$migrated_from" ]; then
+    template_admitted_for "$migrated_from" ||
+      refuse "$target was migrated from inputs ${migrated_from:0:16}; $template is not the template admitted for them"
+  else
+    template_ready || refuse "$target's template $template is not an admitted template for the current inputs"
+  fi
   tcomment="$(db_comment "$template")"
   echo "✓ $target: clone of $template (parity $PARITY, owner $OWNER, $(field "$tcomment" odoo), chart $(field "$tcomment" chart), $(field "$tcomment" installed) modules)"
 }
@@ -1368,12 +1376,181 @@ ensure_clone_upgraded() {
   stamp_upgraded "$target" "$TEST_SOURCE"
 }
 
+# ---------------------------------------------------------------------------
+# Export campaign S6 (2026-11-12): template source, cross-tree migration, backup and restore
+# ---------------------------------------------------------------------------
+# F4. The fixture installs the PlasticOS source on disk and its fingerprint leaves
+# that source out, so a template admitted from an edited tree silently carries the
+# edit. The admission is refused while a plasticos_* path differs from the Git head,
+# and the ready marker names that head and the addon digest; `status` shows them.
+require_declared_template_source() {
+  local head changes
+  head="$(git -C "$ROOT" rev-parse --verify -q HEAD)" ||
+    refuse "cannot name the Git head of $ROOT; a template is admitted only from a committed tree"
+  changes="$(git -C "$ROOT" --no-optional-locks status --porcelain -- 'plasticos_*')" ||
+    refuse "cannot read the worktree state of $ROOT"
+  [ -z "$changes" ] ||
+    refuse "PlasticOS addon source in $ROOT differs from its Git head ${head:0:12}; the template installs the source on disk and its fingerprint leaves that source out. Admit it from a clean checkout"
+}
+template_source_marker() {
+  echo "srchead=$(git -C "$ROOT" rev-parse --verify -q HEAD) srcdigest=$(addon_source)"
+}
+
+# An admitted template whose recorded fp is exactly $1 (the fp the clone was made for).
+template_admitted_for() {
+  local comment
+  db_exists "$TEMPLATE_DB" || return 1
+  comment="$(db_comment "$TEMPLATE_DB")"
+  is_ours "$comment" && [ "$(field "$comment" role)" = "template" ] && [ "$(field "$comment" state)" = "ready" ] &&
+    [ "$(field "$comment" parity)" = "$PARITY" ] && [ "$(field "$comment" fp)" = "$1" ]
+}
+
+# Content digest of the fingerprint's config files as they are at Git revision $1.
+config_digest_at() {
+  local rev="$1" tmp paths
+  tmp="$(mktemp -d)"
+  paths="$(git -C "$ROOT" ls-tree -r --name-only "$rev" -- $MIGRATE_CONFIG_FILES)" || {
+    rm -rf "$tmp"
+    return 1
+  }
+  # shellcheck disable=SC2086 # word-split the path list
+  git -C "$ROOT" archive "$rev" -- $paths | tar -x -C "$tmp"
+  content_digest dir "$tmp"
+  rm -rf "$tmp"
+}
+MIGRATE_CONFIG_FILES="config/odoo.conf config/odoo_module_order.yaml docker-compose.yml Dockerfile requirements.txt constraints.txt scripts/get_odoo_module_order.py"
+
+# F8. `migrate <db> <from-rev>` upgrades an owned clone that was cloned in another
+# checkout of this repository (a clean Staging tree) to the source on disk, when the
+# two trees differ only by PlasticOS modules appended to the roster. Every other
+# fingerprint input must be the same, proved against the template's recorded inputs.
+# The clone keeps its template; it is stamped migrated_from=<its old fp>, and later
+# runs check it against the template admitted for those inputs. The Odoo log is the
+# migration evidence.
+migrate_clone() {
+  local target="$1" rev="$2" comment old evidence current changed old_modules new_modules added roster existing
+  local log rc pending missing head
+  [[ "$rev" =~ ^[0-9a-f]{7,40}$ ]] || refuse "migrate needs the source revision the clone was made from (a Git sha)"
+  rev="$(git -C "$ROOT" rev-parse --verify -q "${rev}^{commit}")" || refuse "'$2' is not a commit of this repository"
+  comment="$(db_comment "$target")"
+  is_ours "$comment" && [ "$(field "$comment" role)" = "clone" ] ||
+    refuse "$target is not a test-env clone (comment: '$comment')"
+  [ "$(field "$comment" owner)" = "$OWNER" ] || refuse "$target is owned by '$(field "$comment" owner)', not '$OWNER'"
+  [ "$(field "$comment" parity)" = "$PARITY" ] || refuse "$target was cloned with parity '$(field "$comment" parity)'"
+  [ "$(field "$comment" template)" = "$TEMPLATE_DB" ] || refuse "$target was not cloned from $TEMPLATE_DB"
+  [ -z "$(field "$comment" migrated_from)" ] || refuse "$target was already migrated; clone again to migrate again"
+  old="$(field "$comment" fp)"
+  [ "$old" != "$FP" ] || refuse "$target already matches the current inputs; nothing to migrate (use upgrade)"
+  template_admitted_for "$old" || refuse "$TEMPLATE_DB is not the template admitted for $target's inputs ${old:0:16}"
+  evidence="$(fixture_evidence "$old")"
+  [ -n "$evidence" ] || refuse "no recorded inputs of $TEMPLATE_DB hash to ${old:0:16}; the migration source is unproven"
+  [ "$(sed -n 's/^config=//p' "$evidence")" = "$(config_digest_at "$rev")" ] ||
+    refuse "the recorded config digest of ${old:0:16} is not the config at ${rev:0:12}"
+  current="$(fingerprint_inputs)"
+  changed="$(changed_input_keys "$evidence" "$current")"
+  case "$changed" in
+    config,modules | modules) ;;
+    *) refuse "inputs other than the module roster changed since ${old:0:16} (${changed:-none})" ;;
+  esac
+  # shellcheck disable=SC2086 # word-split the path list
+  git -C "$ROOT" diff --quiet "$rev" -- $(printf '%s\n' $MIGRATE_CONFIG_FILES | grep -vx config/odoo_module_order.yaml) ||
+    refuse "a fingerprint config file other than config/odoo_module_order.yaml differs from ${rev:0:12}"
+  old_modules="$(sed -n 's/^modules=//p' "$evidence")"
+  new_modules="$(printf '%s\n' "$current" | sed -n 's/^modules=//p')"
+  case "$new_modules" in
+    "$old_modules",?*) added="${new_modules#"$old_modules",}" ;;
+    *) refuse "the roster is not the recorded roster with modules appended" ;;
+  esac
+  roster="$(python3 scripts/get_odoo_module_order.py)"
+  existing="$(tr ',' '\n' <<<"$roster" | grep -vxF -f <(tr ',' '\n' <<<"$added") | paste -sd, -)"
+  head="$(git -C "$ROOT" rev-parse --verify -q HEAD)"
+  TEST_SOURCE="$(addon_source)"
+  mkdir -p "$EVIDENCE_DIR"
+  log="$EVIDENCE_DIR/${target}.migrate.log"
+  echo "→ Migrating $target from ${rev:0:12} (inputs ${old:0:16}) to ${head:0:12} (inputs ${FP:0:16}): -u existing roster, -i $added"
+  rc=0
+  compose run --rm --no-deps -T odoo odoo -u "$existing" -i "$added" --stop-after-init --workers=0 \
+    --max-cron-threads=0 --no-http --log-level=info -d "$target" --addons-path="$(addons_path)" </dev/null 2>&1 |
+    tee "$log" || rc=$?
+  [ "$(addon_source)" = "$TEST_SOURCE" ] || die "PlasticOS addon source changed during the migration of $target"
+  [ "$rc" -eq 0 ] || die "the migration of $target failed (exit $rc; log: ${log#"$ROOT"/}); its marker is unchanged"
+  pending="$(psql_on "$target" "SELECT string_agg(name || ':' || state, ',') FROM ir_module_module
+                                WHERE state IN ('to install', 'to upgrade', 'to remove')")"
+  [ -z "$pending" ] || die "modules left mid-transition on $target: $pending"
+  missing="$(psql_on "$target" "SELECT string_agg(m, ',') FROM unnest(string_to_array('$added', ',')) AS m
+                                WHERE m NOT IN (SELECT name FROM ir_module_module WHERE state = 'installed')")"
+  [ -z "$missing" ] || die "added modules not installed on $target: $missing"
+  set_comment "$target" "$(printf '%s' "$comment" | sed "s| fp=[^ ]*| fp=$FP|; s| src=[^ ]*||") migrated_from=$old fromrev=$rev migrated=$(utc_now) src=$TEST_SOURCE"
+  echo "✅ $target migrated to ${head:0:12} (inputs ${FP:0:16}; log ${log#"$ROOT"/})"
+}
+
+# F9. A coherent backup of an owned clone with Odoo's own filestore-aware manager:
+# one zip holding dump.sql, the filestore and manifest.json. Its checksum, the
+# clone's marker, and the code revision are recorded beside it.
+BACKUP_DIR=""
+backup_clone() {
+  local target="$1" zip head dirty sha
+  BACKUP_DIR="$EVIDENCE_DIR/backup"
+  mkdir -p "$BACKUP_DIR"
+  zip="$BACKUP_DIR/${target}.zip"
+  head="$(git -C "$ROOT" rev-parse --verify -q HEAD)" || die "cannot name the Git head of $ROOT"
+  dirty=false
+  [ -z "$(git -C "$ROOT" --no-optional-locks status --porcelain)" ] || dirty=true
+  # shellcheck disable=SC2046 # word-split the fixed manager arguments
+  compose run --rm --no-deps -T odoo odoo $(db_manager_args "$(addons_path)") dump "$target" - </dev/null >"$zip" ||
+    die "odoo db dump of $target failed"
+  python3 -c 'import sys, zipfile; z = zipfile.ZipFile(sys.argv[1]); assert "dump.sql" in z.namelist()' "$zip" ||
+    die "the dump of $target is not an Odoo backup zip with dump.sql"
+  sha="$(sha256 <"$zip")"
+  printf '{"database": "%s", "zip": "%s", "sha256": "%s", "head": "%s", "dirty": %s, "marker": "%s", "taken": "%s"}\n' \
+    "$target" "${zip#"$ROOT"/}" "$sha" "$head" "$dirty" "$(db_comment "$target")" "$(utc_now)" >"$zip.json"
+  echo "✅ backup of $target: ${zip#"$ROOT"/} sha256=$sha (code $head, dirty=$dirty)"
+}
+
+# Restore a backup taken by backup_clone into an absent or owned target clone. The
+# zip must still hash to its recorded checksum. The target inherits the source
+# clone's lineage (template, fp, migration) and records what it was restored from.
+restore_clone() {
+  local source="$1" target="$2" zip meta sha marker staged
+  BACKUP_DIR="$EVIDENCE_DIR/backup"
+  zip="$BACKUP_DIR/${source}.zip"
+  meta="$zip.json"
+  [ -f "$zip" ] && [ -f "$meta" ] || refuse "no backup of $source under ${BACKUP_DIR#"$ROOT"/}"
+  sha="$(sha256 <"$zip")"
+  [ "$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["sha256"])' "$meta")" = "$sha" ] ||
+    refuse "the backup of $source no longer matches its recorded checksum"
+  marker="$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["marker"])' "$meta")"
+  is_ours "$marker" && [ "$(field "$marker" role)" = "clone" ] && [ "$(field "$marker" owner)" = "$OWNER" ] ||
+    refuse "the backup of $source is not of a clone owned by $OWNER"
+  assert_owned_or_absent "$target"
+  drop_owned_clone "$target"
+  clear_filestore "$target"
+  staged="/var/lib/odoo/restore-${target}.zip"
+  compose run --rm --no-deps -T --entrypoint sh odoo -c "cat > '$staged'" <"$zip" ||
+    die "could not stage the backup for $target"
+  # shellcheck disable=SC2046 # word-split the fixed manager arguments
+  compose run --rm --no-deps -T odoo odoo $(db_manager_args "$(addons_path)") load "$target" "$staged" </dev/null ||
+    die "odoo db load into $target failed"
+  compose run --rm --no-deps -T --entrypoint rm odoo -f "$staged" >/dev/null || true
+  set_comment "$target" "$(printf '%s' "$marker" | sed 's| created=[^ ]*||; s| src=[^ ]*||; s| restored_from=[^ ]*||; s| backup=[^ ]*||') created=$(utc_now) restored_from=$source backup=$sha"
+  echo "✅ $target restored from the backup of $source (sha256 $sha)"
+}
+
 status() {
   echo "owner:        $OWNER (default clone $DEFAULT_CLONE)"
   echo "parity:       $PARITY"
   echo "fingerprint:  $FP"
   echo "source:       $(addon_source) (PlasticOS addons; upgraded on each clone, not part of the fingerprint)"
   echo "template:     $TEMPLATE_DB ($(template_ready && echo ready || { db_exists "$TEMPLATE_DB" && echo "not admitted for the current inputs"; } || echo absent))"
+  if db_exists "$TEMPLATE_DB"; then
+    local tcomment
+    tcomment="$(db_comment "$TEMPLATE_DB")"
+    if [ -n "$(field "$tcomment" srchead)" ]; then
+      echo "template src: head $(field "$tcomment" srchead), addons $(field "$tcomment" srcdigest)"
+    else
+      echo "template src: not recorded (admitted before the source was recorded)"
+    fi
+  fi
   if [ -n "$PINNED_TEMPLATE" ]; then
     echo "fixture:      canonical; a new template is refused unless this database is absent and TEST_ENV_ALLOW_NEW_TEMPLATE equals its name"
   fi
@@ -1397,13 +1574,19 @@ main() {
       exit 0
       ;;
     clone | drop | assert-clone | upgrade) validate_clone_name "${2:-$DEFAULT_CLONE}" ;;
+    migrate | backup) validate_clone_name "${2:-}" ;;
+    restore)
+      validate_clone_name "${2:-}"
+      validate_clone_name "${3:-}"
+      [ "$2" != "$3" ] || refuse "restore needs a target other than the backed-up clone"
+      ;;
     run)
       validate_clone_name "${2:-}"
       parse_run "$2" "${@:3}"
       ;;
     template | status | rebuild | identity) ;;
     *)
-      echo "usage: $0 template | rebuild | clone [db] | upgrade <db> | run <db> -- <odoo args> | assert-clone <db> | drop <db> | status | identity | name | smoke-name" >&2
+      echo "usage: $0 template | rebuild | clone [db] | upgrade <db> | migrate <db> <from-rev> | backup <db> | restore <db> <target> | run <db> -- <odoo args> | assert-clone <db> | drop <db> | status | identity | name | smoke-name" >&2
       exit 2
       ;;
   esac
@@ -1429,6 +1612,22 @@ main() {
       echo "source=$TEST_SOURCE"
       ;;
     assert-clone) assert_clone "$2" ;;
+    migrate)
+      target="$2"
+      lease "db:$target" exclusive
+      db_exists "$target" || refuse "$target does not exist"
+      migrate_clone "$target" "${3:-}"
+      ;;
+    backup)
+      lease "db:$2" exclusive
+      assert_clone "$2"
+      backup_clone "$2"
+      ;;
+    restore)
+      lease "db:$3" exclusive
+      lease "db:$2" shared
+      restore_clone "$2" "$3"
+      ;;
     drop)
       lease "db:$2" exclusive
       db_exists "$2" || refuse "$2 does not exist"
