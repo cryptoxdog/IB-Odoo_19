@@ -72,9 +72,6 @@ POLYMER_NORMALIZE = {
 FORM_NORMALIZE = {
     "bag": "BAG",
     "bags": "BAG",
-    "bale": "BALE",
-    "bales": "BALE",
-    "baled": "BALE",
     "chop": "CHOP",
     "chopped": "CHOP",
     "densified": "DENS",
@@ -114,6 +111,16 @@ FORM_NORMALIZE = {
     "shredded": "SHRED",
     "sweep": "SWEEP",
     "sweepings": "SWEEP",
+}
+
+# Bales are packaging, not a form: the Bales form was retired on 2026-11-10
+# (plasticos_material_profile 19.0.5.11.14 moves those profiles onto packaging
+# Bales). Operator decision 2026-11-12: an extracted bale word sets the profile's
+# packaging type and no form. Values are plasticos.packaging.type codes.
+PACKAGING_NORMALIZE = {
+    "bale": "bales",
+    "bales": "bales",
+    "baled": "bales",
 }
 
 SOURCE_TYPE_NORMALIZE = {
@@ -167,8 +174,6 @@ PROCESS_TYPE_TO_PROFILE = {
 # Map normalized form code (from FORM_NORMALIZE) to plasticos.material.form code
 FORM_CODE_TO_MASTER = {
     "BAG": "OTHER",  # Bags are not a distinct form in seed data, map to OTHER
-    "BALE": "BALES",
-    "BALES": "BALES",
     "PELL": "PELLETS",
     "PELLET": "PELLETS",
     "RG": "REGRIND",
@@ -440,6 +445,13 @@ class EnrichmentService(models.AbstractModel):
         )
 
     @api.model
+    def _resolve_packaging_type_id(self, code):
+        """Resolve a PACKAGING_NORMALIZE code to plasticos.packaging.type by its code."""
+        if not code:
+            return self.env["plasticos.packaging.type"]
+        return self.env["plasticos.packaging.type"].search([("code", "=", code)], limit=1)
+
+    @api.model
     def _resolve_source_type_id(self, code):
         """Resolve normalized source_type code to plasticos.source.type id."""
         if not code:
@@ -526,10 +538,18 @@ class EnrichmentService(models.AbstractModel):
             ).strip()
             _prov("subgrade", profile_vals["subgrade"], raw_mat)
 
-        # ── form ──
+        # ── form, or packaging when the word names packaging (bales) ──
         raw_form = (raw_mat.get("form") or "").strip().lower()
         norm_form = FORM_NORMALIZE.get(raw_form)
-        if norm_form:
+        packaging_code = PACKAGING_NORMALIZE.get(raw_form)
+        if packaging_code:
+            packaging = self._resolve_packaging_type_id(packaging_code)
+            if packaging:
+                profile_vals["packaging_type_id"] = packaging.id
+                _prov("packaging_type_id", packaging.id, raw_mat)
+            else:
+                unmapped.append(("packaging_type_id", raw_mat.get("form")))
+        elif norm_form:
             profile_vals["form"] = norm_form
             _prov("form", norm_form, raw_mat)
         elif raw_form:

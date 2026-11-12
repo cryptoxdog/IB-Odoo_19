@@ -124,10 +124,18 @@ _POLYMER_NORMALIZE: dict[str, str] = {
     "ewaste": "EWASTE",
 }
 
+# Bales are packaging, not a form: the Bales form was retired on 2026-11-10
+# (plasticos_material_profile 19.0.5.11.14). Operator decision 2026-11-12: a bale
+# word sets the intake's packaging type to Bales. plasticos.intake requires a
+# form, so the intake keeps the OTHER fallback; it never looks up the retired
+# Bales form. Values are plasticos.packaging.type codes.
+_PACKAGING_NORMALIZE: dict[str, str] = {
+    "bale": "bales",
+    "baled": "bales",
+    "bales": "bales",
+}
+
 _FORM_NORMALIZE: dict[str, str] = {
-    "bale": "BALES",
-    "baled": "BALES",
-    "bales": "BALES",
     "regrind": "REGRIND",
     "flake": "FLAKE",
     "flakes": "FLAKE",
@@ -1244,7 +1252,9 @@ class PlasticosWebLead(models.Model):
         polymer_raw = polymer_code(ai_data.get("polymer")).lower()
         merged["polymer"] = _POLYMER_NORMALIZE.get(polymer_raw, polymer_raw.upper() or None)
         merged["polymer_source"] = "text_ai" if merged["polymer"] else None
-        merged["form"] = _FORM_NORMALIZE.get((ai_data.get("form") or "").lower().strip(), None)
+        form_word = (ai_data.get("form") or "").lower().strip()
+        merged["form"] = _FORM_NORMALIZE.get(form_word, None)
+        merged["packaging"] = _PACKAGING_NORMALIZE.get(form_word, None)
         merged["color"] = (ai_data.get("color") or "").lower().strip() or None
         merged["source_type"] = _SOURCE_NORMALIZE.get((ai_data.get("source_type") or "").lower().strip(), None)
         merged["loads_per_month"] = _safe_int(ai_data.get("loads_per_month"), 0)
@@ -1325,7 +1335,11 @@ class PlasticosWebLead(models.Model):
             valid_vision = [v for v in vision_results if not v.get("error")]
             best_vision = max(valid_vision, key=lambda v: v.get("confidence", 0), default={})
             if best_vision:
-                vision_form = _FORM_NORMALIZE.get((best_vision.get("observed_form") or "").lower().strip())
+                observed_form = (best_vision.get("observed_form") or "").lower().strip()
+                vision_form = _FORM_NORMALIZE.get(observed_form)
+                if not merged.get("packaging"):
+                    # A photo of bales is a packaging fact too (operator decision 2026-11-12).
+                    merged["packaging"] = _PACKAGING_NORMALIZE.get(observed_form)
                 v_color = (best_vision.get("observed_color") or "").lower().strip()
                 if v_color and not merged["color"]:
                     merged["color"] = v_color
@@ -1539,6 +1553,11 @@ class PlasticosWebLead(models.Model):
             form_value, grade_value = split_material_code(merged.get("form"), GRADE_CODES)
         polymer_code = (merged.get("polymer") or "other").lower()
         form_code = (form_value or "other").lower()
+        packaging_code = merged.get("packaging") or None
+        if form_code in _PACKAGING_NORMALIZE:
+            # A stored analysis may still name the retired Bales form: it is packaging.
+            packaging_code = _PACKAGING_NORMALIZE[form_code]
+            form_code = "other"
         # An unknown source stays empty on the intake. A configured default is not
         # evidence about this seller and is never written as if it were.
         source_type_code = merged.get("source_type") or None
@@ -1567,6 +1586,8 @@ class PlasticosWebLead(models.Model):
         form_rec = _lookup(Form, form_code, "other")
         grade_rec = _lookup(Grade, grade_value, None) if grade_value else Grade
         source_type_rec = _lookup(SourceType, source_type_code, None) if source_type_code else SourceType
+        Packaging = self.env["plasticos.packaging.type"]
+        packaging_rec = Packaging.search([("code", "=", packaging_code)], limit=1) if packaging_code else Packaging
 
         web_lead_source = self.env["utm.source"].search([("name", "=", "Web Lead Form")], limit=1)
 
@@ -1579,6 +1600,7 @@ class PlasticosWebLead(models.Model):
             "form_id": form_rec.id if form_rec else False,
             "material_grade_id": grade_rec.id if grade_rec else False,
             "source_type_id": source_type_rec.id if source_type_rec else False,
+            "packaging_type_id": packaging_rec.id if packaging_rec else False,
             "lead_source_id": web_lead_source.id if web_lead_source else False,
             "quantity_per_load_lbs": qty_per_load,
             "loads_per_month": loads_per_month,

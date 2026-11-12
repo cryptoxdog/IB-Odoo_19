@@ -1,6 +1,6 @@
 # S8: coverage witnesses and the double-allocation guard
 
-Contract `PLASTICOS-EXPORT-C08-S8-COVERAGE-AND-ALLOCATION-GUARD` (sha256 `b85f2ef4143696dd3f3b860f8ff97b377ea3f3502c04e79981119a96f10ddaa0`), base `ff42df2deaa85ce6354740dda1df00db8413a2ea`, branch `feat/plasticos-export-s8-coverage`, `plasticos_export` 19.0.1.1.1 → 19.0.1.1.2.
+Contract `PLASTICOS-EXPORT-C08-S8-COVERAGE-AND-ALLOCATION-GUARD` (sha256 `b85f2ef4143696dd3f3b860f8ff97b377ea3f3502c04e79981119a96f10ddaa0`), base `ff42df2deaa85ce6354740dda1df00db8413a2ea`, branch `feat/plasticos-export-s8-coverage`, `plasticos_export` 19.0.1.1.1 → 19.0.1.1.2 on the branch, then 19.0.1.1.3 after merging S7 (which also took 19.0.1.1.2).
 
 This note maps each rule S8 closes to its witness test method. These rules were `DEFERRED_COVERAGE_DEBT` in `../S6/S6_PRIMARY_RULE_WITNESSES.md`. The machine-readable form is `S8_RULE_WITNESSES.csv`. Runtime receipts are listed under "Runtime".
 
