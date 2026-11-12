@@ -671,3 +671,61 @@ class TestScopedEvidence(PlasticosTestCase):
         legacy.with_user(self.verifier).action_verify()
         legacy.with_user(self.manager).unlink()
         self.assertFalse(legacy.exists())
+
+    def test_superseded_foreign_company_evidence_still_withholds_release(self):
+        """N-A: the other-company guard sees every accepted operation row, superseded or not."""
+        from odoo.addons.plasticos_documents.models.document import ASSOCIATION_GRANT_KEY, AssociationGrant
+
+        _order, _tx, load = self._trade("TX-S3-FOREIGN-SUPERSEDED")
+        successor = self._scope(self._shell(self.bol), load, revision="BKG-1/r2")
+        grant = AssociationGrant(self.env.uid)
+        foreign = (
+            self.env["plasticos.document"]
+            .with_context(**{ASSOCIATION_GRANT_KEY: grant})
+            .create(
+                {
+                    "name": "foreign gate receipt",
+                    "tag_id": self.bol.id,
+                    "attachment_id": self._attachment().id,
+                    "res_model": "plasticos.load",
+                    "res_id": load.id,
+                    "load_id": load.id,
+                    "association_state": "accepted",
+                    "source_reference": "foreign mail",
+                    "subject_company_id": self.company_b.id,
+                    "obligation_kind": GATE,
+                    "operation_revision_key": "BKG-1/r1",
+                    "coverage_key": "container-1",
+                    "is_current": False,
+                    "superseded_by": successor.id,
+                }
+            )
+        )
+        self.assertTrue(foreign.superseded_by)
+        Load = self.env["plasticos.load"]
+        verdict = Load.assert_can_release_physical_operation(load.id, "dispatch")
+        self.assertEqual(verdict["status"], "blocked")
+        self.assertIn("another company", verdict["reason"])
+        Document = type(self.env["plasticos.document"])
+        with patch.object(Document, "_release_obligations", lambda model, kind: frozenset()):
+            verdict = Load.assert_can_release_physical_operation(load.id, "dispatch")
+        self.assertEqual(verdict["status"], "blocked", "an undeclared obligation does not hide foreign evidence")
+
+    def test_verdict_hides_a_readable_subject_in_another_company(self):
+        """N-B: a subject without a company record rule, in another company, answers like a missing id."""
+        order = self.env["sale.order"].create({"partner_id": self.buyer.id, "company_id": self.company_b.id})
+        tx = self.env["plasticos.transaction"].create(
+            {"supplier_id": self.supplier.id, "buyer_id": self.buyer.id, "sale_order_id": order.id}
+        )
+        self.assertEqual(order.company_id, self.company_b)
+        self.assertNotIn(self.company_b, self.internal.company_ids)
+        tx.with_user(self.internal).check_access("read")  # readable: the company branch decides
+        missing_id = tx.id + 100000
+        self.assertFalse(self.env["plasticos.transaction"].browse(missing_id).exists())
+        Document = self.env["plasticos.document"].with_user(self.internal)
+        seen = Document.get_scoped_evidence_verdict(self.env.company.id, "plasticos.transaction", tx.id, GATE, "r1")
+        unseen = Document.get_scoped_evidence_verdict(
+            self.env.company.id, "plasticos.transaction", missing_id, GATE, "r1"
+        )
+        self.assertEqual(seen, unseen)
+        self.assertEqual(seen, {"status": "not_available", "reason": "subject not found"})

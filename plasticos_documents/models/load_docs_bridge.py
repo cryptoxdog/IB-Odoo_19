@@ -50,9 +50,6 @@ class PlasticosLoadDocsBridge(models.Model):
 
     def _scoped_evidence_release_errors(self, operation_kind):
         self.ensure_one()
-        relevant = self.env["plasticos.document"]._release_obligations(operation_kind)
-        if not relevant:
-            return []
         rows = (
             self.env["plasticos.document"]
             .sudo()  # sudo: the guard must see every accepted scope row on this load; it only reads
@@ -68,15 +65,24 @@ class PlasticosLoadDocsBridge(models.Model):
                 ],
                 order="id ASC",
             )
-        ).filtered(lambda row: row.obligation_kind in relevant and row.is_current and not row.superseded_by)
+        )
         errors = []
+        # Every accepted operation row, superseded or not and whatever its
+        # obligation, is checked for the company it was accepted in.
         foreign = rows.filtered(
             lambda row: row.subject_company_id and self.company_id and row.subject_company_id != self.company_id
         )
         if foreign:
             errors.append(f"Load {self.name} carries evidence from another company. Review it before release.")
+        relevant = self.env["plasticos.document"]._release_obligations(operation_kind)
+        if not relevant:
+            return errors
+        # Staleness: only current rows of the obligations this operation needs.
+        stale_candidates = (rows - foreign).filtered(
+            lambda row: row.obligation_kind in relevant and row.is_current and not row.superseded_by
+        )
         scopes = {}
-        for row in rows - foreign:
+        for row in stale_candidates:
             scopes.setdefault((row.obligation_kind, row.operation_revision_key, row.coverage_key), []).append(row)
         for (kind, revision, coverage), scope_rows in sorted(scopes.items()):
             decided = [row for row in scope_rows if row.verified or row.override]
