@@ -15,9 +15,8 @@ import logging
 
 _logger = logging.getLogger(__name__)
 
-# Moves linked by exactly one transaction, materialized once for both updates.
+# Moves linked by exactly one transaction; shared by both statements below.
 _OWNERS = """
-    CREATE TEMPORARY TABLE plasticos_move_owner ON COMMIT DROP AS
     WITH links AS (
         SELECT customer_invoice_id AS move_id, id AS transaction_id
           FROM plasticos_transaction
@@ -26,47 +25,51 @@ _OWNERS = """
         SELECT account_move_id, plasticos_transaction_id FROM plasticos_tx_vendor_rel
         UNION
         SELECT account_move_id, plasticos_transaction_id FROM plasticos_tx_freight_rel
+    ),
+    owners AS (
+        SELECT move_id, MIN(transaction_id) AS transaction_id
+          FROM links
+         GROUP BY move_id
+        HAVING COUNT(DISTINCT transaction_id) = 1
     )
-    SELECT move_id, MIN(transaction_id) AS transaction_id
-      FROM links
-     GROUP BY move_id
-    HAVING COUNT(DISTINCT transaction_id) = 1
 """
 
-_CLEAR = """
+_CLEAR = (
+    _OWNERS
+    + """
     UPDATE account_move move
        SET transaction_id = NULL, commission_amount = 0
      WHERE move.transaction_id IS NOT NULL
        AND NOT EXISTS (
-           SELECT 1 FROM plasticos_move_owner owner
-            WHERE owner.move_id = move.id AND owner.transaction_id = move.transaction_id
+           SELECT 1 FROM owners
+            WHERE owners.move_id = move.id AND owners.transaction_id = move.transaction_id
        )
 """
+)
 
-_SET = """
+_SET = (
+    _OWNERS
+    + """
     UPDATE account_move move
-       SET transaction_id = owner.transaction_id,
+       SET transaction_id = owners.transaction_id,
            commission_amount = COALESCE(tx.commission_amount, 0)
-      FROM plasticos_move_owner owner
-      JOIN plasticos_transaction tx ON tx.id = owner.transaction_id
-     WHERE owner.move_id = move.id
+      FROM owners
+      JOIN plasticos_transaction tx ON tx.id = owners.transaction_id
+     WHERE owners.move_id = move.id
        AND (
-           move.transaction_id IS DISTINCT FROM owner.transaction_id
+           move.transaction_id IS DISTINCT FROM owners.transaction_id
            OR move.commission_amount IS DISTINCT FROM COALESCE(tx.commission_amount, 0)
        )
 """
+)
 
 
 def migrate(cr, version):
-    cr.execute("DROP TABLE IF EXISTS plasticos_move_owner")
-    cr.execute(_OWNERS)
     cr.execute(_CLEAR)
     cleared = cr.rowcount
     cr.execute(_SET)
-    updated = cr.rowcount
-    cr.execute("DROP TABLE plasticos_move_owner")
     _logger.info(
         "plasticos_automation 19.0.2.1.11: account.move.transaction_id backfilled: set=%s cleared=%s",
-        updated,
+        cr.rowcount,
         cleared,
     )
