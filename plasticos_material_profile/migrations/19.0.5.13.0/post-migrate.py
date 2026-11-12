@@ -66,6 +66,9 @@ def migrate(cr, version):
                 noted += 1
         if vals:
             record.write(vals)
+    # Approved one-time cleanup: this table exists only to carry the retired letters
+    # from the pre-migrate of this same version. Rollback is that copy, still uncommitted.
+    # nosemgrep: plasticos-destructive-migration-sql-py
     cr.execute("DROP TABLE plasticos_quality_tier_migration")
     env.flush_all()
     _logger.info("Set %s quality tiers and kept %s leftover sub-grade notes.", filled, noted)
