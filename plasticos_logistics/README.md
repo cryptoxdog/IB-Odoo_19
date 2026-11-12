@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_logistics
 component_name: Plasticos Logistics Engine
-module_version: 19.0.1.14.19
+module_version: 19.0.1.14.20
 layer: 5
 installable: true
 auto_install: true
