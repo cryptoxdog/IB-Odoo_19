@@ -1624,8 +1624,8 @@ main() {
       backup_clone "$2"
       ;;
     restore)
+      # The source is the recorded zip, not the clone, so only the target is leased.
       lease "db:$3" exclusive
-      lease "db:$2" shared
       restore_clone "$2" "$3"
       ;;
     drop)
