@@ -10,12 +10,28 @@ Odoo's end-of-upgrade cleanup skips a record whose xmlid has ``noupdate`` set, a
 databases that first loaded this cron before 2026-03-17 carry ``noupdate = true`` on
 it. So this script removes the cron itself. It finds the cron by xmlid and by code
 that calls the retired method, archived crons included, and deletes each one with its
-delegated server action. A cron that is running right now cannot be deleted; it is
-deactivated and logged instead. The plasticos_base xmlids of the cron and of its
-server action are removed in every case.
+delegated server action. The plasticos_base xmlids of the cron and of its server
+action are removed in every case.
+
+A cron that is running right now cannot be deleted. The script then tries to switch it
+off; that UPDATE waits on the running job's row lock, up to the 15 s lock_timeout the
+Odoo loader sets. If the lock is still held, the cron is left as it is and a WARNING
+names it: the upgrade is never aborted. Once that run has ended, re-run this script from
+an Odoo shell (``odoo shell -d <db>``); it finds the cron by its code:
+
+    import importlib.util, os
+    from odoo.modules import get_module_path
+    path = os.path.join(get_module_path("plasticos_base"), "migrations", "19.0.1.1.11", "post-migrate.py")
+    spec = importlib.util.spec_from_file_location("retire_attachment_cleanup", path)
+    script = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(script)
+    script.migrate(env.cr, "19.0.1.1.10")
+    env.cr.commit()
 """
 
 import logging
+
+import psycopg2
 
 from odoo import SUPERUSER_ID, api
 from odoo.exceptions import UserError
@@ -44,19 +60,23 @@ def migrate(cr, version):
     actions = Action.browse(rows.filtered(lambda r: r.model == "ir.actions.server").mapped("res_id")).exists()
     actions |= crons.ir_actions_server_id
 
-    deleted, deactivated = [], []
+    deleted, deactivated, locked = [], [], []
     for cron in crons:
         try:
             with cr.savepoint():
                 cron.unlink()
-        except UserError:
-            # The cron is running in another worker, so it is locked. This UPDATE
-            # waits for that run to commit, then switches the cron off.
-            cr.execute("UPDATE ir_cron SET active = false WHERE id = %s", (cron.id,))
-            cron.invalidate_recordset(["active"])
-            deactivated.append(cron.id)
+            deleted.append(cron.id)
             continue
-        deleted.append(cron.id)
+        except UserError:
+            pass  # running in another worker: unlink refuses without waiting
+        try:
+            # Waits for that run to commit, up to the loader's lock_timeout.
+            with cr.savepoint():
+                cr.execute("UPDATE ir_cron SET active = false WHERE id = %s", (cron.id,))
+            deactivated.append(cron.id)
+        except psycopg2.OperationalError:
+            locked.append(cron.id)
+        cron.invalidate_recordset(["active"])
 
     removed_actions = []
     for action in actions.exists():
@@ -76,9 +96,12 @@ def migrate(cr, version):
         removed_actions,
         leftover_ids,
     )
-    if deactivated:
+    if deactivated or locked:
         _logger.warning(
-            "plasticos_base 19.0.1.1.11: ir.cron %s was running and could not be deleted; "
-            "it is now inactive and has no plasticos_base xmlid. Delete it by hand.",
+            "plasticos_base 19.0.1.1.11: ir.cron %s (deactivated) and %s (still active, row lock held) "
+            "were running and could not be deleted, and now have no plasticos_base xmlid. Remove them "
+            "once that run ends: re-run plasticos_base/migrations/19.0.1.1.11/post-migrate.py from an "
+            "Odoo shell (see its docstring).",
             deactivated,
+            locked,
         )
