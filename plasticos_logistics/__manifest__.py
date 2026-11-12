@@ -2,16 +2,6 @@
     "name": "Plasticos Logistics Engine",
     "version": "19.0.1.14.24",
     "summary": "Load management and dispatch",
-    "description": """
-Plasticos Logistics Engine
-==========================
-
-Loads, freight resolution and dispatch, Linda's order and shipment correspondence,
-container journeys with their recorded facts and corrections, and shipment event
-proposals for the PlasticOS brokerage ERP.
-
-See README.md in the module source.
-""",
     "author": "Igor Beylin",
     "license": "LGPL-3",
     "depends": [

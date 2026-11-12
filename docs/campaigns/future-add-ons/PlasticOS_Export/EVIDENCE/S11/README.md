@@ -14,7 +14,7 @@ Contract `PLASTICOS-EXPORT-C12-S11-FACT-CORRECTIONS-LINDA-APPROVAL` (sha256 `431
 | OP11-E01 read path | `plasticos.iso.journey.current_facts(kinds=None)` / `current_fact(kind)` | `{kind: highest revision}` with the caller's rights. |
 | OP11-E02 Linda approval | `plasticos.linda.approval`, `plasticos_logistics.user_linda` | See below. |
 | OP11-E03 sweep cursor (F6) | `plasticos.linda.sweep.cursor` | One row per lane (`ack`, `chase`) and company. The sweep writes no `ir.config_parameter`. |
-| OP11-E04 module page | `plasticos_logistics/__manifest__.py` `description` | RST title, summary, pointer to `README.md` (C12-SCOPE-2, S12 mechanism). No `static/description/index.html`. |
+| OP11-E04 module page | none | No manifest change (operator decision, coordinator correction superseding C12-SCOPE-2 item 3): Odoo 19 renders `static/description/index.html`, then the manifest `description`, then the README (`README.rst` before `README.md`); `plasticos_logistics/README.rst` already renders cleanly. S12 witnesses the page after the merge. |
 
 `plasticos_logistics` 19.0.1.14.23 → 19.0.1.14.24; `plasticos_security_base` 19.0.1.2.26 → 19.0.1.2.27 (ACL rows for `plasticos.linda.approval`, and the Logistics grant to Linda in `security/record_rules.xml`, because the business groups are defined in that module, which loads after Logistics).
 
