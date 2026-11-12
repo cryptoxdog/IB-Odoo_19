@@ -1,7 +1,13 @@
+import logging
 from datetime import timedelta
 
 from odoo import api, fields, models
 from odoo.exceptions import ValidationError
+
+_logger = logging.getLogger(__name__)
+
+CLAIMS_MANAGER_GROUP_XMLID = "plasticos_claims.group_claims_manager"
+SYSTEM_CRON_USER_XMLID = "plasticos_base.user_system_cron"
 
 
 class PlasticosClaim(models.Model):
@@ -273,6 +279,10 @@ class PlasticosClaim(models.Model):
                 rec.state = "in_progress"
 
     def action_escalate(self, reason=None, escalate_to=None):
+        self._escalate(reason=reason, escalate_to=escalate_to)
+
+    def _escalate(self, reason=None, escalate_to=None, manager=None):
+        """Escalate; ``manager`` is a reviewer the caller already resolved for the batch."""
         for rec in self:
             if rec.state in ("pending", "in_progress"):
                 vals = {
@@ -285,7 +295,7 @@ class PlasticosClaim(models.Model):
                 if escalate_to:
                     vals["escalated_to_id"] = escalate_to.id if hasattr(escalate_to, "id") else escalate_to
                 rec.write(vals)
-                rec._create_escalation_activity()
+                rec._create_escalation_activity(manager=manager)
 
     def action_resolve(self):
         """Resolve the claim.
@@ -400,6 +410,8 @@ class PlasticosClaim(models.Model):
 
         try:
             now = fields.Datetime.now()
+            # One reviewer lookup for the whole run; an empty result is kept as the answer.
+            manager = self._claims_manager_reviewer()
 
             # Recompute is_overdue for all open claims (stored computed field)
             open_for_recompute = self.search(
@@ -414,7 +426,7 @@ class PlasticosClaim(models.Model):
             for claim in pending:
                 deadline = claim.opened_at + timedelta(hours=claim.sla_hours)
                 if now > deadline:
-                    claim.action_escalate()
+                    claim._escalate(manager=manager)
 
             # Daily reminders for open claims
             open_claims = self.search(
@@ -442,55 +454,111 @@ class PlasticosClaim(models.Model):
                         continue
                 if (claim.id, f"Open Claim Reminder: {claim.name}") in reminded_today:
                     continue
-                claim._create_reminder_activity()
+                claim._create_reminder_activity(manager=manager)
                 claim.last_reminder_at = now
         finally:
             self.env.cr.execute("SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_claims.cron_claim_sla_check"])
 
-    def _send_claim_notification(self):
-        """Send email notification for auto-created claim.
+    # ── Manager routing ──────────────────────────────────────
+    @api.model
+    def _claims_manager_reviewer(self):
+        """Return the one claims manager unresolved claim work is routed to, or nobody.
 
-        Uses the claim notification template if available.
-        Falls back to activity creation if template not found.
+        The lowest-id active internal user holding the Claims Manager group.
+        The system cron user holds that group for ACL reasons only (see
+        ``hooks.post_init_hook``) and is never eligible.
+        """
+        users = self.env["res.users"]
+        cron_user = self.env.ref(SYSTEM_CRON_USER_XMLID, raise_if_not_found=False)
+        # Membership must resolve the same way under the cron user and under a
+        # claims user who cannot read other users' access rights.
+        elevated = users.sudo()  # sudo: read-only group membership lookup, returns one user id
+        internal_users = elevated.search([("share", "=", False), ("active", "=", True)], order="id ASC")
+        for user in internal_users:
+            if cron_user and user == cron_user:
+                continue
+            if user.has_group(CLAIMS_MANAGER_GROUP_XMLID):
+                return users.browse(user.id)
+        return users.browse()
+
+    def _route_to_claims_manager(self, summary, note, assign=False, manager=None):
+        """Schedule manager work on this claim, or record visibly that nobody can take it.
+
+        Returns the manager, or an empty recordset when the Claims Manager group
+        has no eligible member. That case is logged as an error and written to
+        the claim's chatter; the current user is never substituted. ``manager``
+        is a reviewer already resolved by the caller (an empty recordset means
+        nobody is eligible); ``None`` resolves it here.
         """
         self.ensure_one()
+        if manager is None:
+            manager = self._claims_manager_reviewer()
+        if not manager:
+            _logger.error(
+                "Claim %s (id=%s): '%s' could not be routed, the Claims Manager group has no eligible member.",
+                self.name,
+                self.id,
+                summary,
+            )
+            self.message_post(
+                body=(
+                    f"Not routed: {summary}. No active internal user holds the Claims Manager role, "
+                    "so nobody was assigned. Add a Claims Manager, then assign this claim."
+                ),
+                message_type="comment",
+                subtype_xmlid="mail.mt_note",
+            )
+            return manager
+        if assign and not self.assignee_id:
+            self.assignee_id = manager
+        self.activity_schedule(
+            "mail.mail_activity_data_todo",
+            user_id=manager.id,
+            summary=summary,
+            note=note,
+        )
+        return manager
+
+    def _send_claim_notification(self):
+        """Route an auto-created claim to a claims manager and notify by email.
+
+        The claim is assigned to the claims manager and the manager gets the
+        activity. The email template is information only; it creates no work
+        for its recipient.
+        """
+        self.ensure_one()
+        self._route_to_claims_manager(
+            summary=f"New Claim Created: {self.name}",
+            note=f"Claim {self.name} auto-created from document upload.",
+            assign=True,
+        )
         template = self.env.ref(
             "plasticos_claims.email_template_claim_created",
             raise_if_not_found=False,
         )
         if template:
             template.send_mail(self.id, force_send=False)
-        else:
-            # Fallback: create activity for sales rep
-            tx = self.transaction_id
-            if tx and tx.user_id:
-                self.activity_schedule(
-                    "mail.mail_activity_data_todo",
-                    summary="New Claim Created",
-                    note=f"Claim {self.name} auto-created from document upload.",
-                    user_id=tx.user_id.id,
-                )
 
-    def _create_escalation_activity(self):
-        """Create activity for quality manager on escalation."""
+    def _create_escalation_activity(self, manager=None):
+        """Create activity for the claims manager on escalation."""
         self.ensure_one()
-        quality_manager_group = self.env.ref("plasticos_claims.group_claims_manager", raise_if_not_found=False)
-        if quality_manager_group and quality_manager_group.user_ids:
-            manager = quality_manager_group.user_ids[0]
-            self.activity_schedule(
-                "mail.mail_activity_data_todo",
-                user_id=manager.id,
-                summary=f"Escalated Claim: {self.name}",
-                note=f"Claim {self.name} has been escalated due to SLA breach.",
-            )
+        self._route_to_claims_manager(
+            summary=f"Escalated Claim: {self.name}",
+            note=f"Claim {self.name} has been escalated due to SLA breach.",
+            manager=manager,
+        )
 
-    def _create_reminder_activity(self):
-        """Create daily reminder activity for assignee."""
+    def _create_reminder_activity(self, manager=None):
+        """Create daily reminder activity for the assignee, else the claims manager."""
         self.ensure_one()
-        user = self.assignee_id or self.env.user
+        summary = f"Open Claim Reminder: {self.name}"
+        note = f"Claim {self.name} is still open and requires attention."
+        if not self.assignee_id:
+            self._route_to_claims_manager(summary=summary, note=note, manager=manager)
+            return
         self.activity_schedule(
             "mail.mail_activity_data_todo",
-            user_id=user.id,
-            summary=f"Open Claim Reminder: {self.name}",
-            note=f"Claim {self.name} is still open and requires attention.",
+            user_id=self.assignee_id.id,
+            summary=summary,
+            note=note,
         )
