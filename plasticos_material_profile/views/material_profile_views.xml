@@ -12,7 +12,7 @@
         <field name="polymer_id"/>
         <field name="material_grade_id" optional="show"/>
         <field name="form_id"/>
-        <field name="color_id"/>
+        <field name="color_ids" widget="many2many_tags"/>
         <field name="source_type_id"/>
         <field name="monthly_volume_lbs" sum="Total Monthly Volume"/>
         <field name="contamination_percent"/>
@@ -92,7 +92,7 @@
                   <field name="sub_grade" invisible="1"/>
                   <field name="material_grade_id"/>
                   <field name="form_id"/>
-                  <field name="color_id"/>
+                  <field name="color_ids" widget="many2many_tags"/>
                   <!-- color_flexibility moved to Buyer Fields tab -->
                 </group>
                 <group string="Packaging">

@@ -275,7 +275,7 @@ class TestWebLeadOpportunity(TransactionCase):
                 "partner_id": partner.id,
                 "polymer_id": polymer.id,
                 "form_id": form.id,
-                "color_id": color.id,
+                "color_ids": [(6, 0, [color.id])],
                 "source_type_id": source_type.id,
                 "melt_flow_index": 8.5,
                 "contamination_percent": 2.5,

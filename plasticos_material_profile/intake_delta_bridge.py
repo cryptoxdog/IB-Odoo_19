@@ -16,7 +16,6 @@ INTAKE_TO_PROFILE_VALUE_MAP = {
 SHARED_PROFILE_SCALAR_FIELD_NAMES = (
     "polymer_id",
     "form_id",
-    "color_id",
     "source_type_id",
     "material_grade_id",
     "origin_process_type",
@@ -88,6 +87,9 @@ def build_material_profile_vals_from_intake(intake) -> dict:
                 vals[field_name] = _m2o_id(intake, field_name)
             else:
                 vals[field_name] = value
+    color_id = _m2o_id(intake, "color_id") if hasattr(intake, "color_id") else False
+    if color_id:
+        vals["color_ids"] = [(6, 0, [color_id])]
     attribute_ids = intake.material_attribute_ids.ids if intake.material_attribute_ids else []
     if attribute_ids:
         vals["material_attribute_ids"] = [(6, 0, attribute_ids)]

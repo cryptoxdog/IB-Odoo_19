@@ -253,9 +253,16 @@ class TestMaterialNormalizer(TransactionCase):
         self.assertEqual(sacks.attributes.mapped("code"), ["lined"])
         self.assertEqual(sacks.packaging_type.code, "bales")
 
-        for phrase in ("hdpe / ldpe regrind", "gaylords of amazon returns"):
-            with self.subTest(phrase=phrase):
-                self.assertEqual(normalize_material(self.env, phrase).unresolved, ("unresolved material",))
+        regrind = normalize_material(self.env, "HDPE / LDPE Regrind")
+        self.assertFalse(regrind.unresolved)
+        self.assertEqual(regrind.polymer.code, "MIXED")
+        self.assertEqual(regrind.form.code, "REGRIND")
+
+        returns = normalize_material(self.env, "Gaylords of Amazon Returns")
+        self.assertFalse(returns.unresolved)
+        self.assertEqual(returns.polymer.code, "MIXED")
+        self.assertEqual(returns.material_grade.code, "RETURNS")
+        self.assertEqual(returns.packaging_type.code, "gaylords")
 
     def test_new_polymer_phrases_resolve_on_the_worksheet_path(self):
         cases = (
@@ -291,7 +298,10 @@ class TestMaterialNormalizer(TransactionCase):
                 self.assertEqual(result.material_grade.code or False, grade)
                 self.assertEqual(result.source_type.code or False, source)
                 self.assertEqual(tuple(result.attributes.mapped("code")), attributes)
-                self.assertEqual(result.color.code or False, color)
+                self.assertEqual(
+                    tuple(result.color.mapped("code")),
+                    color if isinstance(color, tuple) else ((color,) if color else ()),
+                )
 
         for phrase in (
             "mixed plastic mdpe",
@@ -308,13 +318,13 @@ class TestMaterialNormalizer(TransactionCase):
 
     def test_ld_lld_and_named_grade_phrases_resolve_on_the_worksheet_path(self):
         cases = (
-            ("LDPE/LLDPE Clear Repro", "LDPE_LLDPE", False, False, False, ("repro",), "CLEAR", False),
+            ("LDPE/LLDPE Clear Repro", "LDPE_LLDPE", "REPRO", False, False, (), "CLEAR", False),
             ("LLDPE/LDPE Mixed Color Purge", "LDPE_LLDPE", "PURGE", False, False, (), "MIXED", False),
             ("CONTAMINATED LDPE/LLDPE", "LDPE_LLDPE", False, False, False, (), False, False),
-            ("LD/LLDPE Repro", "LDPE_LLDPE", False, False, False, ("repro",), False, False),
-            ("LDPE/LLDPE Blue Repro", "LDPE_LLDPE", False, False, False, ("repro",), "BLUE", False),
-            ("LDPE/LLDPE Blue/White Purge", "LDPE_LLDPE", "PURGE", False, False, (), False, False),
-            ("LDPE/LLDPE Repro", "LDPE_LLDPE", False, False, False, ("repro",), False, False),
+            ("LD/LLDPE Repro", "LDPE_LLDPE", "REPRO", False, False, (), False, False),
+            ("LDPE/LLDPE Blue Repro", "LDPE_LLDPE", "REPRO", False, False, (), "BLUE", False),
+            ("LDPE/LLDPE Blue/White Purge", "LDPE_LLDPE", "PURGE", False, False, (), ("BLUE", "WHITE"), False),
+            ("LDPE/LLDPE Repro", "LDPE_LLDPE", "REPRO", False, False, (), False, False),
             ("SPC-A", "PP", False, "TUBS_LIDS", "POST_CONSUMER", (), False, "bales"),
             ("New OPTI Bins", "HDPE", False, "CRATES", False, (), False, False),
         )
@@ -327,11 +337,47 @@ class TestMaterialNormalizer(TransactionCase):
                 self.assertEqual(result.material_grade.code or False, grade)
                 self.assertEqual(result.source_type.code or False, source)
                 self.assertEqual(tuple(result.attributes.mapped("code")), attributes)
-                self.assertEqual(result.color.code or False, color)
+                self.assertEqual(
+                    tuple(result.color.mapped("code")),
+                    color if isinstance(color, tuple) else ((color,) if color else ()),
+                )
                 self.assertEqual(result.packaging_type.code or False, packaging)
 
         bare = normalize_material(self.env, "buckets")
         self.assertFalse(bare.polymer)
+
+    def test_hdpe_crates_keep_injection_process(self):
+        result = normalize_material(self.env, "HDPE Crates")
+        self.assertFalse(result.unresolved)
+        self.assertEqual(result.polymer.code, "HDPE")
+        self.assertEqual(result.material_grade.code, "CRATES")
+        self.assertEqual(result.packaging_type.code, "loose")
+        self.assertFalse(result.filler_type)
+        self.assertEqual(result.process_type, "injection")
+
+    def test_slot_fill_keeps_bales_as_packaging_and_stores_every_named_color(self):
+        bales = normalize_material(self.env, "PET Bottles - Post Consumer Bales")
+        self.assertFalse(bales.unresolved)
+        self.assertEqual(bales.polymer.code, "PET")
+        self.assertEqual(bales.material_grade.code, "BOTTLES")
+        self.assertFalse(bales.form)
+        self.assertEqual(bales.packaging_type.code, "bales")
+
+        drum = normalize_material(self.env, "HDPE Blue/White Drum Regrind")
+        self.assertFalse(drum.unresolved)
+        self.assertEqual(drum.polymer.code, "HDPE")
+        self.assertEqual(drum.material_grade.code, "DRUMS")
+        self.assertEqual(drum.form.code, "REGRIND")
+        self.assertEqual(tuple(drum.color.mapped("code")), ("BLUE", "WHITE"))
+
+        two_grades = normalize_material(self.env, "HMW Dunnage Trays")
+        self.assertFalse(two_grades.unresolved)
+        self.assertEqual(two_grades.polymer.code, "HDPE_HMW")
+        self.assertFalse(two_grades.material_grade)
+
+        stretch = normalize_material(self.env, "LDPE Stretch Film")
+        self.assertEqual(stretch.material_grade.code, "STRETCH_FILM")
+        self.assertEqual(normalize_material(self.env, "Shrink Wrap").unresolved, ("unresolved material",))
 
     def test_worksheet_import_still_calls_normalize_material(self):
         source = (

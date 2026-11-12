@@ -30,6 +30,7 @@ FORM_CODES: tuple[str, ...] = (
     "PELLETS",
     "POWDER",
     "PURGE",
+    "REPRO",
     "REGRIND",
     "ROLLSTOCK",
     "SHEET",

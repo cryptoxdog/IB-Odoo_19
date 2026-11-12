@@ -36,7 +36,7 @@
                         <field name="polymer_id"/>
                         <field name="material_grade_id" optional="show"/>
                         <field name="form_id"/>
-                        <field name="color_id" optional="show"/>
+                        <field name="color_ids" widget="many2many_tags" optional="show"/>
                         <field name="source_type_id" optional="show"/>
                         <field name="packaging_type_id" string="Packaging Type" optional="show"/>
                         <button name="action_remove_profile" type="object" icon="fa-trash"

@@ -2431,11 +2431,11 @@ class SyncOrchestrator:
         if slot["colors"]:
             color = self._exact_color(slot["colors"])
             if not color:
-                self._append_classified_error(ref, "APPROVED_SKIP: color_id", OPTIONAL_CONTEXT)
-            elif not profile.color_id:
-                profile.color_id = color
-            elif profile.color_id != color:
-                self._append_classified_error(ref, "APPROVED_SKIP: color_id already set", OPTIONAL_CONTEXT)
+                self._append_classified_error(ref, "APPROVED_SKIP: color_ids", OPTIONAL_CONTEXT)
+            elif not profile.color_ids:
+                profile.color_ids = color
+            elif profile.color_ids != color:
+                self._append_classified_error(ref, "APPROVED_SKIP: color_ids already set", OPTIONAL_CONTEXT)
 
     def _exact_color(self, values):
         Color = self.env["plasticos.material.color"]
@@ -2606,7 +2606,7 @@ class SyncOrchestrator:
             company.write({"category_id": [command.link(category.id)]})
 
     def _write_profile_classification(self, profile, normalized) -> None:
-        """Fill empty grade, source, color, packaging, and attributes. A stored value is kept."""
+        """Fill empty grade, source, color, packaging, filler, process, and attributes. A stored value is kept."""
         from odoo import Command  # noqa: PLC0415 - pure-Python tests import this module without Odoo
 
         if normalized.grade:
@@ -2635,9 +2635,22 @@ class SyncOrchestrator:
                 REQUIRED_MAPPING,
             )
             return
+        colors = getattr(normalized, "color", None)
+        if colors:
+            if not profile.color_ids:
+                profile.color_ids = colors
+            elif profile.color_ids != colors:
+                self._append_classified_error(
+                    str(profile.id),
+                    (
+                        f"colors {', '.join(colors.mapped('code'))} conflict with stored "
+                        f"{', '.join(profile.color_ids.mapped('code'))} on profile {profile.id}; colors unchanged"
+                    ),
+                    REQUIRED_MAPPING,
+                )
         for field_name, resolved in (
-            ("color_id", getattr(normalized, "color", None)),
             ("packaging_type_id", getattr(normalized, "packaging_type", None)),
+            ("filler_type_id", getattr(normalized, "filler_type", None)),
         ):
             if not resolved:
                 continue
@@ -2650,6 +2663,20 @@ class SyncOrchestrator:
                     (
                         f"{field_name} {resolved.code} conflicts with stored {current.code} "
                         f"on profile {profile.id}; {field_name} unchanged"
+                    ),
+                    REQUIRED_MAPPING,
+                )
+        process = getattr(normalized, "process_type", None)
+        if process:
+            current = profile.origin_process_type
+            if not current:
+                profile.origin_process_type = process
+            elif current != process:
+                self._append_classified_error(
+                    str(profile.id),
+                    (
+                        f"origin_process_type {process} conflicts with stored {current} "
+                        f"on profile {profile.id}; origin_process_type unchanged"
                     ),
                     REQUIRED_MAPPING,
                 )

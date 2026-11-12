@@ -577,7 +577,9 @@ class PlasticosIntake(models.Model):
             return
         self.polymer_id = mp.polymer_id.id if mp.polymer_id else self.polymer_id
         self.form_id = mp.form_id.id if mp.form_id else self.form_id
-        self.color_id = mp.color_id.id if mp.color_id else self.color_id
+        sole = mp._sole_color()
+        if sole:
+            self.color_id = sole.id
         self.source_type_id = mp.source_type_id.id if mp.source_type_id else self.source_type_id
         self.material_grade_id = mp.material_grade_id.id if mp.material_grade_id else self.material_grade_id
         self.packaging_type_id = mp.packaging_type_id.id if mp.packaging_type_id else self.packaging_type_id
