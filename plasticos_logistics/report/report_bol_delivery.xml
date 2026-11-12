@@ -63,12 +63,12 @@
                                 </td>
                                 <td style="width: 50%;">
                                     <strong>SHIPPER:</strong><br/>
-                                    <t t-if="doc.sale_order_id.company_id">
-                                        <strong><t t-out="doc.sale_order_id.company_id.name"/></strong><br/>
-                                        <t t-out="doc.sale_order_id.company_id.street or ''"/><br/>
-                                        <t t-out="doc.sale_order_id.company_id.city or ''"/>,
-                                        <t t-out="doc.sale_order_id.company_id.state_id.code or ''"/>
-                                        <t t-out="doc.sale_order_id.company_id.zip or ''"/>
+                                    <t t-if="doc.company_id">
+                                        <strong><t t-out="doc.company_id.name"/></strong><br/>
+                                        <t t-out="doc.company_id.street or ''"/><br/>
+                                        <t t-out="doc.company_id.city or ''"/>,
+                                        <t t-out="doc.company_id.state_id.code or ''"/>
+                                        <t t-out="doc.company_id.zip or ''"/>
                                     </t>
                                 </td>
                             </tr>
