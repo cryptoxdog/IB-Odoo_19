@@ -502,6 +502,36 @@ class TestScopedEvidence(PlasticosTestCase):
             count,
         )
 
+    def test_load_without_actual_time_leaves_the_clock_unknown(self):
+        """C02-REAUTH-2 / BRS-07-R051: no actual event means no clock, no reminder, no escalation."""
+        from odoo.addons.plasticos_logistics.models.load import (
+            _FREIGHT_INTERNAL_WRITE,
+            _FREIGHT_INTERNAL_WRITE_TOKEN,
+        )
+
+        _order, tx, load = self._trade("TX-S3-UNKNOWN-CLOCK")
+        tx.with_context(bypass_state_guard=True).write({"state": "delivered"})
+        long_ago = fields.Datetime.now() - timedelta(days=30)
+        load.with_context(**{_FREIGHT_INTERNAL_WRITE: _FREIGHT_INTERNAL_WRITE_TOKEN}).write(
+            {"state": "delivered", "delivered_at": long_ago, "dispatched_at": long_ago}
+        )
+        self.assertFalse(load.actual_pickup_at)
+        self.assertFalse(load.actual_delivery_at)
+        model = self.env["plasticos.transaction"]
+        self.assertEqual(model._scale_ticket_clock_dates(load), (None, None))
+        notes = len(load.message_ids)
+        params = self.env["ir.config_parameter"]
+        params.set_param("plasticos_documents.scale_ticket_retry_ids", "")
+        params.set_param("plasticos_documents.scale_ticket_scan_cursor", str(load.id - 1))
+        with patch.object(type(model), "_get_logistics_manager", lambda self, group: self.env.user):
+            model.with_context(scale_ticket_batch_size=10).cron_check_scale_tickets()
+        self.assertFalse(load.scale_ticket_reminder_sent)
+        self.assertFalse(load.scale_ticket_escalated)
+        self.assertEqual(len(load.message_ids), notes)
+        self.assertFalse(
+            self.env["mail.activity"].search_count([("res_model", "=", "plasticos.load"), ("res_id", "=", load.id)])
+        )
+
     def test_release_guard_withholds_new_instruction_but_records_actual_events(self):
         """RP-05-E029, BRS-EXP-03-R006: stale scoped evidence withholds release, not the record of what happened."""
         _order, _tx, load = self._trade("TX-S3-RELEASE")
