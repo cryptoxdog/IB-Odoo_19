@@ -291,7 +291,7 @@ class PlasticosSalesDashboard(models.Model):
             .search(
                 [
                     ("tag_id", "in", list(item_by_tag)),
-                    ("obligation_kind", "=", "legacy"),
+                    *self.env["plasticos.document"]._legacy_obligation_domain(),
                     "|",
                     "|",
                     "|",

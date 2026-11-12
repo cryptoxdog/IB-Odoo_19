@@ -82,7 +82,8 @@ def migrate(cr, version):
         return
     cr.execute(CENSUS_SQL)
     total, accepted, decided, digest = cr.fetchone()
-    census = json.dumps({"total": total, "accepted": accepted, "decided": decided, "digest": digest})
+    # [rows, accepted, decided, provenance digest]
+    census = json.dumps([total, accepted, decided, digest])
     cr.execute(
         """
         INSERT INTO ir_config_parameter (key, value, create_uid, write_uid, create_date, write_date)

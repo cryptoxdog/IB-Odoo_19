@@ -59,7 +59,7 @@ def migrate(cr, version):
     before = json.loads(row[0])
     cr.execute(pre.CENSUS_SQL)
     total, accepted, decided, digest = cr.fetchone()
-    after = {"total": total, "accepted": accepted, "decided": decided, "digest": digest}
+    after = [total, accepted, decided, digest]
     if after != before:
         raise RuntimeError(f"plasticos_documents: evidence provenance changed during upgrade: {before} -> {after}")
     cr.execute("DELETE FROM ir_config_parameter WHERE key = %s", (pre.CENSUS_KEY,))

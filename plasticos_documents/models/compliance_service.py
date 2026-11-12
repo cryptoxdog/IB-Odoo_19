@@ -41,7 +41,7 @@ class PlasticosComplianceService(models.AbstractModel):
                     ("association_state", "=", "accepted"),
                     # Invoice, close and transaction display read legacy rows only.
                     # An operation-scoped row never satisfies or blocks them.
-                    ("obligation_kind", "=", LEGACY_OBLIGATION),
+                    *self.env["plasticos.document"]._legacy_obligation_domain(),
                     "|",
                     ("verified", "=", True),
                     ("override", "=", True),

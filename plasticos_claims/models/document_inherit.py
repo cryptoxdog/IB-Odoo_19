@@ -31,7 +31,7 @@ class PlasticosDocumentInherit(models.Model):
         self.ensure_one()
         transactions = self.env["plasticos.transaction"]
         loads = self.env["plasticos.load"]
-        if (self.obligation_kind or "legacy") != "legacy":
+        if not self._is_legacy_obligation():
             return transactions.browse(), loads.browse()
         transaction, load = self._legacy_claim_subject()
         if transaction and self.subject_company_id:

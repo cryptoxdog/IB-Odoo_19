@@ -278,7 +278,7 @@ class DocumentNative(models.Model):
                 and legacy.res_id
                 and legacy.association_state == "accepted"
                 # A sole operation-scoped row is not global native verification.
-                and legacy.obligation_kind == "legacy"
+                and legacy._is_legacy_obligation()
             )
             if exact:
                 rec.verified = bool(legacy.verified)
@@ -305,7 +305,7 @@ class DocumentNative(models.Model):
             [
                 *predicate,
                 ("association_state", "=", "accepted"),
-                ("obligation_kind", "=", "legacy"),
+                *document._legacy_obligation_domain(),
                 ("res_id", "!=", 0),
                 ("res_model", "not in", excluded),
             ]

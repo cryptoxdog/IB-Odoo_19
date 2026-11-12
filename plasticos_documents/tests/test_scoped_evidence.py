@@ -8,6 +8,7 @@ BRS rule it witnesses. Operation obligations are declared by a downstream owner
 import base64
 import importlib.util
 import itertools
+import json
 from datetime import timedelta
 from pathlib import Path
 from unittest.mock import patch
@@ -554,7 +555,7 @@ class TestScopedEvidence(PlasticosTestCase):
         total, accepted, decided, digest = cr.fetchone()
         self.env["ir.config_parameter"].set_param(
             pre.CENSUS_KEY,
-            f'{{"total": {total}, "accepted": {accepted}, "decided": {decided}, "digest": "{digest}"}}',
+            json.dumps([total, accepted, decided, digest]),
         )
         self.env.flush_all()
         post.migrate(cr, "19.0.2.1.17")

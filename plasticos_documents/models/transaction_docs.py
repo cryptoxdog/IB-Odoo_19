@@ -262,7 +262,7 @@ class PlasticosTransactionDocs(models.Model):
                 ("tag_id", "=", tag.id),
                 ("active", "=", True),
                 # The scale-ticket rule reads legacy rows. Operation evidence is a separate obligation.
-                ("obligation_kind", "=", "legacy"),
+                *self.env["plasticos.document"]._legacy_obligation_domain(),
                 "|",
                 ("load_id", "=", load.id),
                 "&",

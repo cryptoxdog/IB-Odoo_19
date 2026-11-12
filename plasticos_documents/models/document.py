@@ -398,11 +398,31 @@ class PlasticosDocument(models.Model):
     @staticmethod
     def _scope_value(record, name):
         value = record[name]
-        if name == "evidence_uom_id":
+        if isinstance(value, models.BaseModel):
             return value.id or False
-        if name == "quantity_known":
-            return bool(value)
+        if isinstance(value, bool):
+            return value
         return value or False
+
+    def _scope_input_normalizers(self):
+        return {
+            "evidence_uom_id": self._m2o_id,
+            "quantity_known": bool,
+            "obligation_kind": lambda value: value or LEGACY_OBLIGATION,
+        }
+
+    @api.model
+    def _legacy_obligation_domain(self):
+        """Domain of the legacy obligation: invoice, close, transaction, claims, scale ticket."""
+        return [("obligation_kind", "=", LEGACY_OBLIGATION)]
+
+    @api.model
+    def _operation_obligation_domain(self):
+        return [("obligation_kind", "!=", LEGACY_OBLIGATION)]
+
+    def _is_legacy_obligation(self):
+        self.ensure_one()
+        return (self.obligation_kind or LEGACY_OBLIGATION) == LEGACY_OBLIGATION
 
     def _refuse_accepted_scope_rewrite(self, vals):
         """Accepted operation scope is immutable, whatever grant the caller holds."""
@@ -413,15 +433,8 @@ class PlasticosDocument(models.Model):
             if rec.association_state != "accepted":
                 continue
             for name in touched:
-                new = vals[name]
-                if name == "evidence_uom_id":
-                    new = self._m2o_id(new)
-                elif name == "quantity_known":
-                    new = bool(new)
-                elif name == "obligation_kind":
-                    new = new or LEGACY_OBLIGATION
-                else:
-                    new = new or False
+                normalize = self._scope_input_normalizers().get(name, lambda value: value or False)
+                new = normalize(vals[name])
                 if new != self._scope_value(rec, name):
                     raise AccessError("Accepted evidence scope cannot be rewritten.")
 

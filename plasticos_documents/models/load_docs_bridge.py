@@ -54,7 +54,7 @@ class PlasticosLoadDocsBridge(models.Model):
             .search(
                 [
                     ("association_state", "=", "accepted"),
-                    ("obligation_kind", "!=", "legacy"),
+                    *self.env["plasticos.document"]._operation_obligation_domain(),
                     "|",
                     ("load_id", "=", self.id),
                     "&",
