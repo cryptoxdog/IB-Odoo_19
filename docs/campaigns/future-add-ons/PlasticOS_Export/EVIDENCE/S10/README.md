@@ -60,7 +60,13 @@ What remains NOT_RUN:
 - **AC-EXP-06-004** and **AC-EXP-06-005.** These are governance and process rules, proven by PR and evidence review.
 - **AC-EXP-01-005.** This is not a process rule. There is no Community Edition environment, and the runtime is the pinned Enterprise fixture only. That S6 blocker is unchanged and is reported here as it stands.
 
+## Who sees container facts
+
+Container weights and identities stay with Logistics. A user who cannot read the Logistics journey facts (only Logistics, which Operations Manager implies, and System can after the S9 review) sees "Restricted" for the container tare, the VGM weight and the shipment-history container facts, and gets no journey link. Export adds no sudo to show them. The operator's see-all rule covers allocations, so a Sales Rep still sees every cargo allocation on every booking through the `*_ref` names and can plan without overbooking (coordinator ruling 2026-11-12).
+
+On the slot form and the shipment list, `journey_id` is omitted for non-readers. This is stricter than no_open, because a Many2one renders its display name under sudo (coordinator-confirmed 2026-11-12).
+
 ## Recorded for the operator, not changed here
 
 - `plasticos_partner_import/erp/native_orders.py:599-608` maps the recycler basis "fob"/"fas" onto the legal Incoterm. This is outside Export and is untouched (contract unresolved unknown).
-- Logistics grants every internal user read on `plasticos.iso.journey.fact` (`plasticos_logistics/security/ir.model.access.csv`, `access_iso_journey_fact_user`). A Sales Rep therefore sees the container tare, VGM weight and shipment facts, but cannot open the journey itself.
+- At S9 head `ad9d35e5`, `access_iso_journey_fact_user` gave every internal user read on `plasticos.iso.journey.fact`. S9 review B1 removes it. The S10 witnesses follow the owner ACL, so they hold on both heads.

@@ -16,6 +16,7 @@ from lxml import etree
 
 from odoo import fields
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+from odoo.exceptions import AccessError
 from odoo.tests.common import new_test_user, tagged
 from odoo.tools.safe_eval import safe_eval
 
@@ -389,5 +390,8 @@ class TestJourneyFactsAndSeeAll(ExportFixtureMixin, PlasticosTestCase):
         if not self._rep_reads_facts():
             self.assertEqual(values["owner_container_tare"], RESTRICTED)
             self.assertEqual(values["owner_container_vgm_weight"], RESTRICTED)
+            with self.assertRaises(AccessError):
+                self.env[FACT].with_user(self.rep).search_read([("journey_id", "=", journey.id)], ["weight"])
+        self.assertNotIn(journey.display_name, str(values))
         actor_slot = self.env[SLOT].with_user(self.actor).browse(slot.id)
         self.assertEqual(actor_slot.owner_container_tare, f"3900 {self.kg.name} (Scale Ticket: TKT-REP)")
