@@ -355,6 +355,52 @@ class TestErpWorksheetImport(TransactionCase):
         self.assertFalse(invoice.invoice_date, "never the worksheet order date")
         self.assertIn("no source invoice date; customer invoice left undated", details)
 
+    def test_domestic_fob_basis_sets_no_incoterm_and_fas_maps_to_fas(self):
+        """BRS-EXP-02-R006 (ADR-021 amendment 2026-11-12): a dock-pickup FOB is not Incoterms FOB; FAS is FAS."""
+        index = self._index()
+        self._worksheet_54839(index)  # both headers and the worksheet carry "FOB Supplier Dock"
+        report = self._run(index)
+        purchase = self._marked("purchase.order", "legacy_erp_po_7275")
+        sale = self._marked("sale.order", "legacy_erp_so_14263")
+        self.assertFalse(purchase.incoterm_id, "a domestic shipping point is not the Incoterms 2020 FOB")
+        if "incoterm" in sale._fields:
+            self.assertFalse(sale.incoterm)
+        details = [anomaly["detail"] for anomaly in report.anomalies]
+        self.assertIn(
+            "purchase.order 7275: price basis 'FOB Supplier Dock' has no supported Incoterm; none set", details
+        )
+
+        fas = self._index()
+        self._worksheet_54839(fas)
+        fas.orders["6345"]["PriceBasis"] = "FAS"
+        fas.orders["6344"]["PriceBasis"] = "FAS"
+        self._run(fas)
+        self.assertEqual(purchase.incoterm_id, self.env.ref("account.incoterm_FAS"), "FAS is the literal Incoterm")
+
+    def test_domestic_fob_basis_never_rewrites_an_already_imported_order(self):
+        """ADR-021 amendment 2026-11-12: an order imported under the old FOB crosswalk keeps its Incoterm."""
+        index = self._index()
+        self._worksheet_54839(index)
+        self._run(index)
+        purchase = self._marked("purchase.order", "legacy_erp_po_7275")
+        self.assertEqual(purchase.state, "draft", "the replay reaches an open purchase order")
+        fob = self.env.ref("account.incoterm_FOB")
+        purchase.write({"incoterm_id": fob.id})  # what the pre-amendment crosswalk wrote
+
+        replay = self._run(index)
+        self.assertEqual(purchase.incoterm_id, fob, "the stored Incoterm is not rewritten")
+        self.assertIn(
+            "purchase.order 7275: price basis 'FOB Supplier Dock' has no supported Incoterm; "
+            "stored Incoterm FOB left unchanged",
+            [anomaly["detail"] for anomaly in replay.anomalies],
+        )
+
+        delivered = self._index()
+        self._worksheet_54839(delivered)
+        delivered.orders["6344"]["PriceBasis"] = "Delivered"
+        self._run(delivered)
+        self.assertFalse(purchase.incoterm_id, "Delivered still clears, unchanged by the amendment")
+
     # ── F5: credits, freight, costs, prepay exclusion ──────────────────────
     def test_worksheet_54839_keeps_credit_freight_costs_and_excludes_prepay(self):
         index = self._index()

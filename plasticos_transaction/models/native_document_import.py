@@ -645,6 +645,7 @@ def _upsert_order(importer, context, report, partner_by_cp, header, buysell, num
     Writing it does not confirm the order: it stays a draft, with no picking.
     """
     from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
+        clears_incoterm,
         declined_price_basis,
         with_worksheet,
     )
@@ -692,12 +693,19 @@ def _upsert_order(importer, context, report, partner_by_cp, header, buysell, num
         if incoterm:
             values[incoterm_field] = incoterm
         elif declined_price_basis(basis):
-            # An Incoterm an earlier run wrote for this basis is cleared, not kept.
-            values[incoterm_field] = False
+            stored = existing[incoterm_field] if existing is not None else False
+            if clears_incoterm(basis) or not stored:
+                # ``delivered`` clears an Incoterm an earlier run wrote; nothing is set either way.
+                values[incoterm_field] = False
+                outcome = "none set"
+            else:
+                # A domestic shipping-point basis never rewrites an order already imported
+                # (ADR-021 amendment 2026-11-12): the stored Incoterm is reported, not changed.
+                outcome = f"stored Incoterm {stored.code or stored.name!s} left unchanged"
             report.anomaly(
                 "BuySell",
                 number,
-                f"{model_name} {values['name']}: price basis {basis.strip()!r} has no supported Incoterm; none set",
+                f"{model_name} {values['name']}: price basis {basis.strip()!r} has no supported Incoterm; {outcome}",
             )
     return importer._upsert(model, xml_id, values, _silent(), None)
 
