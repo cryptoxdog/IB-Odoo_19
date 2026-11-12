@@ -3,6 +3,11 @@
     Slot-grain capacity and cargo allocation (RP-07-E050). BRS-EXP-14-R014..R016.
     One row per distinct slot: several cargo sources on one slot never count twice.
     Slots and cargo change only through the Export booking commands.
+    Source references (operator decision 2026-11-12): Logistics and Operations
+    Managers (group_logistics, implied by Operations Manager) get the openable
+    source records. Every other reader, such as a Sales Rep reading another rep's
+    allocation, gets the source names as text or a no_open reference, because the
+    load, sale order and purchase order stay owner-scoped.
 -->
 <odoo>
     <record id="view_export_slot_list" model="ir.ui.view">
@@ -54,11 +59,17 @@
                         <list>
                             <field name="allocation_key"/>
                             <field name="state" widget="badge"/>
-                            <field name="supplier_id"/>
-                            <field name="purchase_order_id"/>
-                            <field name="sale_order_id"/>
-                            <field name="source_load_id"/>
+                            <field name="supplier_id" groups="plasticos_security_base.group_logistics"/>
+                            <field name="supplier_ref" groups="!plasticos_security_base.group_logistics"/>
+                            <field name="purchase_order_id" groups="plasticos_security_base.group_logistics"/>
+                            <field name="purchase_order_ref" groups="!plasticos_security_base.group_logistics"/>
+                            <field name="sale_order_id" groups="plasticos_security_base.group_logistics"/>
+                            <field name="sale_order_ref" groups="!plasticos_security_base.group_logistics"/>
+                            <field name="source_load_id" groups="plasticos_security_base.group_logistics"/>
+                            <field name="source_load_ref" groups="!plasticos_security_base.group_logistics"/>
+                            <field name="stock_move_line_id" optional="hide" groups="plasticos_security_base.group_logistics"/>
                             <field name="physical_source_kind"/>
+                            <field name="replaces_link_id" optional="hide"/>
                             <field name="planned_quantity"/>
                             <field name="planned_quantity_known"/>
                             <field name="uom_id"/>
@@ -78,7 +89,7 @@
                 <field name="carrier_booking_no"/>
                 <field name="iso_number"/>
                 <field name="seal_number"/>
-                <field name="cargo_link_ids" string="Supplier PO" filter_domain="[('cargo_link_ids.purchase_order_id.name', 'ilike', self)]"/>
+                <field name="cargo_link_ids" string="Supplier PO" filter_domain="[('cargo_link_ids.purchase_order_ref', 'ilike', self)]"/>
                 <filter name="filter_available" string="Available" domain="[('allocation_state', '=', 'available')]"/>
                 <filter name="filter_committed" string="Committed" domain="[('allocation_state', '=', 'committed')]"/>
                 <filter name="filter_held" string="Held" domain="[('allocation_state', '=', 'held')]"/>
@@ -125,10 +136,14 @@
                 <field name="equipment_class"/>
                 <field name="iso_number"/>
                 <field name="state" widget="badge"/>
-                <field name="supplier_id"/>
-                <field name="purchase_order_id"/>
-                <field name="sale_order_id"/>
-                <field name="source_load_id"/>
+                <field name="supplier_id" groups="plasticos_security_base.group_logistics"/>
+                <field name="supplier_ref" groups="!plasticos_security_base.group_logistics"/>
+                <field name="purchase_order_id" groups="plasticos_security_base.group_logistics"/>
+                <field name="purchase_order_ref" groups="!plasticos_security_base.group_logistics"/>
+                <field name="sale_order_id" groups="plasticos_security_base.group_logistics"/>
+                <field name="sale_order_ref" groups="!plasticos_security_base.group_logistics"/>
+                <field name="source_load_id" groups="plasticos_security_base.group_logistics"/>
+                <field name="source_load_ref" groups="!plasticos_security_base.group_logistics"/>
                 <field name="physical_source_kind"/>
                 <field name="planned_quantity"/>
                 <field name="uom_id"/>
@@ -157,11 +172,16 @@
                             <field name="replaces_link_id"/>
                         </group>
                         <group string="Exact Sources">
-                            <field name="purchase_line_id"/>
-                            <field name="sale_line_id"/>
-                            <field name="source_load_id"/>
-                            <field name="stock_move_line_id"/>
-                            <field name="original_attachment_id"/>
+                            <field name="purchase_line_id" groups="plasticos_security_base.group_logistics"/>
+                            <field name="purchase_line_id" options="{'no_open': True}" groups="!plasticos_security_base.group_logistics"/>
+                            <field name="sale_line_id" groups="plasticos_security_base.group_logistics"/>
+                            <field name="sale_line_id" options="{'no_open': True}" groups="!plasticos_security_base.group_logistics"/>
+                            <field name="source_load_id" groups="plasticos_security_base.group_logistics"/>
+                            <field name="source_load_id" options="{'no_open': True}" groups="!plasticos_security_base.group_logistics"/>
+                            <field name="stock_move_line_id" groups="plasticos_security_base.group_logistics"/>
+                            <field name="stock_move_line_id" options="{'no_open': True}" groups="!plasticos_security_base.group_logistics"/>
+                            <field name="original_attachment_id" groups="plasticos_security_base.group_logistics"/>
+                            <field name="original_attachment_id" options="{'no_open': True}" groups="!plasticos_security_base.group_logistics"/>
                             <field name="physical_source_kind"/>
                             <field name="physical_source_ref"/>
                             <field name="source_revision_key"/>
@@ -181,9 +201,9 @@
         <field name="arch" type="xml">
             <search>
                 <field name="booking_id"/>
-                <field name="purchase_order_id"/>
-                <field name="sale_order_id"/>
-                <field name="supplier_id"/>
+                <field name="purchase_order_ref" string="Supplier PO"/>
+                <field name="sale_order_ref" string="Customer SO"/>
+                <field name="supplier_ref" string="Supplier"/>
                 <field name="iso_number"/>
                 <filter name="filter_live" string="Committed or Held" domain="[('state', 'in', ['committed', 'held'])]"/>
                 <filter name="filter_buyer_unassigned" string="Buyer Unassigned" domain="[('state', 'in', ['committed', 'held']), ('sale_line_id', '=', False)]"/>

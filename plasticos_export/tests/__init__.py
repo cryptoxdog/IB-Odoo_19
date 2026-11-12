@@ -6,3 +6,5 @@ from . import test_document_obligations
 from . import test_export_owner_handoff
 from . import test_views_and_reports
 from . import test_multicompany_permissions
+from . import test_native_coverage
+from . import test_allocation_guard
