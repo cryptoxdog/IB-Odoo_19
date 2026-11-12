@@ -37,7 +37,7 @@ class TestAttachmentOrphanCleanup(TransactionCase):
     def _run(self):
         return self.Attachment._cron_cleanup_missing_filestore_orphans()
 
-    def test_single_orphan_among_healthy_rows_is_removed_and_cursor_advances(self):
+    def test_single_orphan_among_healthy_rows_is_removed(self):
         records = self._attachments(8)
         self._start_before(records)
         self._drop_blob(records[2])
@@ -45,10 +45,26 @@ class TestAttachmentOrphanCleanup(TransactionCase):
         self.assertEqual(self._run(), 1)
 
         self.assertEqual(records.exists(), records - records[2])
-        self.assertEqual(self.params.get_param(CURSOR_PARAM), str(records[-1].id))
-        # The next run continues after the cursor and wraps instead of rescanning the same page.
-        self.assertEqual(self._run(), 0)
-        self.assertEqual(self.params.get_param(CURSOR_PARAM), "0")
+        self.assertEqual(self.params.get_param(CURSOR_PARAM), "0", "a short page ends the cycle")
+
+    def test_cursor_advances_page_by_page_and_wraps_on_a_short_page(self):
+        """Rows already examined are revisited: the cycle wraps even when a page is never empty."""
+        records = self._attachments(10)
+        self._start_before(records)
+        with patch("odoo.addons.plasticos_base.models.ir_attachment.PAGE_SIZE", 4):
+            self.assertEqual(self._run(), 0)
+            self.assertEqual(self.params.get_param(CURSOR_PARAM), str(records[3].id))
+            self.assertEqual(self._run(), 0)
+            self.assertEqual(self.params.get_param(CURSOR_PARAM), str(records[7].id))
+            # Two rows remain: a short, non-empty page still ends the cycle.
+            self.assertEqual(self._run(), 0)
+            self.assertEqual(self.params.get_param(CURSOR_PARAM), "0")
+
+            # A blob lost after its row was examined is found on the next cycle.
+            self._drop_blob(records[1])
+            self._start_before(records)
+            self.assertEqual(self._run(), 1)
+        self.assertEqual(records.exists(), records - records[1])
 
     def test_unreachable_filestore_root_deletes_nothing(self):
         records = self._attachments(8)

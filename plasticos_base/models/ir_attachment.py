@@ -30,7 +30,8 @@ class IrAttachment(models.Model):
         proven available (unreachable or empty root, an I/O error, no blob of
         the page present, or an implausible share missing). Rows that belong
         to or are referenced by a protected business model are always kept.
-        Each run examines the page after the stored cursor and wraps at the end.
+        Each run examines the page after the stored cursor; a short or empty page
+        ends the cycle and the next run starts over.
         """
         self.env.cr.execute("SELECT pg_try_advisory_lock(hashtext(%s))", [CLEANUP_LOCK])
         locked = self.env.cr.fetchone()[0]
@@ -177,5 +178,7 @@ class IrAttachment(models.Model):
             _logger.warning("Attachment orphan cleanup removed %s orphan rows (missing filestore blobs)", count)
         else:
             _logger.info("Attachment orphan cleanup: no removable orphan in batch (%s checked)", checked)
-        self._orphan_cleanup_set_cursor(candidates[-1].id)
+        # A short page is the end of this cycle: start over next run. Waiting for an
+        # empty page would never wrap while new attachments keep arriving.
+        self._orphan_cleanup_set_cursor(candidates[-1].id if checked >= PAGE_SIZE else 0)
         return count
