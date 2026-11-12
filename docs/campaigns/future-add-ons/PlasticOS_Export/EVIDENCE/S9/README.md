@@ -27,7 +27,9 @@ Fixture `odoo_test_tpl_ee_c9e8a81f52f23680` (fingerprint `f44b9807`), Enterprise
 | Head | Command | Result |
 |---|---|---|
 | `cd10a57f` (pre-merge) | `make runtime-test m=plasticos_logistics,plasticos_security_base` | 472 run, 0 failed, 0 errors |
-| merged head | `make runtime-test m=plasticos_logistics,plasticos_export,plasticos_documents,plasticos_security_base` | recorded in the execution receipt |
+| `8e1a20f6` (S8 `3fda2e04` merged) | `make runtime-test m=plasticos_logistics,plasticos_export,plasticos_documents,plasticos_security_base` | 649 run, 0 failed, 0 errors (documents 128, export 101, logistics 337, security_base 215 incl. post-install) |
+
+No S9 fixture needed repair for the S8 08-R006 allocation guard: S9 tests create no Export allocation.
 
 ## Not in scope
 
