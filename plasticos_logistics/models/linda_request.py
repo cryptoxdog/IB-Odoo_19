@@ -169,6 +169,11 @@ CANCEL_SPECS = {
 CANCEL_PURPOSE_BY_ISSUE = {spec.issue_purpose: purpose for purpose, spec in CANCEL_SPECS.items()}
 
 
+# Frozen command-result status (TECHNICAL_CONTRACT_v2.7: applied | already_applied | stale |
+# blocked | ambiguous | not_available). A resolver verdict, not a Selection value.
+COMMAND_APPLIED = "applied"
+
+
 def _plain(text, **values):
     """Untranslated party-facing text: a snapshot must not change with the worker's language."""
     return text % values if values else text
@@ -1119,7 +1124,7 @@ class PlasticosLogisticsRequest(models.Model):
         if TYPED_SPECS.get(purpose, TypedSpec(None, None)).source_kind != source_kind:
             return {"status": "not_available", "reason": "purpose_not_of_source_kind"}
         result = resolver(purpose, res_id, audience_partner, **params) or {}
-        if result.get("status") != "applied":
+        if result.get("status") != COMMAND_APPLIED:
             return {"status": result.get("status") or "blocked", "reason": result.get("reason") or "unresolved"}
         if not result.get("company") or not result.get("partner") or not result.get("snapshot", {}).get("subject"):
             return {"status": "blocked", "reason": "resolver_incomplete"}
@@ -1231,21 +1236,21 @@ class PlasticosLogisticsRequest(models.Model):
             revision_key = f"dispatch_sent:{fields.Datetime.to_string(load.dispatch_sent)}"
             sent = self._utc_label(load.dispatch_sent)
             if purpose == "load_ack_notice":
-                snapshot = {
-                    "reference": load.name,
-                    "subject": _plain("Please confirm dispatch %(load)s", load=load.name),
-                    "paragraphs": [
+                snapshot = dict(
+                    reference=load.name,
+                    subject=_plain("Please confirm dispatch %(load)s", load=load.name),
+                    paragraphs=[
                         _plain("We sent the dispatch packet for load %(load)s at %(sent)s.", load=load.name, sent=sent),
                         _plain("Please reply to this email to confirm you received it."),
                         _plain("This is a reminder only. The dispatch packet is not attached again."),
                     ],
-                    "lines": route + [(_plain("Dispatch sent"), sent)],
-                }
+                    lines=route + [(_plain("Dispatch sent"), sent)],
+                )
             else:
-                snapshot = {
-                    "reference": load.name,
-                    "subject": _plain("ESCALATION: dispatch %(load)s not acknowledged", load=load.name),
-                    "paragraphs": [
+                snapshot = dict(
+                    reference=load.name,
+                    subject=_plain("ESCALATION: dispatch %(load)s not acknowledged", load=load.name),
+                    paragraphs=[
                         _plain(
                             "The dispatch for load %(load)s sent at %(sent)s to %(carrier)s has not been acknowledged.",
                             load=load.name,
@@ -1254,18 +1259,18 @@ class PlasticosLogisticsRequest(models.Model):
                         ),
                         _plain("Please confirm receipt by replying to this email. The packet is not attached again."),
                     ],
-                    "lines": route + [(_plain("Carrier"), carrier), (_plain("Dispatch sent"), sent)],
-                }
+                    lines=route + [(_plain("Carrier"), carrier), (_plain("Dispatch sent"), sent)],
+                )
         elif purpose == "document_chase":
             reason = self._scale_ticket_chase_reason(load)
             if reason:
                 return {"status": "blocked", "reason": reason}
             revision_key = f"scale_ticket:{fields.Datetime.to_string(load.actual_delivery_at)}"
-            snapshot = {
-                "reference": load.name,
-                "category": "scale_ticket",
-                "subject": _plain("Scale tickets needed for load %(load)s", load=load.name),
-                "paragraphs": [
+            snapshot = dict(
+                reference=load.name,
+                category="scale_ticket",
+                subject=_plain("Scale tickets needed for load %(load)s", load=load.name),
+                paragraphs=[
                     _plain(
                         "Load %(load)s was delivered at %(delivered)s. We have not received its scale tickets.",
                         load=load.name,
@@ -1273,11 +1278,11 @@ class PlasticosLogisticsRequest(models.Model):
                     ),
                     _plain("Please reply with the light and heavy third-party certified scale tickets for this load."),
                 ],
-                "lines": route + [(_plain("Delivered"), self._utc_label(load.actual_delivery_at))],
-            }
+                lines=route + [(_plain("Delivered"), self._utc_label(load.actual_delivery_at))],
+            )
         else:
             return {"status": "not_available", "reason": "purpose_not_of_source_kind"}
-        snapshot["closing"] = [load.company_id.name or ""]
+        snapshot.update(closing=[load.company_id.name or ""])
         return {
             "status": "applied",
             "company": load.company_id,
@@ -1438,7 +1443,7 @@ class PlasticosLogisticsRequest(models.Model):
             attachment_ids=snapshot.get("attachment_ids") or [],
             recheck=True,
         )
-        if resolved["status"] != "applied":
+        if resolved["status"] != COMMAND_APPLIED:
             return resolved.get("reason") or resolved["status"]
         if resolved["company"] != self.company_id or resolved["partner"] != self.partner_id:
             return "party_changed"
@@ -1487,7 +1492,7 @@ class PlasticosLogisticsRequest(models.Model):
             recipient_email=recipient_email,
             attachment_ids=list(attachment_original_ids or []),
         )
-        if resolved["status"] != "applied":
+        if resolved["status"] != COMMAND_APPLIED:
             return {"status": resolved["status"], "reason": resolved.get("reason")}
         if email_normalize(recipient_email or "") != email_normalize(resolved["recipient_email"] or ""):
             return {"status": "blocked", "reason": "recipient_not_audience"}
@@ -1534,7 +1539,7 @@ class PlasticosLogisticsRequest(models.Model):
             for purpose in ("load_ack_notice", "load_ack_escalation", "document_chase"):
                 for partner in self._load_audiences(load, purpose):
                     resolved = self._linda_resolve(SOURCE_LOAD, purpose, load.id, partner)
-                    if resolved["status"] != "applied":
+                    if resolved["status"] != COMMAND_APPLIED:
                         continue
                     with self.env.cr.savepoint():
                         results.append(self._record_typed(purpose, resolved))
