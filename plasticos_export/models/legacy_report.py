@@ -77,6 +77,52 @@ LEGACY_BOOKING_REPORT_COLUMNS = (
     ("Doc-Cutoff", "Export revision additional terms", "mapped"),
 )
 LEGACY_BOOKING_REPORT_HEADINGS = tuple(heading for heading, _owner, _status in LEGACY_BOOKING_REPORT_COLUMNS)
+# One name per heading, so code never repeats a heading as a bare string.
+(
+    H_CONTAINER_NO,
+    H_BOOKING_NO,
+    H_SEAL_NO,
+    H_CUTOFF,
+    H_POL,
+    H_POD,
+    H_PDLV,
+    H_CARRIER,
+    H_VESSEL,
+    H_VOYAGE_NO,
+    H_ETS,
+    H_ETA,
+    H_GRADE,
+    H_WEIGHT_LBS,
+    H_SUPPLIER,
+    H_LOCATION,
+    H_PO_NO,
+    H_SOURCE_WKS,
+    H_CUSTOMER,
+    H_SO_NO,
+    H_INVOICE_NO,
+    H_UNITS,
+    H_PRVC,
+    H_RCV_DT,
+    H_RELEASE_NO,
+    H_PICKUP_NO,
+    H_SHIPPING_NOTES,
+    H_WT_MT,
+    H_SHIP_DT,
+    H_SHIP_TIME,
+    H_RCVD_WT,
+    H_USER,
+    H_PRA_STATUS,
+    H_PRA_SENT_DATE,
+    H_VGM,
+    H_EQ_TARE_WT,
+    H_BL_NO,
+    H_INVOICE_USER,
+    H_CONTAINER_REF,
+    H_CUSTOMER_LOC,
+    H_PO_REF,
+    H_UDF_DATE,
+    H_DOC_CUTOFF,
+) = LEGACY_BOOKING_REPORT_HEADINGS
 _STATUS_MARKER = {"not_recorded": NOT_RECORDED, "requires_owner_proof": NOT_MAPPED, "phase_2": PHASE_2}
 LIVE_LINK_STATES = ("committed", "held")
 
@@ -108,7 +154,7 @@ class PlasticosExportCargoLinkLegacyReport(models.Model):
         groups = OrderedDict()
         for link in links:
             row = link._legacy_booking_report_row()
-            groups.setdefault(row["Booking No"], []).append(row)
+            groups.setdefault(row[H_BOOKING_NO], []).append(row)
         return groups
 
     def _legacy_booking_report_row(self):
@@ -126,96 +172,96 @@ class PlasticosExportCargoLinkLegacyReport(models.Model):
         }
         row.update(
             {
-                "Booking No": booking.carrier_booking_no or MISSING,
-                "Cutoff": _time(revision.cargo_cutoff_local, revision.cargo_cutoff_tz, revision.cargo_cutoff_precision)
+                H_BOOKING_NO: booking.carrier_booking_no or MISSING,
+                H_CUTOFF: _time(revision.cargo_cutoff_local, revision.cargo_cutoff_tz, revision.cargo_cutoff_precision)
                 if revision
                 else UNKNOWN,
-                "POL": _stated(revision.pol_text),
-                "POD": _stated(revision.pod_text),
-                "PDLV": _stated(terms.get("pdlv")),
-                "Carrier": _stated(revision.steamship_line_id.display_name),
-                "Vessel": _stated(terms.get("vessel")),
-                "Voyage No": _stated(terms.get("voyage")),
-                "ETS": _stated(terms.get("ets")),
-                "ETA": _stated(terms.get("eta")),
-                "Doc-Cutoff": _stated(terms.get("doc_cutoff")),
-                "User": self.create_uid.name or MISSING,
+                H_POL: _stated(revision.pol_text),
+                H_POD: _stated(revision.pod_text),
+                H_PDLV: _stated(terms.get("pdlv")),
+                H_CARRIER: _stated(revision.steamship_line_id.display_name),
+                H_VESSEL: _stated(terms.get("vessel")),
+                H_VOYAGE_NO: _stated(terms.get("voyage")),
+                H_ETS: _stated(terms.get("ets")),
+                H_ETA: _stated(terms.get("eta")),
+                H_DOC_CUTOFF: _stated(terms.get("doc_cutoff")),
+                H_USER: self.create_uid.name or MISSING,
             }
         )
         row.update(self._legacy_container_cells(journey))
         row.update(self._legacy_purchase_cells(purchase))
         row.update(self._legacy_sale_cells(sale))
         row.update(self._legacy_load_cells(load))
-        row["Units"] = self._legacy_units()
+        row[H_UNITS] = self._legacy_units()
         return row
 
     @staticmethod
     def _legacy_container_cells(journey):
         if not journey:
-            return {"Container No": MISSING, "Seal No": MISSING, "Container-Ref": MISSING}
+            return {H_CONTAINER_NO: MISSING, H_SEAL_NO: MISSING, H_CONTAINER_REF: MISSING}
         if not readable(journey):
-            return {"Container No": RESTRICTED, "Seal No": RESTRICTED, "Container-Ref": RESTRICTED}
+            return {H_CONTAINER_NO: RESTRICTED, H_SEAL_NO: RESTRICTED, H_CONTAINER_REF: RESTRICTED}
         return {
-            "Container No": journey.iso_number or MISSING,
-            "Seal No": journey.seal_number or MISSING,
-            "Container-Ref": journey.display_name,
+            H_CONTAINER_NO: journey.iso_number or MISSING,
+            H_SEAL_NO: journey.seal_number or MISSING,
+            H_CONTAINER_REF: journey.display_name,
         }
 
     @staticmethod
     def _legacy_purchase_cells(line):
         if not line:
-            return {"Supplier": MISSING, "PO No": MISSING, "PO-Ref": MISSING, "Grade": MISSING}
+            return {H_SUPPLIER: MISSING, H_PO_NO: MISSING, H_PO_REF: MISSING, H_GRADE: MISSING}
         if not readable(line):
-            return dict.fromkeys(("Supplier", "PO No", "PO-Ref", "Grade"), RESTRICTED)
+            return dict.fromkeys((H_SUPPLIER, H_PO_NO, H_PO_REF, H_GRADE), RESTRICTED)
         order = line.order_id
         return {
-            "Supplier": order.partner_id.display_name or MISSING,
-            "PO No": order.name,
-            "PO-Ref": order.partner_ref or MISSING,
-            "Grade": line.product_id.display_name or MISSING,
+            H_SUPPLIER: order.partner_id.display_name or MISSING,
+            H_PO_NO: order.name,
+            H_PO_REF: order.partner_ref or MISSING,
+            H_GRADE: line.product_id.display_name or MISSING,
         }
 
     def _legacy_sale_cells(self, line):
         if not line:
             return {
-                "Customer": UNASSIGNED_BUYER,
-                "SO No": UNASSIGNED_BUYER,
-                "Customer-Loc": UNASSIGNED_BUYER,
-                "Invoice No": UNASSIGNED_BUYER,
-                "Invoice-User": UNASSIGNED_BUYER,
+                H_CUSTOMER: UNASSIGNED_BUYER,
+                H_SO_NO: UNASSIGNED_BUYER,
+                H_CUSTOMER_LOC: UNASSIGNED_BUYER,
+                H_INVOICE_NO: UNASSIGNED_BUYER,
+                H_INVOICE_USER: UNASSIGNED_BUYER,
             }
         if not readable(line):
-            return dict.fromkeys(("Customer", "SO No", "Customer-Loc", "Invoice No", "Invoice-User"), RESTRICTED)
+            return dict.fromkeys((H_CUSTOMER, H_SO_NO, H_CUSTOMER_LOC, H_INVOICE_NO, H_INVOICE_USER), RESTRICTED)
         order = line.order_id
         cells = {
-            "Customer": order.partner_id.display_name or MISSING,
-            "SO No": order.name,
-            "Customer-Loc": order.partner_shipping_id.display_name or MISSING,
+            H_CUSTOMER: order.partner_id.display_name or MISSING,
+            H_SO_NO: order.name,
+            H_CUSTOMER_LOC: order.partner_shipping_id.display_name or MISSING,
         }
         if not self.purchase_line_id:
-            cells["Grade"] = line.product_id.display_name or MISSING
+            cells[H_GRADE] = line.product_id.display_name or MISSING
         invoices = self._posted_invoices(line)
         if invoices == RESTRICTED:
-            cells.update({"Invoice No": RESTRICTED, "Invoice-User": RESTRICTED})
+            cells.update({H_INVOICE_NO: RESTRICTED, H_INVOICE_USER: RESTRICTED})
         else:
             moves = line.invoice_lines.move_id.filtered(lambda move: move.state == "posted").sorted("id")
-            cells["Invoice No"] = ", ".join(moves.mapped("name")) or MISSING
-            cells["Invoice-User"] = ", ".join(moves.mapped("create_uid.name")) or MISSING
+            cells[H_INVOICE_NO] = ", ".join(moves.mapped("name")) or MISSING
+            cells[H_INVOICE_USER] = ", ".join(moves.mapped("create_uid.name")) or MISSING
         return cells
 
     @staticmethod
     def _legacy_load_cells(load):
         if not load:
-            return {"Pickup No": MISSING, "Shipping Notes": MISSING, "Ship Dt": MISSING, "Ship Time": MISSING}
+            return {H_PICKUP_NO: MISSING, H_SHIPPING_NOTES: MISSING, H_SHIP_DT: MISSING, H_SHIP_TIME: MISSING}
         if not readable(load):
-            return dict.fromkeys(("Pickup No", "Shipping Notes", "Ship Dt", "Ship Time", "VGM"), RESTRICTED)
+            return dict.fromkeys((H_PICKUP_NO, H_SHIPPING_NOTES, H_SHIP_DT, H_SHIP_TIME, H_VGM), RESTRICTED)
         picked = load.actual_pickup_at
         return {
-            "Pickup No": load.name,
-            "Shipping Notes": load.notes or MISSING,
-            "Ship Dt": picked.strftime("%Y-%m-%d") if picked else MISSING,
-            "Ship Time": picked.strftime("%H:%M UTC") if picked else MISSING,
-            "VGM": evidence_verdict(load.env, load, VERIFIED_GROSS_MASS),
+            H_PICKUP_NO: load.name,
+            H_SHIPPING_NOTES: load.notes or MISSING,
+            H_SHIP_DT: picked.strftime("%Y-%m-%d") if picked else MISSING,
+            H_SHIP_TIME: picked.strftime("%H:%M UTC") if picked else MISSING,
+            H_VGM: evidence_verdict(load.env, load, VERIFIED_GROSS_MASS),
         }
 
     def _legacy_units(self):

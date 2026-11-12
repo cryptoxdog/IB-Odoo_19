@@ -27,7 +27,7 @@ writes.
 from odoo import api, fields, models
 from odoo.exceptions import AccessError
 
-from .booking import EXPORT_CARGO_LINK, guarded
+from .booking import AMBIGUOUS, APPLIED, BLOCKED, EXPORT_CARGO_LINK, NOT_AVAILABLE, STALE, guarded
 from .document_inherit import BOOKING_CONFIRMATION, LOADING_PHOTOS, TERMINAL_INGATE_RECEIPT, VERIFIED_GROSS_MASS
 
 PLASTICOS_DOCUMENT = "plasticos.document"
@@ -46,11 +46,11 @@ OBLIGATION_LABELS = (
     (TERMINAL_INGATE_RECEIPT, "Terminal in-gate receipt"),
 )
 VERDICT_LABELS = {
-    "applied": "verified and current",
-    "blocked": "awaits verification",
-    "stale": "stale",
-    "ambiguous": "ambiguous",
-    "not_available": "not available",
+    APPLIED: "verified and current",
+    BLOCKED: "awaits verification",
+    STALE: "stale",
+    AMBIGUOUS: "ambiguous",
+    NOT_AVAILABLE: "not available",
 }
 MISSING_EVIDENCE = "missing"
 
@@ -104,7 +104,7 @@ def evidence_verdict(env, subject, kind):
         return RESTRICTED
     label = VERDICT_LABELS.get(verdict.get("status"), verdict.get("status") or MISSING_EVIDENCE)
     reason = verdict.get("reason")
-    return f"{label} ({reason})" if reason and verdict.get("status") != "applied" else label
+    return f"{label} ({reason})" if reason and verdict.get("status") != APPLIED else label
 
 
 def weight_unit(env):
