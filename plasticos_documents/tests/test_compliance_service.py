@@ -16,6 +16,7 @@ import inspect
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.addons.plasticos_documents.models.compliance_service import PlasticosComplianceService
+from odoo.addons.plasticos_documents.models.document import PlasticosDocument
 from odoo.tests.common import tagged
 
 
@@ -99,7 +100,9 @@ class TestDocumentRuleModel(PlasticosTestCase):
         field = self.env["plasticos.document"]._fields["obligation_kind"]
         self.assertTrue(field.required)
         self.assertEqual(self.env["plasticos.document"].default_get(["obligation_kind"])["obligation_kind"], "legacy")
-        self.assertEqual(self.env["plasticos.document"]._scoped_obligation_kinds(), frozenset())
+        # Core Documents declares no operation obligation. Downstream owners such as Export declare
+        # theirs by _inherit in the same registry, so the core class's own answer is what is checked.
+        self.assertEqual(PlasticosDocument._scoped_obligation_kinds(self.env["plasticos.document"]), frozenset())
 
     def test_receiving_policy_does_not_sum_partial_rows(self):
         source = inspect.getsource(PlasticosComplianceService._quantity_covers_subject)

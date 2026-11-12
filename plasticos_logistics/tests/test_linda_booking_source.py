@@ -15,7 +15,6 @@ from contextlib import contextmanager
 from unittest.mock import patch
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
-from odoo.addons.plasticos_logistics.models.linda_request import PlasticosLogisticsRequest
 from odoo.tests.common import tagged
 
 LOGISTICS_REQUEST = "plasticos.logistics.request"
@@ -89,9 +88,30 @@ class TestLindaBookingSource(PlasticosTestCase):
         def source_models(model):
             return {"plasticos.load": "load", STAND_IN_MODEL: "booking"}
 
+        # Patch the registry class, not the Logistics base class: a downstream owner that
+        # registers its own resolver by _inherit (Export, when installed) sits above the
+        # base in the MRO and would otherwise replace this stand-in.
+        request_class = type(self.Request)
         with (
-            patch.object(PlasticosLogisticsRequest, "_linda_source_resolvers", resolvers),
-            patch.object(PlasticosLogisticsRequest, "_linda_source_models", source_models),
+            patch.object(request_class, "_linda_source_resolvers", resolvers),
+            patch.object(request_class, "_linda_source_models", source_models),
+        ):
+            yield
+
+    @contextmanager
+    def _export_absent(self):
+        """Model a database without the Export booking resolver: only Logistics' own load source."""
+
+        def resolvers(model):
+            return {"load": model._linda_resolve_load_source}
+
+        def source_models(model):
+            return {"plasticos.load": "load"}
+
+        request_class = type(self.Request)
+        with (
+            patch.object(request_class, "_linda_source_resolvers", resolvers),
+            patch.object(request_class, "_linda_source_models", source_models),
         ):
             yield
 
@@ -139,10 +159,11 @@ class TestLindaBookingSource(PlasticosTestCase):
     # ── availability ─────────────────────────────────────────
 
     def test_without_the_export_resolver_booking_mail_is_not_available(self):
-        result = self._request()
-        self.assertEqual(result["status"], "not_available")
-        self.assertFalse(self._bookings())
-        self.assertNotIn("booking", self.Request._linda_source_resolvers())
+        with self._export_absent():
+            result = self._request()
+            self.assertEqual(result["status"], "not_available")
+            self.assertFalse(self._bookings())
+            self.assertNotIn("booking", self.Request._linda_source_resolvers())
 
     # ── one sender, typed branch, idempotent ─────────────────
 

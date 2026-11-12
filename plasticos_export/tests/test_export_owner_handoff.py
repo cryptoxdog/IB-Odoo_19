@@ -89,6 +89,9 @@ class TestExportOwnerHandoff(ExportFixtureMixin, PlasticosTestCase):
         """C05 E3: role, record access and company are enforced before Linda returns applied."""
         booking, revision = self._booking_with_supplier()
         Request = self.env[REQUEST]
+        # The real Export resolver is what Linda reaches for the booking source kind.
+        self.assertEqual(Request._linda_source_resolvers()["booking"].__name__, "_linda_resolve_export_booking")
+        self.assertEqual(Request._linda_source_models()[BOOKING], "booking")
         args = (
             booking.id,
             revision.id,
