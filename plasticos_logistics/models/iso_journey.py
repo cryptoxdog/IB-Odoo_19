@@ -99,18 +99,21 @@ def _check_company_allowed(env, company):
         raise AccessError(f"You cannot record container journeys for company {company.display_name}.")
 
 
+_LOCK_QUERIES = {
+    "plasticos_iso_journey": "SELECT id FROM plasticos_iso_journey WHERE id IN %s ORDER BY id FOR UPDATE",
+    "plasticos_load": "SELECT id FROM plasticos_load WHERE id IN %s ORDER BY id FOR UPDATE",
+    "stock_move_line": "SELECT id FROM stock_move_line WHERE id IN %s ORDER BY id FOR UPDATE",
+}
+
+
 def _lock(env, table, ids):
     row_ids = tuple(sorted({row_id for row_id in ids if row_id}))
     if not row_ids:
         return
-    if table == "plasticos_iso_journey":
-        query = "SELECT id FROM plasticos_iso_journey WHERE id IN %s ORDER BY id FOR UPDATE"
-    elif table == "plasticos_load":
-        query = "SELECT id FROM plasticos_load WHERE id IN %s ORDER BY id FOR UPDATE"
-    elif table == "stock_move_line":
-        query = "SELECT id FROM stock_move_line WHERE id IN %s ORDER BY id FOR UPDATE"
-    else:
+    query = _LOCK_QUERIES.get(table)
+    if not query:
         raise ValidationError("Cannot lock an unexpected table for a container journey.")
+    # justification: ordered row locks (C02 lock order); the ORM has no SELECT FOR UPDATE.
     env.cr.execute(query, [row_ids])
 
 
@@ -300,7 +303,7 @@ class PlasticosIsoJourney(models.Model):
                 "identity_evidence_attachment_id": attachment.id or False,
             }
         )
-        # Serialize two registrations of the same cycle before reading.
+        # advisory lock: serialize two registrations of the same cycle before reading.
         self.env.cr.execute(
             "SELECT pg_advisory_xact_lock(hashtext(%s))",
             [f"plasticos_logistics.iso_journey:{company.id}:{cycle}"],
