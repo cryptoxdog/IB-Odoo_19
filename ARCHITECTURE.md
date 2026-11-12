@@ -859,3 +859,17 @@ module/
 **Last Updated**: 2026-08-07
 **Verified Against**: cryptoxdog/IB-Odoo_19 @ Staging branch
 **Doc convergence:** ADR-019 — Gate consumer narrative aligned with ADR-009–018
+
+---
+
+## Export physical evidence and owner contracts (ADR-130, 2026-11-11)
+
+[docs/adr/ADR-130-export-physical-evidence-and-owner-contracts.md](docs/adr/ADR-130-export-physical-evidence-and-owner-contracts.md) records the ownership the PlasticOS Export campaign relies on. Realized in `plasticos_logistics` 19.0.1.14.20 and `plasticos_security_base` 19.0.1.2.25:
+
+| Owner | Records |
+|---|---|
+| `plasticos_logistics` | `plasticos.load.company_id` (source company, not related to the sale order), `plasticos.load.transaction_id` (one parent per load; a transaction owns many loads), J1 `plasticos.iso.journey`, J2 `plasticos.iso.journey.source`, the physical-release guard, actual pickup/delivery clocks, the manual freight context |
+| `plasticos_security_base` | Global company rules for loads (no company-null escape) and the Load dashboard; J1/J2 grants for Logistics and Operations Manager |
+| `plasticos_export` (planned, S5) | Bookings, slots and cargo allocation (E1-E4); specializes the Logistics guard and Linda by `_inherit` |
+
+Dependency direction: Export → Logistics / Documents / Security Base. No upstream module depends on Export, and Logistics depends on none of Documents, Native Documents, Security Base or Export.

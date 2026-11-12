@@ -32,6 +32,7 @@ Former copies under `reports/adr/` were consolidated here (2026-06-04). The root
 | [ADR-021](ADR-021-erp-sql-crm-api-import.md) | ERP imports from SQL; CRM imports from the API; CSV is legacy | Accepted |
 | [ADR-022](ADR-022-erp-historical-closure-and-accounting-opening-balances.md) | Historical trade closure and separate QB/ERP opening residuals | Proposed / operator decision |
 | [ADR-129](ADR-129-rate-memory-reconciliation-ownership.md) | Rate-memory reconciliation ownership follows the historical evidence | Accepted |
+| [ADR-130](ADR-130-export-physical-evidence-and-owner-contracts.md) | Export physical evidence and owner contracts (load company, J1/J2, release guard, actual clocks) | Accepted for S2 Logistics; Export parts planned |
 | [ADR-003 (single)](ADR-003-single-external-intelligence-authority.md) | Single external intelligence authority (Gate → CEG/EIE) | Accepted |
 
 ## Namespaced ADR packs
