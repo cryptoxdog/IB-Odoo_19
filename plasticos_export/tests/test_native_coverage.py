@@ -28,12 +28,22 @@ class TestNativeCoverage(NativeExportFixtureMixin, PlasticosTestCase):
         super().setUpClass()
         cls._setup_native_fixture()
 
+    # Named allow-list (plasticos_export/business_rules/SUPERSESSION.md, coordinator ruling 2026-11-12,
+    # C13 OP12-E02a): the cargo link's planned quantity converted to lb for planning totals. Exactly these
+    # two fields on exactly this model; every other Export model and field stays covered.
+    PLANNED_WEIGHT_ALLOWED = frozenset(
+        {
+            ("plasticos.export.booking.cargo.link", "planned_weight_lb"),
+            ("plasticos.export.booking.cargo.link", "planned_weight_basis"),
+        }
+    )
+
     def _export_field_names(self):
         return {
             name
             for model in EXPORT_MODELS
             for name, field in self.env[model]._fields.items()
-            if field.store and not field.related
+            if field.store and not field.related and (model, name) not in self.PLANNED_WEIGHT_ALLOWED
         }
 
     def test_single_fact_owner_export_stores_no_second_fact(self):

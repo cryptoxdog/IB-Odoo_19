@@ -74,12 +74,14 @@ _CORRECTION_REFS = ("replaces_link_id", "correction_reason", "replaced_booking_r
 
 # Planned weight normalization (C13 OP12-E02a): a pound total never adds a unit that is not a weight.
 UOM_LB = "uom.product_uom_lb"
+# The only inputs of the planned weight: the link's own planned quantity and unit (SUPERSESSION 2026-11-12).
+PLANNED_WEIGHT_SOURCE_FIELDS = ("planned_quantity", "planned_quantity_known", "uom_id")
 WEIGHT_BASIS_WEIGHT = "weight"
 WEIGHT_BASIS_NOT_WEIGHT = "not_weight"
 WEIGHT_BASIS_UNKNOWN = "unknown"
 PLANNED_WEIGHT_BASES = [
     (WEIGHT_BASIS_WEIGHT, "Converted to lb"),
-    (WEIGHT_BASIS_NOT_WEIGHT, "Excluded: not a weight unit"),
+    (WEIGHT_BASIS_NOT_WEIGHT, "Not a weight unit"),
     (WEIGHT_BASIS_UNKNOWN, "No planned quantity"),
 ]
 
@@ -574,16 +576,16 @@ class PlasticosExportBookingCargoLink(models.Model):
         compute="_compute_planned_weight_lb",
         store=True,
         string="Planned Weight (lb)",
-        help="The planned quantity converted to pounds through the native unit of measure. A planned "
-        "quantity in a unit that is not a weight is excluded (0) and flagged by its weight basis.",
+        help="Planned quantity converted to lb for planning totals; not a weighed, VGM or invoice weight. "
+        "A unit that is not a weight leaves it empty and sets the weight basis to not a weight unit.",
     )
     planned_weight_basis = fields.Selection(
         PLANNED_WEIGHT_BASES,
         compute="_compute_planned_weight_lb",
         store=True,
         string="Weight Basis",
-        help="Whether the planned quantity counts in the pound total: a weight unit converts; any other "
-        "unit is excluded and shown here instead of being added.",
+        help="Whether the planned quantity counts in the planning total in lb: a weight unit converts; "
+        "any other unit is not a weight unit and is shown here instead of being added.",
     )
     replaces_link_id = fields.Many2one(EXPORT_CARGO_LINK, string="Replaces", ondelete="restrict")
     purchase_order_id = fields.Many2one(related="purchase_line_id.order_id", string="Supplier PO", store=True)
@@ -610,18 +612,18 @@ class PlasticosExportBookingCargoLink(models.Model):
         help="Read live from the native PO line. Export copies no PO fact (BRS-EXP-11-R007).",
     )
 
-    @api.depends("planned_quantity", "planned_quantity_known", "uom_id")
+    @api.depends(*PLANNED_WEIGHT_SOURCE_FIELDS)
     def _compute_planned_weight_lb(self):
         pound = self.env.ref(UOM_LB, raise_if_not_found=False)
         for link in self:
             unit = link.uom_id
             if not link.planned_quantity_known or not unit:
-                link.planned_weight_lb, link.planned_weight_basis = 0.0, WEIGHT_BASIS_UNKNOWN
+                link.planned_weight_lb, link.planned_weight_basis = False, WEIGHT_BASIS_UNKNOWN
             elif pound and unit._has_common_reference(pound):
                 link.planned_weight_lb = unit._compute_quantity(link.planned_quantity, pound, round=False)
                 link.planned_weight_basis = WEIGHT_BASIS_WEIGHT
             else:
-                link.planned_weight_lb, link.planned_weight_basis = 0.0, WEIGHT_BASIS_NOT_WEIGHT
+                link.planned_weight_lb, link.planned_weight_basis = False, WEIGHT_BASIS_NOT_WEIGHT
 
     _company_allocation_unique = models.UniqueIndex(
         "(company_id, allocation_key)", "This company already has a cargo commitment under that allocation key."

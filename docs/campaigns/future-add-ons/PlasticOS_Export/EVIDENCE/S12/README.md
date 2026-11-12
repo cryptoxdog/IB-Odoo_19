@@ -29,7 +29,11 @@ Approved by the operator on 2026-11-12 (decision B).
 
 - **(a) Units.** `planned_quantity` has no aggregator, so no list group or pivot ever adds two units together.
   - The cargo pivot measures `planned_weight_lb`. It is converted through the native unit of measure (`_has_common_reference` with lb, then `_compute_quantity`). It is witnessed for lb, kg, Ton and a 2,000 lb short ton.
-  - A quantity in a unit that is not a weight is excluded and shows its own `planned_weight_basis` column ("Excluded: not a weight unit").
+  - A quantity in a unit that is not a weight leaves the field empty and sets `planned_weight_basis` to "Not a weight unit".
+  - The unit stays the first pivot column, which is the D5 witness of `BRS-EXP-14-R008`. The weight basis and the lb measure follow it.
+  - Coordinator ruling 2026-11-12, Option A (`plasticos_export/business_rules/SUPERSESSION.md`). The two fields are Export's own planned quantity converted to lb for planning totals, not a weighed, VGM, stock or invoice weight.
+    - Their `depends` name only the link's `planned_quantity`, `planned_quantity_known` and `uom_id`, and a witness introspects them.
+    - The negative witnesses of `BRS-EXP-01-R002` and `BRS-EXP-07-R006` allow exactly these two fields on exactly the cargo link model. Every other model and field stays covered.
 - **(b) Slot order.** A stored `slot_number` (the number at the end of the slot key) orders slots numerically. This applies to `_order` and to every slot sort in the models and tests (the `slot_order` helper), so `40HC-10` follows `40HC-9`. A capacity reduction therefore retires the highest-numbered free slots.
 - **(c) Default unit.** The Commit Cargo screen defaults the planned unit to lb. The command still refuses a known quantity without a unit, and the refusal witness clears the unit explicitly.
 - **(d) Supplier count.** `supplier_count` is stored and computed by the superuser, so a Sales Rep reads the same count as Logistics. This is consistent with the 2026-11-12 see-all rule for allocations.

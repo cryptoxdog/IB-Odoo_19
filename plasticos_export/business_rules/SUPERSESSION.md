@@ -63,3 +63,12 @@ Recorded from the operator chat instruction of 2026-11-12: "sales reps must see 
 | `BRS-EXP-14-R022` | 2026-11-12 | Report and record navigation, the container manifest and exports render allocation rows for a same-company Sales Rep from the link's own name fields, never by reading the source records in that reader's access. | operator chat 2026-11-12 |
 
 This supersedes the PR #479 review scoping that limited a Sales Rep to links on sale orders they own. Slots, bookings and links still change only through the Logistics-owned Export commands.
+
+## Coordinator ruling 2026-11-12 (C13 OP12-E02a): planned weight for planning totals
+
+Recorded from the operator's display-alignment decision of 2026-11-12 (B) and the coordinator ruling on C13, Option A. It clarifies two negative witnesses and replaces no rule text.
+
+| Rule | Version | Clarification | Source note |
+| --- | --- | --- | --- |
+| `BRS-EXP-14-R008` | 2026-11-12 | The cargo allocation pivot never adds planned quantities across units. `plasticos.export.booking.cargo.link` stores `planned_weight_lb`, the link's own planned quantity converted to lb through the native unit of measure, and `planned_weight_basis`, which says whether that conversion applied. Both are computed only from the link's `planned_quantity`, `planned_quantity_known` and `uom_id`. They are planning totals, not a weighed, VGM, stock or invoice weight. A unit that is not a weight adds nothing and is flagged "not a weight unit". | coordinator C13 ruling 2026-11-12 |
+| `BRS-EXP-01-R002`, `BRS-EXP-07-R006` | 2026-11-12 | The negative witnesses that refuse any stored Export weight field allow exactly these two fields on exactly the cargo link model. Every other Export model and field stays covered, and Export still stores no second copy of a weighed, VGM, tare, stock or invoice fact. | coordinator C13 ruling 2026-11-12 |

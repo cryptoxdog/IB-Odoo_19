@@ -5,6 +5,10 @@ OP12-E01,BRS-EXP-08-R007,positive,plasticos_export/tests/test_journey_facts_and_
 OP12-E02a,operator 2026-11-12 (B) display alignment,positive,plasticos_export/tests/test_display_alignment.py::TestDisplayAlignment::test_e02a_planned_quantity_has_no_cross_unit_aggregate
 OP12-E02a,operator 2026-11-12 (B) display alignment,positive,plasticos_export/tests/test_display_alignment.py::TestDisplayAlignment::test_e02a_lb_weight_converts_kg_lb_ton_and_short_ton
 OP12-E02a,operator 2026-11-12 (B) display alignment,negative,plasticos_export/tests/test_display_alignment.py::TestDisplayAlignment::test_e02a_negative_non_weight_unit_is_excluded_and_flagged
+OP12-E02a,BRS-EXP-14-R008 (SUPERSESSION 2026-11-12),negative,plasticos_export/tests/test_display_alignment.py::TestDisplayAlignment::test_e02a_planned_weight_reads_only_the_link_planned_quantity
+OP12-E02a,BRS-EXP-01-R002,negative,plasticos_export/tests/test_native_coverage.py::TestNativeCoverage::test_single_fact_owner_export_stores_no_second_fact
+OP12-E02a,BRS-EXP-07-R006,negative,plasticos_export/tests/test_native_coverage.py::TestNativeCoverage::test_slot_carries_no_payload_or_vgm
+OP12-E02a,BRS-EXP-14-R008,negative,plasticos_export/tests/test_views_and_reports.py::TestViewsAndReports::test_planned_quantities_are_never_summed_across_units
 OP12-E02b,operator 2026-11-12 (B) display alignment,positive,plasticos_export/tests/test_display_alignment.py::TestDisplayAlignment::test_e02b_twelve_slots_order_one_to_twelve
 OP12-E02b,operator 2026-11-12 (B) display alignment,negative,plasticos_export/tests/test_display_alignment.py::TestDisplayAlignment::test_e02b_negative_string_order_would_misplace_slot_ten
 OP12-E02b,operator 2026-11-12 (B) display alignment,positive,plasticos_export/tests/test_display_alignment.py::TestDisplayAlignment::test_e02b_reduction_retires_the_highest_numbered_free_slot

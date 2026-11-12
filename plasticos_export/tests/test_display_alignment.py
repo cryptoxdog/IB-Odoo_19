@@ -117,7 +117,8 @@ class TestDisplayAlignment(ExportFixtureMixin, PlasticosTestCase):
         weighed = self._commit(first, revision, 40000, self.lb)
         counted = self._commit(second, revision, 12, self.unit)
         unknown = self._commit(third, revision)
-        self.assertEqual((counted.planned_weight_lb, counted.planned_weight_basis), (0.0, WEIGHT_BASIS_NOT_WEIGHT))
+        self.assertFalse(counted.planned_weight_lb, "a unit that is not a weight leaves the lb field empty")
+        self.assertEqual(counted.planned_weight_basis, WEIGHT_BASIS_NOT_WEIGHT)
         self.assertEqual((unknown.planned_weight_lb, unknown.planned_weight_basis), (0.0, WEIGHT_BASIS_UNKNOWN))
         rows = self.env[LINK]._read_group(
             [("booking_id", "=", booking.id)], ["planned_weight_basis"], ["planned_weight_lb:sum"]
@@ -126,6 +127,24 @@ class TestDisplayAlignment(ExportFixtureMixin, PlasticosTestCase):
         self.assertEqual(by_basis[WEIGHT_BASIS_WEIGHT], 40000.0)
         self.assertEqual(by_basis[WEIGHT_BASIS_NOT_WEIGHT], 0.0, "Units are visible in their own column, not summed")
         self.assertEqual(weighed.planned_weight_lb, 40000.0)
+
+    def test_e02a_planned_weight_reads_only_the_link_planned_quantity(self):
+        """SUPERSESSION 2026-11-12: the planned weight depends on the link's own planned quantity and unit only."""
+        allowed = {"planned_quantity", "planned_quantity_known", "uom_id"}
+        Link = self.env[LINK]
+        for name in ("planned_weight_lb", "planned_weight_basis"):
+            field = Link._fields[name]
+            self.assertTrue(field.store and field.compute, name)
+            self.assertEqual(set(field.depends), allowed, f"{name} may read no journey, load, move or invoice")
+            self.assertEqual({path.split(".")[0] for path in field.depends}, allowed)
+        self.assertIn("not a weighed, VGM or invoice weight", Link._fields["planned_weight_lb"].help)
+        from .test_native_coverage import TestNativeCoverage  # noqa: PLC0415 - the witness's own allow-list
+
+        self.assertEqual(
+            TestNativeCoverage.PLANNED_WEIGHT_ALLOWED,
+            {(LINK, "planned_weight_lb"), (LINK, "planned_weight_basis")},
+            "the weight-word exemption names exactly two fields on exactly the cargo link",
+        )
 
     # ── (b) numeric slot order ───────────────────────────────
 
