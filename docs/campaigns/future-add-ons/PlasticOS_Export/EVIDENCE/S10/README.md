@@ -59,6 +59,19 @@ What remains NOT_RUN:
 - **AC-EXP-06-004** and **AC-EXP-06-005.** These are governance and process rules, proven by PR and evidence review.
 - **AC-EXP-01-005.** This is not a process rule. There is no Community Edition environment, and the runtime is the pinned Enterprise fixture only. That S6 blocker is unchanged and is reported here as it stands.
 
+## Runtime
+
+All runs use the pinned Enterprise fixture `odoo_test_tpl_ee_c9e8a81f52f23680`, cloned to `odoo_test_wd2a49b169c`. Receipts are written by `scripts/test_env.sh` to `.l9/runtime/test-env/` (gitignored).
+
+| Run | Head | Receipt | Result |
+| --- | --- | --- | --- |
+| Contract runtime, `make runtime-test m=plasticos_export,plasticos_logistics,plasticos_documents,plasticos_transaction` | `f1e3255e44260d6b83e099cc9b483bfdec4f1fa1` | `dirty: false`; addon source digest `f238ea51240b6b41e34d77a64ccc8207fbfcca289b0cdf9c475cb8cf03d2a96f`; receipt sha256 `f8e5a6ba…` | 612 run, 0 failed, 0 errors |
+| First publication of PR #494, `PR_SMOKE=1 PR_REMEDIATE=0 make pr` | `24dfde64e54d66d969cea0a0ff477241275f1a3a` | install-smoke PASSED; whole roster (`make test-odoo`) | 1668 run, 0 failed, 0 errors |
+
+The review fixes after the first publication (B1, I1, I2, I3, N1 to N6) are covered by the contract runtime row. The republication's own `make pr` gate reruns install-smoke and the roster on the final head. The commit that adds this section changes documentation only, so the addon source digest above still holds.
+
+On `f1e3255e`: `pytest tests/` gives 3076 passed, 49 skipped; `make audit-baseline` reports no new finding; pre-commit passes on every file changed against the S9 head.
+
 ## Who sees container facts
 
 Container weights and identities stay with Logistics. A user who cannot read the Logistics journey facts (only Logistics, which Operations Manager implies, and System can after the S9 review) sees "Restricted" for the container tare, the VGM weight and the shipment-history container facts, and gets no journey link. Export adds no sudo to show them. The operator's see-all rule covers allocations, so a Sales Rep still sees every cargo allocation on every booking through the `*_ref` names and can plan without overbooking (coordinator ruling 2026-11-12).
