@@ -49,20 +49,30 @@ class TestDisplayAlignment(ExportFixtureMixin, PlasticosTestCase):
             company_ids=[(6, 0, [cls.company.id])],
         )
 
-    def _po_line(self, supplier=None, quantity=200000):
+    def _po_line(self, supplier=None, quantity=200000, unit=None):
         order = self.env["purchase.order"].create(
             {
                 "partner_id": (supplier or self.suppliers[0]).id,
                 "order_line": [
-                    (0, 0, {"product_id": self.product.id, "product_qty": quantity, "product_uom_id": self.lb.id})
+                    (
+                        0,
+                        0,
+                        {
+                            "product_id": self.product.id,
+                            "product_qty": quantity,
+                            "product_uom_id": (unit or self.lb).id,
+                        },
+                    )
                 ],
             }
         )
         return order.order_line
 
     def _commit(self, slot, revision, quantity=None, unit=None, supplier=None):
+        # A PO line kept in Units carries a Units quantity; a weight unit plans on a pound line (S8 guard).
+        line_unit = unit if unit == self.unit else None
         outcome = slot.with_user(self.actor).action_commit_cargo(
-            {"purchase_line_id": self._po_line(supplier).id},
+            {"purchase_line_id": self._po_line(supplier, unit=line_unit).id},
             quantity,
             unit.id if unit else None,
             revision.id,
@@ -88,7 +98,8 @@ class TestDisplayAlignment(ExportFixtureMixin, PlasticosTestCase):
         """OP12-E02a positive: every weight unit converts to lb and the pound total is their true sum."""
         booking, revision = self.accepted_booking(confirmed=4)
         slots = booking.slot_ids.sorted(slot_order)
-        cases = [(self.lb, 40000, 40000.0), (self.kg, 1000, 2204.62262), (self.ton, 10, 22046.2262)]
+        # Odoo 19 uom data: 1 lb = 16 oz x 28.3495 g = 453.592 g, so 1 kg = 2.2046244 lb.
+        cases = [(self.lb, 40000, 40000.0), (self.kg, 1000, 2204.62442), (self.ton, 10, 22046.2442)]
         cases.append((self.short_ton, 20, 40000.0))
         links = self.env[LINK]
         for slot, (unit, quantity, pounds) in zip(slots, cases):
