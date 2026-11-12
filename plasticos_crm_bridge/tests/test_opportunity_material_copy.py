@@ -195,5 +195,8 @@ class TestOpportunityMaterialCopy(PlasticosTestCase):
             partner=self.supplier,
             material_profile=self.profile,
         )
-        self.assertEqual(lot.snapshot["quantity_per_load_lbs"], 40000)
+        # The lot freezes the opportunity's own sheet, not the profile it was copied from.
+        self.assertEqual(lot.snapshot["quantity_per_load_lbs"], 1000)
+        self.assertEqual(lot.snapshot["opportunity_material_id"], material.id)
+        self.assertEqual(self.profile.quantity_per_load_lbs, 40000)
         self.assertNotIn("buy_price_per_lb", lot.snapshot)

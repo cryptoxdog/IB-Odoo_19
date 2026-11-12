@@ -1,10 +1,14 @@
 """Immutable approved lot behind the one native Opportunity matching command.
 
 ``plasticos.opportunity.approval`` freezes the Partner, Material Profile and
-optional Facility a broker approved for one ``crm.lead`` opportunity. The Gate
-request is built from the frozen ``snapshot``; a later Material Profile edit
-never rewrites an approved lot, a retry reuses the lot, and a new command mints
-a new lot. Rows are server-minted (``mint``) and immutable afterwards.
+optional Facility a broker approved for one ``crm.lead`` opportunity. The
+material values in the frozen ``snapshot`` come from the opportunity's own
+material sheet (``plasticos.opportunity.material``), the same row manual offers
+and the release sell; the Material Profile is used only when the opportunity
+has no sheet. The Gate request is built from the frozen ``snapshot``; a later
+sheet or profile edit never rewrites an approved lot, a retry reuses the lot,
+and a new command mints a new lot from the sheet as it stands then. Rows are
+server-minted (``mint``) and immutable afterwards.
 """
 
 from __future__ import annotations
@@ -116,7 +120,10 @@ class PlasticosOpportunityApproval(models.Model):
     )
     snapshot = fields.Json(
         readonly=True,
-        help="Frozen material, partner and optional facility values the Gate request is built from.",
+        help=(
+            "Frozen material, partner and optional facility values the Gate request is built from. "
+            "Material values come from the opportunity's material sheet, or from the profile when it has none."
+        ),
     )
     snapshot_digest = fields.Char(
         readonly=True,
@@ -179,24 +186,34 @@ class PlasticosOpportunityApproval(models.Model):
     # ── Snapshot ─────────────────────────────────────────────
 
     @api.model
-    def _material_snapshot(self, partner, material_profile, facility_profile=None, source_intake=None):
-        """Freeze the lot. Absent optional evidence is omitted, never fabricated."""
+    def _material_snapshot(self, partner, material_profile, facility_profile=None, source_intake=None, material=None):
+        """Freeze the lot. Absent optional evidence is omitted, never fabricated.
+
+        ``material`` is the opportunity's material sheet. When given, every
+        material value is read from it and its id is recorded as lineage;
+        ``material_profile`` then only names the approved profile. Without a
+        sheet the profile supplies the values. The sheet's supplier price is
+        never frozen: a Gate match carries no price authority.
+        """
+        source = material or material_profile
         snapshot = {
             "supplier_partner_id": partner.id,
             "material_profile_id": material_profile.id,
         }
+        if material:
+            snapshot["opportunity_material_id"] = material.id
         for field_name, key in SNAPSHOT_RELATION_FIELDS:
-            related = material_profile[field_name]
+            related = source[field_name]
             if related:
                 snapshot[key] = related.code or related.name
-        colors = material_profile.color_ids
+        colors = source.color_ids
         named = [color.code or color.name for color in colors]
         if len(named) == 1:
             snapshot["color"] = named[0]
         elif named:
             snapshot["color"] = named
         for field_name, key in SNAPSHOT_SCALAR_FIELDS:
-            value = material_profile[field_name]
+            value = source[field_name]
             if value not in (None, False, "", 0, 0.0):
                 snapshot[key] = value
         if facility_profile:
@@ -224,7 +241,9 @@ class PlasticosOpportunityApproval(models.Model):
         """Server-mint one immutable lot for ``opportunity``.
 
         Every call is a new lot: two commands on one partner and profile are two
-        independent snapshots and are never collapsed.
+        independent snapshots and are never collapsed. The material values are
+        the opportunity's material sheet as it stands now; the profile supplies
+        them only when the opportunity has no sheet.
         """
         from odoo.addons.plasticos_matching.canonical_digest import _canonical_digest  # noqa: PLC0415
 
@@ -233,7 +252,10 @@ class PlasticosOpportunityApproval(models.Model):
         material_profile.ensure_one()
         if source not in dict(APPROVAL_SOURCES):
             raise ValidationError(_("Unknown approval source %s.") % source)
-        snapshot = self._material_snapshot(partner, material_profile, facility_profile, source_intake)
+        material = opportunity.opportunity_material_ids[:1] or None
+        snapshot = self._material_snapshot(
+            partner, material_profile, facility_profile, source_intake, material=material
+        )
         vals = {
             "opportunity_id": opportunity.id,
             "partner_id": partner.id,
