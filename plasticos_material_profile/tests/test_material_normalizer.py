@@ -224,8 +224,18 @@ class TestMaterialNormalizer(TransactionCase):
             normalize_material(self.env, "PET Bottles").unresolved,
             ("unresolved material",),
         )
+        # S6 (C06-SCOPE-3 c): "Bottles (HD/PET)" was held when this test was written (fb98e4c1,
+        # 2026-10-30). The 2026-11-04 resolution ledger approved it as NEW_MASTER_1_2_COMMINGLED
+        # and #383 (09fbe82e, 2026-11-05) wired that alias, so it resolves to the approved master.
+        hd_pet = normalize_crm_material(self.env, "Bottles (HD/PET)")
+        self.assertFalse(hd_pet.unresolved)
         self.assertEqual(
-            normalize_crm_material(self.env, "Bottles (HD/PET)").unresolved,
+            (hd_pet.polymer.code, hd_pet.material_grade.code, hd_pet.source_type.code),
+            ("1_2_COMMINGLED_BOTTLES", "BOTTLES", "POST_CONSUMER"),
+        )
+        # A phrase the ledger did not approve (it names several resins) stays unresolved.
+        self.assertEqual(
+            normalize_crm_material(self.env, "PC-ABS-LDPE Stretch").unresolved,
             ("unresolved material",),
         )
 
