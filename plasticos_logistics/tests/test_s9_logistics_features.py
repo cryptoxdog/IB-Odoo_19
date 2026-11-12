@@ -16,9 +16,12 @@ order. The other four loads stay open and terminal gate-in stays unverified.
 from datetime import timedelta
 from unittest.mock import patch
 
+from psycopg2 import errors as pg_errors
+
 from odoo import fields
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests.common import TransactionCase, tagged
+from odoo.tools import mute_logger
 
 LOAD = "plasticos.load"
 JOURNEY = "plasticos.iso.journey"
@@ -139,7 +142,11 @@ class TestRoadEquipment(_S9Case):
         """Other types are added as data; a duplicate catalog entry is refused."""
         reefer = self.env[EQUIPMENT].create({"name": "53 ft Reefer", "code": "reefer_53", "nominal_length_ft": 53})
         self.assertEqual(self._load(road_equipment_type_id=reefer.id).road_equipment_type_id, reefer)
-        with self.assertRaises(Exception), self.env.cr.savepoint():
+        with (
+            mute_logger("odoo.sql_db"),
+            self.assertRaises(pg_errors.UniqueViolation),
+            self.env.cr.savepoint(),
+        ):
             self.env[EQUIPMENT].create({"name": "Another flatbed", "code": "flatbed"})
         with self.assertRaises(ValidationError), self.env.cr.savepoint():
             self.env[EQUIPMENT].create({"name": "Bad", "code": "Step Deck"})
@@ -150,63 +157,93 @@ class TestJourneyMilestonesAndResale(_S9Case):
     """BRS-EXP-08-R007 / AC-EXP-08-007 (Logistics facts)."""
 
     def _afloat_journey(self, cycle="S9-AFLOAT"):
+        """An unsold container afloat: every fact kind recorded from the journey's own originals."""
         journey = self._journey(cycle)
         load = self._load()
         bound = self.env[SOURCE].action_bind_journey_source(
             journey.id, "load", load.id, self.supplier.id, None, f"op-bind-{cycle}", "supplier loading sheet"
         )
         self.assertEqual(bound["status"], "applied")
-        gate_doc = self._attach(journey, "eir-gate-in.pdf")
-        sail_doc = self._attach(journey, "carrier-departure.pdf")
-        filing_doc = self._attach(journey, "filing-authority.pdf")
         commands = self.env[FACT]
-        self.assertEqual(
-            commands.action_record_gate_in(journey.id, self._ago(72), self.terminal.id, gate_doc.id, "g1")["status"],
-            "applied",
-        )
-        self.assertEqual(
-            commands.action_record_departure(journey.id, self._ago(24), "MSC Aurora", "AU545W", sail_doc.id, "d1")[
-                "status"
-            ],
-            "applied",
-        )
-        self.assertEqual(
+        ticket = self._attach(journey, "scale-ticket.pdf")
+        lb = self.env.ref("uom.product_uom_lb")
+        results = [
+            commands.action_record_gate_in(
+                journey.id, self._ago(72), self.terminal.id, self._attach(journey, "eir.pdf").id, "g1"
+            ),
+            commands.action_record_departure(
+                journey.id, self._ago(24), "MSC Aurora", "AU545W", self._attach(journey, "sailed.pdf").id, "d1"
+            ),
             commands.action_record_regulatory_parties(
-                journey.id, self.filer.id, self.consignee.id, filing_doc.id, "r1"
-            )["status"],
-            "applied",
-        )
+                journey.id, self.filer.id, self.consignee.id, self._attach(journey, "filing.pdf").id, "r1"
+            ),
+            commands.action_record_container_tare(journey.id, 8775, lb.id, "scale_ticket", ticket.id, "T-1", "t1"),
+            commands.action_record_verified_gross_mass(
+                journey.id, 48975, lb.id, "scale_ticket", ticket.id, "T-1", "v1"
+            ),
+        ]
+        self.assertEqual([result["status"] for result in results], ["applied"] * 5)
         return journey, load
 
-    def test_afloat_container_is_sold_without_rewriting_its_facts(self):
-        """AC-EXP-08-007 positive: an unsold container afloat gets a new buyer SO; gate-in and departure stay."""
+    def _raw_fact_rows(self, journey):
+        """Every stored column of the journey's fact rows, and their physical row ids, straight from SQL."""
+        self.env.flush_all()
+        self.env.cr.execute(
+            "SELECT ctid::text, row_to_json(f)::text FROM plasticos_iso_journey_fact f "
+            "WHERE journey_id = %s ORDER BY id",
+            [journey.id],
+        )
+        return self.env.cr.fetchall()
+
+    def test_afloat_resale_cannot_rewrite_any_journey_fact(self):
+        """AC-EXP-08-007 (Logistics side): after a real buyer change, no path rewrites a recorded fact.
+
+        The container is afloat and unsold. A buyer SO is then put on its load. Every fact kind
+        is attacked through every path (ORM write, unlink, re-record with different values);
+        each attempt is refused, and every fact row is byte-identical, at the same physical
+        row (ctid), before and after. The Export cargo-link variant is C11 08-R007.
+        """
         journey, load = self._afloat_journey()
-        before = self._journey_facts(journey)
-        self.assertEqual([fact["fact_kind"] for fact in before], ["departure", "gate_in", "regulatory_parties"])
-        self.assertEqual(self._fact(journey, "departure").vessel, "MSC Aurora")
-        self.assertEqual(self._fact(journey, "gate_in").recorded_by, self.env.user)
+        before = self._raw_fact_rows(journey)
+        self.assertEqual(len(before), 5)
+
         order = self.env["sale.order"].create({"partner_id": self.buyer.id, "company_id": self.company.id})
         load.sale_order_id = order
-        self.assertEqual(load.sale_order_id, order)
-        self.assertEqual(self._journey_facts(journey), before)
-        regulatory = self._fact(journey, "regulatory_parties")
-        self.assertEqual((regulatory.customs_filer_id, regulatory.delivery_partner_id), (self.filer, self.consignee))
+        self.assertEqual(load.sale_order_id, order, "the buyer change on the load really happened")
 
-    def test_buyer_change_cannot_silently_change_filer_delivery_partner_or_departure(self):
-        """AC-EXP-08-007 negative: no write, delete or replay rewrites the filer, delivery partner or sailing."""
-        journey, _load = self._afloat_journey("S9-NEG")
-        before = self._journey_facts(journey)
-        regulatory = self._fact(journey, "regulatory_parties")
-        departure = self._fact(journey, "departure")
-        for record, values in (
-            (regulatory, {"customs_filer_id": self.buyer.id}),
-            (regulatory, {"delivery_partner_id": self.buyer.id}),
-            (departure, {"occurred_at": self._ago(1)}),
-        ):
-            with self.subTest(values=values), self.assertRaises(UserError), self.env.cr.savepoint():
-                record.write(values)
-        with self.assertRaises(UserError), self.env.cr.savepoint():
-            departure.unlink()
+        lb = self.env.ref("uom.product_uom_lb")
+        doc = self._attach(journey, "buyer-instructions.pdf")
+        rewrites = {
+            "gate_in": {"occurred_at": self._ago(1), "facility_partner_id": self.buyer.id},
+            "departure": {"occurred_at": self._ago(1), "vessel": "Buyer Vessel"},
+            "regulatory_parties": {"customs_filer_id": self.buyer.id, "delivery_partner_id": self.buyer.id},
+            "container_tare": {"weight": 1.0},
+            "verified_gross_mass": {"weight": 1.0},
+        }
+        commands = self.env[FACT]
+        rerecord = {
+            "gate_in": lambda: commands.action_record_gate_in(journey.id, self._ago(70), self.buyer.id, doc.id, "g2"),
+            "departure": lambda: commands.action_record_departure(
+                journey.id, self._ago(2), "Buyer Vessel", "B1", doc.id, "d2"
+            ),
+            "regulatory_parties": lambda: commands.action_record_regulatory_parties(
+                journey.id, self.buyer.id, self.buyer.id, doc.id, "r2"
+            ),
+            "container_tare": lambda: commands.action_record_container_tare(
+                journey.id, 1, lb.id, "scale_ticket", doc.id, "B-1", "t2"
+            ),
+            "verified_gross_mass": lambda: commands.action_record_verified_gross_mass(
+                journey.id, 1, lb.id, "scale_ticket", doc.id, "B-1", "v2"
+            ),
+        }
+        for kind, values in rewrites.items():
+            fact = self._fact(journey, kind)
+            with self.subTest(kind=kind, path="write"), self.assertRaises(UserError), self.env.cr.savepoint():
+                fact.write(values)
+            with self.subTest(kind=kind, path="unlink"), self.assertRaises(UserError), self.env.cr.savepoint():
+                fact.unlink()
+            with self.subTest(kind=kind, path="re-record"):
+                self.assertEqual(rerecord[kind]()["status"], "blocked")
         with self.assertRaises(UserError), self.env.cr.savepoint():
             self.env[FACT].create(
                 {
@@ -214,21 +251,13 @@ class TestJourneyMilestonesAndResale(_S9Case):
                     "company_id": self.company.id,
                     "fact_kind": "gate_in",
                     "occurred_at": self._ago(1),
-                    "facility_partner_id": self.terminal.id,
-                    "evidence_attachment_id": departure.evidence_attachment_id.id,
+                    "facility_partner_id": self.buyer.id,
+                    "evidence_attachment_id": doc.id,
                     "recorded_at": fields.Datetime.now(),
                     "recorded_by": self.env.user.id,
                 }
             )
-        doc = self._attach(journey, "buyer-instructions.pdf")
-        commands = self.env[FACT]
-        refused = (
-            commands.action_record_regulatory_parties(journey.id, self.buyer.id, self.buyer.id, doc.id, "r2"),
-            commands.action_record_departure(journey.id, self._ago(2), "Other Vessel", "X1", doc.id, "d2"),
-            commands.action_record_gate_in(journey.id, self._ago(70), self.terminal.id, doc.id, "g2"),
-        )
-        self.assertEqual([result["status"] for result in refused], ["blocked"] * 3)
-        self.assertEqual(self._journey_facts(journey), before)
+        self.assertEqual(self._raw_fact_rows(journey), before)
 
     def test_same_facts_replay_is_idempotent(self):
         journey = self._journey("S9-REPLAY")
@@ -372,22 +401,113 @@ class TestShipmentEventProposals(_S9Case):
         self.assertFalse(self._fact(journey, "gate_in"))
         self.assertEqual(after["journey"], before["journey"])
 
-    def _linda_reply(self, order, binding="current", disposition="unresolved"):
-        message = order.message_post(body="Booking complete. Ticket 1728952.")
-        return (
-            self.env["plasticos.logistics.response"]
-            .sudo()  # sudo: Linda evidence is recorded only under sudo, as its inbound handler does
-            .create(
+    def _linda_reply(self, order, binding="current", disposition="unresolved", purpose="po_issue", load=None):
+        """A Linda reply answering a real request: a PO issue to the supplier, or a typed load request to its carrier."""
+        evidence = self.env["plasticos.logistics.request"].sudo()  # sudo: Linda records its requests only under sudo
+        self._linda_revision = getattr(self, "_linda_revision", 0) + 1
+        values = {
+            "company_id": self.company.id,
+            "purpose": purpose,
+            "revision": self._linda_revision,
+            "payload_fingerprint": f"s9-{self._linda_revision}",
+            "subject": "S9 test request",
+        }
+        if purpose in ("po_issue", "po_cancel"):
+            values.update({"partner_id": order.partner_id.id, "purchase_order_id": order.id})
+            thread = order
+        else:
+            values.update(
                 {
-                    "company_id": order.company_id.id,
-                    "mail_message_id": message.id,
-                    "purchase_order_id": order.id,
-                    "binding": binding,
-                    "interpretation": "ai_not_run" if disposition == "unresolved" else "not_interpreted",
-                    "disposition": disposition,
+                    "partner_id": load.carrier_id.id,
+                    "source_kind": "load",
+                    "source_model": "plasticos.load",
+                    "source_res_id": load.id,
+                    "source_revision_key": f"s9-rev-{self._linda_revision}",
                 }
             )
+            thread = load
+        request = evidence.create(values)
+        message = thread.message_post(body="Booking complete. Ticket 1728952.")
+        reply = {
+            "company_id": self.company.id,
+            "mail_message_id": message.id,
+            "request_id": request.id,
+            "binding": binding,
+            "interpretation": "ai_not_run" if disposition == "unresolved" else "not_interpreted",
+            "disposition": disposition,
+        }
+        if thread is order:
+            reply["purchase_order_id"] = order.id
+        else:
+            reply.update({"source_kind": "load", "source_res_id": load.id})
+        # sudo: Linda evidence is recorded only under sudo, as its inbound handler does
+        return self.env["plasticos.logistics.response"].sudo().create(reply)
+
+    def test_supplier_linda_reply_cannot_be_labelled_terminal_or_carrier(self):
+        """AC-EXP-09-007 / AC-EXP-11-010 negative (B3): a supplier's reply is supplier-reported, whatever the label.
+
+        A supplier "booking complete" reply cited on a gate-in proposal labelled terminal- or
+        carrier-issued is refused, and no gate-in or departure fact is written.
+        """
+        po, _tx, loads = self._five_container_order()
+        journey = self._journey("S9-B3")
+        bound = self.env[SOURCE].action_bind_journey_source(
+            journey.id, "load", loads[0].id, self.supplier.id, None, "op-b3-bind", "supplier loading sheet"
         )
+        self.assertEqual(bound["status"], "applied")
+        reply = self._linda_reply(po)
+        email = self._attach(journey, "booking complete.eml")
+        for kind, label, extra in (
+            ("gate_accepted", "terminal_issued", {"facility_partner_id": self.terminal.id}),
+            ("gate_accepted", "carrier_issued", {"facility_partner_id": self.terminal.id}),
+            ("sailed", "carrier_issued", {"vessel": "MSC Aurora"}),
+        ):
+            with self.subTest(kind=kind, label=label):
+                result = self._propose(
+                    {
+                        "event_kind": kind,
+                        "journey_id": journey.id,
+                        "occurred_at": self._ago(30),
+                        "evidence_attachment_id": email.id,
+                        "linda_response_id": reply.id,
+                        "asserted_by": label,
+                        **extra,
+                    },
+                    f"b3-{kind}-{label}",
+                )
+                self.assertEqual(result["status"], "blocked")
+        self.assertFalse(self.env[FACT].search([("journey_id", "=", journey.id)]))
+        # The same supplier reply honestly labelled supports only Load 1's loaded event.
+        load_doc = self._attach(loads[0], "booking complete.eml")
+        honest = self._propose(
+            {
+                "event_kind": "loaded",
+                "load_id": loads[0].id,
+                "occurred_at": self._ago(30),
+                "evidence_attachment_id": load_doc.id,
+                "linda_response_id": reply.id,
+                "asserted_by": "supplier_reported",
+            },
+            "b3-honest",
+        )
+        self.assertEqual(honest["status"], "applied")
+
+    def test_carrier_linda_reply_is_carrier_issued_only_from_the_load_carrier(self):
+        """A reply to a typed load request sent to the load's carrier is carrier-issued, never terminal-issued."""
+        load = self._load()
+        reply = self._linda_reply(None, purpose="load_ack_notice", load=load)
+        doc = self._attach(load, "carrier-ack.eml")
+        values = {
+            "event_kind": "loaded",
+            "load_id": load.id,
+            "occurred_at": self._ago(3),
+            "evidence_attachment_id": doc.id,
+            "linda_response_id": reply.id,
+        }
+        self.assertEqual(
+            self._propose({**values, "asserted_by": "supplier_reported"}, "c-supplier")["status"], "blocked"
+        )
+        self.assertEqual(self._propose({**values, "asserted_by": "carrier_issued"}, "c-carrier")["status"], "applied")
 
     def test_linda_reply_must_be_current_and_about_this_shipment(self):
         """AC-EXP-09-007: a cited Linda reply must answer the current request on this exact shipment."""
@@ -604,41 +724,65 @@ class TestContainerTareAndVgm(_S9Case):
         self.assertEqual(self._fact(journey, "verified_gross_mass").weight, 48975.0)
 
     def test_vgm_from_the_documents_verdict(self):
-        """Positive: an applied Documents verified_gross_mass verdict on the journey supplies the original.
+        """Positive: a real verified Documents verified_gross_mass row on the journey supplies the original.
 
-        Only the Documents verdict facade is stubbed: Documents owns verification, Logistics only obeys it.
+        No stub: Documents associates and verifies the original, and its own frozen verdict
+        facade answers ``applied``; Logistics only obeys that verdict.
         """
         self.assertIn("plasticos.document", self.env, "plasticos_documents is part of the admitted fixture")
         journey = self._journey("S9-VGM-DOCS")
         original = self._attach(journey, "vgm-declaration.pdf")
         tag = self.env["plasticos.document.tag"].search([], limit=1)
         self.assertTrue(tag, "the Documents fixture seeds document tags")
-        document = self.env["plasticos.document"].create(
+        shell = self.env["plasticos.document"].create(
             {
                 "name": "VGM declaration",
-                "res_model": JOURNEY,
-                "res_id": journey.id,
-                "attachment_id": original.id,
                 "tag_id": tag.id,
+                "res_model": "documents.document",
+                "res_id": 0,
+                "attachment_id": original.id,
             }
         )
-        calls = []
-
-        def verdict(model, company_id, subject_kind, subject_id, obligation_kind, revision):
-            calls.append((company_id, subject_kind, subject_id, obligation_kind, revision))
-            return {"status": "applied", "record_id": document.id}
-
-        with patch.object(type(self.env["plasticos.document"]), "get_scoped_evidence_verdict", verdict):
-            other = self._attach(journey, "not-the-verified-original.pdf")
-            mismatch = self._weigh(
-                "verified_gross_mass", journey, 22000, self.kg, "documents_verified_gross_mass", other, "booking-rev-3"
-            )
-            result = self._weigh(
-                "verified_gross_mass", journey, 22000, self.kg, "documents_verified_gross_mass", None, "booking-rev-3"
-            )
+        verifier = self.env["res.users"].create(
+            {
+                "name": "S9 Documents Verifier",
+                "login": "s9_documents_verifier",
+                "group_ids": [
+                    (
+                        6,
+                        0,
+                        [
+                            self.env.ref("base.group_user").id,
+                            self.env.ref("plasticos_documents.group_documents_user").id,
+                        ],
+                    )
+                ],
+            }
+        )
+        document = shell.with_user(verifier)._associate_scope(
+            JOURNEY,
+            journey.id,
+            "carrier VGM mail booking-rev-3",
+            obligation_kind="verified_gross_mass",
+            operation_revision_key="booking-rev-3",
+            coverage_key="container-1",
+        )
+        document.with_user(verifier).action_verify()
+        document = document.with_user(self.env.user)
+        self.assertEqual(document.subject_company_id, self.company)
+        verdict = self.env["plasticos.document"].get_scoped_evidence_verdict(
+            self.company.id, JOURNEY, journey.id, "verified_gross_mass", "booking-rev-3"
+        )
+        self.assertEqual(verdict, {"status": "applied", "record_id": document.id})
+        other = self._attach(journey, "not-the-verified-original.pdf")
+        mismatch = self._weigh(
+            "verified_gross_mass", journey, 22000, self.kg, "documents_verified_gross_mass", other, "booking-rev-3"
+        )
         self.assertEqual(mismatch["status"], "blocked")
+        result = self._weigh(
+            "verified_gross_mass", journey, 22000, self.kg, "documents_verified_gross_mass", None, "booking-rev-3"
+        )
         self.assertEqual(result["status"], "applied")
-        self.assertEqual(calls[-1], (self.company.id, JOURNEY, journey.id, "verified_gross_mass", "booking-rev-3"))
         fact = self._fact(journey, "verified_gross_mass")
         self.assertEqual((fact.verified_document_id, fact.evidence_attachment_id), (document.id, original))
         self.assertEqual((fact.weight, fact.weight_uom_id), (22000.0, self.kg))
@@ -784,3 +928,271 @@ class TestShipmentProposalAccess(_S9Case):
         proposal.with_user(logistics).action_accept()
         self.assertEqual(proposal.state, "accepted")
         self.assertTrue(load.actual_pickup_at)
+
+
+@tagged("post_install", "-at_install", "plasticos", "logistics", "export")
+class TestS9ReviewClosure(_S9Case):
+    """C10-SCOPE-4 review closure, witnessed as non-superuser users (criterion 5)."""
+
+    def _user(self, login, group_xmlid, company=None):
+        company = company or self.company
+        groups = self.env.ref("base.group_user") | self.env.ref(group_xmlid)
+        return self.env["res.users"].create(
+            {
+                "name": login,
+                "login": login,
+                "company_id": company.id,
+                "company_ids": [(6, 0, company.ids)],
+                "group_ids": [(6, 0, groups.ids)],
+            }
+        )
+
+    def _gate_in(self, journey, key="g", facility=None, when=None):
+        doc = self._attach(journey, f"eir-{key}.pdf")
+        return self.env[FACT].action_record_gate_in(
+            journey.id, when or self._ago(5), (facility or self.terminal).id, doc.id, key
+        )
+
+    # ── B1: journey facts are not readable outside Logistics ─────────────
+
+    def test_sales_rep_cannot_read_journey_facts_or_their_menu(self):
+        """B1: a Sales Rep (or Accounting user) gets AccessError on facts and sees no J1 identity through them."""
+        journey = self._journey("S9-B1")
+        self.assertEqual(self._gate_in(journey)["status"], "applied")
+        menu = self.env.ref("plasticos_logistics.menu_iso_journey_fact")
+        for group in ("plasticos_security_base.group_sales_rep", "plasticos_security_base.group_accounting"):
+            user = self._user(f"s9-b1-{group.split('.')[-1]}", group)
+            with self.subTest(group=group):
+                with self.assertRaises(AccessError):
+                    self.env[FACT].with_user(user).search_read(
+                        [("journey_id", "=", journey.id)], ["journey_id", "facility_partner_id"]
+                    )
+                with self.assertRaises(AccessError):
+                    self.env[JOURNEY].with_user(user).browse(journey.id).read(["iso_number"])
+                self.assertNotIn(menu.id, self.env["ir.ui.menu"].with_user(user)._visible_menu_ids())
+        logistics = self._user("s9-b1-logistics", "plasticos_security_base.group_logistics")
+        rows = self.env[FACT].with_user(logistics).search_read([("journey_id", "=", journey.id)], ["fact_kind"])
+        self.assertEqual([row["fact_kind"] for row in rows], ["gate_in"])
+        self.assertIn(menu.id, self.env["ir.ui.menu"].with_user(logistics)._visible_menu_ids())
+
+    # ── N8: company B cannot read or cite company A ──────────────────────
+
+    def test_company_b_user_cannot_read_or_cite_company_a(self):
+        """A company-B Logistics user cannot read company-A facts or proposals, nor cite A's records."""
+        company_b = self.env["res.company"].create({"name": "S9 Company B"})
+        user_b = self._user("s9-company-b", "plasticos_security_base.group_logistics", company=company_b)
+        journey_a = self._journey("S9-A-FACTS")
+        self.assertEqual(self._gate_in(journey_a)["status"], "applied")
+        load_a = self._load()
+        doc_a = self._attach(load_a, "a-ticket.pdf")
+        proposal_a = self.env[PROPOSAL].action_propose_shipment_event(
+            {
+                "event_kind": "loaded",
+                "load_id": load_a.id,
+                "occurred_at": self._ago(2),
+                "evidence_attachment_id": doc_a.id,
+                "asserted_by": "carrier_issued",
+            },
+            "a-proposal",
+        )
+        self.assertEqual(proposal_a["status"], "applied")
+        as_b = self.env(user=user_b, context={"allowed_company_ids": company_b.ids})
+        self.assertFalse(as_b[FACT].search([("journey_id", "=", journey_a.id)]))
+        self.assertFalse(as_b[PROPOSAL].search([("id", "=", proposal_a["record_id"])]))
+        with self.assertRaises(AccessError):
+            as_b[PROPOSAL].action_propose_shipment_event(
+                {
+                    "event_kind": "loaded",
+                    "load_id": load_a.id,
+                    "occurred_at": self._ago(2),
+                    "evidence_attachment_id": doc_a.id,
+                    "asserted_by": "carrier_issued",
+                },
+                "b-on-a",
+            )
+        load_b = self.env[LOAD].create(
+            {
+                "company_id": company_b.id,
+                "pickup_partner_id": self.supplier.id,
+                "delivery_partner_id": self.terminal.id,
+                "carrier_id": self.carrier.id,
+            }
+        )
+        cited = as_b[PROPOSAL].action_propose_shipment_event(
+            {
+                "event_kind": "loaded",
+                "load_id": load_b.id,
+                "occurred_at": self._ago(2),
+                "evidence_attachment_id": doc_a.id,
+                "asserted_by": "carrier_issued",
+            },
+            "b-cites-a",
+        )
+        self.assertEqual(cited["status"], "blocked")
+        with self.assertRaises(AccessError):
+            as_b[FACT].action_record_gate_in(journey_a.id, self._ago(1), self.terminal.id, doc_a.id, "b-gate")
+
+    # ── N3: parties must be visible and in the journey's company ─────────
+
+    def test_parties_from_another_company_are_refused(self):
+        other = self.env["res.company"].create({"name": "S9 Party Co"})
+        foreign = self.env["res.partner"].create({"name": "S9 Foreign Terminal", "company_id": other.id})
+        journey = self._journey("S9-N3")
+        self.assertEqual(self._gate_in(journey, "foreign", facility=foreign)["status"], "blocked")
+        doc = self._attach(journey, "filing.pdf")
+        self.assertEqual(
+            self.env[FACT].action_record_regulatory_parties(journey.id, foreign.id, False, doc.id, "r")["status"],
+            "blocked",
+        )
+        result = self.env[PROPOSAL].action_propose_shipment_event(
+            {
+                "event_kind": "gate_accepted",
+                "journey_id": journey.id,
+                "occurred_at": self._ago(3),
+                "facility_partner_id": foreign.id,
+                "evidence_attachment_id": doc.id,
+                "asserted_by": "terminal_issued",
+            },
+            "n3-proposal",
+        )
+        self.assertEqual(result["status"], "blocked")
+        self.assertFalse(self.env[FACT].search([("journey_id", "=", journey.id)]))
+
+    # ── N2: a concurrent duplicate is answered, never an IntegrityError ──
+
+    def test_concurrent_duplicate_record_and_propose_are_answered(self):
+        """The losing writer of a duplicate fact or proposal gets already_applied or blocked."""
+        journey = self._journey("S9-N2")
+        doc = self._attach(journey, "eir.pdf")
+        when = self._ago(5)
+        first = self.env[FACT].action_record_gate_in(journey.id, when, self.terminal.id, doc.id, "g")
+        self.assertEqual(first["status"], "applied")
+        fact_class = type(self.env[FACT])
+        original = fact_class._existing_result
+        calls = []
+
+        def miss_first(model, *args):
+            calls.append(args)
+            return None if len(calls) == 1 else original(model, *args)
+
+        with patch.object(fact_class, "_existing_result", miss_first), mute_logger("odoo.sql_db"):
+            same = self.env[FACT].action_record_gate_in(journey.id, when, self.terminal.id, doc.id, "g")
+        self.assertEqual(same, {"status": "already_applied", "record_id": first["record_id"]})
+        calls.clear()
+        with patch.object(fact_class, "_existing_result", miss_first), mute_logger("odoo.sql_db"):
+            other = self.env[FACT].action_record_gate_in(journey.id, self._ago(6), self.terminal.id, doc.id, "g")
+        self.assertEqual(other["status"], "blocked")
+
+        load = self._load()
+        ticket = self._attach(load, "ticket.pdf")
+        values = {
+            "event_kind": "loaded",
+            "load_id": load.id,
+            "occurred_at": self._ago(2),
+            "evidence_attachment_id": ticket.id,
+            "asserted_by": "carrier_issued",
+        }
+        winner = self.env[PROPOSAL].action_propose_shipment_event(values, "race")
+        proposal_class = type(self.env[PROPOSAL])
+        original_search = proposal_class.search
+        hidden = []
+
+        def hide_first_key_lookup(model, domain, *args, **kwargs):
+            if ("operation_key", "=", "race") in domain and not hidden:
+                hidden.append(True)
+                return model.browse()
+            return original_search(model, domain, *args, **kwargs)
+
+        with patch.object(proposal_class, "search", hide_first_key_lookup), mute_logger("odoo.sql_db"):
+            loser = self.env[PROPOSAL].action_propose_shipment_event(values, "race")
+        self.assertEqual(loser, {"status": "already_applied", "record_id": winner["record_id"]})
+
+    # ── N4: Documents verdict edge cases ─────────────────────────────────
+
+    def test_documents_vgm_edge_cases(self):
+        """Documents without Export is not_available; an unestablished subject company or a hidden row is blocked."""
+        from odoo.exceptions import AccessError as OdooAccessError
+
+        journey = self._journey("S9-N4")
+        kg = self.env.ref("uom.product_uom_kgm")
+        document_class = type(self.env["plasticos.document"])
+        with patch.object(document_class, "_scoped_obligation_kinds", lambda model: frozenset()):
+            result = self.env[FACT].action_record_verified_gross_mass(
+                journey.id, 9, kg.id, "documents_verified_gross_mass", None, "rev", "n4-a"
+            )
+        self.assertEqual(result["status"], "not_available")
+        tag = self.env["plasticos.document.tag"].search([], limit=1)
+        unestablished = self.env["plasticos.document"].create(
+            {
+                "name": "VGM, company not established",
+                "res_model": JOURNEY,
+                "res_id": journey.id,
+                "attachment_id": self._attach(journey, "vgm.pdf").id,
+                "tag_id": tag.id,
+            }
+        )
+        self.assertFalse(unestablished.subject_company_id)
+        applied = {"status": "applied", "record_id": unestablished.id}
+        with patch.object(document_class, "get_scoped_evidence_verdict", lambda *args: applied):
+            result = self.env[FACT].action_record_verified_gross_mass(
+                journey.id, 9, kg.id, "documents_verified_gross_mass", None, "rev", "n4-b"
+            )
+        self.assertEqual(result["status"], "blocked")
+
+        def hidden(records, operation):
+            raise OdooAccessError("hidden by a record rule")
+
+        with (
+            patch.object(document_class, "get_scoped_evidence_verdict", lambda *args: applied),
+            patch.object(document_class, "check_access", hidden),
+        ):
+            result = self.env[FACT].action_record_verified_gross_mass(
+                journey.id, 9, kg.id, "documents_verified_gross_mass", None, "rev", "n4-c"
+            )
+        self.assertEqual(result["status"], "blocked")
+        self.assertFalse(self._fact(journey, "verified_gross_mass"))
+
+    # ── N5: decisions, rejected replay, generated key ────────────────────
+
+    def test_decision_fields_rejected_replay_and_generated_key(self):
+        load = self._load()
+        doc = self._attach(load, "ticket.pdf")
+        values = {
+            "event_kind": "loaded",
+            "load_id": load.id,
+            "occurred_at": self._ago(2),
+            "evidence_attachment_id": doc.id,
+            "asserted_by": "carrier_issued",
+        }
+        for decision in (
+            {"decided_at": fields.Datetime.now()},
+            {"decision_note": "approved by me"},
+            {"command_status": "applied"},
+        ):
+            with self.subTest(decision=decision), self.assertRaises(UserError), self.env.cr.savepoint():
+                self.env[PROPOSAL].create({**values, **decision})
+        generated = self.env[PROPOSAL].create(values)
+        self.assertTrue(generated.operation_key.startswith("form:"))
+        first = self.env[PROPOSAL].action_propose_shipment_event(values, "to-reject")
+        self.env[PROPOSAL].browse(first["record_id"]).action_reject("wrong ticket")
+        replay = self.env[PROPOSAL].action_propose_shipment_event(values, "to-reject")
+        self.assertEqual(replay["status"], "rejected")
+        self.assertEqual(replay["record_id"], first["record_id"])
+
+    # ── N8: replay at stored precision ───────────────────────────────────
+
+    def test_weight_replay_is_compared_at_stored_precision(self):
+        journey = self._journey("S9-N8-W")
+        ticket = self._attach(journey, "ticket.pdf")
+        lb = self.env.ref("uom.product_uom_lb")
+        fact = self.env[FACT]
+        first = fact.action_record_verified_gross_mass(journey.id, 48975, lb.id, "scale_ticket", ticket.id, "T", "w")
+        noise = fact.action_record_verified_gross_mass(
+            journey.id, 48975.0004, lb.id, "scale_ticket", ticket.id, "T", "w"
+        )
+        changed = fact.action_record_verified_gross_mass(
+            journey.id, 48975.01, lb.id, "scale_ticket", ticket.id, "T", "w"
+        )
+        self.assertEqual(first["status"], "applied")
+        self.assertEqual(noise, {"status": "already_applied", "record_id": first["record_id"]})
+        self.assertEqual(changed["status"], "blocked")

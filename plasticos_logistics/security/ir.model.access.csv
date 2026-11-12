@@ -32,5 +32,4 @@ access_load_actual_event_wizard_user,plasticos.load.actual.event.wizard.user,mod
 access_road_equipment_type_user,plasticos.road.equipment.type.user,model_plasticos_road_equipment_type,base.group_user,1,0,0,0
 access_road_equipment_type_manager,plasticos.road.equipment.type.manager,model_plasticos_road_equipment_type,base.group_system,1,1,1,1
 access_shipment_event_proposal_manager,plasticos.shipment.event.proposal.manager,model_plasticos_shipment_event_proposal,base.group_system,1,1,1,1
-access_iso_journey_fact_user,plasticos.iso.journey.fact.user,model_plasticos_iso_journey_fact,base.group_user,1,0,0,0
 access_iso_journey_fact_manager,plasticos.iso.journey.fact.manager,model_plasticos_iso_journey_fact,base.group_system,1,0,0,0

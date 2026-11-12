@@ -3,15 +3,17 @@ AC-EXP-07-002,BRS-EXP-07-R002,positive,plasticos_logistics/tests/test_s9_logisti
 AC-EXP-07-002,BRS-EXP-07-R002,positive,plasticos_logistics/tests/test_s9_logistics_features.py::TestRoadEquipment::test_more_types_are_data_and_codes_are_unique,PASS
 AC-EXP-07-002,BRS-EXP-07-R002,negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestRoadEquipment::test_flatbed_is_its_own_type_with_no_assumed_length,PASS
 AC-EXP-07-002,BRS-EXP-07-R002,negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestRoadEquipment::test_equipment_infers_no_weight_and_no_container,PASS
-AC-EXP-08-007,BRS-EXP-08-R007,positive,plasticos_logistics/tests/test_s9_logistics_features.py::TestJourneyMilestonesAndResale::test_afloat_container_is_sold_without_rewriting_its_facts,PASS
+AC-EXP-08-007,BRS-EXP-08-R007,positive+negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestJourneyMilestonesAndResale::test_afloat_resale_cannot_rewrite_any_journey_fact,PASS (Logistics side witnessed; Export link at C11)
 AC-EXP-08-007,BRS-EXP-08-R007,positive,plasticos_logistics/tests/test_s9_logistics_features.py::TestJourneyMilestonesAndResale::test_same_facts_replay_is_idempotent,PASS
-AC-EXP-08-007,BRS-EXP-08-R007,negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestJourneyMilestonesAndResale::test_buyer_change_cannot_silently_change_filer_delivery_partner_or_departure,PASS
 AC-EXP-08-007,BRS-EXP-08-R007,negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestJourneyMilestonesAndResale::test_facts_need_their_own_original_and_order,PASS
 AC-EXP-08-007,BRS-EXP-08-R007,guard,plasticos_logistics/tests/test_s9_logistics_features.py::TestJourneyMilestonesAndResale::test_journey_stays_identity_only,PASS
 AC-EXP-09-007,BRS-EXP-09-R007,positive,plasticos_logistics/tests/test_s9_logistics_features.py::TestShipmentEventProposals::test_oct8_booking_complete_supports_load_1_only,PASS
 AC-EXP-09-007,BRS-EXP-09-R007,positive,plasticos_logistics/tests/test_s9_logistics_features.py::TestShipmentEventProposals::test_gate_in_and_sailing_proposals_run_the_journey_commands,PASS
 AC-EXP-09-007,BRS-EXP-09-R007,positive,plasticos_logistics/tests/test_s9_logistics_features.py::TestShipmentEventProposals::test_supplier_ready_runs_the_load_command_with_its_guards,PASS
+AC-EXP-09-007,BRS-EXP-09-R007,positive,plasticos_logistics/tests/test_s9_logistics_features.py::TestShipmentEventProposals::test_carrier_linda_reply_is_carrier_issued_only_from_the_load_carrier,PASS
 AC-EXP-09-007,BRS-EXP-09-R007,negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestShipmentEventProposals::test_booking_complete_cannot_attest_gate_in_or_sailing,PASS
+AC-EXP-09-007,BRS-EXP-09-R007,negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestShipmentEventProposals::test_supplier_linda_reply_cannot_be_labelled_terminal_or_carrier,PASS
+AC-EXP-09-007,BRS-EXP-09-R007,negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestShipmentEventProposals::test_linda_reply_must_be_current_and_about_this_shipment,PASS
 AC-EXP-09-007,BRS-EXP-09-R007,negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestShipmentEventProposals::test_propose_replay_and_contradiction,PASS
 AC-EXP-11-010,BRS-EXP-11-R010,positive,plasticos_logistics/tests/test_s9_logistics_features.py::TestShipmentEventProposals::test_oct8_booking_complete_supports_load_1_only,PASS
 AC-EXP-11-010,BRS-EXP-11-R010,negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestShipmentEventProposals::test_booking_complete_cannot_attest_gate_in_or_sailing,PASS
@@ -22,5 +24,11 @@ C10-SCOPE-2,BRS-EXP-07-R006 (owner facts),positive,plasticos_logistics/tests/tes
 C10-SCOPE-2,BRS-EXP-07-R006 (owner facts),negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestContainerTareAndVgm::test_tare_and_vgm_are_never_inferred,PASS
 C10-SCOPE-2,BRS-EXP-07-R006 (owner facts),negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestContainerTareAndVgm::test_documents_basis_refuses_dangling_or_foreign_documents,PASS
 C10-SCOPE-2,BRS-EXP-07-R006 (owner facts),negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestContainerTareAndVgm::test_documents_basis_without_documents_is_not_available,PASS
-AC-EXP-09-007,BRS-EXP-09-R007,negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestShipmentEventProposals::test_linda_reply_must_be_current_and_about_this_shipment,PASS
 C10-SCOPE-2,BRS-EXP-07-R006 (owner facts),negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestContainerTareAndVgm::test_documents_vgm_verdict_cannot_record_tare,PASS
+C10-SCOPE-4,B1,negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestS9ReviewClosure::test_sales_rep_cannot_read_journey_facts_or_their_menu,PASS
+C10-SCOPE-4,N8 multi-company,negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestS9ReviewClosure::test_company_b_user_cannot_read_or_cite_company_a,PASS
+C10-SCOPE-4,N3,negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestS9ReviewClosure::test_parties_from_another_company_are_refused,PASS
+C10-SCOPE-4,N2,negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestS9ReviewClosure::test_concurrent_duplicate_record_and_propose_are_answered,PASS
+C10-SCOPE-4,N4,negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestS9ReviewClosure::test_documents_vgm_edge_cases,PASS
+C10-SCOPE-4,N5,negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestS9ReviewClosure::test_decision_fields_rejected_replay_and_generated_key,PASS
+C10-SCOPE-4,N8 precision,positive+negative,plasticos_logistics/tests/test_s9_logistics_features.py::TestS9ReviewClosure::test_weight_replay_is_compared_at_stored_precision,PASS

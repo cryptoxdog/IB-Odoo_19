@@ -125,6 +125,16 @@ The seven clauses keep their source text in `plasticos_documents`. Their clocks 
 | `BRS-EXP-09-R007` | Supplier ready, loaded, gate accepted and sailed are distinct typed proposals on `plasticos.shipment.event.proposal`, each tied to one exact load or journey and its original. Proposing writes nothing else. Accepting runs the owner command with its own prerequisites. A supplier report may support `loaded` for the one load it names; it can never attest a gate-in or a sailing. |
 | `BRS-EXP-11-R010` | No proposal or extraction writes `plasticos.load.state`, `plasticos.transaction.state`, a picking or a stock record. One accepted loaded event records that load's actual pickup only; sibling loads, the purchase order's received quantity and its pickings are unchanged. |
 
+## 2026-11-12 Export campaign S9 addendum: container tare, verified gross mass and review closure
+
+**Source:** coordinator C10-SCOPE-2 and C10-SCOPE-4 on contract `PLASTICOS-EXPORT-C10-S9-LOGISTICS-FEATURES`. This section adds to the S9 section above; it edits no source BRS file.
+
+| Rule ID | Amended interpretation (2026-11-12) |
+| --- | --- |
+| `BRS-EXP-07-R006` | Container tare and VGM weight are Logistics owner facts on `plasticos.iso.journey.fact`, kinds `container_tare` and `verified_gross_mass`, each a weight and a weight unit. Only `action_record_container_tare` and `action_record_verified_gross_mass` write them, from a scale ticket attached to the journey, or, for `verified_gross_mass` only, from an applied Documents `verified_gross_mass` verdict about the same journey in its company. Nothing is inferred from the equipment class or a road equipment type. Export displays them and stores no copy. |
+| `BRS-EXP-09-R007` | A proposal that cites a Linda reply takes its asserting party from the answered request's recipient: a purchase-order request is supplier-reported; a booking, acknowledgement or document-chase request is carrier-issued only when its recipient is the carrier of the load. A Linda reply is never terminal-issued. The reply must be current, attributed and about the same load or journey. |
+| `BRS-EXP-08-R007` | Journey facts are readable only by Logistics, Operations Manager and System. A recorded fact has no correction path in this slice; correcting or superseding one (re-weigh, rolled booking, superseded verdict) is an open operator decision. |
+
 ## Change control
 
 Amend this register only for an explicit operator decision or an admitted repository architectural ruling, cite exact BRS IDs, update any associated acceptance tests, and preserve source document bytes. In-scope rule proposals that are unresolved must be marked **proposed**, not disguised as accepted.

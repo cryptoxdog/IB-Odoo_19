@@ -1,6 +1,6 @@
 # S9 evidence: Logistics facts for the deferred Export rules
 
-Contract `PLASTICOS-EXPORT-C10-S9-LOGISTICS-FEATURES` (sha256 `5b18a582…`), amended by coordinator C10-SCOPE-2 (`6ba954c8…`) and C10-SCOPE-3 (`a5fe52cf…`, the binding digest). Base `ff42df2d`. Predecessor `feat/plasticos-export-s8-coverage` merged in with merge commits (no conflicts): `3fda2e04`, then the accepted head `6c7789ef`. This folder holds no Odoo logs and no real data.
+Contract `PLASTICOS-EXPORT-C10-S9-LOGISTICS-FEATURES` (sha256 `5b18a582…`), amended by coordinator C10-SCOPE-2 (`6ba954c8…`) and C10-SCOPE-3 (`a5fe52cf…`), C10-STACK-BIND (`63a0e3c2…`) and C10-SCOPE-4 / C10-Q2 (`48f12428…`, the binding digest). Base `6c7789ef` (the accepted S8 head, C10-STACK-BIND); the branch was started at `ff42df2d`. Predecessor `feat/plasticos-export-s8-coverage` merged in with merge commits (no conflicts): `3fda2e04`, then the accepted head `6c7789ef`. This folder holds no Odoo logs and no real data.
 
 | File | Contents |
 |---|---|
