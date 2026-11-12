@@ -50,6 +50,11 @@
 ./plasticos_enrichment/views/enrichment_run_views.xml
 ./plasticos_enrichment/views/enrichment_source_views.xml
 ./plasticos_enrichment/views/res_partner_enrichment.xml
+./plasticos_export/views/allocation_views.xml
+./plasticos_export/views/booking_views.xml
+./plasticos_export/views/export_analysis_views.xml
+./plasticos_export/views/export_menus.xml
+./plasticos_export/views/shipment_views.xml
 ./plasticos_facility_profile/views/facility_profile_ux.xml
 ./plasticos_facility_profile/views/facility_profile_views.xml
 ./plasticos_facility_profile/views/facility_template_views.xml
@@ -63,6 +68,7 @@
 ./plasticos_intake_normalizer/views/normalizer_config_views.xml
 ./plasticos_logistics/views/freight_actual_correction_wizard_views.xml
 ./plasticos_logistics/views/freight_views.xml
+./plasticos_logistics/views/iso_journey_views.xml
 ./plasticos_logistics/views/linda_response_views.xml
 ./plasticos_logistics/views/load_bulk_update_wizard_views.xml
 ./plasticos_logistics/views/load_dashboard_views.xml

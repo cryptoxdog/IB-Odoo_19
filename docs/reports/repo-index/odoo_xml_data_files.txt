@@ -49,6 +49,8 @@
 ./plasticos_enrichment/data/cron.xml
 ./plasticos_enrichment/data/sequence.xml
 ./plasticos_enrichment/security/security.xml
+./plasticos_export/data/linda_booking_inbound.xml
+./plasticos_export/security/export_record_rules.xml
 ./plasticos_facility_profile/data/company_role_tag_data.xml
 ./plasticos_facility_profile/data/equipment_type_data.xml
 ./plasticos_facility_profile/data/facility_template_data.xml
@@ -62,6 +64,9 @@
 ./plasticos_intake_normalizer/data/normalizer_config_data.xml
 ./plasticos_logistics/data/cron.xml
 ./plasticos_logistics/data/incoterms.xml
+./plasticos_logistics/data/linda_booking_mail_template.xml
+./plasticos_logistics/data/linda_dispatch_ack_notice.xml
+./plasticos_logistics/data/linda_document_chase.xml
 ./plasticos_logistics/data/linda_inbound_ai.xml
 ./plasticos_logistics/data/linda_order_cancel_mail_templates.xml
 ./plasticos_logistics/data/linda_po_mail_template.xml

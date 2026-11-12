@@ -45,6 +45,7 @@
 ./plasticos_crm_bridge/models/opportunity_approval.py:70:    _rec_name = "display_name"
 ./plasticos_crm_bridge/models/opportunity_material.py:60:    _name = "plasticos.opportunity.material"
 ./plasticos_crm_bridge/models/opportunity_material.py:63:    _rec_name = "display_name"
+./plasticos_crm_bridge/tests/test_crm_lead_personal_intel_view.py:34:        form = Form(self.env["crm.lead"].with_context(default_type="opportunity", default_name="Personal Intel"))
 ./plasticos_crm_bridge/tests/test_opportunity_material_copy.py:132:                default_name="Supplier offer",
 ./plasticos_crm_bridge/tests/test_opportunity_reach_contact.py:58:        lead = self._lead(contact_name="Pat", email_from="pat@example.test")
 ./plasticos_crm_bridge/wizards/offer_buyer_selection_wizard.py:71:    _name = "plasticos.offer.buyer.selection.wizard"
@@ -77,13 +78,13 @@
 ./plasticos_dev_tools/tools/test_kb_integration.py:133:            WHERE table_name = 'plastic_ai_kb_config'
 ./plasticos_documents/migrations/19.0.2.1.4/post-migrate.py:21:         WHERE table_name = 'plasticos_document'
 ./plasticos_documents/migrations/19.0.2.1.4/post-migrate.py:22:           AND column_name = 'association_state'
-./plasticos_documents/models/compliance_service.py:17:    _name = "plasticos.compliance.service"
-./plasticos_documents/models/document.py:103:    _name = "plasticos.document"
+./plasticos_documents/models/compliance_service.py:19:    _name = "plasticos.compliance.service"
+./plasticos_documents/models/document.py:122:    _name = "plasticos.document"
 ./plasticos_documents/models/document_rule.py:5:    _name = "plasticos.document.rule"
 ./plasticos_documents/models/document_tag.py:5:    _name = "plasticos.document.tag"
 ./plasticos_documents/models/document_validation_matrix.py:10:    _name = "plasticos.document.validation.matrix"
 ./plasticos_documents/models/transaction_docs.py:12:    _name = "plasticos.transaction"
-./plasticos_documents/tests/test_scale_ticket_cardinality.py:176:               AND table_name = 'plasticos_column_align_probe'
+./plasticos_documents/tests/test_scale_ticket_cardinality.py:186:               AND table_name = 'plasticos_column_align_probe'
 ./plasticos_documents_native/migrations/19.0.1.1.0/pre-migrate.py:38:            WHERE table_name = 'documents_document'
 ./plasticos_documents_native/migrations/19.0.1.2.6/pre-migrate.py:24:         WHERE table_name = 'documents_document'
 ./plasticos_documents_native/migrations/19.0.1.2.6/pre-migrate.py:25:           AND column_name = 'verified'
@@ -95,6 +96,15 @@
 ./plasticos_enrichment/models/enrichment_run.py:14:    _name = "plasticos.enrichment.run"
 ./plasticos_enrichment/models/enrichment_service.py:195:    _name = "plasticos.enrichment.service"
 ./plasticos_enrichment/models/enrichment_source.py:5:    _name = "plasticos.enrichment.source"
+./plasticos_export/models/booking.py:249:    _name = "plasticos.export.booking"
+./plasticos_export/models/booking.py:253:    _rec_name = "carrier_booking_no"
+./plasticos_export/models/booking.py:725:    _name = "plasticos.export.booking.revision"
+./plasticos_export/models/booking.py:728:    _rec_name = "source_revision_key"
+./plasticos_export/models/booking.py:905:    _name = "plasticos.export.booking.revision.accept"
+./plasticos_export/models/booking_allocation.py:114:    _name = "plasticos.export.booking.slot"
+./plasticos_export/models/booking_allocation.py:117:    _rec_name = "slot_key"
+./plasticos_export/models/booking_allocation.py:435:    _name = "plasticos.export.booking.cargo.link"
+./plasticos_export/models/booking_allocation.py:438:    _rec_name = "allocation_key"
 ./plasticos_facility_profile/migrations/19.0.1.1.0/pre-migrate.py:29:            WHERE table_name = 'res_partner'
 ./plasticos_facility_profile/migrations/19.0.4.0.0/post-migrate.py:44:            WHERE table_name = 'plasticos_lead_source'
 ./plasticos_facility_profile/models/company_role_tag.py:8:    _name = "plasticos.company.role.tag"
@@ -111,20 +121,23 @@
 ./plasticos_intake_normalizer/models/normalizer_config.py:48:    _name = "plasticos.normalizer.config"
 ./plasticos_logistics/migrations/19.0.1.10.3/pre-migrate.py:19:         WHERE table_name = 'plasticos_transaction'
 ./plasticos_logistics/migrations/19.0.1.10.3/pre-migrate.py:20:           AND column_name = 'load_id'
-./plasticos_logistics/models/dispatch.py:10:    _name = "plasticos.dispatch"
+./plasticos_logistics/models/dispatch.py:17:    _name = "plasticos.dispatch"
 ./plasticos_logistics/models/freight_estimate.py:10:    _name = "plasticos.freight.estimate"
-./plasticos_logistics/models/freight_governance.py:39:    _name = "plasticos.freight.event"
-./plasticos_logistics/models/freight_governance.py:80:    _name = "plasticos.freight.calibration.observation"
-./plasticos_logistics/models/freight_governance.py:178:    _name = "plasticos.rate.memory.reconciliation"
+./plasticos_logistics/models/freight_governance.py:47:    _name = "plasticos.freight.event"
+./plasticos_logistics/models/freight_governance.py:88:    _name = "plasticos.freight.calibration.observation"
+./plasticos_logistics/models/freight_governance.py:186:    _name = "plasticos.rate.memory.reconciliation"
 ./plasticos_logistics/models/freight_quote.py:41:    _name = "plasticos.freight.quote.request"
 ./plasticos_logistics/models/freight_quote.py:391:    _name = "plasticos.freight.quote.recipient"
 ./plasticos_logistics/models/freight_quote.py:515:    _name = "plasticos.freight.quote"
-./plasticos_logistics/models/linda_request.py:154:    _name = "plasticos.logistics.request"
-./plasticos_logistics/models/linda_response.py:65:    _name = "plasticos.logistics.response"
-./plasticos_logistics/models/load.py:70:    _name = "plasticos.load"
+./plasticos_logistics/models/iso_journey.py:121:    _name = "plasticos.iso.journey"
+./plasticos_logistics/models/iso_journey.py:333:    _name = "plasticos.iso.journey.source"
+./plasticos_logistics/models/linda_request.py:225:    _name = "plasticos.logistics.request"
+./plasticos_logistics/models/linda_response.py:72:    _name = "plasticos.logistics.response"
+./plasticos_logistics/models/load.py:95:    _name = "plasticos.load"
+./plasticos_logistics/models/load.py:2310:    _name = "plasticos.load.actual.event.wizard"
 ./plasticos_logistics/models/load_dashboard.py:17:    _name = "plasticos.load.dashboard"
 ./plasticos_logistics/models/load_dashboard.py:20:    _rec_name = "load_ref"
-./plasticos_logistics/models/load_dashboard.py:81:            WHERE table_name = 'plasticos_load' AND column_name = 'transaction_id'
+./plasticos_logistics/models/load_dashboard.py:84:            WHERE table_name = 'plasticos_load' AND column_name = 'transaction_id'
 ./plasticos_logistics/models/rate_memory.py:6:    _name = "plasticos.rate.memory"
 ./plasticos_logistics/wizards/freight_actual_correction_wizard.py:8:    _name = "plasticos.freight.actual.correction.wizard"
 ./plasticos_logistics/wizards/load_bulk_update_wizard.py:11:    _name = "plasticos.load.bulk.update.wizard"

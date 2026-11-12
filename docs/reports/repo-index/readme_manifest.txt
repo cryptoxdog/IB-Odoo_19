@@ -13,6 +13,7 @@
 ./docs/campaigns/future-add-ons/PlasticOS_Addon_Strategic_Development_Kernel_v0.2.0/README.md:28:# External dependency for complete draft-2020-12 schema validation: jsonschema.
 ./docs/campaigns/future-add-ons/PlasticOS_ERP_Contacts_Then_VanillaSoft_Crosswalk_Daytime_2026-10-21/README.md:1:# Cursor delegation: ERP contacts, then VanillaSoft crosswalk only
 ./docs/campaigns/future-add-ons/PlasticOS_ERP_Then_Full_VanillaSoft_Cursor_Delegation_v2_2026-10-21/README.md:1:# Cursor delegation: full ERP import, then full VanillaSoft CRM import
+./docs/campaigns/future-add-ons/PlasticOS_Export/EVIDENCE/S6/README.md:1:# S6 evidence: Enterprise install, upgrade and restore proof
 ./docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/MODULE_DESIGN/plasticos_export/README.md:1:# PlasticOS Export
 ./docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/README.md:7:# PlasticOS Export BRS v2.0.0
 ./docs/campaigns/future-add-ons/PlasticOS_Export/EXPORT_BRS/REFINED_BRS/README.md:1:# Refined Export BRS: implementation reading set
@@ -37,6 +38,8 @@
 ./plasticos_documents/business_rules/README.md:1:# PlasticOS Documents | Native-first Business Rules Specification
 ./plasticos_documents_native/README.md:28:# Plasticos Documents — Native Bridge
 ./plasticos_enrichment/README.md:31:# PlastOS Buyer CRM Enrichment Engine
+./plasticos_export/README.md:32:# PlasticOS Export
+./plasticos_export/business_rules/README.md:1:# PlasticOS Export business requirements (BRS)
 ./plasticos_facility_profile/README.md:30:# PlasticOS Facility Profile
 ./plasticos_gate/README.md:19:# PlasticOS Gate Client
 ./plasticos_geolocalize/README.md:25:# PlasticOS Geolocalize

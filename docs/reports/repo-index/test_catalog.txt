@@ -141,6 +141,13 @@
 ./plasticos_admin_dashboard/tests/test_rep_performance_view.py:18:    def test_init_creates_view_with_report_columns(self):
 ./plasticos_automation/tests/test_automation_log_acl.py:9:class TestAutomationLogAcl(TransactionCase):
 ./plasticos_automation/tests/test_automation_log_acl.py:10:    def test_internal_user_cannot_create_automation_log_directly(self):
+./plasticos_automation/tests/test_buyerless_carrier_templates.py:30:class TestBuyerlessCarrierTemplates(TransactionCase):
+./plasticos_automation/tests/test_buyerless_carrier_templates.py:78:    def test_buyerless_load_in_a_second_company_names_that_company(self):
+./plasticos_automation/tests/test_buyerless_carrier_templates.py:92:    def test_sale_backed_load_keeps_its_own_company(self):
+./plasticos_automation/tests/test_buyerless_carrier_templates.py:100:    def test_company_without_email_renders_no_invented_address(self):
+./plasticos_automation/tests/test_buyerless_carrier_templates.py:113:    def test_each_template_addresses_the_carrier_itself(self):
+./plasticos_automation/tests/test_buyerless_carrier_templates.py:122:    def test_follow_up_templates_address_their_counterparty(self):
+./plasticos_automation/tests/test_buyerless_carrier_templates.py:145:    def test_each_template_attaches_only_its_carrier_reports(self):
 ./plasticos_automation/tests/test_carrier_reservation_not_dispatch.py:9:class TestCarrierReservationIsNotDispatch(TransactionCase):
 ./plasticos_automation/tests/test_carrier_reservation_not_dispatch.py:10:    def test_legacy_reservation_automation_cannot_send(self):
 ./plasticos_automation/tests/test_carrier_reservation_not_dispatch.py:17:    def test_assigned_picking_does_not_dispatch(self):
@@ -305,6 +312,11 @@
 ./plasticos_claims/tests/test_depends_transaction_claims_bridge.py:68:    def test_freight_chargeback_resolve_preserves_manual_amount(self):
 ./plasticos_claims/tests/test_depends_transaction_claims_bridge.py:84:    def test_lightweight_penalty_resolve_preserves_manual_amount(self):
 ./plasticos_claims/tests/test_depends_transaction_claims_bridge.py:100:    def test_unresolved_claim_does_not_change_manual_recovery(self):
+./plasticos_claims/tests/test_document_export_evidence.py:20:class TestDocumentExportEvidence(PlasticosTestCase):
+./plasticos_claims/tests/test_document_export_evidence.py:106:    def test_operation_row_on_a_pending_shell_opens_no_claim(self):
+./plasticos_claims/tests/test_document_export_evidence.py:118:    def test_one_original_two_links_open_at_most_one_claim(self):
+./plasticos_claims/tests/test_document_export_evidence.py:137:    def test_buyerless_operation_evidence_invents_no_claim(self):
+./plasticos_claims/tests/test_document_export_evidence.py:146:    def test_operation_row_written_later_with_claim_fields_stays_claimless(self):
 ./plasticos_claims/tests/test_integration_flows.py:24:class TestLeadToIntakeToTransaction(PlasticosTestCase):
 ./plasticos_claims/tests/test_integration_flows.py:33:    def test_full_lead_to_transaction_flow(self):
 ./plasticos_claims/tests/test_integration_flows.py:54:    def test_lead_keeps_partner_missing(self):
@@ -443,9 +455,14 @@
 ./plasticos_commission/tests/test_golden_flows.py:545:    def test_close_freezes_commission_at_locked_amount(self):
 ./plasticos_commission/tests/test_sales_dashboard_load_cardinality.py:7:class TestSalesDashboardLoadCardinality(TransactionCase):
 ./plasticos_commission/tests/test_sales_dashboard_load_cardinality.py:8:    def test_three_loads_do_not_multiply_the_deal(self):
-./plasticos_commission/tests/test_sales_dashboard_payout_access.py:14:class TestSalesDashboardPayoutAccess(TransactionCase):
-./plasticos_commission/tests/test_sales_dashboard_payout_access.py:53:    def test_rep_does_not_learn_another_reps_payout(self):
-./plasticos_commission/tests/test_sales_dashboard_payout_access.py:58:    def test_rep_still_opens_own_payout(self):
+./plasticos_commission/tests/test_sales_dashboard_payout_access.py:18:class TestSalesDashboardPayoutAccess(TransactionCase):
+./plasticos_commission/tests/test_sales_dashboard_payout_access.py:57:    def test_rep_does_not_learn_another_reps_payout(self):
+./plasticos_commission/tests/test_sales_dashboard_payout_access.py:62:    def test_rep_still_opens_own_payout(self):
+./plasticos_commission/tests/test_sales_dashboard_payout_access.py:69:class TestSalesDashboardDocumentChecklist(TransactionCase):
+./plasticos_commission/tests/test_sales_dashboard_payout_access.py:167:    def test_business_rows_drive_the_checklist_through_loads(self):
+./plasticos_commission/tests/test_sales_dashboard_payout_access.py:182:    def test_operation_row_never_clears_a_legacy_item(self):
+./plasticos_commission/tests/test_sales_dashboard_payout_access.py:189:    def test_expired_or_superseded_legacy_row_is_not_ok(self):
+./plasticos_commission/tests/test_sales_dashboard_payout_access.py:201:    def test_native_branch_reads_the_native_projection_only_without_business_rows(self):
 ./plasticos_commission/tests/test_security_acl.py:13:class TestTransactionACL(PlasticosTestCase):
 ./plasticos_commission/tests/test_security_acl.py:76:    def test_base_user_can_read(self):
 ./plasticos_commission/tests/test_security_acl.py:82:    def test_base_user_cannot_create(self):
@@ -486,6 +503,13 @@
 ./plasticos_crm_bridge/tests/test_crm4_profile_reuse.py:41:    def test_zero_or_many_forms_collapse_to_one_empty_form_profile(self):
 ./plasticos_crm_bridge/tests/test_crm4_profile_reuse.py:51:    def test_note_appends_once_and_replay_returns_the_same_profile(self):
 ./plasticos_crm_bridge/tests/test_crm4_profile_reuse.py:59:    def test_lead_salesperson_is_untouched(self):
+./plasticos_crm_bridge/tests/test_crm_lead_personal_intel_view.py:26:class TestCrmLeadPersonalIntelView(PlasticosTestCase):
+./plasticos_crm_bridge/tests/test_crm_lead_personal_intel_view.py:43:    def test_page_is_hidden_for_a_company_partner(self):
+./plasticos_crm_bridge/tests/test_crm_lead_personal_intel_view.py:46:    def test_page_is_shown_for_an_individual_partner(self):
+./plasticos_crm_bridge/tests/test_crm_lead_personal_intel_view.py:49:    def test_page_is_hidden_without_a_partner(self):
+./plasticos_crm_bridge/tests/test_crm_lead_personal_intel_view.py:52:    def test_page_modifier_reads_only_fields_of_the_form(self):
+./plasticos_crm_bridge/tests/test_crm_lead_personal_intel_view.py:58:    def test_opportunity_form_saves_with_a_partner(self):
+./plasticos_crm_bridge/tests/test_crm_lead_personal_intel_view.py:65:    def test_bridge_views_use_no_dotted_path_in_a_modifier(self):
 ./plasticos_crm_bridge/tests/test_crm_tag_adoption.py:7:class TestCrmTagAdoption(TransactionCase):
 ./plasticos_crm_bridge/tests/test_crm_tag_adoption.py:11:    def test_preexisting_tag_without_xmlid_is_adopted_once(self):
 ./plasticos_crm_bridge/tests/test_crm_tag_adoption.py:26:    def test_fresh_name_creates_one_tag(self):
@@ -496,27 +520,29 @@
 ./plasticos_crm_bridge/tests/test_manual_offers.py:95:    def test_select_buyers_needs_no_gate_and_no_match(self):
 ./plasticos_crm_bridge/tests/test_manual_offers.py:104:    def test_select_buyers_explains_missing_inputs(self):
 ./plasticos_crm_bridge/tests/test_manual_offers.py:117:    def test_closed_opportunity_cannot_start_outreach(self):
-./plasticos_crm_bridge/tests/test_manual_offers.py:127:    def test_contact_picker_domain_is_valid_and_hides_the_supplier(self):
-./plasticos_crm_bridge/tests/test_manual_offers.py:139:    def test_cancelled_selection_creates_nothing(self):
-./plasticos_crm_bridge/tests/test_manual_offers.py:148:    def test_contacts_group_into_one_draft_per_buyer_company(self):
-./plasticos_crm_bridge/tests/test_manual_offers.py:158:    def test_same_name_companies_are_not_merged(self):
-./plasticos_crm_bridge/tests/test_manual_offers.py:165:    def test_company_without_a_deliverable_contact_is_refused(self):
-./plasticos_crm_bridge/tests/test_manual_offers.py:172:    def test_supplier_cannot_be_selected_as_buyer(self):
-./plasticos_crm_bridge/tests/test_manual_offers.py:178:    def test_archived_contact_is_refused(self):
-./plasticos_crm_bridge/tests/test_manual_offers.py:185:    def test_contact_of_another_company_is_refused(self):
-./plasticos_crm_bridge/tests/test_manual_offers.py:209:    def test_draft_is_built_from_the_opportunity_material_only(self):
-./plasticos_crm_bridge/tests/test_manual_offers.py:252:    def test_repeat_generation_reuses_the_draft_and_keeps_history(self):
-./plasticos_crm_bridge/tests/test_manual_offers.py:267:    def test_database_refuses_a_second_active_manual_draft(self):
-./plasticos_crm_bridge/tests/test_manual_offers.py:281:    def test_material_of_another_opportunity_is_refused(self):
-./plasticos_crm_bridge/tests/test_manual_offers.py:296:    def test_manual_offer_email_goes_only_to_its_buyer(self):
-./plasticos_crm_bridge/tests/test_manual_offers.py:309:    def test_manual_offer_reaches_one_winner_and_release(self):
-./plasticos_crm_bridge/tests/test_manual_offers.py:346:    def test_release_stops_when_the_material_drifted_after_send(self):
-./plasticos_crm_bridge/tests/test_manual_offers.py:386:    def test_accepted_offer_email_and_material_evidence_cannot_be_cleared(self):
-./plasticos_crm_bridge/tests/test_manual_offers.py:419:    def test_release_refuses_a_buyer_other_than_the_accepted_one(self):
-./plasticos_crm_bridge/tests/test_manual_offers.py:432:    def test_release_refuses_a_facility_outside_the_accepted_buyer(self):
-./plasticos_crm_bridge/tests/test_manual_offers.py:445:    def test_release_refuses_a_price_other_than_the_accepted_one(self):
-./plasticos_crm_bridge/tests/test_manual_offers.py:460:    def test_emailed_manual_offer_cannot_be_rewritten_through_reset(self):
-./plasticos_crm_bridge/tests/test_manual_offers.py:482:    def test_unsent_manual_offer_reset_cannot_duplicate_an_active_draft(self):
+./plasticos_crm_bridge/tests/test_manual_offers.py:127:    def test_select_buyers_button_is_hidden_once_won(self):
+./plasticos_crm_bridge/tests/test_manual_offers.py:148:    def test_contact_picker_domain_is_valid_and_hides_the_supplier(self):
+./plasticos_crm_bridge/tests/test_manual_offers.py:160:    def test_cancelled_selection_creates_nothing(self):
+./plasticos_crm_bridge/tests/test_manual_offers.py:169:    def test_contacts_group_into_one_draft_per_buyer_company(self):
+./plasticos_crm_bridge/tests/test_manual_offers.py:179:    def test_same_name_companies_are_not_merged(self):
+./plasticos_crm_bridge/tests/test_manual_offers.py:186:    def test_company_without_a_deliverable_contact_is_refused(self):
+./plasticos_crm_bridge/tests/test_manual_offers.py:193:    def test_supplier_cannot_be_selected_as_buyer(self):
+./plasticos_crm_bridge/tests/test_manual_offers.py:199:    def test_archived_contact_is_refused(self):
+./plasticos_crm_bridge/tests/test_manual_offers.py:206:    def test_mixed_active_and_archived_selection_is_refused(self):
+./plasticos_crm_bridge/tests/test_manual_offers.py:215:    def test_contact_of_another_company_is_refused(self):
+./plasticos_crm_bridge/tests/test_manual_offers.py:251:    def test_draft_is_built_from_the_opportunity_material_only(self):
+./plasticos_crm_bridge/tests/test_manual_offers.py:294:    def test_repeat_generation_reuses_the_draft_and_keeps_history(self):
+./plasticos_crm_bridge/tests/test_manual_offers.py:309:    def test_database_refuses_a_second_active_manual_draft(self):
+./plasticos_crm_bridge/tests/test_manual_offers.py:323:    def test_material_of_another_opportunity_is_refused(self):
+./plasticos_crm_bridge/tests/test_manual_offers.py:338:    def test_manual_offer_email_goes_only_to_its_buyer(self):
+./plasticos_crm_bridge/tests/test_manual_offers.py:351:    def test_manual_offer_reaches_one_winner_and_release(self):
+./plasticos_crm_bridge/tests/test_manual_offers.py:388:    def test_release_stops_when_the_material_drifted_after_send(self):
+./plasticos_crm_bridge/tests/test_manual_offers.py:428:    def test_accepted_offer_email_and_material_evidence_cannot_be_cleared(self):
+./plasticos_crm_bridge/tests/test_manual_offers.py:461:    def test_release_refuses_a_buyer_other_than_the_accepted_one(self):
+./plasticos_crm_bridge/tests/test_manual_offers.py:474:    def test_release_refuses_a_facility_outside_the_accepted_buyer(self):
+./plasticos_crm_bridge/tests/test_manual_offers.py:487:    def test_release_refuses_a_price_other_than_the_accepted_one(self):
+./plasticos_crm_bridge/tests/test_manual_offers.py:502:    def test_emailed_manual_offer_cannot_be_rewritten_through_reset(self):
+./plasticos_crm_bridge/tests/test_manual_offers.py:524:    def test_unsent_manual_offer_reset_cannot_duplicate_an_active_draft(self):
 ./plasticos_crm_bridge/tests/test_opportunity_approval.py:81:class TestOpportunityApproval(PlasticosTestCase):
 ./plasticos_crm_bridge/tests/test_opportunity_approval.py:179:    def test_manual_route_mints_lot_and_runs_gate_without_intake_or_facility(self):
 ./plasticos_crm_bridge/tests/test_opportunity_approval.py:215:    def test_two_commands_on_one_partner_and_profile_are_two_lots(self):
@@ -714,26 +740,27 @@
 ./plasticos_documents/tests/test_account_move_transaction_link.py:696:    def test_direct_post_of_a_historical_draft_uses_normal_accounting(self):
 ./plasticos_documents/tests/test_account_move_transaction_link.py:714:    def test_historical_marker_does_not_bypass_the_invoice_purpose_gate(self):
 ./plasticos_documents/tests/test_account_move_transaction_link.py:738:    def test_document_transition_does_not_post_or_roll_back_on_an_undated_bill(self):
-./plasticos_documents/tests/test_compliance_service.py:23:class TestComplianceServiceExists(PlasticosTestCase):
-./plasticos_documents/tests/test_compliance_service.py:39:    def test_model_exists(self):
-./plasticos_documents/tests/test_compliance_service.py:43:    def test_is_compliant_method_exists(self):
-./plasticos_documents/tests/test_compliance_service.py:50:    def test_is_compliant_signature(self):
-./plasticos_documents/tests/test_compliance_service.py:65:class TestDocumentRuleModel(PlasticosTestCase):
-./plasticos_documents/tests/test_compliance_service.py:68:    def test_document_rule_model_exists(self):
-./plasticos_documents/tests/test_compliance_service.py:75:    def test_document_rule_has_required_fields(self):
-./plasticos_documents/tests/test_compliance_service.py:92:    def test_receiving_policy_does_not_sum_partial_rows(self):
-./plasticos_documents/tests/test_compliance_service.py:99:class TestDocumentValidationMatrix(PlasticosTestCase):
-./plasticos_documents/tests/test_compliance_service.py:102:    def test_validation_matrix_model_exists(self):
-./plasticos_documents/tests/test_compliance_service.py:109:    def test_validation_matrix_has_key_fields(self):
-./plasticos_documents/tests/test_compliance_service.py:122:class TestDocumentModel(PlasticosTestCase):
-./plasticos_documents/tests/test_compliance_service.py:125:    def test_document_model_exists(self):
-./plasticos_documents/tests/test_compliance_service.py:132:    def test_document_has_tag_ids(self):
-./plasticos_documents/tests/test_compliance_service.py:141:    def test_document_has_transaction_link(self):
-./plasticos_documents/tests/test_document_query_batch.py:22:class TestDocumentQueryBatch(TransactionCase):
-./plasticos_documents/tests/test_document_query_batch.py:72:    def test_sale_order_batch_keeps_unique_match_and_conflict(self):
-./plasticos_documents/tests/test_document_query_batch.py:102:    def test_missing_doc_page_schedules_one_escalation_each(self):
-./plasticos_documents/tests/test_document_query_batch.py:147:    def test_missing_doc_cron_calls_the_page_once(self):
-./plasticos_documents/tests/test_document_query_batch.py:186:    def test_scale_ticket_page_keeps_one_escalation_each(self):
+./plasticos_documents/tests/test_compliance_service.py:24:class TestComplianceServiceExists(PlasticosTestCase):
+./plasticos_documents/tests/test_compliance_service.py:40:    def test_model_exists(self):
+./plasticos_documents/tests/test_compliance_service.py:44:    def test_is_compliant_method_exists(self):
+./plasticos_documents/tests/test_compliance_service.py:51:    def test_is_compliant_signature(self):
+./plasticos_documents/tests/test_compliance_service.py:66:class TestDocumentRuleModel(PlasticosTestCase):
+./plasticos_documents/tests/test_compliance_service.py:69:    def test_document_rule_model_exists(self):
+./plasticos_documents/tests/test_compliance_service.py:76:    def test_document_rule_has_required_fields(self):
+./plasticos_documents/tests/test_compliance_service.py:93:    def test_legacy_invoice_and_close_read_legacy_rows_only(self):
+./plasticos_documents/tests/test_compliance_service.py:107:    def test_receiving_policy_does_not_sum_partial_rows(self):
+./plasticos_documents/tests/test_compliance_service.py:114:class TestDocumentValidationMatrix(PlasticosTestCase):
+./plasticos_documents/tests/test_compliance_service.py:117:    def test_validation_matrix_model_exists(self):
+./plasticos_documents/tests/test_compliance_service.py:124:    def test_validation_matrix_has_key_fields(self):
+./plasticos_documents/tests/test_compliance_service.py:137:class TestDocumentModel(PlasticosTestCase):
+./plasticos_documents/tests/test_compliance_service.py:140:    def test_document_model_exists(self):
+./plasticos_documents/tests/test_compliance_service.py:147:    def test_document_has_tag_ids(self):
+./plasticos_documents/tests/test_compliance_service.py:156:    def test_document_has_transaction_link(self):
+./plasticos_documents/tests/test_document_query_batch.py:24:class TestDocumentQueryBatch(TransactionCase):
+./plasticos_documents/tests/test_document_query_batch.py:74:    def test_sale_order_batch_keeps_unique_match_and_conflict(self):
+./plasticos_documents/tests/test_document_query_batch.py:104:    def test_missing_doc_page_schedules_one_escalation_each(self):
+./plasticos_documents/tests/test_document_query_batch.py:149:    def test_missing_doc_cron_calls_the_page_once(self):
+./plasticos_documents/tests/test_document_query_batch.py:192:    def test_scale_ticket_page_keeps_one_escalation_each(self):
 ./plasticos_documents/tests/test_expiry_final_gate.py:21:class TestExpiryFinalGate(PlasticosTestCase):
 ./plasticos_documents/tests/test_expiry_final_gate.py:130:    def test_forged_context_cannot_move_the_evidence_clock(self):
 ./plasticos_documents/tests/test_expiry_final_gate.py:155:    def test_action_post_rejects_expired_receiving_when_context_names_an_earlier_day(self):
@@ -753,12 +780,41 @@
 ./plasticos_documents/tests/test_pr322_findings.py:265:    def test_calendar_expiry_updates_stored_compliance_without_a_document_write(self):
 ./plasticos_documents/tests/test_pr322_findings.py:306:    def test_upgrade_projects_documents_the_old_cron_already_marked_expired(self):
 ./plasticos_documents/tests/test_pr322_findings.py:344:    def test_pending_tag_edit_stays_open_before_a_decision(self):
-./plasticos_documents/tests/test_scale_ticket_cardinality.py:26:class TestScaleTicketCardinality(TransactionCase):
-./plasticos_documents/tests/test_scale_ticket_cardinality.py:54:    def test_locked_load_accepts_only_the_scale_ticket_status_write(self):
-./plasticos_documents/tests/test_scale_ticket_cardinality.py:64:    def test_cron_pages_past_the_first_batch_and_replays(self):
-./plasticos_documents/tests/test_scale_ticket_cardinality.py:90:    def test_one_load_failure_does_not_stop_the_next_load(self):
-./plasticos_documents/tests/test_scale_ticket_cardinality.py:127:    def test_more_than_300_loads_are_not_stranded(self):
-./plasticos_documents/tests/test_scale_ticket_cardinality.py:152:    def test_column_rename_refuses_contradictions_and_replays(self):
+./plasticos_documents/tests/test_scale_ticket_cardinality.py:28:class TestScaleTicketCardinality(TransactionCase):
+./plasticos_documents/tests/test_scale_ticket_cardinality.py:60:    def test_locked_load_accepts_only_the_scale_ticket_status_write(self):
+./plasticos_documents/tests/test_scale_ticket_cardinality.py:70:    def test_cron_pages_past_the_first_batch_and_replays(self):
+./plasticos_documents/tests/test_scale_ticket_cardinality.py:96:    def test_one_load_failure_does_not_stop_the_next_load(self):
+./plasticos_documents/tests/test_scale_ticket_cardinality.py:133:    def test_more_than_300_loads_are_not_stranded(self):
+./plasticos_documents/tests/test_scale_ticket_cardinality.py:162:    def test_column_rename_refuses_contradictions_and_replays(self):
+./plasticos_documents/tests/test_scoped_evidence.py:37:class TestScopedEvidence(PlasticosTestCase):
+./plasticos_documents/tests/test_scoped_evidence.py:164:    def test_two_operation_revisions_on_one_original_stay_independent(self):
+./plasticos_documents/tests/test_scoped_evidence.py:184:    def test_replay_is_idempotent_and_a_contradictory_payload_is_refused(self):
+./plasticos_documents/tests/test_scoped_evidence.py:207:    def test_quantity_is_known_only_with_its_unit_and_never_inferred(self):
+./plasticos_documents/tests/test_scoped_evidence.py:229:    def test_undeclared_obligation_and_subject_fail_closed(self):
+./plasticos_documents/tests/test_scoped_evidence.py:251:    def test_accepted_scope_is_immutable_whatever_the_grant(self):
+./plasticos_documents/tests/test_scoped_evidence.py:279:    def test_currentness_expiry_supersession_and_replacement_clear_the_verdict(self):
+./plasticos_documents/tests/test_scoped_evidence.py:308:    def test_conflicting_originals_for_one_coverage_are_ambiguous(self):
+./plasticos_documents/tests/test_scoped_evidence.py:322:    def test_pending_photo_evidence_is_not_complete(self):
+./plasticos_documents/tests/test_scoped_evidence.py:330:    def test_cross_company_isolation(self):
+./plasticos_documents/tests/test_scoped_evidence.py:345:    def test_one_business_verifier_decides_each_row(self):
+./plasticos_documents/tests/test_scoped_evidence.py:359:    def test_form_command_associates_the_draft_scope(self):
+./plasticos_documents/tests/test_scoped_evidence.py:378:    def test_scoped_changes_reach_the_native_invalidation_hook(self):
+./plasticos_documents/tests/test_scoped_evidence.py:397:    def test_operation_row_never_reaches_legacy_compliance(self):
+./plasticos_documents/tests/test_scoped_evidence.py:420:    def test_invoice_posting_gate_blocks_on_missing_legacy_not_on_operation_row(self):
+./plasticos_documents/tests/test_scoped_evidence.py:456:    def test_scale_ticket_clock_reads_actual_events_and_legacy_rows(self):
+./plasticos_documents/tests/test_scoped_evidence.py:505:    def test_load_without_actual_time_leaves_the_clock_unknown(self):
+./plasticos_documents/tests/test_scoped_evidence.py:535:    def test_release_guard_withholds_new_instruction_but_records_actual_events(self):
+./plasticos_documents/tests/test_scoped_evidence.py:556:    def test_ordinary_user_cannot_unlink_evidence(self):
+./plasticos_documents/tests/test_scoped_evidence.py:569:    def test_migration_refuses_an_unsupported_baseline(self):
+./plasticos_documents/tests/test_scoped_evidence.py:577:    def test_migration_classifies_legacy_without_changing_provenance(self):
+./plasticos_documents/tests/test_scoped_evidence.py:606:    def test_verdict_is_not_an_oracle_for_other_companies(self):
+./plasticos_documents/tests/test_scoped_evidence.py:619:    def test_superseded_scope_does_not_block_release_forever(self):
+./plasticos_documents/tests/test_scoped_evidence.py:637:    def test_release_obligations_default_to_every_declared_obligation(self):
+./plasticos_documents/tests/test_scoped_evidence.py:655:    def test_decided_operation_evidence_cannot_be_deleted(self):
+./plasticos_documents/tests/test_scoped_evidence.py:675:    def test_superseded_foreign_company_evidence_still_withholds_release(self):
+./plasticos_documents/tests/test_scoped_evidence.py:714:    def test_verdict_hides_a_readable_subject_in_another_company(self):
+./plasticos_documents/tests/test_scoped_evidence.py:749:    def test_migration_counts_rows_the_column_default_already_classified(self):
+./plasticos_documents/tests/test_scoped_evidence.py:763:    def test_migration_refuses_when_the_census_total_differs_from_the_legacy_rows(self):
 ./plasticos_documents/tests/test_verification_writer.py:15:class TestVerificationWriter(PlasticosTestCase):
 ./plasticos_documents/tests/test_verification_writer.py:85:    def test_verifier_command_records_one_provenance_and_refuses_direct_writes(self):
 ./plasticos_documents/tests/test_verification_writer.py:115:    def test_base_internal_user_cannot_verify(self):
@@ -770,6 +826,7 @@
 ./plasticos_documents_native/tests/test_native_search_parity.py:11:class TestNativeSearchParity(PlasticosTestCase):
 ./plasticos_documents_native/tests/test_native_search_parity.py:43:    def test_url_and_shortcut_follow_computed_false_for_every_negative_operator(self):
 ./plasticos_documents_native/tests/test_native_search_parity.py:87:    def test_two_accepted_scopes_stay_unverified_on_the_native_original(self):
+./plasticos_documents_native/tests/test_native_search_parity.py:114:    def test_operation_rows_never_satisfy_native_verified_search(self):
 ./plasticos_documents_native/tests/test_rehomed_native_cases.py:28:class TestExactAssociation(PlasticosTestCase):
 ./plasticos_documents_native/tests/test_rehomed_native_cases.py:81:    def test_partner_recency_does_not_link_and_review_is_idempotent(self):
 ./plasticos_documents_native/tests/test_rehomed_native_cases.py:120:    def test_purchase_order_association_does_not_invent_a_buyer_or_movement(self):
@@ -782,14 +839,16 @@
 ./plasticos_documents_native/tests/test_rehomed_native_cases.py:415:    def test_projected_verification_search_stays_on_the_exact_row(self):
 ./plasticos_documents_native/tests/test_rehomed_native_cases.py:462:    def test_each_load_document_recomputes_only_its_parent(self):
 ./plasticos_documents_native/tests/test_rehomed_native_cases.py:497:    def test_sibling_scale_ticket_does_not_finish_the_other_load(self):
-./plasticos_documents_native/tests/test_rehomed_native_cases.py:558:class TestNativeVerificationOnEnterpriseFixture(TestNativeVerificationDelegation):
-./plasticos_documents_native/tests/test_rehomed_native_cases.py:564:class TestPr322NativeSearch(TestNativeSearchParity):
+./plasticos_documents_native/tests/test_rehomed_native_cases.py:564:class TestNativeVerificationOnEnterpriseFixture(TestNativeVerificationDelegation):
+./plasticos_documents_native/tests/test_rehomed_native_cases.py:570:class TestPr322NativeSearch(TestNativeSearchParity):
 ./plasticos_documents_native/tests/test_verification_delegation.py:22:class TestNativeVerificationDelegation(PlasticosTestCase):
 ./plasticos_documents_native/tests/test_verification_delegation.py:63:    def test_native_verify_delegates_once_and_projects_the_domain_decision(self):
 ./plasticos_documents_native/tests/test_verification_delegation.py:98:    def test_base_user_cannot_write_or_call_native_verification(self):
 ./plasticos_documents_native/tests/test_verification_delegation.py:111:    def test_sync_cannot_promote_native_verification_and_is_idempotent(self):
 ./plasticos_documents_native/tests/test_verification_delegation.py:125:    def test_historical_disagreement_is_review_and_migration_is_idempotent(self):
 ./plasticos_documents_native/tests/test_verification_delegation.py:175:    def test_ambiguous_native_file_stays_pending(self):
+./plasticos_documents_native/tests/test_verification_delegation.py:210:    def test_sole_operation_row_is_not_global_native_verification(self):
+./plasticos_documents_native/tests/test_verification_delegation.py:238:    def test_mixed_legacy_and_operation_original_stays_ambiguous(self):
 ./plasticos_enrichment/tests/test_gate_enrichment_fallback.py:83:class TestGateEnrichmentFallback(PlasticosTestCase):
 ./plasticos_enrichment/tests/test_gate_enrichment_fallback.py:121:    def test_gate_converge_live_writeback_applies_fields(self):
 ./plasticos_enrichment/tests/test_gate_enrichment_fallback.py:150:    def test_gate_converge_review_only_when_autowriteback_disabled(self):
@@ -812,6 +871,70 @@
 ./plasticos_enrichment/tests/test_inject_batch_queries.py:22:class TestInjectBatchQueries(PlasticosTestCase):
 ./plasticos_enrichment/tests/test_inject_batch_queries.py:32:    def test_gate_review_inject_writes_every_provenance_row_in_one_create(self):
 ./plasticos_enrichment/tests/test_inject_batch_queries.py:56:    def test_material_inject_looks_profiles_up_once_and_merges_a_repeated_identity(self):
+./plasticos_export/tests/test_booking_allocation.py:16:class TestBookingAllocation(ExportFixtureMixin, PlasticosTestCase):
+./plasticos_export/tests/test_booking_allocation.py:52:    def test_phase1_gate_five_40hc_four_supplier_pos(self):
+./plasticos_export/tests/test_booking_allocation.py:71:    def test_commit_replay_and_stale_revision(self):
+./plasticos_export/tests/test_booking_allocation.py:87:    def test_quantity_is_planned_only_in_native_units(self):
+./plasticos_export/tests/test_booking_allocation.py:106:    def test_sources_must_be_exact_and_same_company(self):
+./plasticos_export/tests/test_booking_allocation.py:131:    def test_release_frees_the_slot_and_keeps_history(self):
+./plasticos_export/tests/test_booking_allocation.py:152:    def test_journey_binding_is_exact_and_exclusive(self):
+./plasticos_export/tests/test_booking_allocation.py:179:    def test_held_slot_withholds_its_load_from_new_physical_instructions(self):
+./plasticos_export/tests/test_booking_allocation.py:200:    def test_po_constraints_are_read_live_never_copied(self):
+./plasticos_export/tests/test_booking_and_revision.py:181:class TestBookingAndRevision(ExportFixtureMixin, PlasticosTestCase):
+./plasticos_export/tests/test_booking_and_revision.py:187:    def test_candidate_needs_exact_source_and_changes_nothing_current(self):
+./plasticos_export/tests/test_booking_and_revision.py:214:    def test_candidate_replay_is_idempotent_and_a_changed_payload_is_stale(self):
+./plasticos_export/tests/test_booking_and_revision.py:233:    def test_one_booking_five_40hc_becomes_five_distinct_slots(self):
+./plasticos_export/tests/test_booking_and_revision.py:253:    def test_acceptance_is_compare_and_set_and_a_roll_supersedes(self):
+./plasticos_export/tests/test_booking_and_revision.py:271:    def test_accepted_revision_is_immutable_and_never_deleted(self):
+./plasticos_export/tests/test_booking_and_revision.py:289:    def test_times_keep_their_zone_and_precision(self):
+./plasticos_export/tests/test_booking_and_revision.py:304:    def test_other_places_and_references_stay_distinct_source_terms(self):
+./plasticos_export/tests/test_booking_and_revision.py:321:    def test_acceptance_needs_identity_and_a_new_number_is_not_a_revision(self):
+./plasticos_export/tests/test_booking_and_revision.py:334:    def test_reduction_retires_free_slots_and_holds_committed_ones(self):
+./plasticos_export/tests/test_booking_and_revision.py:374:    def test_stated_cancellation_cancels_the_booking(self):
+./plasticos_export/tests/test_booking_and_revision.py:386:    def test_commands_refuse_outsiders_and_sudo(self):
+./plasticos_export/tests/test_booking_and_revision.py:420:    def test_restored_capacity_lifts_holds_before_adding_slots(self):
+./plasticos_export/tests/test_booking_and_revision.py:444:    def test_confirmed_count_follows_the_accepted_revision_not_held_slots(self):
+./plasticos_export/tests/test_booking_and_revision.py:460:    def test_daylight_saving_ambiguity_is_refused_not_guessed(self):
+./plasticos_export/tests/test_booking_and_revision.py:471:    def test_acceptance_confirmation_compares_against_the_revision_it_captured(self):
+./plasticos_export/tests/test_document_obligations.py:39:class TestExportDocumentObligations(PlasticosTestCase):
+./plasticos_export/tests/test_document_obligations.py:96:    def test_export_declares_its_four_obligation_kinds(self):
+./plasticos_export/tests/test_document_obligations.py:106:    def test_release_obligations_per_operation_kind(self):
+./plasticos_export/tests/test_document_obligations.py:113:    def test_other_owners_keep_the_documents_default(self):
+./plasticos_export/tests/test_document_obligations.py:119:    def test_stale_booking_confirmation_withholds_every_release(self):
+./plasticos_export/tests/test_document_obligations.py:125:    def test_stale_vgm_withholds_only_carrier_documents(self):
+./plasticos_export/tests/test_document_obligations.py:134:    def test_after_the_fact_evidence_never_gates_a_new_instruction(self):
+./plasticos_export/tests/test_export_owner_handoff.py:27:class TestExportOwnerHandoff(ExportFixtureMixin, PlasticosTestCase):
+./plasticos_export/tests/test_export_owner_handoff.py:66:    def test_notice_goes_through_linda_with_the_exact_original(self):
+./plasticos_export/tests/test_export_owner_handoff.py:88:    def test_unauthorized_caller_gets_not_available(self):
+./plasticos_export/tests/test_export_owner_handoff.py:115:    def test_notice_audience_purpose_and_currentness(self):
+./plasticos_export/tests/test_export_owner_handoff.py:130:    def test_carrier_mail_sender_and_recipient_rules(self):
+./plasticos_export/tests/test_export_owner_handoff.py:149:    def test_linda_off_records_nothing(self):
+./plasticos_export/tests/test_export_owner_handoff.py:155:    def test_booking_reply_is_recorded_once_and_withheld_without_its_original(self):
+./plasticos_export/tests/test_export_owner_handoff.py:175:    def test_export_writes_no_field_on_another_owner_and_has_no_controller(self):
+./plasticos_export/tests/test_install.py:117:class TestExportInstall(TransactionCase):
+./plasticos_export/tests/test_install.py:123:    def test_module_is_installed_at_the_manifest_version(self):
+./plasticos_export/tests/test_install.py:132:    def test_dependencies_are_its_owners_and_installed(self):
+./plasticos_export/tests/test_install.py:140:    def test_no_owner_module_depends_on_export(self):
+./plasticos_export/tests/test_install.py:144:    def test_export_owns_exactly_the_declared_models_and_records(self):
+./plasticos_export/tests/test_install.py:162:    def test_installing_export_writes_no_other_modules_record(self):
+./plasticos_export/tests/test_multicompany_permissions.py:17:class TestMulticompanyPermissions(ExportFixtureMixin, PlasticosTestCase):
+./plasticos_export/tests/test_multicompany_permissions.py:48:    def test_other_company_sees_and_counts_nothing(self):
+./plasticos_export/tests/test_multicompany_permissions.py:65:    def test_other_company_cannot_command_print_or_read_the_original(self):
+./plasticos_export/tests/test_multicompany_permissions.py:87:    def test_foreign_company_booking_is_refused_at_create(self):
+./plasticos_export/tests/test_multicompany_permissions.py:94:    def test_read_only_role_reads_but_never_writes(self):
+./plasticos_export/tests/test_multicompany_permissions.py:110:    def test_accepted_revision_resists_stale_replay_and_unscoped_writes(self):
+./plasticos_export/tests/test_multicompany_permissions.py:128:    def test_sales_rep_reads_only_cargo_on_their_own_sale_orders(self):
+./plasticos_export/tests/test_multicompany_permissions.py:150:    def test_derived_and_company_fields_cannot_be_written(self):
+./plasticos_export/tests/test_multicompany_permissions.py:179:    def test_sales_rep_opens_cargo_without_purchase_rights(self):
+./plasticos_export/tests/test_views_and_reports.py:31:class TestViewsAndReports(ExportFixtureMixin, PlasticosTestCase):
+./plasticos_export/tests/test_views_and_reports.py:83:    def test_six_reports_have_their_actions_menus_and_grain(self):
+./plasticos_export/tests/test_views_and_reports.py:104:    def test_report_rows_are_not_inflated_by_joins(self):
+./plasticos_export/tests/test_views_and_reports.py:123:    def test_views_load_and_filters_evaluate(self):
+./plasticos_export/tests/test_views_and_reports.py:150:    def test_booking_summary_renders_currentness_and_never_an_unreviewed_candidate(self):
+./plasticos_export/tests/test_views_and_reports.py:170:    def test_container_manifest_renders_two_feeders_and_no_inferred_movement(self):
+./plasticos_export/tests/test_views_and_reports.py:187:    def test_date_only_cutoff_appears_on_the_deadline_calendar(self):
+./plasticos_export/tests/test_views_and_reports.py:206:    def test_late_local_cutoff_stays_on_its_local_day(self):
+./plasticos_export/tests/test_views_and_reports.py:222:    def test_planned_quantities_are_never_summed_across_units(self):
 ./plasticos_facility_profile/tests/test_code_uniqueness_batch.py:26:class TestCodeUniquenessBatch(TransactionCase):
 ./plasticos_facility_profile/tests/test_code_uniqueness_batch.py:30:    def test_batch_create_rejects_an_existing_code_before_insert(self):
 ./plasticos_facility_profile/tests/test_code_uniqueness_batch.py:42:    def test_batch_create_runs_one_uniqueness_search(self):
@@ -949,6 +1072,50 @@
 ./plasticos_intake_normalizer/tests/test_packet_material_grade.py:31:    def test_drums_packet_names_polymer_form_and_grade(self):
 ./plasticos_intake_normalizer/tests/test_packet_material_grade.py:38:    def test_sheet_form_packet_has_no_grade(self):
 ./plasticos_intake_normalizer/tests/test_packet_material_grade.py:44:    def test_profile_block_carries_the_profile_grade(self):
+./plasticos_logistics/tests/test_export_release_guards.py:26:class TestExportReleaseGuards(TransactionCase):
+./plasticos_logistics/tests/test_export_release_guards.py:78:    def test_hold_refuses_every_new_instruction_path(self):
+./plasticos_logistics/tests/test_export_release_guards.py:110:    def test_hold_refuses_scheduling_a_new_instruction(self):
+./plasticos_logistics/tests/test_export_release_guards.py:118:    def test_hold_never_blocks_reporting_an_actual_event(self):
+./plasticos_logistics/tests/test_export_release_guards.py:131:    def test_domestic_control_releases_on_every_path(self):
+./plasticos_logistics/tests/test_iso_journey.py:21:class TestIsoJourney(PlasticosTestCase):
+./plasticos_logistics/tests/test_iso_journey.py:78:    def test_register_is_idempotent_by_company_and_source_cycle(self):
+./plasticos_logistics/tests/test_iso_journey.py:88:    def test_changed_facts_for_an_existing_cycle_are_refused_not_rewritten(self):
+./plasticos_logistics/tests/test_iso_journey.py:94:    def test_same_iso_number_recurs_in_another_cycle(self):
+./plasticos_logistics/tests/test_iso_journey.py:101:    def test_evidence_makes_the_journey_verified(self):
+./plasticos_logistics/tests/test_iso_journey.py:108:    def test_trailer_or_booking_number_is_not_an_iso_identity(self):
+./plasticos_logistics/tests/test_iso_journey.py:115:    def test_equipment_class_is_not_the_facility_equipment_registry(self):
+./plasticos_logistics/tests/test_iso_journey.py:121:    def test_candidate_cannot_be_created_already_attributed(self):
+./plasticos_logistics/tests/test_iso_journey.py:127:    def test_candidate_confirmation_requires_its_source_cycle(self):
+./plasticos_logistics/tests/test_iso_journey.py:135:    def test_attributed_identity_is_immutable_and_not_deletable(self):
+./plasticos_logistics/tests/test_iso_journey.py:144:    def test_registration_records_no_booking_or_milestone(self):
+./plasticos_logistics/tests/test_iso_journey.py:150:    def test_duplicate_cycle_is_refused_by_the_database(self):
+./plasticos_logistics/tests/test_iso_journey.py:159:    def test_two_feeder_loads_feed_one_container(self):
+./plasticos_logistics/tests/test_iso_journey.py:168:    def test_one_feeder_load_feeds_two_containers(self):
+./plasticos_logistics/tests/test_iso_journey.py:176:    def test_source_bind_replay_returns_the_existing_row(self):
+./plasticos_logistics/tests/test_iso_journey.py:183:    def test_source_bind_replay_with_different_facts_is_blocked(self):
+./plasticos_logistics/tests/test_iso_journey.py:208:    def test_fas_delivery_with_no_stock_move_uses_original_evidence(self):
+./plasticos_logistics/tests/test_iso_journey.py:219:    def test_nonstock_source_without_evidence_is_refused_by_the_database(self):
+./plasticos_logistics/tests/test_iso_journey.py:231:    def test_cross_company_load_cannot_feed_a_journey(self):
+./plasticos_logistics/tests/test_iso_journey.py:239:    def test_source_party_must_be_a_party_of_the_load(self):
+./plasticos_logistics/tests/test_iso_journey.py:245:    def test_unattributed_candidate_journey_accepts_no_source(self):
+./plasticos_logistics/tests/test_iso_journey.py:249:    def test_accepted_source_is_immutable_and_not_deletable(self):
+./plasticos_logistics/tests/test_iso_journey.py:257:    def test_source_state_changes_only_through_accept(self):
+./plasticos_logistics/tests/test_iso_journey.py:276:    def test_bare_internal_user_cannot_read_or_create_journeys(self):
+./plasticos_logistics/tests/test_iso_journey.py:286:    def test_attachment_evidence_from_another_company_is_refused(self):
+./plasticos_logistics/tests/test_linda_booking_source.py:31:class TestLindaBookingSource(PlasticosTestCase):
+./plasticos_logistics/tests/test_linda_booking_source.py:161:    def test_without_the_export_resolver_booking_mail_is_not_available(self):
+./plasticos_logistics/tests/test_linda_booking_source.py:170:    def test_booking_issue_is_recorded_on_the_typed_branch_and_sent_once(self):
+./plasticos_logistics/tests/test_linda_booking_source.py:196:    def test_typed_rows_obey_the_branch_check(self):
+./plasticos_logistics/tests/test_linda_booking_source.py:216:    def test_stale_payload_or_revision_is_refused(self):
+./plasticos_logistics/tests/test_linda_booking_source.py:227:    def test_wrong_audience_or_recipient_is_blocked(self):
+./plasticos_logistics/tests/test_linda_booking_source.py:234:    def test_a_source_company_without_email_is_never_replaced_as_sender(self):
+./plasticos_logistics/tests/test_linda_booking_source.py:241:    def test_reused_operation_key_with_other_content_is_stale(self):
+./plasticos_logistics/tests/test_linda_booking_source.py:249:    def test_revision_before_claim_withholds_the_old_mail(self):
+./plasticos_logistics/tests/test_linda_booking_source.py:260:    def test_claim_before_revision_keeps_history_and_holds_the_new_revision(self):
+./plasticos_logistics/tests/test_linda_booking_source.py:276:    def test_interrupted_send_stays_unknown_and_is_not_resent(self):
+./plasticos_logistics/tests/test_linda_booking_source.py:287:    def test_off_mode_records_nothing(self):
+./plasticos_logistics/tests/test_linda_booking_source.py:318:    def test_booking_reply_is_candidate_evidence_bound_by_exact_ancestry(self):
+./plasticos_logistics/tests/test_linda_booking_source.py:339:    def test_reply_on_an_unregistered_source_model_records_nothing(self):
 ./plasticos_logistics/tests/test_linda_freight_models.py:18:class TestLindaFreightModels(PlasticosTestCase):
 ./plasticos_logistics/tests/test_linda_freight_models.py:148:    def test_manual_response_records_provenance_without_fabricating_send_evidence(self):
 ./plasticos_logistics/tests/test_linda_freight_models.py:163:    def test_recipient_send_evidence_stays_internally_consistent(self):
@@ -984,8 +1151,17 @@
 ./plasticos_logistics/tests/test_linda_freight_models.py:1068:    def test_freight_evidence_counts_read_the_recordset_once(self):
 ./plasticos_logistics/tests/test_linda_freight_models.py:1086:    def test_cancel_stale_requests_keeps_fingerprint_and_outside_loads(self):
 ./plasticos_logistics/tests/test_linda_freight_models.py:1116:    def test_dispatch_ack_cron_escalates_only_the_aged_test_loads(self):
-./plasticos_logistics/tests/test_linda_freight_models.py:1145:    def test_two_loads_create_two_rfq_rows_and_a_repeat_creates_none(self):
-./plasticos_logistics/tests/test_linda_freight_models.py:1164:    def test_second_actual_cost_raises_and_a_correction_supersedes(self):
+./plasticos_logistics/tests/test_linda_freight_models.py:1147:    def test_two_loads_create_two_rfq_rows_and_a_repeat_creates_none(self):
+./plasticos_logistics/tests/test_linda_freight_models.py:1166:    def test_second_actual_cost_raises_and_a_correction_supersedes(self):
+./plasticos_logistics/tests/test_linda_freight_models.py:1184:class TestLindaLoadAcknowledgementObligations(PlasticosTestCase):
+./plasticos_logistics/tests/test_linda_freight_models.py:1263:    def test_reminder_and_escalation_follow_the_actual_send_clock_once_each(self):
+./plasticos_logistics/tests/test_linda_freight_models.py:1285:    def test_sweep_rotates_so_no_due_load_is_starved(self):
+./plasticos_logistics/tests/test_linda_freight_models.py:1300:    def test_acknowledgement_withholds_a_queued_reminder_before_claim(self):
+./plasticos_logistics/tests/test_linda_freight_models.py:1315:    def test_unknown_reminder_outcome_is_never_sent_again(self):
+./plasticos_logistics/tests/test_linda_freight_models.py:1330:    def test_off_mode_records_no_obligation(self):
+./plasticos_logistics/tests/test_linda_freight_models.py:1336:    def test_job_polls_every_five_minutes_and_data_never_forces_it_active(self):
+./plasticos_logistics/tests/test_linda_freight_models.py:1347:    def test_document_chase_reads_documents_status_once_and_stops_on_evidence(self):
+./plasticos_logistics/tests/test_linda_freight_models.py:1389:    def test_claim_of_no_mail_is_a_skip_not_a_sql_error(self):
 ./plasticos_logistics/tests/test_linda_inbound.py:31:class TestLindaInbound(PlasticosTestCase):
 ./plasticos_logistics/tests/test_linda_inbound.py:152:    def test_po_only_reply_binds_exact_issue_and_keeps_native_evidence(self):
 ./plasticos_logistics/tests/test_linda_inbound.py:183:    def test_outgoing_template_message_is_not_reply_evidence(self):
@@ -1002,6 +1178,8 @@
 ./plasticos_logistics/tests/test_linda_inbound.py:416:    def test_off_mode_records_nothing_and_shadow_records_only(self):
 ./plasticos_logistics/tests/test_linda_inbound.py:428:    def test_unrelated_order_mail_is_not_linda_evidence(self):
 ./plasticos_logistics/tests/test_linda_inbound.py:436:    def test_users_cannot_forge_edit_or_delete_responses(self):
+./plasticos_logistics/tests/test_linda_inbound.py:464:    def test_reply_on_an_unregistered_source_kind_is_not_linda_evidence(self):
+./plasticos_logistics/tests/test_linda_inbound.py:484:    def test_reply_on_a_registered_source_without_a_typed_request_records_nothing(self):
 ./plasticos_logistics/tests/test_linda_po_issuance.py:39:class TestLindaPoIssuance(PlasticosTestCase):
 ./plasticos_logistics/tests/test_linda_po_issuance.py:220:    def test_po_only_live_issue_reaches_sink_once(self):
 ./plasticos_logistics/tests/test_linda_po_issuance.py:258:    def test_attachment_is_the_native_po_report(self):
@@ -1094,40 +1272,91 @@
 ./plasticos_logistics/tests/test_linda_so_issuance.py:794:    def test_same_batch_notice_failure_leaves_the_reissue_unattempted(self):
 ./plasticos_logistics/tests/test_linda_so_issuance.py:817:    def test_same_batch_unknown_notice_leaves_the_reissue_unattempted(self):
 ./plasticos_logistics/tests/test_linda_so_issuance.py:838:    def test_unknown_notice_from_an_earlier_batch_holds_the_reissue(self):
-./plasticos_logistics/tests/test_load_cardinality.py:32:class TestLoadCardinality(TransactionCase):
-./plasticos_logistics/tests/test_load_cardinality.py:59:    def test_create_links_the_sale_order_transaction_once(self):
-./plasticos_logistics/tests/test_load_cardinality.py:67:    def test_zero_loads_open_an_empty_set(self):
-./plasticos_logistics/tests/test_load_cardinality.py:74:    def test_two_loads_stay_on_the_same_transaction(self):
-./plasticos_logistics/tests/test_load_cardinality.py:84:    def test_a_load_without_an_eligible_transaction_stays_unlinked(self):
-./plasticos_logistics/tests/test_load_cardinality.py:88:    def test_ambiguous_sale_order_does_not_pick_a_transaction(self):
-./plasticos_logistics/tests/test_load_cardinality.py:97:    def test_close_posts_one_chatter_message(self):
-./plasticos_logistics/tests/test_load_cardinality.py:105:    def test_delivery_term_override_reads_the_linked_transaction(self):
-./plasticos_logistics/tests/test_load_cardinality.py:111:    def test_a_second_transaction_cannot_take_the_same_load(self):
-./plasticos_logistics/tests/test_load_cardinality.py:120:    def test_missing_supplier_or_buyer_refuses_the_link(self):
-./plasticos_logistics/tests/test_load_cardinality.py:127:    def test_cross_company_link_is_refused(self):
-./plasticos_logistics/tests/test_load_cardinality.py:142:    def test_dispatched_or_evidence_bearing_link_cannot_be_cleared(self):
-./plasticos_logistics/tests/test_load_cardinality.py:159:    def test_parent_migration_copies_a_null_parent_and_refuses_a_disagreement(self):
-./plasticos_logistics/tests/test_load_cardinality.py:201:    def test_delayed_eligibility_links_the_only_transaction(self):
-./plasticos_logistics/tests/test_load_cardinality.py:208:    def test_a_second_eligible_transaction_does_not_move_an_existing_load(self):
-./plasticos_logistics/tests/test_load_cardinality.py:216:    def test_mismatched_sale_order_is_refused_and_the_load_stays_unlinked(self):
-./plasticos_logistics/tests/test_load_cardinality.py:223:    def test_ordinary_clear_and_reassign_are_refused(self):
-./plasticos_logistics/tests/test_load_cardinality.py:239:    def test_duplicate_drops_parent_dates_and_evidence(self):
-./plasticos_logistics/tests/test_load_cardinality.py:255:    def test_protected_load_and_transaction_cannot_be_removed(self):
-./plasticos_logistics/tests/test_load_cardinality.py:267:    def test_a_draft_load_cannot_join_a_delivered_transaction(self):
-./plasticos_logistics/tests/test_load_cardinality.py:277:    def test_transaction_milestones_wait_for_every_load(self):
-./plasticos_logistics/tests/test_load_cardinality.py:304:    def test_sale_order_change_with_linked_loads_is_atomic(self):
-./plasticos_logistics/tests/test_load_cardinality.py:318:    def test_direct_parent_create_respects_the_join_milestone(self):
-./plasticos_logistics/tests/test_load_cardinality.py:433:    def test_zz_concurrent_late_load_cannot_appear_behind_a_milestone(self):
-./plasticos_logistics/tests/test_load_cardinality.py:439:    def test_zz_concurrent_direct_parent_cannot_join_behind_a_milestone(self):
-./plasticos_logistics/tests/test_load_cardinality.py:450:    def test_zz_stale_snapshot_cannot_advance_over_newly_committed_load(self):
-./plasticos_logistics/tests/test_load_cardinality.py:529:    def test_a_transaction_without_loads_can_still_be_dispatched(self):
-./plasticos_logistics/tests/test_load_cardinality.py:535:    def test_completed_parent_migration_does_not_restore_a_cleared_link(self):
-./plasticos_logistics/tests/test_load_cardinality.py:555:    def test_a_second_session_blocks_on_a_held_row_lock(self):
-./plasticos_logistics/tests/test_load_cardinality.py:666:    def test_two_sessions_commit_distinct_loads_under_one_transaction(self):
-./plasticos_logistics/tests/test_load_cardinality.py:728:    def test_two_sessions_cannot_both_commit_competing_load_ownership(self):
-./plasticos_logistics/tests/test_load_cardinality.py:817:    def test_reconcile_links_two_sale_orders_in_one_call(self):
-./plasticos_logistics/tests/test_load_cardinality.py:834:    def test_create_does_not_link_an_unlinked_load_on_another_sale_order(self):
-./plasticos_logistics/tests/test_load_cardinality.py:842:    def test_reconcile_leaves_a_load_unlinked_when_the_milestone_fails(self):
+./plasticos_logistics/tests/test_load_cardinality.py:34:class TestLoadCardinality(TransactionCase):
+./plasticos_logistics/tests/test_load_cardinality.py:61:    def test_create_links_the_sale_order_transaction_once(self):
+./plasticos_logistics/tests/test_load_cardinality.py:69:    def test_zero_loads_open_an_empty_set(self):
+./plasticos_logistics/tests/test_load_cardinality.py:76:    def test_two_loads_stay_on_the_same_transaction(self):
+./plasticos_logistics/tests/test_load_cardinality.py:86:    def test_a_load_without_an_eligible_transaction_stays_unlinked(self):
+./plasticos_logistics/tests/test_load_cardinality.py:90:    def test_ambiguous_sale_order_does_not_pick_a_transaction(self):
+./plasticos_logistics/tests/test_load_cardinality.py:99:    def test_close_posts_one_chatter_message(self):
+./plasticos_logistics/tests/test_load_cardinality.py:107:    def test_delivery_term_override_reads_the_linked_transaction(self):
+./plasticos_logistics/tests/test_load_cardinality.py:113:    def test_a_second_transaction_cannot_take_the_same_load(self):
+./plasticos_logistics/tests/test_load_cardinality.py:122:    def test_missing_supplier_or_buyer_refuses_the_link(self):
+./plasticos_logistics/tests/test_load_cardinality.py:129:    def test_cross_company_link_is_refused(self):
+./plasticos_logistics/tests/test_load_cardinality.py:144:    def test_dispatched_or_evidence_bearing_link_cannot_be_cleared(self):
+./plasticos_logistics/tests/test_load_cardinality.py:161:    def test_parent_migration_copies_a_null_parent_and_refuses_a_disagreement(self):
+./plasticos_logistics/tests/test_load_cardinality.py:207:    def test_delayed_eligibility_links_the_only_transaction(self):
+./plasticos_logistics/tests/test_load_cardinality.py:214:    def test_a_second_eligible_transaction_does_not_move_an_existing_load(self):
+./plasticos_logistics/tests/test_load_cardinality.py:222:    def test_mismatched_sale_order_is_refused_and_the_load_stays_unlinked(self):
+./plasticos_logistics/tests/test_load_cardinality.py:229:    def test_ordinary_clear_and_reassign_are_refused(self):
+./plasticos_logistics/tests/test_load_cardinality.py:245:    def test_duplicate_drops_parent_dates_and_evidence(self):
+./plasticos_logistics/tests/test_load_cardinality.py:261:    def test_protected_load_and_transaction_cannot_be_removed(self):
+./plasticos_logistics/tests/test_load_cardinality.py:273:    def test_a_draft_load_cannot_join_a_delivered_transaction(self):
+./plasticos_logistics/tests/test_load_cardinality.py:283:    def test_transaction_milestones_wait_for_every_load(self):
+./plasticos_logistics/tests/test_load_cardinality.py:310:    def test_sale_order_change_with_linked_loads_is_atomic(self):
+./plasticos_logistics/tests/test_load_cardinality.py:324:    def test_direct_parent_create_respects_the_join_milestone(self):
+./plasticos_logistics/tests/test_load_cardinality.py:439:    def test_zz_concurrent_late_load_cannot_appear_behind_a_milestone(self):
+./plasticos_logistics/tests/test_load_cardinality.py:445:    def test_zz_concurrent_direct_parent_cannot_join_behind_a_milestone(self):
+./plasticos_logistics/tests/test_load_cardinality.py:456:    def test_zz_stale_snapshot_cannot_advance_over_newly_committed_load(self):
+./plasticos_logistics/tests/test_load_cardinality.py:535:    def test_a_transaction_without_loads_can_still_be_dispatched(self):
+./plasticos_logistics/tests/test_load_cardinality.py:541:    def test_completed_parent_migration_does_not_restore_a_cleared_link(self):
+./plasticos_logistics/tests/test_load_cardinality.py:565:    def test_a_second_session_blocks_on_a_held_row_lock(self):
+./plasticos_logistics/tests/test_load_cardinality.py:676:    def test_two_sessions_commit_distinct_loads_under_one_transaction(self):
+./plasticos_logistics/tests/test_load_cardinality.py:738:    def test_two_sessions_cannot_both_commit_competing_load_ownership(self):
+./plasticos_logistics/tests/test_load_cardinality.py:827:    def test_reconcile_links_two_sale_orders_in_one_call(self):
+./plasticos_logistics/tests/test_load_cardinality.py:844:    def test_create_does_not_link_an_unlinked_load_on_another_sale_order(self):
+./plasticos_logistics/tests/test_load_cardinality.py:852:    def test_reconcile_leaves_a_load_unlinked_when_the_milestone_fails(self):
+./plasticos_logistics/tests/test_load_cardinality.py:871:class TestLoadSourceCompanyAndPhysicalEvents(TransactionCase):
+./plasticos_logistics/tests/test_load_cardinality.py:944:    def test_sale_order_load_takes_its_sale_order_company(self):
+./plasticos_logistics/tests/test_load_cardinality.py:949:    def test_named_company_must_match_the_sale_order(self):
+./plasticos_logistics/tests/test_load_cardinality.py:955:    def test_user_must_name_the_company_of_a_buyerless_load(self):
+./plasticos_logistics/tests/test_load_cardinality.py:963:    def test_company_is_immutable_once_the_load_leaves_draft(self):
+./plasticos_logistics/tests/test_load_cardinality.py:971:    def test_buyerless_load_joins_a_purchase_backed_transaction(self):
+./plasticos_logistics/tests/test_load_cardinality.py:990:    def test_bind_refuses_a_route_the_records_do_not_support(self):
+./plasticos_logistics/tests/test_load_cardinality.py:999:    def test_buyerless_load_cannot_join_a_purchase_order_of_another_company(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1007:    def test_buyerless_load_cannot_join_a_transaction_without_purchase_orders(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1014:    def test_sale_backed_route_still_requires_the_real_buyer(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1029:    def test_buyerless_manual_rate_uses_the_manual_context(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1038:    def test_same_as_last_abstains_for_a_buyerless_load(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1047:    def test_manual_context_cannot_confirm_a_same_as_last_rate(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1066:    def test_changed_lane_withholds_release_of_a_manual_rate(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1082:    def test_owner_hold_blocks_every_release_path(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1107:    def test_release_check_reports_a_stale_context_token(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1114:    def test_hold_does_not_block_recording_what_already_happened(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1127:    def test_dispatch_state_cannot_be_written_around_the_guard(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1137:    def test_acknowledgment_job_escalates_without_resending_the_packet(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1154:    def test_acknowledgment_job_reaches_loads_beyond_one_page_once_each(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1198:    def test_state_changes_never_fill_actual_clocks(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1207:    def test_actual_pickup_needs_evidence_attached_to_this_load(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1218:    def test_delayed_entry_keeps_the_actual_time_and_replays_once(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1234:    def test_correction_needs_a_reason_and_keeps_the_first_event(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1248:    def test_actual_clocks_refuse_future_time_order_and_direct_writes(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1262:    def test_delivered_to_port_without_a_buyer_fact(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1274:    def test_company_census_repairs_one_source_and_refuses_none(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1295:    def test_post_migration_rerun_is_a_no_op(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1307:    def test_user_cannot_clear_the_company_of_a_load(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1319:    def test_actual_event_replay_ignores_sub_second_precision(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1338:    def test_company_census_repairs_from_a_purchase_backed_parent(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1348:    def test_company_census_refuses_conflicting_and_disagreeing_sources(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1368:    def test_company_census_reads_the_pre_14_6_parent_column(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1396:    def test_refusal_message_names_the_remedy_and_caps_the_listing(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1434:    def test_carrier_documents_name_the_company_of_a_buyerless_load(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1445:    def test_carrier_documents_keep_the_sale_order_company_of_a_sale_backed_load(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1457:class TestCarrierComposerSendTimeRelease(TransactionCase):
+./plasticos_logistics/tests/test_load_cardinality.py:1507:    def test_lane_change_while_the_composer_is_open_refuses_the_send(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1520:    def test_each_carrier_document_composer_rechecks_at_send(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1530:    def test_a_carrier_composer_cannot_be_scheduled_past_the_check(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1540:    def test_only_a_confirmed_packet_send_starts_the_acknowledgement_clock(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1618:    def test_a_company_without_its_own_sender_never_confirms_a_packet(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1639:    def test_a_composer_for_a_company_without_its_own_sender_refuses_the_send(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1668:    def test_a_follower_copy_does_not_start_the_carrier_clock(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1687:    def test_a_carrier_document_composer_never_tags_the_packet_header(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1704:    def test_one_invalid_co_recipient_does_not_stop_the_clock(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1731:    def test_a_second_direct_packet_never_moves_the_clock(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1748:    def test_unchanged_context_still_sends_and_ordinary_notes_are_untouched(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1767:class TestCarrierPaperworkWithoutABuyer(TransactionCase):
+./plasticos_logistics/tests/test_load_cardinality.py:1792:    def test_buyerless_paperwork_prints_no_order_or_buyer(self):
+./plasticos_logistics/tests/test_load_cardinality.py:1808:    def test_sale_backed_paperwork_keeps_its_order_number(self):
 ./plasticos_logistics/tests/test_same_as_last.py:9:class TestSameAsLast(TransactionCase):
 ./plasticos_logistics/tests/test_same_as_last.py:73:    def test_the_copy_is_one_complete_draft_deal_dated_today(self):
 ./plasticos_logistics/tests/test_same_as_last.py:120:    def test_every_purchase_order_and_every_load_is_copied(self):
@@ -1193,8 +1422,8 @@
 ./plasticos_material_profile/tests/test_material_normalizer.py:114:    def test_bare_ldpe_stays_unresolved_for_the_worksheet_resolver(self):
 ./plasticos_material_profile/tests/test_material_normalizer.py:124:    def test_crm_exact_identities_do_not_change_worksheet_phrases(self):
 ./plasticos_material_profile/tests/test_material_normalizer.py:182:    def test_approved_vanillasoft_aliases_resolve_every_master(self):
-./plasticos_material_profile/tests/test_material_normalizer.py:232:    def test_ledger_phrases_resolve_on_both_importers_and_keep_description_detail(self):
-./plasticos_material_profile/tests/test_material_normalizer.py:260:    def test_worksheet_import_still_calls_normalize_material(self):
+./plasticos_material_profile/tests/test_material_normalizer.py:242:    def test_ledger_phrases_resolve_on_both_importers_and_keep_description_detail(self):
+./plasticos_material_profile/tests/test_material_normalizer.py:270:    def test_worksheet_import_still_calls_normalize_material(self):
 ./plasticos_material_profile/tests/test_material_profile_counts.py:13:class TestMaterialProfileCounts(PlasticosTestCase):
 ./plasticos_material_profile/tests/test_material_profile_counts.py:36:    def test_counts_are_batched_across_two_profiles(self):
 ./plasticos_material_profile/tests/test_material_profile_intake_delta_contract.py:8:class TestMaterialProfileDeltaFieldContract(PlasticosTestCase):
@@ -1410,103 +1639,114 @@
 ./plasticos_security_base/tests/test_action_methods.py:620:    def test_action_view_web_leads(self):
 ./plasticos_security_base/tests/test_action_methods.py:625:    def test_action_view_material_profiles(self):
 ./plasticos_security_base/tests/test_action_methods.py:630:    def test_action_view_match_results(self):
-./plasticos_security_base/tests/test_action_methods.py:639:    def test_action_view_transactions(self):
-./plasticos_security_base/tests/test_action_methods.py:644:    def test_computed_fields(self):
-./plasticos_security_base/tests/test_action_methods.py:650:    def test_profile_summary_no_partner(self):
-./plasticos_security_base/tests/test_action_methods.py:660:class TestMaterialProfileActions(PlasticosTestCase):
-./plasticos_security_base/tests/test_action_methods.py:675:    def test_action_archive(self):
-./plasticos_security_base/tests/test_action_methods.py:680:    def test_action_unarchive(self):
-./plasticos_security_base/tests/test_action_methods.py:686:    def test_action_view_match_results(self):
-./plasticos_security_base/tests/test_action_methods.py:695:    def test_action_view_transactions(self):
-./plasticos_security_base/tests/test_action_methods.py:701:    def test_action_run_matching(self):
-./plasticos_security_base/tests/test_action_methods.py:709:    def test_action_refresh_scores(self):
-./plasticos_security_base/tests/test_action_methods.py:721:class TestTransactionActions(PlasticosTestCase):
-./plasticos_security_base/tests/test_action_methods.py:738:    def test_action_activate(self):
-./plasticos_security_base/tests/test_action_methods.py:743:    def test_action_cancel(self):
-./plasticos_security_base/tests/test_action_methods.py:749:    def test_action_mark_delivered(self):
-./plasticos_security_base/tests/test_action_methods.py:755:    def test_action_view_loads(self):
+./plasticos_security_base/tests/test_action_methods.py:641:    def test_action_view_transactions(self):
+./plasticos_security_base/tests/test_action_methods.py:646:    def test_computed_fields(self):
+./plasticos_security_base/tests/test_action_methods.py:652:    def test_profile_summary_no_partner(self):
+./plasticos_security_base/tests/test_action_methods.py:662:class TestMaterialProfileActions(PlasticosTestCase):
+./plasticos_security_base/tests/test_action_methods.py:677:    def test_action_archive(self):
+./plasticos_security_base/tests/test_action_methods.py:682:    def test_action_unarchive(self):
+./plasticos_security_base/tests/test_action_methods.py:688:    def test_action_view_match_results(self):
+./plasticos_security_base/tests/test_action_methods.py:697:    def test_action_view_transactions(self):
+./plasticos_security_base/tests/test_action_methods.py:703:    def test_action_run_matching(self):
+./plasticos_security_base/tests/test_action_methods.py:711:    def test_action_refresh_scores(self):
+./plasticos_security_base/tests/test_action_methods.py:723:class TestTransactionActions(PlasticosTestCase):
+./plasticos_security_base/tests/test_action_methods.py:740:    def test_action_activate(self):
+./plasticos_security_base/tests/test_action_methods.py:745:    def test_action_cancel(self):
+./plasticos_security_base/tests/test_action_methods.py:751:    def test_action_mark_delivered(self):
+./plasticos_security_base/tests/test_action_methods.py:757:    def test_action_view_loads(self):
 ./plasticos_security_base/tests/test_bridge_contracts.py:21:    def test_model_exists(self):
 ./plasticos_security_base/tests/test_bridge_contracts.py:25:    def test_intake_has_transaction_ids_one2many(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:51:class TestIntakeModelContract(PlasticosTestCase):
-./plasticos_security_base/tests/test_bridge_contracts.py:64:    def test_intake_has_partner_id_many2one(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:71:    def test_intake_has_polymer_id_many2one(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:78:    def test_intake_has_form_id_many2one(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:85:    def test_intake_has_status_selection(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:92:    def test_intake_status_has_required_values(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:103:    def test_intake_has_quantity_per_load_lbs(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:109:    def test_intake_has_crm_lead_id(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:118:    def test_intake_has_transaction_ids_one2many(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:126:    def test_intake_has_transaction_count_computed(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:133:    def test_intake_has_action_view_transactions(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:146:    def test_intake_has_offer_ids_one2many(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:153:    def test_intake_has_offer_count_computed(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:159:    def test_intake_has_action_view_offers(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:168:    def test_intake_has_normalized_boolean(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:174:    def test_intake_has_match_status_selection(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:180:    def test_intake_match_status_has_required_values(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:190:    def test_intake_has_packet_fields(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:196:    def test_intake_has_action_normalize(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:203:    def test_intake_has_cron_batch_normalize(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:212:    def test_intake_has_lat_lon_fields(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:221:    def test_intake_has_match_result_ids(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:241:class TestTransactionModelContract(PlasticosTestCase):
-./plasticos_security_base/tests/test_bridge_contracts.py:254:    def test_transaction_has_intake_id(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:261:    def test_transaction_offer_link(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:272:    def test_transaction_has_supplier_and_buyer(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:280:    def test_transaction_has_state_selection(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:288:    def test_transaction_has_claim_ids_one2many(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:296:    def test_transaction_has_claim_count_computed_stored(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:303:    def test_transaction_has_has_quality_claim_computed(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:310:    def test_transaction_has_action_view_claims(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:319:    def test_transaction_has_load_ids(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:330:    def test_transaction_has_document_ids(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:346:class TestPartnerModelContract(PlasticosTestCase):
-./plasticos_security_base/tests/test_bridge_contracts.py:357:    def test_partner_has_intake_count(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:364:    def test_partner_has_action_view_intakes(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:371:    def test_partner_has_action_create_intake(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:380:    def test_partner_has_transaction_as_supplier_ids(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:387:    def test_partner_has_transaction_as_buyer_ids(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:393:    def test_partner_has_plasticos_transaction_count(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:399:    def test_partner_has_action_view_plasticos_transactions(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:408:    def test_partner_has_lat_lon_fields(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:418:    def test_partner_has_material_profile_ids(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:428:    def test_partner_has_facility_profile_ids(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:444:class TestCrmLeadModelContract(PlasticosTestCase):
-./plasticos_security_base/tests/test_bridge_contracts.py:457:    def test_lead_has_web_lead_ids(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:464:    def test_lead_has_web_lead_count(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:472:    def test_lead_has_intake_ids(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:480:    def test_lead_has_intake_count(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:488:    def test_lead_has_profile_summary_fields(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:502:    def test_lead_has_action_convert_to_intake(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:509:    def test_action_convert_to_intake_returns_action(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:524:    def test_lead_has_action_view_intakes(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:528:    def test_lead_has_action_view_web_leads(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:532:    def test_lead_has_action_view_material_profiles(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:536:    def test_lead_has_action_view_match_results(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:540:    def test_lead_has_action_view_transactions(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:551:class TestClaimModelContract(PlasticosTestCase):
-./plasticos_security_base/tests/test_bridge_contracts.py:562:    def test_claim_has_transaction_id(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:569:    def test_claim_has_state_selection(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:575:    def test_claim_state_has_required_values(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:584:    def test_claim_has_case_type_selection(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:590:    def test_claim_case_type_has_required_values(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:602:    def test_claim_has_recovery_amount(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:615:class TestOfferModelContract(PlasticosTestCase):
-./plasticos_security_base/tests/test_bridge_contracts.py:626:    def test_offer_has_intake_id(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:633:    def test_offer_has_transaction_id(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:643:    def test_offer_has_buyer_id(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:651:    def test_offer_has_state_selection(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:657:    def test_offer_state_has_required_values(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:665:    def test_offer_has_action_accept(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:672:    def test_offer_has_action_send(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:676:    def test_offer_has_action_reject(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:687:class TestLoadModelContract(PlasticosTestCase):
-./plasticos_security_base/tests/test_bridge_contracts.py:698:    def test_load_has_transaction_id(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:705:    def test_load_has_state_selection(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:711:    def test_load_state_has_required_values(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:721:    def test_load_has_logistics_actions(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:740:    def test_load_has_document_ids(self):
-./plasticos_security_base/tests/test_bridge_contracts.py:747:    def test_load_has_bol_attachment_id(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:52:class TestIntakeModelContract(PlasticosTestCase):
+./plasticos_security_base/tests/test_bridge_contracts.py:65:    def test_intake_has_partner_id_many2one(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:72:    def test_intake_has_polymer_id_many2one(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:79:    def test_intake_has_form_id_many2one(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:86:    def test_intake_has_status_selection(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:93:    def test_intake_status_has_required_values(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:104:    def test_intake_has_quantity_per_load_lbs(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:110:    def test_intake_has_crm_lead_id(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:119:    def test_intake_has_transaction_ids_one2many(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:127:    def test_intake_has_transaction_count_computed(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:134:    def test_intake_has_action_view_transactions(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:147:    def test_intake_has_offer_ids_one2many(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:154:    def test_intake_has_offer_count_computed(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:160:    def test_intake_has_action_view_offers(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:169:    def test_intake_has_normalized_boolean(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:175:    def test_intake_has_match_status_selection(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:181:    def test_intake_match_status_has_required_values(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:191:    def test_intake_has_packet_fields(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:197:    def test_intake_has_action_normalize(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:204:    def test_intake_has_cron_batch_normalize(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:213:    def test_intake_has_lat_lon_fields(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:222:    def test_intake_has_match_result_ids(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:242:class TestTransactionModelContract(PlasticosTestCase):
+./plasticos_security_base/tests/test_bridge_contracts.py:255:    def test_transaction_has_intake_id(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:262:    def test_transaction_offer_link(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:273:    def test_transaction_has_supplier_and_buyer(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:281:    def test_transaction_has_state_selection(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:289:    def test_transaction_has_claim_ids_one2many(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:297:    def test_transaction_has_claim_count_computed_stored(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:304:    def test_transaction_has_has_quality_claim_computed(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:311:    def test_transaction_has_action_view_claims(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:320:    def test_transaction_has_load_ids(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:331:    def test_transaction_has_document_ids(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:347:class TestPartnerModelContract(PlasticosTestCase):
+./plasticos_security_base/tests/test_bridge_contracts.py:358:    def test_partner_has_intake_count(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:365:    def test_partner_has_action_view_intakes(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:372:    def test_partner_has_action_create_intake(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:381:    def test_partner_has_transaction_as_supplier_ids(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:388:    def test_partner_has_transaction_as_buyer_ids(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:394:    def test_partner_has_plasticos_transaction_count(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:400:    def test_partner_has_action_view_plasticos_transactions(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:409:    def test_partner_has_lat_lon_fields(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:419:    def test_partner_has_material_profile_ids(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:429:    def test_partner_has_facility_profile_ids(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:445:class TestCrmLeadModelContract(PlasticosTestCase):
+./plasticos_security_base/tests/test_bridge_contracts.py:458:    def test_lead_has_web_lead_ids(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:465:    def test_lead_has_web_lead_count(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:473:    def test_lead_has_intake_ids(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:481:    def test_lead_has_intake_count(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:489:    def test_lead_has_profile_summary_fields(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:503:    def test_lead_has_action_convert_to_intake(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:510:    def test_action_convert_to_intake_returns_action(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:525:    def test_lead_has_action_view_intakes(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:529:    def test_lead_has_action_view_web_leads(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:533:    def test_lead_has_action_view_material_profiles(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:537:    def test_lead_has_action_view_match_results(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:541:    def test_lead_has_action_view_transactions(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:552:class TestClaimModelContract(PlasticosTestCase):
+./plasticos_security_base/tests/test_bridge_contracts.py:563:    def test_claim_has_transaction_id(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:570:    def test_claim_has_state_selection(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:576:    def test_claim_state_has_required_values(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:585:    def test_claim_has_case_type_selection(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:591:    def test_claim_case_type_has_required_values(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:603:    def test_claim_has_recovery_amount(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:616:class TestOfferModelContract(PlasticosTestCase):
+./plasticos_security_base/tests/test_bridge_contracts.py:627:    def test_offer_has_intake_id(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:634:    def test_offer_has_transaction_id(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:644:    def test_offer_has_buyer_id(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:652:    def test_offer_has_state_selection(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:658:    def test_offer_state_has_required_values(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:666:    def test_offer_has_action_accept(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:673:    def test_offer_has_action_send(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:677:    def test_offer_has_action_reject(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:688:class TestLoadModelContract(PlasticosTestCase):
+./plasticos_security_base/tests/test_bridge_contracts.py:699:    def test_load_has_transaction_id(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:706:    def test_load_has_state_selection(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:712:    def test_load_state_has_required_values(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:722:    def test_load_has_logistics_actions(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:741:    def test_load_has_document_ids(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:748:    def test_load_has_bol_attachment_id(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:764:class TestLoadCompanyIsolationContract(PlasticosTestCase):
+./plasticos_security_base/tests/test_bridge_contracts.py:792:    def test_load_rule_has_no_company_null_escape(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:797:    def test_company_less_load_is_hidden_and_cannot_be_created_by_a_user(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:806:    def test_logistics_user_sees_only_loads_of_allowed_companies(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:812:    def test_load_dashboard_company_rule_binds_every_role(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:826:    def test_bare_internal_user_cannot_create_or_write_journeys(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:836:    def test_logistics_role_registers_journeys_only_in_its_company(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:848:    def test_multi_role_union_cannot_bypass_the_journey_company_rule(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:862:    def test_sales_rep_gains_no_journey_access(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:878:    def test_pre_migration_preflights_active_user_company_scopes(self):
+./plasticos_security_base/tests/test_bridge_contracts.py:893:    def test_pre_migration_refuses_a_company_less_load(self):
 ./plasticos_security_base/tests/test_error_handling.py:36:class TestAPIFailures(PlasticosTestCase):
 ./plasticos_security_base/tests/test_error_handling.py:45:    def test_geo_backfill_api_timeout(self):
 ./plasticos_security_base/tests/test_error_handling.py:57:    def test_classification_failure_sets_error_state(self):
@@ -1543,43 +1783,43 @@
 ./plasticos_transaction/tests/test_bridge_wiring_contracts.py:87:    def test_documents_bridge_fields(self):
 ./plasticos_transaction/tests/test_compliance_does_not_post.py:10:class TestComplianceDoesNotPost(PlasticosTestCase):
 ./plasticos_transaction/tests/test_compliance_does_not_post.py:18:    def test_compute_compliance_does_not_call_auto_post(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:114:class TestErpWorksheetImport(TransactionCase):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:228:    def test_import_leaves_tax_configuration_alone_and_imports_without_taxes(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:255:    def test_historical_documents_stay_draft_with_no_settlement_entries(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:272:    def test_bills_take_header_facts_and_orders_keep_draft_with_no_stock_event(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:326:    def test_delivered_basis_sets_no_incoterm_and_undated_invoice_stays_undated(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:352:    def test_worksheet_54839_keeps_credit_freight_costs_and_excludes_prepay(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:494:    def test_unbilled_freight_row_is_not_folded_beside_freight_bills(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:528:    def test_no_link_worksheet_quarantines_every_source_payable(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:570:    def test_purchase_only_worksheet_carries_no_handling_or_equipment_cost(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:609:    def test_unbillable_only_freight_is_carried_as_actual_freight_cost_when_a_transaction_exists(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:651:    def test_payables_outside_the_worksheet_universe_and_rolled_back_worksheets_are_quarantined(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:713:    def test_diagnostic_limit_counts_the_payables_it_leaves_out(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:762:    def test_empty_order_graph_quarantines_every_payable_and_still_reconciles(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:800:    def test_reconciliation_does_not_close_when_a_source_payable_is_on_neither_side(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:864:    def test_dry_run_excludes_every_payable_by_name_and_writes_nothing(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:886:    def test_blocked_sale_confirmation_is_a_rejected_transaction_that_carries_no_cost(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:950:    def test_failed_transaction_compile_is_a_rejected_transaction_until_it_compiles(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:1004:    def test_short_ton_lines_are_carried_in_pounds_at_two_thousand_per_ton(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:1037:    def test_sub_cent_unit_price_keeps_the_source_amount_and_is_only_rounded_for_display(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:1076:    def test_source_amount_drift_is_reported_when_a_quantity_cannot_be_stored_exactly(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:1112:    def test_worksheet_without_a_sale_link_keeps_its_purchase_documents_and_is_censused(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:1181:    def test_worksheet_53797_nets_to_zero_revenue_and_negative_margin(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:1208:    def test_two_worksheets_on_one_sale_order_compile_two_transactions_and_replay_adds_nothing(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:1248:    def test_two_worksheets_on_one_order_across_commit_batches(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:1274:    def test_blank_ppo_id_links_the_purchase_order_named_on_the_worksheet(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:1295:    def test_replay_links_a_purchase_order_onto_the_existing_transaction(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:1324:    def test_worksheet_with_two_sale_orders_compiles_one_transaction(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:1358:    def test_worksheet_whose_sale_orders_have_different_customers_is_rejected(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:1379:    def test_rejected_worksheet_does_not_poison_the_product_cache(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:1431:    def test_commission_recipient_amount_and_cutoff_per_slot(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:1494:    def test_native_import_normalizes_materials_and_replays(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:1580:    def test_grade_id_does_not_classify_or_contaminate_a_shared_product(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:1638:    def test_inventory_inbound_keeps_the_purchase_and_the_selected_site_without_a_sale(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:1797:    def test_inventory_marker_follows_a_corrected_site_and_a_sale_only_line_is_rejected(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:1858:    def test_unrecognized_source_status_creates_a_closed_transaction(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:1861:    def test_commercial_source_cancellation_creates_a_closed_transaction_and_replay_keeps_reopen(self):
-./plasticos_transaction/tests/test_erp_worksheet_import.py:1889:    def test_confirmed_replay_fills_empty_material_fields_and_keeps_a_different_grade(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:119:class TestErpWorksheetImport(TransactionCase):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:235:    def test_import_leaves_tax_configuration_alone_and_imports_without_taxes(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:262:    def test_historical_documents_stay_draft_with_no_settlement_entries(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:279:    def test_bills_take_header_facts_and_orders_keep_draft_with_no_stock_event(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:333:    def test_delivered_basis_sets_no_incoterm_and_undated_invoice_stays_undated(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:359:    def test_worksheet_54839_keeps_credit_freight_costs_and_excludes_prepay(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:501:    def test_unbilled_freight_row_is_not_folded_beside_freight_bills(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:535:    def test_no_link_worksheet_quarantines_every_source_payable(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:577:    def test_purchase_only_worksheet_carries_no_handling_or_equipment_cost(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:616:    def test_unbillable_only_freight_is_carried_as_actual_freight_cost_when_a_transaction_exists(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:658:    def test_payables_outside_the_worksheet_universe_and_rolled_back_worksheets_are_quarantined(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:720:    def test_diagnostic_limit_counts_the_payables_it_leaves_out(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:769:    def test_empty_order_graph_quarantines_every_payable_and_still_reconciles(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:807:    def test_reconciliation_does_not_close_when_a_source_payable_is_on_neither_side(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:871:    def test_dry_run_excludes_every_payable_by_name_and_writes_nothing(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:893:    def test_blocked_sale_confirmation_is_a_rejected_transaction_that_carries_no_cost(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:957:    def test_failed_transaction_compile_is_a_rejected_transaction_until_it_compiles(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1011:    def test_short_ton_lines_are_carried_in_pounds_at_two_thousand_per_ton(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1044:    def test_sub_cent_unit_price_keeps_the_source_amount_and_is_only_rounded_for_display(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1083:    def test_source_amount_drift_is_reported_when_a_quantity_cannot_be_stored_exactly(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1119:    def test_worksheet_without_a_sale_link_keeps_its_purchase_documents_and_is_censused(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1188:    def test_worksheet_53797_nets_to_zero_revenue_and_negative_margin(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1215:    def test_two_worksheets_on_one_sale_order_compile_two_transactions_and_replay_adds_nothing(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1255:    def test_two_worksheets_on_one_order_across_commit_batches(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1281:    def test_blank_ppo_id_links_the_purchase_order_named_on_the_worksheet(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1302:    def test_replay_links_a_purchase_order_onto_the_existing_transaction(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1331:    def test_worksheet_with_two_sale_orders_compiles_one_transaction(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1365:    def test_worksheet_whose_sale_orders_have_different_customers_is_rejected(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1386:    def test_rejected_worksheet_does_not_poison_the_product_cache(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1438:    def test_commission_recipient_amount_and_cutoff_per_slot(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1501:    def test_native_import_normalizes_materials_and_replays(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1587:    def test_grade_id_does_not_classify_or_contaminate_a_shared_product(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1645:    def test_inventory_inbound_keeps_the_purchase_and_the_selected_site_without_a_sale(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1804:    def test_inventory_marker_follows_a_corrected_site_and_a_sale_only_line_is_rejected(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1865:    def test_unrecognized_source_status_creates_a_closed_transaction(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1868:    def test_commercial_source_cancellation_creates_a_closed_transaction_and_replay_keeps_reopen(self):
+./plasticos_transaction/tests/test_erp_worksheet_import.py:1896:    def test_confirmed_replay_fills_empty_material_fields_and_keeps_a_different_grade(self):
 ./plasticos_transaction/tests/test_historical_reopen.py:12:class TestHistoricalReopen(TransactionCase):
 ./plasticos_transaction/tests/test_historical_reopen.py:54:    def test_creation_values_are_closed_for_every_source_status(self):
 ./plasticos_transaction/tests/test_historical_reopen.py:65:    def test_manager_reopen_posts_an_audit_and_leaves_provenance(self):
@@ -1728,6 +1968,11 @@
 ./scripts/audit/test_audit.py:26:class TestAudit:
 ./tests/contracts/test_documents_brs_registry.py:50:def test_documents_scope_splits_installed_text_from_external_send_owner():
 ./tests/contracts/test_documents_brs_registry.py:75:def test_documents_chapter_bytes_and_overlay_markers_stay_frozen():
+./tests/contracts/test_export_brs_registry.py:34:def test_export_brs_baseline_is_complete_and_unchanged():
+./tests/contracts/test_export_brs_registry.py:62:def test_every_rule_has_its_one_acceptance_case():
+./tests/contracts/test_export_brs_registry.py:74:def test_supersession_has_no_broken_rule_references():
+./tests/contracts/test_export_brs_registry.py:85:def test_every_rule_maps_once_to_a_slice_and_a_witness():
+./tests/contracts/test_export_brs_registry.py:99:def test_effective_rules_render_the_registered_statements():
 ./tests/contracts/test_external_intelligence_authority.py:23:def test_mothball_adr_exists_and_declares_single_authority():
 ./tests/contracts/test_external_intelligence_authority.py:34:def test_contact_import_adr_preserved_under_filename_collision():
 ./tests/contracts/test_external_intelligence_authority.py:42:def test_adr_002_topology_still_present():
@@ -2518,6 +2763,19 @@
 ./tests/test_evidence_odoo_mapping_consumer.py:50:def test_human_approved_blocks() -> None:
 ./tests/test_evidence_odoo_mapping_consumer.py:64:def test_unlisted_rejected() -> None:
 ./tests/test_evidence_odoo_mapping_consumer.py:78:def test_stale_vs_newer_odoo_field() -> None:
+./tests/test_export_upgrade_seed.py:31:def test_import_does_not_run_the_odoo_part():
+./tests/test_export_upgrade_seed.py:35:def test_default_plan_exceeds_the_linda_sweep_batch():
+./tests/test_export_upgrade_seed.py:41:def test_default_plan_holds_every_legacy_shape():
+./tests/test_export_upgrade_seed.py:50:def test_plan_is_deterministic():
+./tests/test_export_upgrade_seed.py:54:def test_every_null_company_load_has_one_source_through_its_parent():
+./tests/test_export_upgrade_seed.py:66:def test_expected_summary_counts_null_company_loads_exactly():
+./tests/test_export_upgrade_seed.py:73:def test_every_name_is_synthetic():
+./tests/test_export_upgrade_seed.py:94:def test_plan_refuses_a_shape_that_misses_a_proof_case(kwargs):
+./tests/test_export_upgrade_seed.py:100:def test_guard_accepts_disposable_clones(name):
+./tests/test_export_upgrade_seed.py:119:def test_guard_refuses_everything_else(name):
+./tests/test_export_upgrade_seed.py:124:def test_synthetic_checksum_is_odoo_attachment_sha1():
+./tests/test_export_upgrade_seed.py:130:def test_sql_statements_are_fixed_and_parameterized():
+./tests/test_export_upgrade_seed.py:147:def test_seed_never_writes_outside_its_marker_and_synthetic_rows():
 ./tests/test_f1_clone_lifecycle.py:41:def test_f1_gate_deletes_only_through_the_test_env_lifecycle():
 ./tests/test_f1_clone_lifecycle.py:60:def test_foreign_owned_clone_is_refused_without_modification_or_deletion(tmp_path):
 ./tests/test_f1_clone_lifecycle.py:90:def test_valid_owned_clone_is_accepted(tmp_path):
@@ -2550,6 +2808,14 @@
 ./tests/test_freight_context_service.py:80:def test_context_does_not_require_a_presentation_only_partner_address_field():
 ./tests/test_freight_context_service.py:90:def test_context_requires_positive_weight_and_repeat_stream():
 ./tests/test_freight_context_service.py:97:def test_location_fingerprints_are_sha256_digests():
+./tests/test_freight_context_service.py:119:def test_legacy_v3_context_bytes_are_unchanged():
+./tests/test_freight_context_service.py:126:def test_manual_context_needs_no_intake_and_has_no_repeat_stream():
+./tests/test_freight_context_service.py:135:def test_manual_context_records_unknown_equipment_explicitly():
+./tests/test_freight_context_service.py:141:def test_manual_context_still_requires_company_lane_and_weight():
+./tests/test_freight_context_service.py:147:def test_manual_context_changes_with_the_physical_lane():
+./tests/test_freight_context_service.py:155:def test_manual_rate_selection_keeps_v3_for_an_intake_backed_load():
+./tests/test_freight_context_service.py:161:def test_recorded_version_selects_its_own_validator():
+./tests/test_freight_context_service.py:202:def test_sal_abstains_before_searching_for_a_load_without_intake():
 ./tests/test_freight_estimation_service.py:62:def test_exact_lane_observation_produces_nonbinding_observed_distribution():
 ./tests/test_freight_estimation_service.py:72:def test_haversine_similarity_and_recency_weight_the_target_without_fixed_rate_per_mile():
 ./tests/test_freight_estimation_service.py:85:def test_currency_is_not_silently_mixed_or_converted():
@@ -3221,6 +3487,8 @@
 ./tests/test_repo_dependency_integrity.py:121:def test_no_phantom_plasticos_dependencies():
 ./tests/test_repo_dependency_integrity.py:136:def test_no_unknown_non_plasticos_dependencies():
 ./tests/test_repo_dependency_integrity.py:154:def test_retired_modules_absent_from_every_depends():
+./tests/test_repo_dependency_integrity.py:189:def test_no_module_depends_on_export():
+./tests/test_repo_dependency_integrity.py:194:def test_export_manifest_shape_and_direct_dependencies():
 ./tests/test_repo_index_location.py:21:def test_generator_indexes_tracked_modules_and_skills_only(tmp_path: Path) -> None:
 ./tests/test_repo_index_location.py:79:def test_repo_index_is_generated_under_docs_reports() -> None:
 ./tests/test_runtime_bootstrap.py:105:def test_no_enterprise_refuses_and_names_the_setup(repo: Path) -> None:
@@ -3372,6 +3640,20 @@
 ./tests/test_test_env_safety.py:1263:def test_lease_granted_late_is_awaited_and_reports_the_wait(tmp_path):
 ./tests/test_test_env_safety.py:1270:def test_lease_answered_with_another_token_times_out_on_elapsed_time(tmp_path):
 ./tests/test_test_env_safety.py:1282:def test_lease_session_that_ends_without_a_grant_fails_closed(tmp_path):
+./tests/test_test_env_safety.py:1337:def test_excluded_module_installed_in_the_fixture_is_test_scoped(tmp_path):
+./tests/test_test_env_safety.py:1349:def test_excluded_module_not_installed_in_the_fixture_is_refused(tmp_path, module_state):
+./tests/test_test_env_safety.py:1371:def test_template_admission_is_refused_from_a_dirty_addon_tree(tmp_path):
+./tests/test_test_env_safety.py:1382:def test_template_admission_from_a_clean_tree_is_not_refused_for_its_source(tmp_path):
+./tests/test_test_env_safety.py:1392:def test_template_ready_marker_records_the_source_head_and_digest():
+./tests/test_test_env_safety.py:1407:def test_status_shows_the_template_source(tmp_path, extra, expected):
+./tests/test_test_env_safety.py:1448:def test_migrate_upgrades_the_roster_installs_the_added_module_and_stamps_the_lineage(tmp_path):
+./tests/test_test_env_safety.py:1474:def test_migrate_refuses_an_unproven_or_unsupported_migration(tmp_path, kwargs, rev, reason):
+./tests/test_test_env_safety.py:1483:def test_migrate_refuses_when_another_fingerprint_config_file_changed(tmp_path):
+./tests/test_test_env_safety.py:1493:def test_migrate_refuses_a_clone_that_already_matches_the_current_inputs(tmp_path):
+./tests/test_test_env_safety.py:1515:def test_a_migrated_clone_is_checked_against_the_template_of_its_old_inputs(tmp_path):
+./tests/test_test_env_safety.py:1549:def test_backup_restore_and_migrate_refuse_unsafe_names_before_docker(tmp_path, args, reason):
+./tests/test_test_env_safety.py:1555:def test_restore_refuses_a_backup_that_no_longer_matches_its_checksum(tmp_path):
+./tests/test_test_env_safety.py:1568:def test_restore_loads_with_odoo_and_stamps_the_restored_lineage(tmp_path):
 ./tests/test_transaction_bill_open.py:11:def test_bill_tags_use_open_widget():
 ./tests/test_transaction_bill_open.py:18:def test_open_widget_uses_formview_action():
 ./tests/test_transaction_bill_open.py:24:def test_open_widget_is_in_backend_assets():
