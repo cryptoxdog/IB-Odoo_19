@@ -1,4 +1,5 @@
 from odoo import models
+from odoo.exceptions import AccessError
 from odoo.tools.float_utils import float_compare
 
 # Buyer Receiving is the only quantity-scoped invoice evidence. Aggregation of
@@ -96,8 +97,15 @@ class PlasticosComplianceService(models.AbstractModel):
     # ── Operation-scope verdict (frozen facade: plasticos.document.get_scoped_evidence_verdict) ──
 
     def _scoped_subject(self, company_id, subject_kind, subject_id):
-        """Resolve the exact subject and its company. Returns ``(subject, verdict)``."""
+        """Resolve the exact subject and its company. Returns ``(subject, verdict)``.
+
+        A subject the caller cannot read, or one in a company the caller does
+        not work in, answers exactly like a missing one, so the verdict is not
+        an oracle for other companies' records. Company refusals carry no
+        record id.
+        """
         document = self.env["plasticos.document"]
+        not_found = {"status": "not_available", "reason": "subject not found"}
         if subject_kind not in document._scoped_subject_models() or subject_kind not in self.env:
             return None, {"status": "not_available", "reason": f"unknown subject kind {subject_kind!r}"}
         try:
@@ -105,21 +113,23 @@ class PlasticosComplianceService(models.AbstractModel):
         except (TypeError, ValueError):
             subject = None
         if not subject:
-            return None, {"status": "not_available", "reason": "subject not found"}
-        company = self.env["res.company"].browse(int(company_id or 0)).exists()
-        if not company:
-            return None, {"status": "not_available", "reason": "company not found"}
+            return None, dict(not_found)
+        try:
+            subject.check_access("read")
+        except AccessError:
+            return None, dict(not_found)
         companies, requires_company = document._subject_company_candidates(subject)
+        if not self.env.su and companies - self.env.user.company_ids:
+            return None, dict(not_found)
+        company = self.env["res.company"].browse(int(company_id or 0)).exists()
+        if not company or (not self.env.su and company not in self.env.user.company_ids):
+            return None, {"status": "not_available", "reason": "company not found"}
         if len(companies) > 1:
-            return None, {"status": "ambiguous", "record_id": subject.id, "reason": "the subject companies conflict"}
+            return None, {"status": "ambiguous", "reason": "the subject companies conflict"}
         if requires_company and not companies:
             return None, {"status": "not_available", "reason": "the subject company is not established"}
         if companies and companies != company:
-            return None, {
-                "status": "blocked",
-                "record_id": subject.id,
-                "reason": "the subject belongs to another company",
-            }
+            return None, {"status": "blocked", "reason": "the subject belongs to another company"}
         return subject, None
 
     def scoped_evidence_verdict(self, company_id, subject_kind, subject_id, obligation_kind, source_revision_key):
