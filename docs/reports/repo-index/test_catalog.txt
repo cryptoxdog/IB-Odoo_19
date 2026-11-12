@@ -2988,24 +2988,24 @@
 ./tests/test_mothball_uninstall_preflight.py:38:def test_uninstall_preflight_still_blocks_with_backup_and_allow():
 ./tests/test_mothball_uninstall_preflight.py:50:def test_uninstall_preflight_cli():
 ./tests/test_no_campaign_file_dependency.py:19:def test_repo_tests_do_not_read_campaign_files():
-./tests/test_odoo19_compat.py:172:class TestOdoo19APICompat(unittest.TestCase):
-./tests/test_odoo19_compat.py:175:    def test_no_groups_id_singular(self):
-./tests/test_odoo19_compat.py:204:    def test_no_api_depends_id(self):
-./tests/test_odoo19_compat.py:215:    def test_no_deprecated_api_multi(self):
-./tests/test_odoo19_compat.py:227:    def test_no_deprecated_api_one(self):
-./tests/test_odoo19_compat.py:239:    def test_no_old_style_constraints(self):
-./tests/test_odoo19_compat.py:249:    def test_no_direct_sql_without_justification(self):
-./tests/test_odoo19_compat.py:262:    def test_sql_classifier_rejects_an_unjustified_call(self):
-./tests/test_odoo19_compat.py:270:    def test_sql_classifier_ignores_comments_and_strings(self):
-./tests/test_odoo19_compat.py:279:    def test_sql_classifier_accepts_the_three_allowlisted_paths(self):
-./tests/test_odoo19_compat.py:289:class TestOdoo19XMLCompat(unittest.TestCase):
-./tests/test_odoo19_compat.py:292:    def test_no_category_id_in_groups(self):
-./tests/test_odoo19_compat.py:328:    def test_no_tree_view_type(self):
-./tests/test_odoo19_compat.py:336:    def test_tree_scanner_reports_live_tags_and_skips_comments(self):
-./tests/test_odoo19_compat.py:340:    def test_xml_well_formed(self):
-./tests/test_odoo19_compat.py:353:    def test_no_duplicate_xml_ids(self):
-./tests/test_odoo19_compat.py:370:class TestPartnerPhoneFollowsPartnerPrivacy(unittest.TestCase):
-./tests/test_odoo19_compat.py:373:    def test_phone_rule_mirrors_the_private_partner_rule_and_keeps_unlink_acl(self):
+./tests/test_odoo19_compat.py:170:class TestOdoo19APICompat(unittest.TestCase):
+./tests/test_odoo19_compat.py:173:    def test_no_groups_id_singular(self):
+./tests/test_odoo19_compat.py:202:    def test_no_api_depends_id(self):
+./tests/test_odoo19_compat.py:213:    def test_no_deprecated_api_multi(self):
+./tests/test_odoo19_compat.py:225:    def test_no_deprecated_api_one(self):
+./tests/test_odoo19_compat.py:237:    def test_no_old_style_constraints(self):
+./tests/test_odoo19_compat.py:247:    def test_no_direct_sql_without_justification(self):
+./tests/test_odoo19_compat.py:260:    def test_sql_classifier_rejects_an_unjustified_call(self):
+./tests/test_odoo19_compat.py:268:    def test_sql_classifier_ignores_comments_and_strings(self):
+./tests/test_odoo19_compat.py:277:    def test_sql_classifier_accepts_the_three_allowlisted_paths(self):
+./tests/test_odoo19_compat.py:287:class TestOdoo19XMLCompat(unittest.TestCase):
+./tests/test_odoo19_compat.py:290:    def test_no_category_id_in_groups(self):
+./tests/test_odoo19_compat.py:326:    def test_no_tree_view_type(self):
+./tests/test_odoo19_compat.py:334:    def test_tree_scanner_reports_live_tags_and_skips_comments(self):
+./tests/test_odoo19_compat.py:338:    def test_xml_well_formed(self):
+./tests/test_odoo19_compat.py:351:    def test_no_duplicate_xml_ids(self):
+./tests/test_odoo19_compat.py:368:class TestPartnerPhoneFollowsPartnerPrivacy(unittest.TestCase):
+./tests/test_odoo19_compat.py:371:    def test_phone_rule_mirrors_the_private_partner_rule_and_keeps_unlink_acl(self):
 ./tests/test_odoo_audit_field_attribution.py:129:def test_own_inherited_mixin_and_prototype_fields_resolve(tmp_path: Path):
 ./tests/test_odoo_audit_field_attribution.py:145:def test_a_truly_missing_field_is_critical(tmp_path: Path):
 ./tests/test_odoo_audit_field_attribution.py:155:def test_extension_field_needs_the_extending_module_in_depends(tmp_path: Path):

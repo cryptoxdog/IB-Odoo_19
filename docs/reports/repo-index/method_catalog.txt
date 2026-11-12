@@ -4196,23 +4196,23 @@
 ./tests/test_material_profile_intake_delta_bridge_pure.py:138:    def test_residue_true_from_contamination_percent(self):
 ./tests/test_material_profile_intake_delta_bridge_pure.py:143:    def test_payload_includes_derived_has_residue_not_profile_field(self):
 ./tests/test_material_profile_intake_delta_bridge_pure.py:150:    def test_forbidden_keys_absent(self):
-./tests/test_odoo19_compat.py:175:    def test_no_groups_id_singular(self):
-./tests/test_odoo19_compat.py:204:    def test_no_api_depends_id(self):
-./tests/test_odoo19_compat.py:215:    def test_no_deprecated_api_multi(self):
-./tests/test_odoo19_compat.py:227:    def test_no_deprecated_api_one(self):
-./tests/test_odoo19_compat.py:239:    def test_no_old_style_constraints(self):
-./tests/test_odoo19_compat.py:249:    def test_no_direct_sql_without_justification(self):
-./tests/test_odoo19_compat.py:262:    def test_sql_classifier_rejects_an_unjustified_call(self):
-./tests/test_odoo19_compat.py:270:    def test_sql_classifier_ignores_comments_and_strings(self):
-./tests/test_odoo19_compat.py:279:    def test_sql_classifier_accepts_the_three_allowlisted_paths(self):
-./tests/test_odoo19_compat.py:292:    def test_no_category_id_in_groups(self):
-./tests/test_odoo19_compat.py:328:    def test_no_tree_view_type(self):
-./tests/test_odoo19_compat.py:336:    def test_tree_scanner_reports_live_tags_and_skips_comments(self):
-./tests/test_odoo19_compat.py:340:    def test_xml_well_formed(self):
-./tests/test_odoo19_compat.py:353:    def test_no_duplicate_xml_ids(self):
-./tests/test_odoo19_compat.py:373:    def test_phone_rule_mirrors_the_private_partner_rule_and_keeps_unlink_acl(self):
-./tests/test_odoo19_compat.py:386:        def field_node(record, name):
-./tests/test_odoo19_compat.py:392:        def field_text(record, name):
+./tests/test_odoo19_compat.py:173:    def test_no_groups_id_singular(self):
+./tests/test_odoo19_compat.py:202:    def test_no_api_depends_id(self):
+./tests/test_odoo19_compat.py:213:    def test_no_deprecated_api_multi(self):
+./tests/test_odoo19_compat.py:225:    def test_no_deprecated_api_one(self):
+./tests/test_odoo19_compat.py:237:    def test_no_old_style_constraints(self):
+./tests/test_odoo19_compat.py:247:    def test_no_direct_sql_without_justification(self):
+./tests/test_odoo19_compat.py:260:    def test_sql_classifier_rejects_an_unjustified_call(self):
+./tests/test_odoo19_compat.py:268:    def test_sql_classifier_ignores_comments_and_strings(self):
+./tests/test_odoo19_compat.py:277:    def test_sql_classifier_accepts_the_three_allowlisted_paths(self):
+./tests/test_odoo19_compat.py:290:    def test_no_category_id_in_groups(self):
+./tests/test_odoo19_compat.py:326:    def test_no_tree_view_type(self):
+./tests/test_odoo19_compat.py:334:    def test_tree_scanner_reports_live_tags_and_skips_comments(self):
+./tests/test_odoo19_compat.py:338:    def test_xml_well_formed(self):
+./tests/test_odoo19_compat.py:351:    def test_no_duplicate_xml_ids(self):
+./tests/test_odoo19_compat.py:371:    def test_phone_rule_mirrors_the_private_partner_rule_and_keeps_unlink_acl(self):
+./tests/test_odoo19_compat.py:384:        def field_node(record, name):
+./tests/test_odoo19_compat.py:390:        def field_text(record, name):
 ./tests/test_odoo_audit_field_attribution.py:424:    def _compute_missing_docs(self):
 ./tests/test_odoo_audit_field_attribution.py:478:        def _compute_rank(self):
 ./tests/test_odoo_audit_field_attribution.py:501:            def _compute_contact(self):

@@ -463,6 +463,9 @@
 ./plasticos_base/hooks.py:3:import logging
 ./plasticos_base/migrations/19.0.1.0.2/post-migrate.py:1:import logging
 ./plasticos_base/migrations/19.0.1.0.2/post-migrate.py:3:from odoo import SUPERUSER_ID, api
+./plasticos_base/migrations/19.0.1.1.11/post-migrate.py:18:import logging
+./plasticos_base/migrations/19.0.1.1.11/post-migrate.py:20:from odoo import SUPERUSER_ID, api
+./plasticos_base/migrations/19.0.1.1.11/post-migrate.py:21:from odoo.exceptions import UserError
 ./plasticos_base/migrations/19.0.1.1.3/post-migrate.py:8:import logging
 ./plasticos_base/migrations/19.0.1.1.3/post-migrate.py:10:from odoo import SUPERUSER_ID
 ./plasticos_base/migrations/19.0.1.1.3/post-migrate.py:11:from odoo.api import Environment
@@ -3599,10 +3602,10 @@
 ./tests/test_odoo19_compat.py:13:import re
 ./tests/test_odoo19_compat.py:14:import tokenize
 ./tests/test_odoo19_compat.py:15:import unittest
-./tests/test_odoo19_compat.py:342:        import xml.etree.ElementTree as ET
-./tests/test_odoo19_compat.py:374:        import csv
-./tests/test_odoo19_compat.py:375:        import xml.etree.ElementTree as ET
-./tests/test_odoo19_compat.py:376:        from pathlib import Path
+./tests/test_odoo19_compat.py:340:        import xml.etree.ElementTree as ET
+./tests/test_odoo19_compat.py:372:        import csv
+./tests/test_odoo19_compat.py:373:        import xml.etree.ElementTree as ET
+./tests/test_odoo19_compat.py:374:        from pathlib import Path
 ./tests/test_odoo_audit_field_attribution.py:9:from __future__ import annotations
 ./tests/test_odoo_audit_field_attribution.py:11:import contextlib
 ./tests/test_odoo_audit_field_attribution.py:12:import io

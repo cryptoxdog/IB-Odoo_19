@@ -571,6 +571,8 @@
 ./plasticos_base/hooks.py:8:def pre_init_hook(env):
 ./plasticos_base/hooks.py:47:def post_init_hook(env):
 ./plasticos_base/migrations/19.0.1.0.2/post-migrate.py:8:def migrate(cr, version):
+./plasticos_base/migrations/19.0.1.1.11/post-migrate.py:30:def _xmlid_rows(env):
+./plasticos_base/migrations/19.0.1.1.11/post-migrate.py:34:def migrate(cr, version):
 ./plasticos_base/migrations/19.0.1.1.3/post-migrate.py:16:def migrate(cr, version):
 ./plasticos_base/migrations/19.0.1.1.6/pre-migrate.py:25:def migrate(cr, version):
 ./plasticos_base/migrations/19.0.1.1.7/post-migrate.py:21:def migrate(cr, version):
@@ -7463,28 +7465,28 @@
 ./tests/test_mothball_uninstall_preflight.py:50:def test_uninstall_preflight_cli():
 ./tests/test_no_campaign_file_dependency.py:12:def _test_files():
 ./tests/test_no_campaign_file_dependency.py:19:def test_repo_tests_do_not_read_campaign_files():
-./tests/test_odoo19_compat.py:66:def _code_only_lines(lines: list[str]) -> list[str]:
-./tests/test_odoo19_compat.py:81:def _unjustified_sql_lines(py_file: str, lines: list[str]) -> list[str]:
-./tests/test_odoo19_compat.py:104:def _tree_tag_lines(text: str) -> list[tuple[int, str]]:
-./tests/test_odoo19_compat.py:154:def _find_py_files():
-./tests/test_odoo19_compat.py:163:def _find_xml_files():
-./tests/test_odoo19_compat.py:175:    def test_no_groups_id_singular(self):
-./tests/test_odoo19_compat.py:204:    def test_no_api_depends_id(self):
-./tests/test_odoo19_compat.py:215:    def test_no_deprecated_api_multi(self):
-./tests/test_odoo19_compat.py:227:    def test_no_deprecated_api_one(self):
-./tests/test_odoo19_compat.py:239:    def test_no_old_style_constraints(self):
-./tests/test_odoo19_compat.py:249:    def test_no_direct_sql_without_justification(self):
-./tests/test_odoo19_compat.py:262:    def test_sql_classifier_rejects_an_unjustified_call(self):
-./tests/test_odoo19_compat.py:270:    def test_sql_classifier_ignores_comments_and_strings(self):
-./tests/test_odoo19_compat.py:279:    def test_sql_classifier_accepts_the_three_allowlisted_paths(self):
-./tests/test_odoo19_compat.py:292:    def test_no_category_id_in_groups(self):
-./tests/test_odoo19_compat.py:328:    def test_no_tree_view_type(self):
-./tests/test_odoo19_compat.py:336:    def test_tree_scanner_reports_live_tags_and_skips_comments(self):
-./tests/test_odoo19_compat.py:340:    def test_xml_well_formed(self):
-./tests/test_odoo19_compat.py:353:    def test_no_duplicate_xml_ids(self):
-./tests/test_odoo19_compat.py:373:    def test_phone_rule_mirrors_the_private_partner_rule_and_keeps_unlink_acl(self):
-./tests/test_odoo19_compat.py:386:        def field_node(record, name):
-./tests/test_odoo19_compat.py:392:        def field_text(record, name):
+./tests/test_odoo19_compat.py:64:def _code_only_lines(lines: list[str]) -> list[str]:
+./tests/test_odoo19_compat.py:79:def _unjustified_sql_lines(py_file: str, lines: list[str]) -> list[str]:
+./tests/test_odoo19_compat.py:102:def _tree_tag_lines(text: str) -> list[tuple[int, str]]:
+./tests/test_odoo19_compat.py:152:def _find_py_files():
+./tests/test_odoo19_compat.py:161:def _find_xml_files():
+./tests/test_odoo19_compat.py:173:    def test_no_groups_id_singular(self):
+./tests/test_odoo19_compat.py:202:    def test_no_api_depends_id(self):
+./tests/test_odoo19_compat.py:213:    def test_no_deprecated_api_multi(self):
+./tests/test_odoo19_compat.py:225:    def test_no_deprecated_api_one(self):
+./tests/test_odoo19_compat.py:237:    def test_no_old_style_constraints(self):
+./tests/test_odoo19_compat.py:247:    def test_no_direct_sql_without_justification(self):
+./tests/test_odoo19_compat.py:260:    def test_sql_classifier_rejects_an_unjustified_call(self):
+./tests/test_odoo19_compat.py:268:    def test_sql_classifier_ignores_comments_and_strings(self):
+./tests/test_odoo19_compat.py:277:    def test_sql_classifier_accepts_the_three_allowlisted_paths(self):
+./tests/test_odoo19_compat.py:290:    def test_no_category_id_in_groups(self):
+./tests/test_odoo19_compat.py:326:    def test_no_tree_view_type(self):
+./tests/test_odoo19_compat.py:334:    def test_tree_scanner_reports_live_tags_and_skips_comments(self):
+./tests/test_odoo19_compat.py:338:    def test_xml_well_formed(self):
+./tests/test_odoo19_compat.py:351:    def test_no_duplicate_xml_ids(self):
+./tests/test_odoo19_compat.py:371:    def test_phone_rule_mirrors_the_private_partner_rule_and_keeps_unlink_acl(self):
+./tests/test_odoo19_compat.py:384:        def field_node(record, name):
+./tests/test_odoo19_compat.py:390:        def field_text(record, name):
 ./tests/test_odoo_audit_field_attribution.py:80:def _write(root: Path, relative: str, source: str) -> None:
 ./tests/test_odoo_audit_field_attribution.py:86:def _tree(tmp_path: Path) -> Path:
 ./tests/test_odoo_audit_field_attribution.py:98:def _view(record_id: str, model: str | None, arch: str, inherit: str | None = None) -> str:

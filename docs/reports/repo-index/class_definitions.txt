@@ -736,9 +736,9 @@
 ./tests/test_material_profile_intake_delta_bridge_pure.py:77:class TestIntakeToProfileValueMapping(unittest.TestCase):
 ./tests/test_material_profile_intake_delta_bridge_pure.py:112:class TestDerivedHasResidueFeature(unittest.TestCase):
 ./tests/test_material_profile_intake_delta_bridge_pure.py:142:class TestBridgePayloadContract(unittest.TestCase):
-./tests/test_odoo19_compat.py:172:class TestOdoo19APICompat(unittest.TestCase):
-./tests/test_odoo19_compat.py:289:class TestOdoo19XMLCompat(unittest.TestCase):
-./tests/test_odoo19_compat.py:370:class TestPartnerPhoneFollowsPartnerPrivacy(unittest.TestCase):
+./tests/test_odoo19_compat.py:170:class TestOdoo19APICompat(unittest.TestCase):
+./tests/test_odoo19_compat.py:287:class TestOdoo19XMLCompat(unittest.TestCase):
+./tests/test_odoo19_compat.py:368:class TestPartnerPhoneFollowsPartnerPrivacy(unittest.TestCase):
 ./tests/test_odoo_audit_field_attribution.py:30:class SampleOrder(models.Model):
 ./tests/test_odoo_audit_field_attribution.py:41:class SampleLine(models.Model):
 ./tests/test_odoo_audit_field_attribution.py:48:class SampleTag(models.Model):
