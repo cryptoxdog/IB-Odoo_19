@@ -6,6 +6,8 @@ from unittest.mock import patch
 
 from odoo import fields
 from odoo.addons.plasticos_logistics.models.load import (
+    _ACTUAL_EVENT_INTERNAL_WRITE,
+    _ACTUAL_EVENT_INTERNAL_WRITE_TOKEN,
     _FREIGHT_INTERNAL_WRITE,
     _FREIGHT_INTERNAL_WRITE_TOKEN,
 )
@@ -169,6 +171,10 @@ class TestDocumentQueryBatch(TransactionCase):
         when = fields.Datetime.now() - timedelta(days=30)
         load.with_context(**{_FREIGHT_INTERNAL_WRITE: _FREIGHT_INTERNAL_WRITE_TOKEN}).write(
             {"state": "delivered", "delivered_at": when, "dispatched_at": when}
+        )
+        # The scale-ticket clocks read the Logistics actual events (BRS-07-R051, 2026-11-11).
+        load.with_context(**{_ACTUAL_EVENT_INTERNAL_WRITE: _ACTUAL_EVENT_INTERNAL_WRITE_TOKEN}).write(
+            {"actual_pickup_at": when, "actual_delivery_at": when}
         )
         return load
 
