@@ -21,9 +21,10 @@ class ResUsers(models.Model):
         if not group or group._name != "res.groups":
             return self.browse()
         cron_user = self.env.ref(SYSTEM_CRON_USER_XMLID, raise_if_not_found=False)
-        # sudo: group membership must resolve the same way for a cron run and for
-        # a user who cannot read other users' access rights.
-        internal_users = self.sudo().search([("share", "=", False), ("active", "=", True)], order="id ASC")
+        # Group membership must resolve the same way for a cron run and for a
+        # user who cannot read other users' access rights.
+        elevated = self.sudo()  # sudo: read-only group membership lookup, returns one user id
+        internal_users = elevated.search([("share", "=", False), ("active", "=", True)], order="id ASC")
         for user in internal_users:
             if cron_user and user == cron_user:
                 continue
