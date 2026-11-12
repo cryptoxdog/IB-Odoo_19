@@ -146,7 +146,7 @@ class PlasticosExportBookingSlot(models.Model):
         store=True,
         index=True,
     )
-    cargo_link_ids = fields.One2many(EXPORT_CARGO_LINK, "slot_id", string="Cargo")
+    cargo_link_ids = fields.One2many("plasticos.export.booking.cargo.link", "slot_id", string="Cargo")
     iso_number = fields.Char(related="journey_id.iso_number", string="Container No.")
     seal_number = fields.Char(related="journey_id.seal_number", string="Seal")
     journey_equipment_class = fields.Char(related="journey_id.equipment_class", string="Actual Equipment")

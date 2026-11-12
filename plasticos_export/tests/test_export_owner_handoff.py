@@ -194,11 +194,11 @@ class TestExportOwnerHandoff(ExportFixtureMixin, PlasticosTestCase):
                 name for name, field in self.env[model]._fields.items() if field._module == "plasticos_export"
             ]
             self.assertFalse(defined_here, model)
-        owned_models = self.env["ir.model.data"].search(
-            [("module", "=", "plasticos_export"), ("model", "=", "ir.model")]
+        defined_models = sorted(
+            name for name, model in self.env.registry.items() if model._original_module == "plasticos_export"
         )
         self.assertEqual(
-            sorted(self.env["ir.model"].browse(owned_models.mapped("res_id")).mapped("model")),
+            defined_models,
             [
                 "plasticos.export.booking",
                 "plasticos.export.booking.cargo.link",

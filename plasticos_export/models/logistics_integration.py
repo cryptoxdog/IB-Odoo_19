@@ -154,13 +154,13 @@ class PlasticosLogisticsRequestExport(models.Model):
                 _plain("Booking %(number)s was cancelled by its source. Do not load against it.", number=number)
             ],
         }
-        snapshot = {
-            "reference": number,
-            "subject": subjects[purpose],
-            "paragraphs": paragraphs[purpose],
-            "lines": lines,
-            "closing": [booking.company_id.name or ""],
-        }
+        snapshot = dict(
+            reference=number,
+            subject=subjects[purpose],
+            paragraphs=paragraphs[purpose],
+            lines=lines,
+            closing=[booking.company_id.name or ""],
+        )
         return {
             "status": APPLIED,
             "company": booking.company_id,
