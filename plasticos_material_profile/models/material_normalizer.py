@@ -69,7 +69,10 @@ def _identity(spec):
 
 
 _MATRIX = Path(__file__).resolve().parents[1] / "data" / "material_mapping.csv"
-_PHRASES: dict[str, _Spec] | None = None
+# Sheet statuses that are never a material: a call note in the Materials field,
+# or a line the operator decided is not a material. Importers skip them.
+_NOT_MATERIAL_STATUSES = frozenset({"not_material", "note_not_material"})
+_SHEET: tuple[dict[str, _Spec], frozenset[str]] | None = None
 
 
 def _cell(row, name) -> str | None:
@@ -81,20 +84,34 @@ def _codes(value) -> tuple[str, ...]:
     return tuple(part for part in (value or "").split() if part)
 
 
+def _sheet() -> tuple[dict[str, _Spec], frozenset[str]]:
+    global _SHEET
+    if _SHEET is None:
+        _SHEET = _load_sheet()
+    return _SHEET
+
+
 def phrase_table() -> dict[str, _Spec]:
     """Mapped material phrases from the sheet. Loaded once."""
-    global _PHRASES
-    if _PHRASES is None:
-        _PHRASES = _load_phrases()
-    return _PHRASES
+    return _sheet()[0]
 
 
-def _load_phrases() -> dict[str, _Spec]:
-    """One spec per mapped material row that names a polymer.
+def is_not_material(phrase) -> bool:
+    """True when the sheet records *phrase* as a call note or as not a material.
 
-    Any other status stays out. Two material rows with the same key fail the load.
+    Such text never becomes a profile. An importer skips it instead of reporting
+    an unresolved material.
+    """
+    return _phrase(phrase) in _sheet()[1]
+
+
+def _load_sheet() -> tuple[dict[str, _Spec], frozenset[str]]:
+    """One spec per mapped material row that names a polymer, and the non-material keys.
+
+    Any other status stays out of both. Two material rows with the same key fail the load.
     """
     phrases: dict[str, _Spec] = {}
+    not_material: set[str] = set()
     seen: set[str] = set()
     with _MATRIX.open(newline="", encoding="utf-8") as handle:
         for row in csv.DictReader(handle):
@@ -104,6 +121,9 @@ def _load_phrases() -> dict[str, _Spec]:
             if key in seen:
                 raise ValueError(f"duplicate material phrase {key}")
             seen.add(key)
+            if row["status"] in _NOT_MATERIAL_STATUSES:
+                not_material.add(key)
+                continue
             if row["status"] != "mapped" or not (row.get("polymer") or "").strip():
                 continue
             phrases[key] = _spec(
@@ -118,7 +138,7 @@ def _load_phrases() -> dict[str, _Spec]:
                 filler_type=_cell(row, "filler_type"),
                 process_type=_cell(row, "process_type"),
             )
-    return phrases
+    return phrases, frozenset(not_material)
 
 
 class MaterialNormalization:
