@@ -145,6 +145,7 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
         matcher scoring runs under any failure class.
         """
         intake.ensure_one()
+        intake._plasticos_require_match_material()
         if not intake.partner_id:
             raise UserError(_("Intake has no supplier partner."))
         if not intake.material_profile_id:
@@ -196,6 +197,18 @@ class PlasticosMatchOrchestrator(models.AbstractModel):
             raise UserError(_("Lot has no supplier partner."))
         if not isinstance(snapshot, dict) or not snapshot:
             raise UserError(_("Lot has no frozen snapshot to build the Gate request from."))
+
+        from odoo.addons.plasticos_intake.match_material import missing_match_material
+
+        missing = missing_match_material(snapshot)
+        if missing:
+            raise UserError(
+                _(
+                    "The approved lot cannot be matched: %(missing)s not set in its frozen material. "
+                    "Fill it on the opportunity material, then match again.",
+                    missing=" and ".join(missing),
+                )
+            )
 
         from odoo.addons.plasticos_gate.services.gate_builders import build_match_request
 

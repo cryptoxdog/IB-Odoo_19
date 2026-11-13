@@ -14,7 +14,7 @@ server-minted (``mint``) and immutable afterwards.
 from __future__ import annotations
 
 from odoo import _, api, fields, models
-from odoo.exceptions import AccessError, ValidationError
+from odoo.exceptions import AccessError, UserError, ValidationError
 
 # Server-owned create door. ``mint`` is the only caller that opens it; a form,
 # RPC, import or ``sudo()`` create without it is refused at the ORM boundary.
@@ -235,6 +235,23 @@ class PlasticosOpportunityApproval(models.Model):
             if lon:
                 snapshot["lon"] = lon
         return snapshot
+
+    def _plasticos_require_match_material(self):
+        """Refuse matching and offer creation while the frozen material lacks a required fact."""
+        from odoo.addons.plasticos_intake.match_material import missing_match_material  # noqa: PLC0415
+
+        for rec in self:
+            snapshot = rec.snapshot if isinstance(rec.snapshot, dict) else {}
+            missing = missing_match_material(snapshot)
+            if missing:
+                raise UserError(
+                    _(
+                        "Opportunity '%(opportunity)s' cannot be matched or offered: %(missing)s not set "
+                        "on its material. Fill it on the opportunity material, then run Match via Gate again.",
+                        opportunity=rec.opportunity_id.name,
+                        missing=" and ".join(missing),
+                    )
+                )
 
     @api.model
     def mint(self, opportunity, *, source, partner, material_profile, facility_profile=None, source_intake=None):
