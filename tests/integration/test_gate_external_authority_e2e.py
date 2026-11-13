@@ -85,7 +85,7 @@ class _IntakeStub:
         self._fields = {
             "polymer_id",
             "form_id",
-            "color_id",
+            "color_ids",
             "source_type_id",
             "quantity_per_load_lbs",
             "contamination_pct",
@@ -96,7 +96,7 @@ class _IntakeStub:
         }
         self.polymer_id = _FieldProxy(code="HDPE", name="HDPE", record_id=10)
         self.form_id = _FieldProxy(code="PELLET", name="Pellet", record_id=11)
-        self.color_id = _FieldProxy(code="NAT", name="Natural", record_id=12)
+        self.color_ids = (_FieldProxy(code="NAT", name="Natural", record_id=12),)
         self.source_type_id = _FieldProxy(code="PCR", name="Post Consumer", record_id=13)
         self.quantity_per_load_lbs = 40000.0
         self.contamination_pct = 2.5

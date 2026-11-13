@@ -869,3 +869,13 @@ module/
 | `plasticos_export` (19.0.1.0.0 scaffold from PR #474: installable, `auto_install` False, depends on `plasticos_documents_native`, no models or data yet, module-owned `business_rules/`; models arrive in S5B) | Bookings, slots and cargo allocation (E1-E4) once S5B adds them; will specialize the Logistics guard and Linda by `_inherit` |
 
 Dependency direction: Export → Logistics / Documents / Security Base. No upstream module depends on Export, and Logistics depends on none of Documents, Native Documents, Security Base or Export.
+
+> **2026-11-13 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> The "Retired 2026-11-11" paragraph above names `plasticos_base` 19.0.1.1.11 and migration folder
+> `19.0.1.1.11`. Staging #485 also released `plasticos_base` 19.0.1.1.11, and that release kept a hardened
+> orphan cleanup with a page cursor. The PlasticOS Export single merge (operator ruling 2026-11-13) keeps
+> the cleanup retired:
+> - the retirement migration runs as `plasticos_base/migrations/19.0.1.1.12/post-migrate.py`, under `plasticos_base` 19.0.1.1.12;
+> - it also deletes the `plasticos_base.attachment_orphan_cleanup_cursor` parameter;
+> - #485's `ir_attachment.py` and its cleanup test are removed;
+> - #485's invoice-FK and Linda-recorder hardening stay.

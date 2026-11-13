@@ -54,6 +54,16 @@ class TestExactAssociation(PlasticosTestCase):
                 "group_ids": [(6, 0, [internal.id])],
             }
         )
+        # The review activity goes to an Operations Manager (19.0.1.3.0), so one must exist.
+        cls.reviewer = cls.env["res.users"].create(
+            {
+                "name": "Assoc Operations Manager",
+                "login": "phase_b_ops_manager",
+                "group_ids": [
+                    (6, 0, [internal.id, cls.env.ref("plasticos_security_base.group_operations_manager").id])
+                ],
+            }
+        )
         cls.tag = cls.env["plasticos.document.tag"].search([("code", "=", "BOL")], limit=1)
         if not cls.tag:
             cls.tag = cls.env["plasticos.document.tag"].create({"name": "Assoc BOL", "code": "ASSOC_BOL"})

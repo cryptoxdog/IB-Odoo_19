@@ -215,6 +215,22 @@ LOT_SNAPSHOT_QUERY_KEYS = (
 )
 
 
+def _color_query_value(record):
+    """One named color stays a string. Several become a list. None omits the key."""
+    if "color_ids" not in record._fields:
+        return None
+    named = []
+    for color in record.color_ids:
+        label = color.code or color.name
+        if label:
+            named.append(label)
+    if len(named) == 1:
+        return named[0]
+    if named:
+        return named
+    return None
+
+
 def build_match_request(
     env,
     *,
@@ -242,8 +258,9 @@ def build_match_request(
             query["polymer_type"] = intake.polymer_id.code or intake.polymer_id.name
         if "form_id" in intake._fields and intake.form_id:
             query["form"] = intake.form_id.code or intake.form_id.name
-        if "color_id" in intake._fields and intake.color_id:
-            query["color"] = intake.color_id.code or intake.color_id.name
+        color_value = _color_query_value(intake)
+        if color_value is not None:
+            query["color"] = color_value
         for src, dst in INTAKE_SNAPSHOT_FIELD_MAP.items():
             value = _get_relation_value(intake, src)
             if value not in (None, False, ""):
@@ -298,8 +315,9 @@ def build_intake_request(env, intake_rec) -> ProcessIntakeRequest:
         snapshot["polymer_type"] = intake_rec.polymer_id.code or intake_rec.polymer_id.name
     if "form_id" in intake_rec._fields and intake_rec.form_id:
         snapshot["form"] = intake_rec.form_id.code or intake_rec.form_id.name
-    if "color_id" in intake_rec._fields and intake_rec.color_id:
-        snapshot["color"] = intake_rec.color_id.code or intake_rec.color_id.name
+    color_value = _color_query_value(intake_rec)
+    if color_value is not None:
+        snapshot["color"] = color_value
     for src, dst in INTAKE_SNAPSHOT_FIELD_MAP.items():
         value = _get_relation_value(intake_rec, src)
         if value not in (None, False, ""):

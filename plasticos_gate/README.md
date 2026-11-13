@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_gate
 component_name: PlasticOS Gate Client
-module_version: 19.0.1.9.9
+module_version: 19.0.1.9.10
 layer: 2
 installable: true
 auto_install: false

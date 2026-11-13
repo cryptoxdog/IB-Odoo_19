@@ -13,9 +13,22 @@ Enterprise module.
 
 import logging
 
-from odoo import api, fields, models
+from odoo import SUPERUSER_ID, api, fields, models
+from odoo.tools import html2plaintext
+
+from .reference_match import extract_tokens, number_pattern, split_email_body
 
 _logger = logging.getLogger(__name__)
+
+REVIEW_GROUP_XMLID = "plasticos_security_base.group_operations_manager"
+DOCUMENT_REVIEW_SUMMARY = "Document association needs review"
+# (model, ir.sequence code). The format itself is read from the sequence row.
+REFERENCE_SEQUENCE_CODES = (
+    ("plasticos.transaction", "plasticos.transaction"),
+    ("plasticos.load", "plasticos.load"),
+    ("sale.order", "sale.order"),
+    ("purchase.order", "purchase.order"),
+)
 
 
 class DocumentSyncService(models.AbstractModel):
@@ -70,6 +83,7 @@ class DocumentSyncService(models.AbstractModel):
         else:
             legacy = self._create_pending_shell(native_doc)
         if legacy and legacy.association_state != "accepted":
+            self._apply_reference_match(native_doc, legacy)
             self._schedule_review_once(native_doc)
         return legacy
 
@@ -130,34 +144,305 @@ class DocumentSyncService(models.AbstractModel):
         return "Original is unassigned."
 
     @api.model
-    def _schedule_review_once(self, native_doc):
-        """At most one internal activity. No recipient is invented when the file has no owner."""
-        if not native_doc.owner_id:
+    def _manager_reviewer(self, company=None):
+        """Deterministic manager-level reviewer: lowest-id active internal Operations Manager.
+
+        The uploader is never the reviewer by default. The superuser the
+        scheduler runs as is not a reviewer. Returns an empty recordset when
+        nobody is eligible; the caller must say so.
+        """
+        group = self.env.ref(REVIEW_GROUP_XMLID, raise_if_not_found=False)
+        users = self.env["res.users"]
+        if not group:
+            return users
+        members = group.sudo().all_user_ids  # sudo: reviewer identity only; an uploader cannot read membership
+        candidates = members.filtered(lambda user: user.active and not user.share and user.id != SUPERUSER_ID)
+        if company:
+            candidates = candidates.filtered(lambda user: company in user.company_ids)
+        return candidates.sorted("id")[:1].sudo(False)
+
+    @api.model
+    def _report_no_reviewer(self, record, subject):
+        """No eligible reviewer is an error on the record, never a silent skip."""
+        _logger.error(
+            "No active internal user in %s can review %s %s (%s).",
+            REVIEW_GROUP_XMLID,
+            record._name,
+            record.id,
+            subject,
+        )
+        marker = "No Operations Manager is available to review this record."
+        notes = record.sudo().message_ids  # sudo: the record's own notes, to keep this note single
+        if any(marker in (message.body or "") for message in notes):
             return
-        summary = "Document association needs review"
+        record.message_post(
+            body=f"{marker} {subject}",
+            message_type="notification",
+            subtype_xmlid="mail.mt_note",
+        )
+
+    @api.model
+    def _schedule_manager_activity(self, record, summary, note):
+        """At most one open manager activity per record and summary. The note follows the reason."""
         activity = self.env["mail.activity"]
-        if activity.search_count(
-            [
-                ("res_model", "=", "documents.document"),
-                ("res_id", "=", native_doc.id),
-                ("summary", "=", summary),
-            ]
-        ):
-            return
+        existing = activity.search(
+            [("res_model", "=", record._name), ("res_id", "=", record.id), ("summary", "=", summary)],
+            limit=1,
+        )
+        if existing:
+            if note and html2plaintext(existing.note or "").strip() != note.strip():
+                existing.write({"note": note})
+            return existing
+        company = record.company_id if "company_id" in record._fields else self.env["res.company"]
+        reviewer = self._manager_reviewer(company)
         todo = self.env.ref("mail.mail_activity_data_todo", raise_if_not_found=False)
-        if not todo:
-            return
-        activity.with_context(mail_activity_quick_update=True).create(
+        if not reviewer or not todo:
+            self._report_no_reviewer(record, summary)
+            return activity
+        return activity.with_context(mail_activity_quick_update=True).create(
             {
-                "res_model_id": self.env["ir.model"]._get_id("documents.document"),
-                "res_id": native_doc.id,
+                "res_model_id": self.env["ir.model"]._get_id(record._name),
+                "res_id": record.id,
                 "activity_type_id": todo.id,
                 "summary": summary,
-                "note": native_doc.plasticos_doc_id.pending_reason or self._navigation_reason(native_doc),
-                "user_id": native_doc.owner_id.id,
-                "date_deadline": fields.Date.context_today(native_doc),
+                "note": note,
+                "user_id": reviewer.id,
+                "date_deadline": fields.Date.context_today(record),
             }
         )
+
+    @api.model
+    def _schedule_review_once(self, native_doc):
+        """One internal activity for an Operations Manager, never the uploader by default."""
+        return self._schedule_manager_activity(
+            native_doc,
+            DOCUMENT_REVIEW_SUMMARY,
+            native_doc.plasticos_doc_id.pending_reason or self._navigation_reason(native_doc),
+        )
+
+    # ── Deterministic reference matching (email subject, body, filename, bill reference) ──
+    @api.model
+    def _reference_company(self, company):
+        """The company a reference is resolved in. Unknown in a multi-company database."""
+        if company:
+            return company
+        companies = self.env["res.company"].sudo().search([], limit=2)  # sudo: count legal companies only
+        return companies.sudo(False) if len(companies) == 1 else self.env["res.company"]
+
+    @api.model
+    def _reference_patterns(self, company):
+        """``(model, pattern)`` built from the live sequence definitions. No format is assumed."""
+        patterns = []
+        sequence = self.env["ir.sequence"].sudo()  # sudo: number formats only
+        for model, code in REFERENCE_SEQUENCE_CODES:
+            if model not in self.env:
+                continue
+            for row in sequence.search([("code", "=", code), ("company_id", "in", [company.id, False])]):
+                pattern = number_pattern(row.prefix, row.suffix, row.padding)
+                if pattern:
+                    patterns.append((model, pattern))
+        if "stock.picking.type" in self.env:
+            types = (
+                self.env["stock.picking.type"]
+                .sudo()  # sudo: number formats only
+                .search([("code", "=", "outgoing"), ("company_id", "=", company.id)])
+            )
+            for row in types.mapped("sequence_id"):
+                pattern = number_pattern(row.prefix, row.suffix, row.padding)
+                if pattern:
+                    patterns.append(("stock.picking", pattern))
+        return patterns
+
+    @api.model
+    def _reference_records(self, model, token, company):
+        """Exact name equality inside one company. Another company's record is not a match."""
+        if model not in self.env:
+            return self.env["res.partner"].browse()
+        # Identity lookup for a pending hint. Nothing is accepted or disclosed beyond the number.
+        found = self.env[model].sudo().search([("name", "=", token)])  # sudo: exact-name identity lookup
+        if model == "plasticos.transaction":
+
+            def owned(tx):
+                companies = tx.sale_order_id.company_id | tx.purchase_order_ids.mapped("company_id")
+                return not companies or company in companies
+
+            return found.filtered(owned)
+        return found.filtered(lambda row: not row.company_id or row.company_id == company)
+
+    @api.model
+    def _reference_transactions(self, record):
+        Transaction = self.env["plasticos.transaction"].sudo()  # sudo: identity lookup only
+        if record._name == "plasticos.transaction":
+            return record
+        if record._name == "sale.order":
+            return Transaction.search([("sale_order_id", "=", record.id)])
+        if record._name == "purchase.order":
+            return Transaction.search([("purchase_order_ids", "in", record.ids)])
+        if record._name == "plasticos.load":
+            return record.transaction_id
+        if record._name == "stock.picking":
+            return Transaction.search([("delivery_order_id", "=", record.id)])
+        return Transaction.browse()
+
+    @api.model
+    def _reference_parties(self, subject):
+        """Commercial partners on the vendor side of a resolved record.
+
+        The transaction supplier and carrier, purchase order vendors, and the
+        carrier of every load of the transaction or of its sale order. A buyer
+        is not a party here: this is asked for a vendor's bill or paperwork.
+        """
+        partners = self.env["res.partner"].sudo()  # sudo: party identity only
+        if subject is None:
+            return partners
+        subject = subject.sudo()  # sudo: party identity only
+        sale_orders = self.env["sale.order"].sudo()  # sudo: party identity only
+        if subject._name == "plasticos.transaction":
+            partners |= subject.supplier_id | subject.carrier_id | subject.purchase_order_ids.mapped("partner_id")
+            if "load_ids" in subject._fields:
+                partners |= subject.load_ids.mapped("carrier_id")
+            sale_orders = subject.sale_order_id
+        elif subject._name == "purchase.order":
+            partners |= subject.partner_id
+        elif subject._name == "plasticos.load":
+            partners |= subject.carrier_id
+        elif subject._name == "sale.order":
+            sale_orders = subject
+        if sale_orders and "plasticos.load" in self.env:
+            load_model = self.env["plasticos.load"].sudo()  # sudo: carrier identity only
+            partners |= load_model.search([("sale_order_id", "in", sale_orders.ids)]).mapped("carrier_id")
+        return partners.mapped("commercial_partner_id")
+
+    @api.model
+    def resolve_references(self, company, sources, quoted=None):
+        """Resolve reference numbers to one transaction, a conflict, or nothing.
+
+        ``sources`` is an ordered list of ``(label, text)``. ``quoted`` is the
+        replied-to or forwarded part of the email: it is read only when the
+        fresh sources carry no reference at all, so an older quoted number
+        cannot contradict the one the sender wrote.
+
+        Returns a dict: ``status`` (``one`` / ``conflicting`` / ``none``),
+        ``matches`` (``(label, model, token, record)``), ``subject`` (the single
+        agreed record: the transaction when the matches have one, else the one
+        matched record) and ``detail`` (a sentence naming tokens and records).
+        Nothing is written.
+        """
+        result = {"status": "none", "matches": [], "subject": None, "detail": ""}
+        company = self._reference_company(company)
+        if not company:
+            result["detail"] = "The company is unknown, so no reference was resolved."
+            return result
+        patterns = self._reference_patterns(company)
+        if not patterns:
+            return result
+        groups = [list(sources or [])]
+        if quoted:
+            groups.append([("quoted text", quoted)])
+        for group in groups:
+            matches = []
+            seen = set()
+            for label, text in group:
+                for model, token in extract_tokens(text or "", patterns):
+                    for record in self._reference_records(model, token, company):
+                        if (record._name, record.id) in seen:
+                            continue
+                        seen.add((record._name, record.id))
+                        matches.append((label, model, token, record))
+            if matches:
+                break
+        if not matches:
+            return result
+        keys = {}
+        for _label, _model, _token, record in matches:
+            transactions = self._reference_transactions(record)
+            for target in transactions or record:
+                keys[(target._name, target.id)] = target
+        named = ", ".join(
+            f"{token} in the {label} ({record._name} {record.id})" for label, _m, token, record in matches
+        )
+        result["matches"] = matches
+        if len(keys) == 1:
+            result["status"] = "one"
+            result["subject"] = next(iter(keys.values()))
+            result["detail"] = f"Reference {named}."
+        else:
+            result["status"] = "conflicting"
+            result["detail"] = f"References disagree: {named}."
+        return result
+
+    @api.model
+    def _origin_email(self, record):
+        """The oldest inbound email on the record, or an empty recordset."""
+        return (
+            self.env["mail.message"]
+            .sudo()  # sudo: the record's own inbound email; internal notes are not read
+            .search(
+                [("model", "=", record._name), ("res_id", "=", record.id), ("message_type", "=", "email")],
+                order="id ASC",
+                limit=1,
+            )
+        )
+
+    @api.model
+    def _email_sources(self, email, filename=None):
+        """``(sources, quoted)`` for :meth:`resolve_references`."""
+        sources = []
+        quoted = ""
+        if email:
+            fresh, quoted = split_email_body(email.body or "")
+            sources.append(("email subject", email.subject or ""))
+            sources.append(("email body", fresh))
+        if filename:
+            sources.append(("file name", filename))
+        return sources, quoted
+
+    @api.model
+    def _apply_reference_match(self, native_doc, shell):
+        """Pre-fill the pending shell's candidate subject from the originating email.
+
+        Exactly one: the draft subject and draft source reference are filled when
+        they are empty. Conflict: the pending reason states it. None: unchanged.
+        The row stays pending; the association command remains the only acceptance.
+        """
+        if not shell or shell.association_state != "pending":
+            return
+        email = self._origin_email(native_doc)
+        if not email:
+            return
+        sources, quoted = self._email_sources(email, native_doc.attachment_id.name or native_doc.name)
+        company = native_doc.company_id or shell.subject_company_id
+        found = self.resolve_references(company, sources, quoted)
+        if found["status"] == "conflicting":
+            reason = f"Email references conflict; nothing was pre-filled. {found['detail']}"
+            if shell.pending_reason != reason:
+                shell.write({"pending_reason": reason})
+            return
+        if found["status"] != "one":
+            return
+        subject = found["subject"]
+        sender = email.author_id.commercial_partner_id
+        if sender and sender not in self._reference_parties(subject):
+            reason = (
+                f"{found['detail']} Nothing was pre-filled: the sender ({sender.display_name}) is not its "
+                "supplier, purchase order vendor or load carrier."
+            )
+            if shell.pending_reason != reason:
+                shell.write({"pending_reason": reason})
+            return
+        if not sender:
+            reason = f"{found['detail']} The sender is unknown, so it was not checked as a party of that record."
+            if shell.pending_reason != reason:
+                shell.write({"pending_reason": reason})
+        reference = f"email {email.message_id or email.id}: {found['detail']}"
+        vals = {
+            "association_subject_model": subject._name,
+            "association_subject_id": subject.id,
+            "association_source_reference": reference,
+        }
+        for target in (shell, native_doc):
+            if not target.association_subject_model and not target.association_subject_id:
+                target.write(vals)
 
     @api.model
     def _update_legacy(self, native_doc):
@@ -185,8 +470,9 @@ class DocumentSyncService(models.AbstractModel):
         """Cron-callable method: find all native documents with plastics
         fields populated but no legacy link, and sync them.
 
-        This catches documents that were classified by AI auto-sort but
-        not yet synced (e.g., if the create hook was bypassed).
+        Not scheduled. The create and write hook on ``documents.document``
+        holds a classified original as it arrives; this is the operator
+        backfill for originals classified before that hook existed.
         """
         NativeDoc = self.env["documents.document"]
         domain = [

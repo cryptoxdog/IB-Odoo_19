@@ -44,6 +44,11 @@
          to ensure app menu and IR model visibility.
          ============================================ -->
 
+    <!-- Document roles by implication (operator decision 2026-11-12):
+         Logistics and Accounting are Documents Users, Operations Manager is a
+         Documents Manager, Sales Rep holds no documents group. Nobody is
+         implied into the Documents Extension Manager. -->
+
     <!-- Sales Rep -->
     <record id="group_sales_rep" model="res.groups">
         <field name="name">Sales Rep</field>
@@ -60,7 +65,7 @@
     <record id="group_logistics" model="res.groups">
         <field name="name">Logistics</field>
         <field name="privilege_id" ref="privilege_logistics"/>
-        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user')), (4, ref('plasticos_documents.group_documents_user'))]"/>
         <field name="comment">
             Manages freight, loads, dispatching, and rate memory.
             Broad read access on operational data.  Read-only on
@@ -72,7 +77,7 @@
     <record id="group_accounting" model="res.groups">
         <field name="name">Accounting</field>
         <field name="privilege_id" ref="privilege_accounting"/>
-        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user')), (4, ref('plasticos_documents.group_documents_user'))]"/>
         <field name="comment">
             Owns commission rules and financial documents.
             Read-only on most operational data.
@@ -107,7 +112,7 @@
     <record id="group_operations_manager" model="res.groups">
         <field name="name">Operations Manager</field>
         <field name="privilege_id" ref="privilege_administration"/>
-        <field name="implied_ids" eval="[(4, ref('group_logistics_ops')), (4, ref('group_qc_manager')), (4, ref('group_accounting_ops'))]"/>
+        <field name="implied_ids" eval="[(4, ref('group_logistics_ops')), (4, ref('group_qc_manager')), (4, ref('group_accounting_ops')), (4, ref('plasticos_documents.group_documents_manager'))]"/>
         <field name="comment">Full operational oversight with escalation authority</field>
     </record>
 

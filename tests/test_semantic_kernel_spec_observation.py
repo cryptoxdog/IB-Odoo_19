@@ -110,13 +110,13 @@ def test_specification_required_and_ondelete() -> None:
         ("company_id", "restrict"),
         ("polymer_id", "restrict"),
         ("form_id", "restrict"),
-        ("color_id", "restrict"),
         ("supersedes_id", "restrict"),
         ("legacy_material_profile_id", "set null"),
     ]:
         od = _kw(fields[name], "ondelete")
         assert isinstance(od, ast.Constant) and od.value == ondelete, (name, ondelete)
     assert _call_name(fields["attribute_ids"]) == "Many2many"
+    assert _call_name(fields["color_ids"]) == "Many2many"
 
 
 def test_observation_required_and_ondelete() -> None:

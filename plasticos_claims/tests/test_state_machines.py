@@ -14,6 +14,8 @@ from odoo.exceptions import UserError
 from odoo.fields import Datetime
 from odoo.tests.common import tagged
 
+from .common import create_claims_manager
+
 LOAD_VALID_TRANSITIONS = {
     "draft": ["awaiting_ready"],
     "awaiting_ready": ["ready_confirmed"],
@@ -388,6 +390,8 @@ class TestClaimStateMachineConsolidated(PlasticosTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        # Escalation routes to a claims manager.
+        create_claims_manager(cls.env, login="claims_state_machine_manager")
         cls.supplier = cls.env["res.partner"].create(
             {
                 "name": "Claim SM Supplier",

@@ -22,6 +22,11 @@ transaction (amendment A1); several parents for one load stop the upgrade.
 
 The repair is idempotent: a second run finds no NULL company and changes
 nothing. Its marker key is this script's own.
+
+This script first shipped under ``19.0.1.14.20``. Staging released plasticos_logistics
+19.0.1.14.20 without it, so a database on that release would skip that folder. It
+runs under ``19.0.1.14.21`` (PlasticOS Export single merge, 2026-11-13). The marker
+key keeps its original name so a database that already ran it is not repaired twice.
 """
 
 import logging

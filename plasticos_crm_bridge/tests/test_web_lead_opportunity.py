@@ -269,14 +269,17 @@ class TestWebLeadOpportunity(TransactionCase):
         polymer = self.env.ref("plasticos_material_profile.polymer_hdpe")
         form = self.env.ref("plasticos_material_profile.form_pellets")
         color = self.env.ref("plasticos_material_profile.color_natural")
+        blue = self.env.ref("plasticos_material_profile.color_blue")
         source_type = self.env.ref("plasticos_material_profile.source_post_industrial")
+        tier = self.env.ref("plasticos_material_profile.quality_tier_grade_a")
         profile = self.env["plasticos.material.profile"].create(
             {
                 "partner_id": partner.id,
                 "polymer_id": polymer.id,
                 "form_id": form.id,
-                "color_id": color.id,
+                "color_ids": [(6, 0, [color.id, blue.id])],
                 "source_type_id": source_type.id,
+                "quality_tier_id": tier.id,
                 "melt_flow_index": 8.5,
                 "contamination_percent": 2.5,
                 "quantity_per_load_lbs": 12500,
@@ -298,8 +301,9 @@ class TestWebLeadOpportunity(TransactionCase):
         self.assertEqual(intake.material_profile_id, profile)
         self.assertEqual(intake.polymer_id, polymer)
         self.assertEqual(intake.form_id, form)
-        self.assertEqual(intake.color_id, color)
+        self.assertEqual(intake.color_ids, color | blue)
         self.assertEqual(intake.source_type_id, source_type)
+        self.assertEqual(intake.quality_tier_id, tier)
         self.assertEqual(intake.mfi_value, 8.5)
         self.assertEqual(intake.contamination_pct, 2.5)
         self.assertEqual(intake.quantity_per_load_lbs, 12500)

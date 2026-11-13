@@ -355,10 +355,10 @@ class PlasticosIntakeNormalizer(models.Model):
                 )
 
         # ── Warnings (non-blocking) ─────────────────────
-        if not self.color_id:
+        if not self.color_ids:
             warnings.append(
                 {
-                    "field": "color_id",
+                    "field": "color_ids",
                     "message": "Color not specified — matching may be less precise.",
                     "code": "WARN-001",
                 }

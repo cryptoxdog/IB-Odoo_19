@@ -1,8 +1,15 @@
 """Census legacy evidence before operation scope is added (Export campaign S3, RP-07-E094).
 
 Refuses an unsupported baseline before anything changes: the installed module
-must be 19.0.2.1.17 and the 19.0.2.1.9 scale-ticket flag move must be present
-on plasticos_load. Refuses contradictory accepted evidence. Records a census
+must be 19.0.2.1.17 or 19.0.2.1.18 (Staging #487 released 19.0.2.1.18), and the
+19.0.2.1.9 scale-ticket flag move must be present on plasticos_load. A database
+that already ran this step under the campaign build 19.0.2.1.19 is left alone.
+
+The script first shipped under 19.0.2.1.18. Staging released 19.0.2.1.18 without
+it, so a database on that release would skip a 19.0.2.1.18 folder. It therefore
+runs under 19.0.2.1.20 (PlasticOS Export single merge, 2026-11-13).
+
+Refuses contradictory accepted evidence. Records a census
 of the accepted decision provenance so the post-migration can prove that
 classifying rows as legacy changed no actor, time or source digest.
 """
@@ -12,7 +19,9 @@ import logging
 
 _logger = logging.getLogger(__name__)
 
-SUPPORTED_BASELINE = "19.0.2.1.17"
+SUPPORTED_BASELINES = ("19.0.2.1.17", "19.0.2.1.18")
+# The campaign build that already classified evidence under the first folder name.
+ALREADY_MIGRATED = ("19.0.2.1.19",)
 CENSUS_KEY = "plasticos_documents.s3_legacy_evidence_census"
 
 # One digest over every accepted decision. The post-migration recomputes it.
@@ -45,10 +54,14 @@ def _version_tuple(version):
 def migrate(cr, version):
     if not version:
         return
-    if _version_tuple(version) != _version_tuple(SUPPORTED_BASELINE):
+    installed = _version_tuple(version)
+    if installed in {_version_tuple(done) for done in ALREADY_MIGRATED}:
+        _logger.info("plasticos_documents: evidence already classified at %s; census skipped", version)
+        return
+    if installed not in {_version_tuple(base) for base in SUPPORTED_BASELINES}:
         raise RuntimeError(
-            f"plasticos_documents 19.0.2.1.18 upgrades only from {SUPPORTED_BASELINE}; installed is {version}. "
-            "Upgrade to the reconciled baseline first."
+            f"plasticos_documents 19.0.2.1.20 upgrades only from {' or '.join(SUPPORTED_BASELINES)}; "
+            f"installed is {version}. Upgrade to a reconciled baseline first."
         )
     for column in ("scale_ticket_reminder_sent", "scale_ticket_escalated"):
         if not _has_column(cr, "plasticos_load", column):

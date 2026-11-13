@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Semantic Kernel",
-    "version": "19.0.1.0.4",
+    "version": "19.0.1.0.5",
     "summary": "Additive semantic models for PlasticOS material and facility kernel.",
     "license": "LGPL-3",
     "author": "Igor Beylin",

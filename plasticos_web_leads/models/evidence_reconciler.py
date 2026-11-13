@@ -2,57 +2,24 @@
 
 from __future__ import annotations
 
-import re
 import uuid
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from .material_catalog import CatalogEntry, accept_value, match_codes
 from .quantity_normalizer import QuantityEvidence
 
 EVIDENCE_SCHEMA_VERSION = "web-lead-evidence/v1"
 
-# Seller words for each polymer code. A conflict needs the seller to name a
-# different polymer, not merely to spell the same one another way.
-_POLYMER_ALIASES: dict[str, tuple[str, ...]] = {
-    "HDPE": ("hdpe", r"high[- ]density\s+polyethylene"),
-    "LDPE": ("ldpe", r"low[- ]density\s+polyethylene"),
-    "LLDPE": ("lldpe", r"linear\s+low[- ]density\s+polyethylene"),
-    "PP": ("pp", "polypropylene"),
-    "PET": ("pet", "rpet", "pete", r"polyethylene\s+terephthalate"),
-    "PS": ("ps", "polystyrene"),
-    "HIPS": ("hips", r"high[- ]impact\s+polystyrene"),
-    "PVC": ("pvc", "vinyl", r"polyvinyl\s+chloride"),
-    "ABS": ("abs",),
-    "NYLON": ("nylon", "polyamide", r"pa\d*"),
-    "PC": ("pc", "polycarbonate"),
-    "PMMA": ("pmma", "acrylic"),
-    "POM": ("pom", "acetal"),
-    "PBT": ("pbt",),
-    "EVA": ("eva",),
-    "TPE": ("tpe",),
-    "TPU": ("tpu",),
-    "PLA": ("pla", r"polylactic\s+acid"),
-}
-_ALIAS_TO_CODE = {alias: code for code, aliases in _POLYMER_ALIASES.items() for alias in aliases}
-_COMPILED_ALIASES = {
-    code: re.compile(r"\b(?:" + "|".join(aliases) + r")\b", re.IGNORECASE) for code, aliases in _POLYMER_ALIASES.items()
-}
+
+def polymer_code(value: str | None, entries: Sequence[CatalogEntry] = ()) -> str:
+    """Catalog polymer code for one model token. An unlisted token is empty."""
+    return accept_value(value, entries) or ""
 
 
-def polymer_code(value: str | None) -> str:
-    """Canonical polymer code for one model or seller token; the uppercased token otherwise."""
-    token = str(value or "").strip().lower()
-    if not token:
-        return ""
-    for code, pattern in _COMPILED_ALIASES.items():
-        if pattern.fullmatch(token):
-            return code
-    return token.upper()
-
-
-def polymers_named(text: str | None) -> set[str]:
-    """Polymer codes the seller's own words name."""
-    return {code for code, pattern in _COMPILED_ALIASES.items() if pattern.search(text or "")}
+def polymers_named(text: str | None, entries: Sequence[CatalogEntry] = ()) -> set[str]:
+    """Polymer codes the seller's own words name in the catalog."""
+    return set(match_codes(text, entries))
 
 
 def _polyethylene_family(codes: set[str]) -> set[str]:
@@ -79,6 +46,7 @@ def reconcile_evidence(
     ai_normalized: Mapping[str, Any] | None,
     attachments: Sequence[Mapping[str, Any]],
     run_id: str | None = None,
+    polymer_entries: Sequence[CatalogEntry] = (),
 ) -> dict[str, Any]:
     """Preserve direct seller facts and record material conflicts explicitly."""
     seller = dict(canonical_payload)
@@ -105,8 +73,8 @@ def reconcile_evidence(
     seller_material = " ".join(
         str(seller.get(key) or "") for key in ("material_description", "material_composition_text")
     )
-    seller_polymers = polymers_named(seller_material)
-    ai_polymer = polymer_code(ai.get("polymer"))
+    seller_polymers = polymers_named(seller_material, polymer_entries)
+    ai_polymer = polymer_code(ai.get("polymer"), polymer_entries)
     if ai_polymer and seller_polymers and ai_polymer not in seller_polymers:
         if not (_polyethylene_family({ai_polymer}) & _polyethylene_family(seller_polymers)):
             conflicts.append(
@@ -122,7 +90,7 @@ def reconcile_evidence(
     # confident photo naming a polymer other than the text, is a conflict.
     confident_hints = sorted(
         {
-            polymer_code(item.get("observed_polymer_hint"))
+            polymer_code(item.get("observed_polymer_hint"), polymer_entries)
             for item in vision
             if item.get("observed_polymer_hint") and float(item.get("confidence") or 0.0) >= 0.7
         }

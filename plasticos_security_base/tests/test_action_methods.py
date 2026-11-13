@@ -453,6 +453,23 @@ class TestClaimActions(PlasticosTestCase):
 
     def test_action_escalate(self):
         claim = self._make_claim()
+        # Escalation routes to a claims manager; an empty group is a logged error.
+        self.env["res.users"].create(
+            {
+                "name": "Escalation Claims Manager",
+                "login": "action_escalate_claims_manager",
+                "group_ids": [
+                    (
+                        6,
+                        0,
+                        [
+                            self.env.ref("base.group_user").id,
+                            self.env.ref("plasticos_claims.group_claims_manager").id,
+                        ],
+                    )
+                ],
+            }
+        )
         claim.action_escalate()
         self.assertEqual(claim.state, "escalated")
         self.assertEqual(claim.escalation_level, 1)
@@ -628,15 +645,19 @@ class TestCrmLeadActions(PlasticosTestCase):
         self.assertEqual(result["res_model"], "plasticos.material.profile")
 
     def test_action_view_match_results(self):
-        # PR #384 (efbd6812) replaced the retired "Feature Disabled" notification:
-        # the button opens the Gate match results of this opportunity's own runs.
+        # The button opens the Gate match results produced by this opportunity's
+        # runs (plasticos_crm_bridge/models/crm_lead.py action_view_match_results).
         lead = self._make_lead(partner_id=self.partner.id)
+        other = self._make_lead(partner_id=self.partner.id)
         result = lead.action_view_match_results()
         self.assertEqual(result["type"], "ir.actions.act_window")
         self.assertEqual(result["res_model"], "plasticos.match.result")
         self.assertEqual(result["view_mode"], "list,form")
         self.assertEqual(result["domain"], [("match_run_id.opportunity_id", "=", lead.id)])
         self.assertEqual(result["target"], "current")
+        self.assertNotEqual(result["domain"], other.action_view_match_results()["domain"])
+        # The domain is a real filter on the result model: a new lead has no runs.
+        self.assertFalse(self.env["plasticos.match.result"].search(result["domain"]))
 
     def test_action_view_transactions(self):
         lead = self._make_lead(partner_id=self.partner.id)

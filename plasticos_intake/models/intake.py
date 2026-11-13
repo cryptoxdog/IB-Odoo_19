@@ -185,10 +185,9 @@ class PlasticosIntake(models.Model):
     polymer_id = fields.Many2one(
         "plasticos.polymer",
         string="Polymer",
-        required=True,
         index=True,
         ondelete="restrict",
-        help="Polymer type from master registry.",
+        help="Polymer type from master registry. Empty when triage matched no polymer.",
     )
     material_grade_id = fields.Many2one(
         "plasticos.material.grade",
@@ -200,17 +199,17 @@ class PlasticosIntake(models.Model):
     form_id = fields.Many2one(
         "plasticos.material.form",
         string="Form",
-        required=True,
         index=True,
         ondelete="restrict",
-        help="Material form from master registry.",
+        help="Material form from master registry. Empty when triage matched no form.",
     )
-    color_id = fields.Many2one(
+    color_ids = fields.Many2many(
         "plasticos.material.color",
+        "plasticos_intake_color_rel",
+        "intake_id",
+        "color_id",
         string="Color",
-        index=True,
-        ondelete="restrict",
-        help="Material color from master registry.",
+        help="Every color this intake names. More than one can be selected.",
     )
     source_type_id = fields.Many2one(
         "plasticos.source.type",
@@ -227,6 +226,13 @@ class PlasticosIntake(models.Model):
         index=True,
         ondelete="restrict",
         help="How the material is packaged/shipped (Gaylords, Super Sacks, Bales).",
+    )
+    quality_tier_id = fields.Many2one(
+        "plasticos.material.quality.tier",
+        string="Quality Tier",
+        index=True,
+        ondelete="restrict",
+        help="Quality tier from the material quality tier master (Grade A, Grade B, Grade C, Reusable, Standard).",
     )
 
     # ═════════════════════════════════════════════════════════
@@ -577,10 +583,12 @@ class PlasticosIntake(models.Model):
             return
         self.polymer_id = mp.polymer_id.id if mp.polymer_id else self.polymer_id
         self.form_id = mp.form_id.id if mp.form_id else self.form_id
-        self.color_id = mp.color_id.id if mp.color_id else self.color_id
+        if mp.color_ids:
+            self.color_ids = [(6, 0, mp.color_ids.ids)]
         self.source_type_id = mp.source_type_id.id if mp.source_type_id else self.source_type_id
         self.material_grade_id = mp.material_grade_id.id if mp.material_grade_id else self.material_grade_id
         self.packaging_type_id = mp.packaging_type_id.id if mp.packaging_type_id else self.packaging_type_id
+        self.quality_tier_id = mp.quality_tier_id.id if mp.quality_tier_id else self.quality_tier_id
         self.mfi_value = mp.melt_flow_index or self.mfi_value
         self.density_value = mp.density or self.density_value
         self.moisture_pct = mp.moisture_percent or self.moisture_pct
@@ -873,6 +881,8 @@ class PlasticosIntake(models.Model):
         profile_vals["partner_id"] = profile_partner.id
         if self.packaging_type_id:
             profile_vals["packaging_type_id"] = self.packaging_type_id.id
+        if self.quality_tier_id:
+            profile_vals["quality_tier_id"] = self.quality_tier_id.id
         if MaterialProfile._fields["lat"].related:
             profile_vals.pop("lat", None)
             profile_vals.pop("lon", None)

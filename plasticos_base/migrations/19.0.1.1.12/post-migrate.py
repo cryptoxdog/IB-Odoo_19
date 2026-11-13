@@ -1,6 +1,6 @@
 """Remove the retired attachment orphan cleanup cron from existing databases.
 
-Version 19.0.1.1.11 removes ``ir.attachment._cron_cleanup_missing_filestore_orphans``
+Version 19.0.1.1.12 removes ``ir.attachment._cron_cleanup_missing_filestore_orphans``
 and its cron ``plasticos_base.ir_cron_cleanup_attachment_orphans``. That job deleted
 ``ir.attachment`` rows whose filestore file was missing, which also erased the record
 that the file had been lost. Native Odoo keeps such rows: a missing file reads as
@@ -11,7 +11,14 @@ databases that first loaded this cron before 2026-03-17 carry ``noupdate = true`
 it. So this script removes the cron itself. It finds the cron by xmlid and by code
 that calls the retired method, archived crons included, and deletes each one with its
 delegated server action. The plasticos_base xmlids of the cron and of its server
-action are removed in every case.
+action are removed in every case, and so is the cleanup's page cursor
+(``ir.config_parameter`` ``plasticos_base.attachment_orphan_cleanup_cursor``, added
+by Staging #485).
+
+The script first shipped under 19.0.1.1.11. Staging #485 also released
+plasticos_base 19.0.1.1.11 with the cleanup still on, so a database on that release
+would skip a 19.0.1.1.11 folder. It therefore runs under 19.0.1.1.12 (operator
+ruling 2026-11-13: the cleanup stays retired).
 
 A cron that is running right now cannot be deleted: ``unlink()`` refuses with a
 ``UserError`` when the job holds its row lock, and raises a serialization failure when
@@ -27,11 +34,11 @@ its code:
 
     import importlib.util, os
     from odoo.modules import get_module_path
-    path = os.path.join(get_module_path("plasticos_base"), "migrations", "19.0.1.1.11", "post-migrate.py")
+    path = os.path.join(get_module_path("plasticos_base"), "migrations", "19.0.1.1.12", "post-migrate.py")
     spec = importlib.util.spec_from_file_location("retire_attachment_cleanup", path)
     script = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(script)
-    script.migrate(env.cr, "19.0.1.1.10")
+    script.migrate(env.cr, "19.0.1.1.11")
     env.cr.commit()
 """
 
@@ -48,6 +55,7 @@ _logger = logging.getLogger(__name__)
 _METHOD = "_cron_cleanup_missing_filestore_orphans"
 _CRON_XMLID = "ir_cron_cleanup_attachment_orphans"
 _XMLIDS = (_CRON_XMLID, f"{_CRON_XMLID}_ir_actions_server")
+_CURSOR_PARAM = "plasticos_base.attachment_orphan_cleanup_cursor"
 
 
 def _xmlid_rows(env):
@@ -114,18 +122,22 @@ def migrate(cr, version):
     leftover_ids = leftover.ids
     leftover.unlink()
 
+    cursor_params = env["ir.config_parameter"].search([("key", "=", _CURSOR_PARAM)])
+    cursor_params.unlink()
+
     _logger.info(
-        "plasticos_base 19.0.1.1.11: attachment orphan cleanup retired; "
-        "deleted ir.cron %s, deleted ir.actions.server %s, removed ir.model.data %s",
+        "plasticos_base 19.0.1.1.12: attachment orphan cleanup retired; "
+        "deleted ir.cron %s, deleted ir.actions.server %s, removed ir.model.data %s, removed cursor parameter %s",
         deleted,
         removed_actions,
         leftover_ids,
+        bool(cursor_params),
     )
     if deactivated or left:
         _logger.warning(
-            "plasticos_base 19.0.1.1.11: ir.cron could not be deleted while it was running and now has "
+            "plasticos_base 19.0.1.1.12: ir.cron could not be deleted while it was running and now has "
             "no plasticos_base xmlid; deactivated %s, left active %s (exception classes). Remove it once "
-            "that run ends: re-run plasticos_base/migrations/19.0.1.1.11/post-migrate.py from an Odoo "
+            "that run ends: re-run plasticos_base/migrations/19.0.1.1.12/post-migrate.py from an Odoo "
             "shell (see its docstring).",
             deactivated,
             left,

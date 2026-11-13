@@ -5,7 +5,7 @@ ADR-130. This version removes the ``company_id = False`` escape from the global
 dashboard. Tightening a rule over rows that still have no company would hide
 live loads from every user, so this step checks first and assigns nothing:
 
-* every ``plasticos_load`` row has a company (Logistics 19.0.1.14.20 repaired or
+* every ``plasticos_load`` row has a company (Logistics 19.0.1.14.21, first shipped as 19.0.1.14.20, repaired or
   refused them before this module upgrades);
 * the Load dashboard SQL view projects ``company_id``;
 * active user company scopes (M-SEC preflight): every active internal user's
@@ -16,6 +16,10 @@ live loads from every user, so this step checks first and assigns nothing:
 Any failure stops the upgrade. Security Base never sets a company, never
 changes role membership, and never weakens the filter to make data visible.
 It writes nothing, so a rerun is the same check.
+
+This preflight first shipped under ``19.0.1.2.25``. Staging released plasticos_security_base
+19.0.1.2.27 without it, so a database on that release would skip it. It runs under
+``19.0.1.2.28`` (PlasticOS Export single merge, 2026-11-13); it writes nothing, so a rerun is harmless.
 """
 
 import logging

@@ -86,6 +86,10 @@ extended_audit_report.json
 
 # Customer VanillaSoft export. Local Gate 7 input only; not published.
 plasticos_crm_sync/Vanillasoft-Scrap-Management.csv
+# ERP material-profile extracts. They name customers and suppliers.
+plasticos_material_profile/data/ERP-Material-Profiles.csv
+plasticos_material_profile/data/ERP-Material-Profiles-Customers.csv
+plasticos_material_profile/data/ERP-Material-Profiles-Suppliers.csv
 # make pr: the author's pr-intent.json and SSOT composer scratch (scripts/git_open_pr.sh)
 .l9/pr/
 # PlasticOS Export: private PO 64014 originals. Removed 2026-11-12 by operator decision; held privately, never committed.

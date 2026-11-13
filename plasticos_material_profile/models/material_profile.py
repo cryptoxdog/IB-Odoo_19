@@ -57,19 +57,25 @@ class PlasticosMaterialProfile(models.Model):
         [
             # Commodity
             ("PP", "PP"),
+            ("EPP", "EPP"),
             ("PP_PE", "PP/PE"),
             ("HDPE", "HDPE"),
             ("HDPE_HMW", "HDPE HMW"),
             ("LDPE", "LDPE"),
+            ("MDPE", "MDPE"),
             ("LLDPE", "LLDPE"),
+            ("EPE", "EPE"),
             ("LDPE_LLDPE", "LDPE/LLDPE"),
             ("PLASTIC_PALLETS", "Plastic Pallets"),
+            ("1_2_COMMINGLED_BOTTLES", "1-2 Commingled Bottles"),
             ("3_7_COMMINGLED_BOTTLES", "3-7 Commingled Bottles"),
             ("1_7_COMMINGLED_BOTTLES", "1-7 Commingled Bottles"),
             ("GAYLORD_BOXES", "Gaylord Boxes"),
             ("PET", "PET"),
+            ("PETG", "PETG"),
             ("PET_HDPE", "PET/HDPE"),
             ("ABS", "ABS"),
+            ("SAN", "SAN"),
             ("HIPS", "HIPS"),
             ("PS", "PS"),
             ("EPS", "EPS"),
@@ -112,8 +118,6 @@ class PlasticosMaterialProfile(models.Model):
         help="Auto-populated from polymer_id. Kept for backward compatibility.",
     )
 
-    sub_grade = fields.Char()  # TODO: Define sub-grade logic and re-enable in view
-
     # ── Form (Many2one to master) ────────────────────────────
     form_id = fields.Many2one(
         "plasticos.material.form",
@@ -143,36 +147,23 @@ class PlasticosMaterialProfile(models.Model):
         tracking=True,
         help="What the material was before processing (Drums, Totes, Pallets). Optional.",
     )
-
-    # ── Color (Many2one to master) ───────────────────────────
-    color_id = fields.Many2one(
-        "plasticos.material.color",
-        string="Color",
+    quality_tier_id = fields.Many2one(
+        "plasticos.material.quality.tier",
+        string="Quality Tier",
         index=True,
         ondelete="restrict",
         tracking=True,
-        help="Canonical material color from the master registry.",
+        help="Quality tier from the material quality tier master (Grade A, Grade B, Grade C, Reusable, Standard).",
     )
-    # Backward-compatible computed field
-    color = fields.Selection(
-        [
-            ("CLEAR", "Clear"),
-            ("NATURAL", "Natural"),
-            ("WHITE", "White"),
-            ("BLACK", "Black"),
-            ("MIXED", "Mixed"),
-            ("BLUE", "Blue"),
-            ("BLUE_WHITE", "Blue/White"),
-            ("RED", "Red"),
-            ("GREEN", "Green"),
-            ("YELLOW", "Yellow"),
-            ("ORANGE", "Orange"),
-            ("GRAY", "Gray"),
-        ],
-        string="Color Code",
-        compute="_compute_color_code",
-        store=True,
-        help="Auto-populated from color_id. Kept for backward compatibility.",
+
+    # ── Color ──
+    color_ids = fields.Many2many(
+        "plasticos.material.color",
+        "plasticos_material_profile_color_rel",
+        "profile_id",
+        "color_id",
+        string="Color",
+        help="Every color this material names. More than one can be selected.",
     )
     color_flexibility = fields.Selection(
         [
@@ -395,17 +386,6 @@ class PlasticosMaterialProfile(models.Model):
 
     # ── AI Enrichment ────────────────────────────────────────
     freeform_notes = fields.Text()
-    quality_tier = fields.Selection(
-        [
-            ("prime", "Prime"),
-            ("near_prime", "Near Prime"),
-            ("standard", "Standard"),
-            ("economy", "Economy"),
-            ("unknown", "Unknown"),
-        ],
-        string="Quality Tier",
-        help="AI-inferred quality tier based on material specifications.",
-    )
 
     # ── Navigation: Related Record Counts ──────────────────────
     # NOTE: intake_count is added by plasticos_intake module via inheritance
@@ -484,13 +464,6 @@ class PlasticosMaterialProfile(models.Model):
         for rec in self:
             code = rec.form_id.code if rec.form_id else False
             rec.form = code if code in valid_codes else False
-
-    @api.depends("color_id", "color_id.code")
-    def _compute_color_code(self):
-        valid_codes = {k for k, _ in self._fields["color"].selection}
-        for rec in self:
-            code = rec.color_id.code if rec.color_id else False
-            rec.color = code if code in valid_codes else False
 
     @api.depends("source_type_id", "source_type_id.code")
     def _compute_source_type_code(self):
@@ -704,7 +677,7 @@ class PlasticosMaterialProfile(models.Model):
             "product_uom_id": product_uom_id,
             "material_profile_id": self.id,
             "material_grade_id": self.material_grade_id.id if self.material_grade_id else False,
-            "color_id": self.color_id.id if self.color_id else False,
+            "color_ids": [(6, 0, self.color_ids.ids)],
             "form_id": self.form_id.id if self.form_id else False,
             "packaging_type_id": self.packaging_type_id.id if self.packaging_type_id else False,
             "source_type_id": self.source_type_id.id if self.source_type_id else False,
@@ -740,8 +713,7 @@ class PlasticosMaterialProfile(models.Model):
                 "material_grade_name": rec.material_grade_id.name if rec.material_grade_id else None,
                 "form": rec.form_id.code if rec.form_id else None,
                 "form_name": rec.form_id.name if rec.form_id else None,
-                "color": rec.color_id.code if rec.color_id else None,
-                "color_name": rec.color_id.name if rec.color_id else None,
+                "colors": rec.color_ids.mapped("code"),
                 "attributes": rec.material_attribute_ids.mapped("code"),
                 "quality": {
                     "mfi": rec.melt_flow_index,

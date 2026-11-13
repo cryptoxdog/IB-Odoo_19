@@ -253,7 +253,7 @@ class TestManualOffers(PlasticosTestCase):
         material = opportunity.opportunity_material_ids
         color = self.env["plasticos.material.color"].search([], limit=1)
         if color:
-            material.color_id = color
+            material.color_ids = color
         picture = self.env["ir.attachment"].create(
             {
                 "name": "bale.png",

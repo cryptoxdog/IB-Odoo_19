@@ -480,12 +480,12 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(set(profiles), {"LDPE", "HDPE", "PC_ABS"})
         film = profiles["LDPE"]
         self.assertEqual(film.form_id.code, "FILM")
-        self.assertEqual(film.sub_grade, "A")
+        self.assertEqual(film.quality_tier_id.code, "GRADE_A")
         self.assertFalse(film.source_type_id)
         self.assertEqual(set(film.material_attribute_ids.mapped("code")), {"clean", "dry"})
         self.assertIn("99 Clear LDPE Film", film.freeform_notes or "")
         self.assertEqual(profiles["HDPE"].material_grade_id.code, "DRUMS")
-        self.assertFalse(profiles["HDPE"].sub_grade)
+        self.assertFalse(profiles["HDPE"].quality_tier_id)
         self.assertFalse(profiles["HDPE"].material_attribute_ids)
         self.assertFalse(profiles["PC_ABS"].form_id)
         self.assertEqual(profiles["PC_ABS"].source_type_id.code, "POST_INDUSTRIAL")
@@ -508,7 +508,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
 
         orch._upsert_lead(self.connection, self._lead("vs-mat-1", custom_fields={"Materials": "95 Clear LDPE Film"}))
         film = self._profiles(facility).filtered(lambda profile: profile.polymer_id.code == "LDPE")
-        self.assertEqual(film.sub_grade, "A")
+        self.assertEqual(film.quality_tier_id.code, "GRADE_A")
         self.assertEqual(set(film.material_attribute_ids.mapped("code")), {"clean", "dry"})
         self.assertIn("95 Clear LDPE Film", film.freeform_notes or "")
         self.assertTrue(any("conflicts with stored grade" in row["message"] for row in orch.error_rows))
@@ -766,7 +766,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         profile = self._profiles(facility)
         self.assertEqual(profile.polymer_id.code, "LDPE")
         self.assertEqual(profile.form_id.code, "FILM")
-        self.assertEqual(profile.sub_grade, "C")
+        self.assertEqual(profile.quality_tier_id.code, "GRADE_C")
         self.assertFalse(profile.material_attribute_ids)
         self.assertFalse(profile.source_type_id)
 
@@ -831,7 +831,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(set(by_polymer), {"HDPE", "LDPE", "PP"})
         self.assertEqual(by_polymer["HDPE"].material_grade_id.code, "DRUMS")
         self.assertEqual(by_polymer["LDPE"].form_id.code, "FILM")
-        self.assertFalse(by_polymer["LDPE"].sub_grade)
+        self.assertFalse(by_polymer["LDPE"].quality_tier_id)
         self.assertFalse(by_polymer["LDPE"].material_attribute_ids)
         self.assertFalse(by_polymer["PP"].form_id)
         self.assertEqual(len(profiles), 3)
@@ -963,7 +963,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         by_polymer = {profile.polymer_id.code: profile for profile in profiles}
         self.assertEqual(set(by_polymer), {"LDPE", "3_7_COMMINGLED_BOTTLES", "1_7_COMMINGLED_BOTTLES", "HDPE_HMW"})
         self.assertEqual(by_polymer["LDPE"].form_id.code, "FILM")
-        self.assertEqual(by_polymer["LDPE"].sub_grade, "A")
+        self.assertEqual(by_polymer["LDPE"].quality_tier_id.code, "GRADE_A")
         self.assertFalse(by_polymer["LDPE"].material_attribute_ids)
         self.assertEqual(by_polymer["3_7_COMMINGLED_BOTTLES"].material_grade_id.code, "BOTTLES")
         self.assertFalse(by_polymer["3_7_COMMINGLED_BOTTLES"].source_type_id)
@@ -1185,7 +1185,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
                 "facility_profile_id": existing_facility.id,
                 "polymer_id": ldpe.id,
                 "form_id": film.id,
-                "sub_grade": "C",
+                "quality_tier_id": self.env.ref("plasticos_material_profile.quality_tier_grade_c").id,
             }
         )
         orch = SyncOrchestrator(self.env)
@@ -1196,13 +1196,13 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         provisional = self.env["plasticos.material.profile"].search(
             [("facility_profile_id", "=", provisional_facility.id)]
         )
-        self.assertEqual(provisional.sub_grade, "A")
+        self.assertEqual(provisional.quality_tier_id.code, "GRADE_A")
         lead.partner_id = location
         orch._upsert_lead(self.connection, dto)
         self.assertTrue(provisional.exists())
         self.assertTrue(provisional_facility.exists())
-        self.assertEqual(existing.sub_grade, "C")
-        self.assertEqual(provisional.sub_grade, "A")
+        self.assertEqual(existing.quality_tier_id.code, "GRADE_C")
+        self.assertEqual(provisional.quality_tier_id.code, "GRADE_A")
         self.assertTrue(any("cannot be combined" in row["message"] for row in orch.error_rows))
         self.assertEqual(orch.outcomes["failed"], 0)
         self.assertEqual(lead.partner_id, location)
@@ -2256,14 +2256,28 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(profile.packaging_type_id.code, "bales")
         self.assertEqual(profile.material_attribute_ids.mapped("code"), ["lined"])
         red = self.env["plasticos.material.color"].search([("code", "=", "RED")], limit=1)
-        profile.write({"packaging_type_id": False, "color_id": red.id})
+        profile.write({"packaging_type_id": False, "color_ids": [(6, 0, [red.id])]})
         orch.error_rows.clear()
         orch._upsert_lead(self.connection, self._lead("vs-sacks", custom_fields={"Materials": "Super Sacks"}))
         profile = self._profiles(facility)
         self.assertEqual(profile.packaging_type_id.code, "bales")
-        self.assertEqual(profile.color_id.code, "RED")
+        self.assertEqual(profile.color_ids.mapped("code"), ["RED"])
         self.assertEqual(profile.material_attribute_ids.mapped("code"), ["lined"])
         self.assertFalse(any(row.get("category") == REQUIRED_MAPPING for row in orch.error_rows))
+
+    def test_hdpe_crates_fill_injection_process(self):
+        facility = self._facility("HDPE Crate Facility")
+        orch = SyncOrchestrator(self.env)
+        orch.outcomes = _new_outcomes()
+        lead = orch._upsert_lead(self.connection, self._lead("vs-crates"))
+        lead.partner_id = facility
+        orch._upsert_lead(self.connection, self._lead("vs-crates", custom_fields={"Materials": "HDPE Crates"}))
+        profile = self._profiles(facility)
+        self.assertEqual(profile.polymer_id.code, "HDPE")
+        self.assertEqual(profile.material_grade_id.code, "CRATES")
+        self.assertEqual(profile.packaging_type_id.code, "loose")
+        self.assertFalse(profile.filler_type_id)
+        self.assertEqual(profile.origin_process_type, "injection")
 
     def test_mixed_density_repro_stays_unresolved(self):
         facility = self._facility("Regrind Replay")
@@ -2282,12 +2296,13 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
             )
         )
 
-    def test_worksheet_normalizer_rejects_bare_ldpe_and_conflicts(self):
+    def test_worksheet_normalizer_resolves_bare_ldpe_and_keeps_conflicts(self):
         from odoo.addons.plasticos_material_profile.models.material_normalizer import normalize_material
 
         bare = normalize_material(self.env, "LDPE")
-        self.assertEqual(bare.unresolved, ("unresolved material",))
-        self.assertFalse(bare.polymer)
+        self.assertFalse(bare.unresolved)
+        self.assertEqual(bare.polymer.code, "LDPE")
+        self.assertEqual(bare.form.code, "FILM")
         conflict = normalize_material(self.env, "HDPE Drums", structured={"type": "LDPE Film"})
         self.assertEqual(conflict.unresolved, ("conflicting material evidence",))
         self.assertFalse(conflict.polymer)

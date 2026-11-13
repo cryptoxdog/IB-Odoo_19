@@ -168,6 +168,9 @@ def classify_lead(
     economic_eligible: bool | None = None,
     economic_policy_reasons: list[str] | None = None,
     vision_evidence: list[dict] | None = None,
+    form_code: str | None = None,
+    material_grade_code: str | None = None,
+    quality_tier_code: str | None = None,
 ) -> ClassificationResult:
     """
     Classify a normalised lead as "hot" or "cold".
@@ -183,6 +186,12 @@ def classify_lead(
     cold_gates: list[str] = []
     hot_quals: list[str] = []
     vision_copy = _successful_vision_evidence(vision_evidence)
+    if form_code:
+        reasons.append(f"Form identified: {form_code}.")
+    if material_grade_code:
+        reasons.append(f"Material grade identified: {material_grade_code}.")
+    if quality_tier_code:
+        reasons.append(f"Quality tier identified: {quality_tier_code}.")
 
     # Normalise inputs
     poly_lower = (polymer or "").strip().lower()
@@ -520,6 +529,7 @@ def build_qualification_signals(
     risk_indicators: list[str] | None,
     hard_exclusions: list[str] | None,
     cold_max_lbs: float,
+    polymer_entries: tuple = (),
 ) -> dict:
     """Build the evidence dimensions and the closed set of evidence references.
 
@@ -599,7 +609,8 @@ def build_qualification_signals(
     # The seller's own words naming exactly one polymer are supported evidence.
     seller_polymers = sorted(
         polymers_named(
-            " ".join(str(seller.get(key) or "") for key in ("material_description", "material_composition_text"))
+            " ".join(str(seller.get(key) or "") for key in ("material_description", "material_composition_text")),
+            polymer_entries,
         )
     )
     if hard_exclusions:

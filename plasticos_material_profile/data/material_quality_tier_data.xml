@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+  <!--
+  Quality tiers. Codes must match quality_tier_codes.py
+  (tests/test_quality_tier_codes.py).
+  -->
+  <record id="quality_tier_grade_a" model="plasticos.material.quality.tier">
+    <field name="name">Grade A</field>
+    <field name="code">GRADE_A</field>
+    <field name="description">Grade A material.</field>
+    <field name="sequence">10</field>
+  </record>
+  <record id="quality_tier_grade_b" model="plasticos.material.quality.tier">
+    <field name="name">Grade B</field>
+    <field name="code">GRADE_B</field>
+    <field name="description">Grade B material.</field>
+    <field name="sequence">20</field>
+  </record>
+  <record id="quality_tier_grade_c" model="plasticos.material.quality.tier">
+    <field name="name">Grade C</field>
+    <field name="code">GRADE_C</field>
+    <field name="description">Grade C material.</field>
+    <field name="sequence">30</field>
+  </record>
+  <record id="quality_tier_reusable" model="plasticos.material.quality.tier">
+    <field name="name">Reusable</field>
+    <field name="code">REUSABLE</field>
+    <field name="description">Reusable material.</field>
+    <field name="sequence">40</field>
+  </record>
+  <record id="quality_tier_standard" model="plasticos.material.quality.tier">
+    <field name="name">Standard</field>
+    <field name="code">STANDARD</field>
+    <field name="description">Standard quality material.</field>
+    <field name="sequence">50</field>
+  </record>
+</odoo>

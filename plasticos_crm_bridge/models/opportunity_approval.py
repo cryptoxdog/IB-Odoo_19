@@ -27,7 +27,6 @@ APPROVAL_SOURCES = [
 SNAPSHOT_RELATION_FIELDS = (
     ("polymer_id", "polymer_type"),
     ("form_id", "form"),
-    ("color_id", "color"),
     ("source_type_id", "source_type"),
     ("material_grade_id", "material_grade"),
     ("packaging_type_id", "packaging_type"),
@@ -190,6 +189,12 @@ class PlasticosOpportunityApproval(models.Model):
             related = material_profile[field_name]
             if related:
                 snapshot[key] = related.code or related.name
+        colors = material_profile.color_ids
+        named = [color.code or color.name for color in colors]
+        if len(named) == 1:
+            snapshot["color"] = named[0]
+        elif named:
+            snapshot["color"] = named
         for field_name, key in SNAPSHOT_SCALAR_FIELDS:
             value = material_profile[field_name]
             if value not in (None, False, "", 0, 0.0):

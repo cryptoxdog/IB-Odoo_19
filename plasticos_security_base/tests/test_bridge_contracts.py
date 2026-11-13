@@ -869,7 +869,7 @@ class TestLoadCompanyIsolationContract(PlasticosTestCase):
 
         from odoo.modules.module import get_module_path
 
-        path = get_module_path("plasticos_security_base") + "/migrations/19.0.1.2.25/pre-migrate.py"
+        path = get_module_path("plasticos_security_base") + "/migrations/19.0.1.2.28/pre-migrate.py"
         spec = importlib.util.spec_from_file_location("security_base_pre_1912025", path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)

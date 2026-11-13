@@ -16,7 +16,6 @@ INTAKE_TO_PROFILE_VALUE_MAP = {
 SHARED_PROFILE_SCALAR_FIELD_NAMES = (
     "polymer_id",
     "form_id",
-    "color_id",
     "source_type_id",
     "material_grade_id",
     "origin_process_type",
@@ -28,7 +27,7 @@ SHARED_PROFILE_SCALAR_FIELD_NAMES = (
     "lon",
 )
 
-SHARED_PROFILE_FIELD_NAMES = SHARED_PROFILE_SCALAR_FIELD_NAMES + ("material_attribute_ids",)
+SHARED_PROFILE_FIELD_NAMES = SHARED_PROFILE_SCALAR_FIELD_NAMES + ("material_attribute_ids", "color_ids")
 
 # Stored profile fields that must never be sourced from material.profile ORM reads.
 FORBIDDEN_PROFILE_ORM_READ_KEYS = frozenset({"target_price", "has_residue"})
@@ -48,6 +47,16 @@ FORBIDDEN_INTAKE_PAYLOAD_KEYS = frozenset(
 # Computed code fields on plasticos.material.profile. Identity is the
 # Many2one (polymer_id, form_id, source_type_id). These names are not write keys.
 LEGACY_PROFILE_CODE_FIELDS = ("polymer", "form", "source_type")
+
+
+def _relation_ids(record, field_name) -> list:
+    relation = getattr(record, field_name, None)
+    if not relation:
+        return []
+    ids = getattr(relation, "ids", None)
+    if not ids:
+        return []
+    return list(ids)
 
 
 def _m2o_id(record, field_name):
@@ -88,6 +97,9 @@ def build_material_profile_vals_from_intake(intake) -> dict:
                 vals[field_name] = _m2o_id(intake, field_name)
             else:
                 vals[field_name] = value
+    color_ids = _relation_ids(intake, "color_ids")
+    if color_ids:
+        vals["color_ids"] = [(6, 0, color_ids)]
     attribute_ids = intake.material_attribute_ids.ids if intake.material_attribute_ids else []
     if attribute_ids:
         vals["material_attribute_ids"] = [(6, 0, attribute_ids)]
@@ -110,7 +122,7 @@ def build_intake_to_profile_bridge_payload(intake) -> dict:
     payload = {
         "polymer_id": _m2o_id(intake, "polymer_id"),
         "form_id": _m2o_id(intake, "form_id"),
-        "color_id": _m2o_id(intake, "color_id"),
+        "color_ids": _relation_ids(intake, "color_ids"),
         "source_type_id": _m2o_id(intake, "source_type_id"),
         "material_grade_id": _m2o_id(intake, "material_grade_id"),
         "origin_process_type": getattr(intake, "origin_process_type", None),

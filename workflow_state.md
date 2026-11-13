@@ -42,4 +42,4 @@ These stay. They are not debt.
 
 ## Accepted decision
 
-`plasticos.material.profile.sub_grade` is a free `Char`, hidden on the form, with `TODO: Define sub-grade logic`. The letters A, B, and C are literals in `plasticos_material_profile/models/material_normalizer.py` and are copied onto that field. There is no grade master for them. Accepted 2026-11-04; no grade master is added for this.
+`plasticos.material.quality.tier` is the quality-tier master, seeded in `plasticos_material_profile/data/material_quality_tier_data.xml`. The codes are `GRADE_A`, `GRADE_B`, `GRADE_C`, `REUSABLE`, and `STANDARD`. Grade templates and material profiles store `quality_tier_id`. Phrase-sheet letters A, B, and C are written there by the CRM import. The free-text `sub_grade` field is retired.

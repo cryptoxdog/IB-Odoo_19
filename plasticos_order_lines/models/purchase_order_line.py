@@ -33,11 +33,12 @@ class PurchaseOrderLine(models.Model):
         index=True,
         ondelete="restrict",
     )
-    color_id = fields.Many2one(
+    color_ids = fields.Many2many(
         "plasticos.material.color",
+        "purchase_line_color_rel",
+        "line_id",
+        "color_id",
         string="Color",
-        index=True,
-        ondelete="restrict",
     )
     form_id = fields.Many2one(
         "plasticos.material.form",
@@ -84,7 +85,7 @@ class PurchaseOrderLine(models.Model):
         "product_id.name",
         "product_id.polymer_id",
         "material_grade_id",
-        "color_id",
+        "color_ids",
         "form_id",
         "packaging_type_id",
         "source_type_id",
@@ -111,7 +112,7 @@ class PurchaseOrderLine(models.Model):
 
         # Pre-fill material fields
         self.material_grade_id = profile.material_grade_id.id if profile.material_grade_id else False
-        self.color_id = profile.color_id.id if profile.color_id else False
+        self.color_ids = [(6, 0, profile.color_ids.ids)] if profile.color_ids else [(5,)]
         self.form_id = profile.form_id.id if profile.form_id else False
         self.packaging_type_id = profile.packaging_type_id.id if profile.packaging_type_id else False
         self.source_type_id = profile.source_type_id.id if profile.source_type_id else False

@@ -17,7 +17,6 @@ RELATION_FIELDS = (
     "polymer_id",
     "material_grade_id",
     "form_id",
-    "color_id",
     "packaging_type_id",
     "source_type_id",
     "filler_type_id",
@@ -36,7 +35,6 @@ SCALAR_FIELDS = (
 )
 LINE_SPEC_FIELDS = (
     "material_grade_id",
-    "color_id",
     "form_id",
     "packaging_type_id",
     "source_type_id",
@@ -105,12 +103,13 @@ class PlasticosOpportunityMaterial(models.Model):
         ondelete="restrict",
         help="Form on this opportunity's own material copy.",
     )
-    color_id = fields.Many2one(
+    color_ids = fields.Many2many(
         "plasticos.material.color",
+        "plasticos_opportunity_material_color_rel",
+        "material_id",
+        "color_id",
         string="Color",
-        index=True,
-        ondelete="restrict",
-        help="Color on this opportunity's own material copy.",
+        help="Every color on this opportunity's own material copy.",
     )
     packaging_type_id = fields.Many2one(
         "plasticos.packaging.type",
@@ -184,6 +183,7 @@ class PlasticosOpportunityMaterial(models.Model):
             "source_profile_id": profile.id,
             "freeform_notes": profile.freeform_notes or False,
             "material_attribute_ids": [(6, 0, profile.material_attribute_ids.ids)],
+            "color_ids": [(6, 0, profile.color_ids.ids)],
         }
         for name in RELATION_FIELDS:
             related = profile[name]
@@ -305,4 +305,6 @@ class PlasticosOpportunityMaterial(models.Model):
             vals[name] = related.id if related else False
         if "material_attribute_ids" in present:
             vals["material_attribute_ids"] = [(6, 0, self.material_attribute_ids.ids)]
+        if "color_ids" in present:
+            vals["color_ids"] = [(6, 0, self.color_ids.ids)]
         return vals

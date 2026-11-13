@@ -53,6 +53,12 @@
       <field name="description">Material purged from extruders or molding machines during color/material changes.</field>
       <field name="sequence">60</field>
     </record>
+    <record id="form_repro" model="plasticos.material.form">
+      <field name="name">Repro</field>
+      <field name="code">REPRO</field>
+      <field name="description">Reprocessed plastic.</field>
+      <field name="sequence">55</field>
+    </record>
     <record id="form_chopped" model="plasticos.material.form">
       <field name="name">Chopped</field>
       <field name="code">CHOPPED</field>

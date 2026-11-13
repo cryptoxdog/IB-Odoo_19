@@ -860,7 +860,7 @@ class TestLoadCardinality(TransactionCase):
 
 
 def _migration_1420(filename):
-    path = get_module_path("plasticos_logistics") + "/migrations/19.0.1.14.20/" + filename
+    path = get_module_path("plasticos_logistics") + "/migrations/19.0.1.14.21/" + filename
     spec = importlib.util.spec_from_file_location(f"load_company_{filename}", path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -1286,7 +1286,7 @@ class TestLoadSourceCompanyAndPhysicalEvents(TransactionCase):
         self.assertFalse(load.transaction_id)
         self.assertEqual(self.env["account.move"].search_count([]), moves)
 
-    # ── 19.0.1.14.20 migration (company census) ───────────────────────────
+    # ── 19.0.1.14.21 migration (company census; first shipped as 19.0.1.14.20) ───────────────────────────
 
     def test_company_census_repairs_one_source_and_refuses_none(self):
         pre = _migration_1420("pre-migrate.py")

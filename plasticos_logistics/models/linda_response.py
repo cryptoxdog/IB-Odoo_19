@@ -57,6 +57,8 @@ STANDARD_REPLIES = dict(
 )
 # RFC 3676 signature delimiter: the sender's text ends at this exact line.
 SIGNATURE_DELIMITER = "-- "
+# Reason on the evidence row written when the recorder itself failed on a reply.
+RECORDER_FAILED = "recorder_failed"
 TEXT_PLAIN = "text/plain"
 TEXT_HTML = "text/html"
 # Lines where the sender's new text ends and quoted or forwarded history begins.
@@ -223,28 +225,78 @@ class PlasticosLogisticsResponse(models.Model):
         responses = self.browse()
         typed_models = evidence.env[LOGISTICS_REQUEST]._linda_source_models()
         for message in messages.sudo():  # sudo: gateway reads the new message when the follower cannot
-            if message.message_type != "email":
-                continue
-            if message.model in typed_models:
-                responses |= evidence._record_typed_incoming(message, typed_models[message.model])
-                continue
-            if message.model not in ORDER_FIELDS:
-                continue
-            existing = evidence.search([("mail_message_id", "=", message.id)], limit=1)
-            if existing:
-                responses |= existing
-                continue
-            order = (
-                self.env[message.model]
-                .sudo()  # sudo: gateway reads the order named by the message
-                .browse(message.res_id)
-                .exists()
-            )
-            order_field = ORDER_FIELDS[message.model]
-            if not order or not evidence.env[LOGISTICS_REQUEST].search_count([(order_field, "=", order.id)]):
-                continue
-            responses |= evidence._record_message(message, order, order_field)
+            # This runs inside the creation of the native message. Whatever goes
+            # wrong while recording evidence, the inbound email itself must be kept:
+            # the failure is contained to a savepoint and recorded as unbound evidence.
+            try:
+                with self.env.cr.savepoint():
+                    responses |= evidence._record_one(message, typed_models)
+            except Exception:
+                _logger.exception("Linda response recorder failed for mail.message %s; the message is kept", message.id)
+                responses |= evidence._record_failure(message)
         return responses
+
+    def _record_one(self, message, typed_models):
+        """The response for one message: existing, newly recorded, or empty when it is not Linda's."""
+        if message.message_type != "email":
+            return self.browse()
+        if message.model in typed_models:
+            return self._record_typed_incoming(message, typed_models[message.model])
+        if message.model not in ORDER_FIELDS:
+            return self.browse()
+        existing = self.search([("mail_message_id", "=", message.id)], limit=1)
+        if existing:
+            return existing
+        order = (
+            self.env[message.model]
+            .sudo()  # sudo: gateway reads the order named by the message
+            .browse(message.res_id)
+            .exists()
+        )
+        order_field = ORDER_FIELDS[message.model]
+        if not order or not self.env[LOGISTICS_REQUEST].search_count([(order_field, "=", order.id)]):
+            return self.browse()
+        return self._record_message(message, order, order_field)
+
+    def _record_failure(self, message):
+        """Mark a reply the recorder could not process; never raises and asserts nothing.
+
+        The row is unbound, uninterpreted evidence with reason ``recorder_failed``:
+        it names the kept native message for a person to read. When even this row
+        cannot be written (for instance another transaction already recorded the
+        message), the logged exception is the only trace and the email still stands.
+        """
+        try:
+            with self.env.cr.savepoint():
+                if message.model not in ORDER_FIELDS:
+                    return self.browse()
+                existing = self.search([("mail_message_id", "=", message.id)], limit=1)
+                if existing:
+                    return existing
+                order_field = ORDER_FIELDS[message.model]
+                order = (
+                    self.env[message.model]
+                    .sudo()  # sudo: gateway reads the order named by the message
+                    .browse(message.res_id)
+                    .exists()
+                )
+                if not order:
+                    return self.browse()
+                return self.create(
+                    {
+                        "company_id": order.company_id.id,
+                        "mail_message_id": message.id,
+                        order_field: order.id,
+                        "binding": "unbound",
+                        "interpretation": "not_interpreted",
+                        "candidate_kind": False,
+                        "disposition": "unbound",
+                        "reason": RECORDER_FAILED,
+                    }
+                )
+        except Exception:
+            _logger.exception("Linda response recorder could not mark its failure for mail.message %s", message.id)
+            return self.browse()
 
     def _record_typed_incoming(self, message, source_kind):
         """Record one reply on a registered typed source that Linda actually wrote to."""

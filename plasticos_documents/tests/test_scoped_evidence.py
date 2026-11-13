@@ -26,7 +26,7 @@ _BYTES = itertools.count()
 
 
 def _migration(name):
-    path = Path(get_module_path("plasticos_documents")) / "migrations" / "19.0.2.1.18" / name
+    path = Path(get_module_path("plasticos_documents")) / "migrations" / "19.0.2.1.20" / name
     spec = importlib.util.spec_from_file_location(f"plasticos_documents_s3_{name.replace('-', '_')}", path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -564,14 +564,20 @@ class TestScopedEvidence(PlasticosTestCase):
         row.with_user(self.manager).unlink()
         self.assertFalse(row.exists())
 
-    # ── Migration 19.0.2.1.18 ────────────────────────────────────────
+    # ── Migration 19.0.2.1.20 ────────────────────────────────────────
 
     def test_migration_refuses_an_unsupported_baseline(self):
-        """RP-07-E094: only the reconciled 19.0.2.1.17 baseline upgrades."""
+        """RP-07-E094: only a reconciled baseline upgrades (19.0.2.1.17, or Staging's 19.0.2.1.18)."""
         pre = _migration("pre-migrate.py")
-        with self.assertRaisesRegex(RuntimeError, "upgrades only from 19.0.2.1.17"):
+        with self.assertRaisesRegex(RuntimeError, "upgrades only from 19.0.2.1.17 or 19.0.2.1.18"):
             pre.migrate(self.env.cr, "19.0.2.1.16")
         pre.migrate(self.env.cr, "19.0.2.1.17")
+        pre.migrate(self.env.cr, "19.0.2.1.18")
+        # The campaign build already classified evidence: no census, no refusal.
+        self.env.cr.execute("DELETE FROM ir_config_parameter WHERE key = %s", (pre.CENSUS_KEY,))
+        pre.migrate(self.env.cr, "19.0.2.1.19")
+        self.env.cr.execute("SELECT 1 FROM ir_config_parameter WHERE key = %s", (pre.CENSUS_KEY,))
+        self.assertIsNone(self.env.cr.fetchone())
         pre.migrate(self.env.cr, False)
 
     def test_migration_classifies_legacy_without_changing_provenance(self):
