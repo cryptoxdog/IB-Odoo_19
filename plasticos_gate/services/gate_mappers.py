@@ -357,7 +357,8 @@ V2_VALUE_STATES = frozenset({V2_STATE_OBSERVED, V2_STATE_INFERRED, V2_STATE_EXTE
 # Approved write policy (operator decision): only these states, and only when admitted.
 V2_WRITABLE_STATES = frozenset({V2_STATE_INFERRED, V2_STATE_EXTERNAL_CLAIM})
 V2_RUN_STATES = frozenset({"completed", "degraded", "failed"})
-V2_UNIT_STATUSES = frozenset({"stated", "not_applicable", "unknown"})
+V2_UNIT_STATED = "stated"
+V2_UNIT_STATUSES = frozenset({V2_UNIT_STATED, "not_applicable", "unknown"})
 V2_SOURCE_TYPES = frozenset({"request_entity", "request_observation", "provider", "kb", "graph"})
 V2_UNKNOWN_REASONS = frozenset({"no_evidence", "source_unavailable", "budget_exhausted", "not_attempted"})
 V2_REVIEW_REASONS = frozenset(
@@ -433,7 +434,7 @@ def _identity(raw: Any, where: str, expected: EvidenceIdentity) -> EvidenceIdent
 def _unit_fields(raw: dict, where: str) -> tuple[str, str | None]:
     unit_status = raw.get("unit_status")
     _need(unit_status in V2_UNIT_STATUSES, f"{where}.unit_status {unit_status!r} is unrecognised")
-    if unit_status == "stated":
+    if unit_status == V2_UNIT_STATED:
         _need(_is_str(raw.get("unit")), f"{where}.unit must be stated")
         return unit_status, raw["unit"]
     _need(raw.get("unit") is None, f"{where}.unit present without unit_status 'stated'")
@@ -593,7 +594,7 @@ def parse_converge_response_v2(payload: Any, *, request: ConvergeRequestV2) -> C
     state = payload.get("state")
     if state not in V2_RUN_STATES:
         return _rejected(payload, V2_REJECT_MALFORMED, f"run state {state!r} is unrecognised")
-    if state != "completed" or payload.get("failure_reason"):
+    if state != EIE_STATE_COMPLETED or payload.get("failure_reason"):
         return _rejected(payload, V2_REJECT_NOT_COMPLETED, f"{state}: {payload.get('failure_reason') or 'no reason'}")
 
     expected = EvidenceIdentity(request.entity.get("id"), request.subject_type, request.subject_role)
@@ -705,8 +706,8 @@ def _coerce(row, entry: FieldEvidence) -> tuple[str, Any, str | None]:
     where = f"field_evidence.{entry.field}.value"
     if row.kind in V2_NUMERIC_KINDS:
         _need(_is_number(value), f"{where} is not a finite number")
-        if entry.unit_status != "stated" or entry.unit not in row.units:
-            stated = entry.unit if entry.unit_status == "stated" else f"unit_status={entry.unit_status}"
+        if entry.unit_status != V2_UNIT_STATED or entry.unit not in row.units:
+            stated = entry.unit if entry.unit_status == V2_UNIT_STATED else f"unit_status={entry.unit_status}"
             return V2_PLAN_SKIP, None, f"unit {stated!r} is not one of {sorted(row.units)}"
         converted = float(value) * row.units[entry.unit]
         if row.kind == V2_KIND_INTEGER:

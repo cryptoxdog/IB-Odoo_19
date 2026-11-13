@@ -115,9 +115,11 @@ _DECL_POLYMER_CODES = {
 # stated in that unit into the Odoo field's own unit. A value whose response
 # does not state one of these units is skipped and recorded, never converted by
 # assumption (CTO decision 4).
-_UNITS_DENSITY = {"g/cm3": 1.0, "g/cm³": 1.0, "g/cc": 1.0}
-_UNITS_MFI = {"g/10min": 1.0, "g/10 min": 1.0}
-_UNITS_PERCENT = {"percent": 1.0, "%": 1.0, "fraction": 100.0}
+# Pairs, not dict literals: unit strings are not enum values (repo convention,
+# see gate_config.GateAvailabilityVerdict.as_dict).
+_UNITS_DENSITY = (("g/cm3", 1.0), ("g/cm³", 1.0), ("g/cc", 1.0))
+_UNITS_MFI = (("g/10min", 1.0), ("g/10 min", 1.0))
+_UNITS_PERCENT = (("percent", 1.0), ("%", 1.0), ("fraction", 100.0))
 
 
 @dataclass(frozen=True, slots=True)

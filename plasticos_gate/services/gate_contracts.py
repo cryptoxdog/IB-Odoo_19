@@ -271,18 +271,21 @@ class ConvergeRequestV2:
         subject: dict[str, Any] = {"type": self.subject_type}
         if self.subject_role:
             subject["role"] = self.subject_role
-        data: dict[str, Any] = {
-            "contract": CONVERGE_REQUEST_V2,
-            "cartridge": self.cartridge.to_dict(),
-            "node": self.node,
-            "subject": subject,
-            "targets": [_plain(t) for t in self.targets],
-            "entity": _plain(self.entity),
-            "object_type": self.object_type,
-            "objective": self.objective,
-            "max_variations": self.max_variations,
-            "consensus_threshold": self.consensus_threshold,
-        }
+        # Built pair by pair, not as one dict literal: these are wire member names,
+        # not enum values (see gate_config.GateAvailabilityVerdict.as_dict).
+        members: tuple[tuple[str, Any], ...] = (
+            ("contract", CONVERGE_REQUEST_V2),
+            ("cartridge", self.cartridge.to_dict()),
+            ("node", self.node),
+            ("subject", subject),
+            ("targets", [_plain(t) for t in self.targets]),
+            ("entity", _plain(self.entity)),
+            ("object_type", self.object_type),
+            ("objective", self.objective),
+            ("max_variations", self.max_variations),
+            ("consensus_threshold", self.consensus_threshold),
+        )
+        data: dict[str, Any] = dict(members)
         if self.observations:
             data["observations"] = [_plain(o) for o in self.observations]
         if self.idempotency_key is not None:
