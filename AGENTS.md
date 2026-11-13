@@ -895,3 +895,10 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > nothing. Run it after the ERP partner import. It adds no field and no stored model, and it refuses a production database.
 > Summary: `.l9/pr/import-erp-material-profiles-summary.json`
 > (`records_seen == created + updated + unchanged + rejected`). Never commit the two operator files.
+
+> **2026-11-13 loader review correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> two sentences of the `make import-erp-material-profiles` correction above are made precise. (1) The database check
+> also runs on a dry run (`DRY=1`): a production database is refused for dry and applied runs alike. (2) One load runs
+> at a time on a database; a second run started meanwhile is refused and does not wait. The phrase sheet
+> `material_mapping.csv` is unchanged by the loader, and the ERP order-line import
+> (`plasticos_transaction/models/native_document_import.py`) still classifies order lines through that sheet.

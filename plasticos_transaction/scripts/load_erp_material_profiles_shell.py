@@ -8,9 +8,16 @@ this file into the shell). Configuration arrives through the environment:
   required and both are read as one list.
 * ``ERP_PROFILE_DRY`` — ``1`` resolves and counts, then rolls back.
 * ``ERP_PROFILE_REPORT_PATH`` — write the machine-readable summary here.
-* ``ERP_TARGET_DB`` — the database an applied run may write. The ERP import's
+* ``ERP_TARGET_DB`` — the database this run may touch. The ERP import's
   database check (``validate_partner_layer.check_database``) refuses any other
   database and any production database. This driver has no production permit.
+  A dry run is checked the same way: it creates and writes before it rolls
+  back, and a rollback does not undo what a create hook did outside the
+  database.
+
+One load runs at a time on a database. A second run started while the first
+holds the lock is refused; it does not wait, so it never reads a snapshot
+older than the first run's commit.
 
 The summary follows ``contracts/schemas/draft/import-run-summary.schema.json``:
 ``records_seen == created + updated + unchanged + rejected``. The exit code is
@@ -27,6 +34,8 @@ from pathlib import Path
 from odoo.addons.plasticos_partner_import.scripts.validate_partner_layer import check_database
 
 LOADER = "plasticos.erp.material.profile.loader"
+# Session advisory lock, the same pattern as plasticos.transaction close.
+LOCK_KEY = "plasticos_transaction.erp_material_profile_load"
 
 
 def _setting(name: str) -> str:
@@ -54,25 +63,35 @@ def main() -> int:
     if LOADER not in env:
         print("refusing load: plasticos_transaction is not installed or not upgraded on this database")
         return 2
-    if not dry_run:
-        failures: list[str] = []
-        check_database(env, failures)
-        if failures:
-            for failure in failures:
-                print(f"refusing load: {failure}")
-            return 2
-
-    try:
-        report = env[LOADER].load(paths, dry_run=dry_run)
-    except ValueError as malformed:
-        env.cr.rollback()
-        print(f"refusing load: {malformed}")
+    failures: list[str] = []
+    check_database(env, failures)
+    if failures:
+        for failure in failures:
+            print(f"refusing load: {failure}")
         return 2
-    summary = report["summary"]
-    if dry_run or summary["final_status"] == "failed":
+
+    # Direct SQL justification: an advisory lock has no ORM form. The key is a bound constant.
+    env.cr.execute("SELECT pg_try_advisory_lock(hashtext(%s))", [LOCK_KEY])
+    if not env.cr.fetchone()[0]:
+        print("refusing load: another ERP material profile load is running on this database")
+        return 2
+    try:
+        try:
+            report = env[LOADER].load(paths, dry_run=dry_run)
+        except ValueError as malformed:
+            env.cr.rollback()
+            print(f"refusing load: {malformed}")
+            return 2
+        summary = report["summary"]
+        if dry_run or summary["final_status"] == "failed":
+            env.cr.rollback()
+        else:
+            env.cr.commit()
+    finally:
+        # Every path above has committed or rolled back. The rollback also clears a
+        # transaction an unexpected error aborted, so the unlock cannot mask that error.
         env.cr.rollback()
-    else:
-        env.cr.commit()
+        env.cr.execute("SELECT pg_advisory_unlock(hashtext(%s))", [LOCK_KEY])
 
     report_path = _setting("REPORT_PATH")
     if report_path:
