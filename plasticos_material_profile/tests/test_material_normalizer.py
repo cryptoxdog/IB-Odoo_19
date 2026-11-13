@@ -40,7 +40,7 @@ class TestMaterialNormalizer(TransactionCase):
             "HDPE Drums": ("HDPE", "DRUMS", None, False, False, set()),
             "Explicit HMW-HDPE Drums": ("HDPE_HMW", "DRUMS", None, False, False, set()),
             "LDPE Film": ("LDPE", False, None, "FILM", False, set()),
-            "LDPE Film A": ("LDPE", False, "A", "FILM", False, set()),
+            "LDPE Film A": ("LDPE", False, "A", "FILM", False, {"clean", "dry"}),
             "3-7 Commingled": ("3_7_COMMINGLED_BOTTLES", "BOTTLES", None, False, False, set()),
             "1-7 Commingled": ("1_7_COMMINGLED_BOTTLES", "BOTTLES", None, False, False, set()),
             "HDPE Drums (HMW-HDPE)": ("HDPE_HMW", "DRUMS", None, False, False, set()),
@@ -62,7 +62,7 @@ class TestMaterialNormalizer(TransactionCase):
 
         grade_only = normalize_material(self.env, "LDPE Film A")
         self.assertEqual(grade_only.grade, "A")
-        self.assertFalse(grade_only.attributes)
+        self.assertEqual(set(grade_only.attributes.mapped("code")), {"clean", "dry"})
         three = normalize_material(self.env, "3-7 Commingled Bottles")
         one = normalize_material(self.env, "1-7 Commingled Bottles")
         self.assertNotEqual(three.polymer, one.polymer)
@@ -178,7 +178,7 @@ class TestMaterialNormalizer(TransactionCase):
         for phrase, polymer, material_grade, form, grade in (
             ("PET Bottles", "PET", "BOTTLES", False, False),
             ("HDPE Bottles - Natural", "HDPE", "BOTTLES", False, False),
-            ("HDPE Bottles - Z Bales", "HDPE", False, False, False),
+            ("HDPE Bottles - Z Bales", "HDPE", "BOTTLES", False, False),
             ("PP Supersacs (Lined)", "PP", "SUPERACS", False, False),
             ("IBC Totes (HMW-HDPE)", "HDPE_HMW", "IBC_TOTES", False, False),
             ("HDPE Totes", "HDPE", "TOTES", False, False),

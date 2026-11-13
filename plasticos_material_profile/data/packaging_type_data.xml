@@ -41,6 +41,18 @@
       <field name="description">Loose material loaded directly into trailer.</field>
       <field name="sequence">60</field>
     </record>
+    <record id="packaging_stacked" model="plasticos.packaging.type">
+      <field name="name">Stacked</field>
+      <field name="code">stacked</field>
+      <field name="description">Parts stacked for shipment, without the wrap that Palletized names.</field>
+      <field name="sequence">70</field>
+    </record>
+    <record id="packaging_nested" model="plasticos.packaging.type">
+      <field name="name">Nested</field>
+      <field name="code">nested</field>
+      <field name="description">Parts nested inside one another for shipment (totes, buckets, pallets).</field>
+      <field name="sequence">80</field>
+    </record>
     <record id="packaging_other" model="plasticos.packaging.type">
       <field name="name">Other</field>
       <field name="code">other</field>

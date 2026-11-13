@@ -27,6 +27,9 @@
             <field name="llm_primary_provider">openai</field>
             <field name="llm_secondary_provider">anthropic</field>
             <field name="llm_tertiary_provider">mistral</field>
+            <field name="text_inference_provider">deepseek</field>
+            <field name="deepseek_model">deepseek-flash</field>
+            <field name="deepseek_base_url">https://api.deepseek.com</field>
             <!-- OpenAI settings -->
             <field name="openai_model">gpt-4o</field>
             <field name="openai_vision_model">gpt-4o</field>

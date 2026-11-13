@@ -101,6 +101,17 @@
                                 </group>
                             </group>
                         </page>
+                        <page string="DeepSeek" name="deepseek_page">
+                            <group>
+                                <group string="Credentials">
+                                    <field name="deepseek_api_key" password="True"/>
+                                </group>
+                                <group string="Model">
+                                    <field name="deepseek_model"/>
+                                    <field name="deepseek_base_url"/>
+                                </group>
+                            </group>
+                        </page>
                         <page string="Mistral" name="mistral_page">
                             <group>
                                 <group string="Credentials">
