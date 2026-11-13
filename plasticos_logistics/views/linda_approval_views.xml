@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- S11 (OP11-E02): Linda's edge cases waiting for an Operations Manager.
+         Approve runs the held command as Linda; Reject records the refusal. The
+         buttons enforce the manager check themselves, so they are shown to all readers. -->
+    <record id="view_linda_approval_search" model="ir.ui.view">
+        <field name="name">plasticos.linda.approval.search</field>
+        <field name="model">plasticos.linda.approval</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="operation_key"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <filter name="filter_pending" string="Pending" domain="[('state', '=', 'pending')]"/>
+                <filter name="filter_decided" string="Decided" domain="[('state', 'in', ('approved', 'rejected'))]"/>
+                <filter name="filter_refused" string="Refusals" domain="[('state', '=', 'refused')]"/>
+                <separator/>
+                <filter name="group_command" string="Command" context="{'group_by': 'command'}"/>
+                <filter name="group_edge_case" string="Edge Case" context="{'group_by': 'edge_case'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_linda_approval_list" model="ir.ui.view">
+        <field name="name">plasticos.linda.approval.list</field>
+        <field name="model">plasticos.linda.approval</field>
+        <field name="arch" type="xml">
+            <list create="0" edit="0" delete="0">
+                <field name="requested_at"/>
+                <field name="command"/>
+                <field name="edge_case"/>
+                <field name="edge_reason" optional="show"/>
+                <field name="operation_key" optional="hide"/>
+                <field name="subject_key" optional="hide"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'pending'"
+                       decoration-success="state == 'approved'"
+                       decoration-muted="state in ('rejected', 'refused')"/>
+                <field name="result_status" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_linda_approval_form" model="ir.ui.view">
+        <field name="name">plasticos.linda.approval.form</field>
+        <field name="model">plasticos.linda.approval</field>
+        <field name="arch" type="xml">
+            <form create="0" edit="0" delete="0">
+                <header>
+                    <button name="action_approve" string="Approve" type="object" class="btn-primary"
+                            invisible="state != 'pending'"/>
+                    <button name="action_reject" string="Reject" type="object"
+                            invisible="state != 'pending'"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group string="Held Command">
+                            <field name="command"/>
+                            <field name="edge_case"/>
+                            <field name="edge_reason"/>
+                            <field name="operation_key"/>
+                            <field name="subject_key"/>
+                            <field name="subject_model"/>
+                            <field name="subject_id"/>
+                            <field name="conflict_fact_id" invisible="not conflict_fact_id"/>
+                        </group>
+                        <group string="Request">
+                            <field name="requested_by"/>
+                            <field name="requested_at"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+                    <group string="Arguments">
+                        <field name="arguments" nolabel="1" colspan="2"/>
+                    </group>
+                    <group string="Decision" invisible="state in ('pending', 'refused')">
+                        <field name="decided_by"/>
+                        <field name="decided_at"/>
+                        <field name="decision_note"/>
+                        <field name="result_status"/>
+                        <field name="result_record_id"/>
+                        <field name="result_reason"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_linda_approval" model="ir.actions.act_window">
+        <field name="name">Linda Approvals</field>
+        <field name="res_model">plasticos.linda.approval</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_linda_approval_search"/>
+        <field name="context">{'search_default_filter_pending': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nothing waiting for approval</p>
+            <p>Linda's edge cases (fact corrections, unverified replies, acceptances, conflicts, out-of-sequence events, unit mismatches, unverified evidence, retries) wait here for an Operations Manager.</p>
+        </field>
+    </record>
+
+    <!-- Readable only by Logistics, Operations Manager and System (grants in plasticos_security_base). -->
+    <menuitem id="menu_linda_approval" name="Linda Approvals"
+              parent="menu_plasticos_logistics_root" action="action_linda_approval" sequence="45"/>
+</odoo>

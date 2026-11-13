@@ -1,0 +1,20 @@
+# Defects found by the S6 proof, and what happened to each
+
+The first F7 run used seeded, upgraded data: 1565 tests ran, with 6 failures and 10 errors. Two control runs classified the failures:
+
+- the unseeded upgraded clone: 1565 tests, 2 failures, 0 errors (D3 and D4);
+- a clean Staging clone at `08504e12`, with no migration: D3 and D4 failed again.
+
+The coordinator re-froze the contract four times so these defects could be fixed in S6: C06-SCOPE-2 through C06-SCOPE-5, ending at contract digest `3383d697…`. Every item in the table below was diagnosed under rule 95. No assertion was weakened and no test was skipped.
+
+| Id | Where | Class | Evidence | Disposition |
+|---|---|---|---|---|
+| D1 | `plasticos_documents/migrations/19.0.2.1.18/post-migrate.py` | Witness defect | The census recorded 8 rows, yet the log said "0 rows classified". The ORM fills the required `obligation_kind` default before post-migrate runs, so the `UPDATE` rowcount is 0. | **Fixed** in `53e375ad`. The script now reports the number of legacy rows after the step, split into "set here" and "by the column default", and refuses when that number differs from the census total. 2 tests appended. Documents 19.0.2.1.19 |
+| D2 | Description of the `plasticos_export` module | Nit | Rendering the module description from the README raised docutils ERROR/3 | **Fixed** in `3e968650` with an explicit RST `description`. Export 19.0.1.1.1. The test version pin was updated in `b1ad7b3c` (SCOPE-4) |
+| D2b | YAML front matter in every PlasticOS `README.md` | Nit | The front matter is invalid RST and is rendered only when a module has no manifest `description` | Recorded for the final audit |
+| a | `plasticos_logistics/models/mail_mail_inherit.py` `_linda_claim_outgoing` | Product defect (campaign code) | An empty mail record bound `False` into `WHERE mail_id = %s` (Postgres: integer = boolean) | **Fixed** in `59a8b09d`. No mail is a "skip"; more than one mail is refused. Regression test added. Logistics 19.0.1.14.22 |
+| b | 14 tests: `TestErpWorksheetImport` (7), `TestLoadCardinality` 14.6 replays (2), Linda ACK and sweep tests (5) | Test isolation | Each test assumed it owned the database's legacy rows, eligible loads, or order origins | **Fixed** in `59a8b09d` and `cf724ee6`. A context key `linda_load_sweep_ids` narrows the two sweeps and is absent in production. The replays clear the legacy column inside their own transaction. The snapshot sorts origins with a key that handles `False`. Assertions unchanged |
+| D3 | `TestMaterialNormalizer.test_approved_vanillasoft_aliases_resolve_every_master` | Test defect (stale contract) | The test, from fb98e4c1 (2026-10-30), expected "Bottles (HD/PET)" to stay unresolved. The 2026-11-04 resolution ledger approved it as NEW_MASTER_1_2_COMMINGLED, and #383 (09fbe82e, 2026-11-05) wired it | **Fixed** in `4da376f9`. The test asserts the approved mapping and keeps an unapproved multi-resin phrase unresolved |
+| D4 | `TestInjectBatchQueries.test_material_inject_looks_profiles_up_once_and_merges_a_repeated_identity` | Fixture defect | The test used `form_bale`, which the operator retired as a form on 2026-11-10 (c1bd4e93: bales are packaging) | **Fixed** in `4da376f9`. The fixture now uses the active PELLETS form |
+| D4b | `plasticos_enrichment` `FORM_CODE_TO_MASTER` maps BALE/BALES to the retired form | Business question | An extracted "bales" lands as form OTHER, and no packaging Bales is recorded | Taken to the operator by the coordinator. Not changed (F10 notes) |
+| D9 | `plasticos_logistics/models/load.py` `_cron_check_dispatch_acknowledgments` | Product defect (pre-existing since 44205fb4) | An escalated load stays eligible, so the fixed oldest-first page of 100 never reached newer loads. The new 101-load test failed on the old code: the newest load was never escalated | **Fixed** in `f8bb8f9c`. Loads already escalated today are excluded before the page is taken. Each run stays bounded at 100, and no load is escalated twice in a day. Logistics stays at 19.0.1.14.22 |

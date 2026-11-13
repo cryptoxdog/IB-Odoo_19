@@ -1,8 +1,10 @@
 """A transaction has zero or more loads. Each load has one stored parent."""
 
 import importlib.util
+import re
 import threading
 import time
+from datetime import timedelta
 from unittest.mock import patch
 
 from psycopg2 import errors as pg_errors
@@ -165,6 +167,10 @@ class TestLoadCardinality(TransactionCase):
         load = self.env["plasticos.load"].create({"sale_order_id": order.id})
         cr = self.env.cr
         cr.execute("ALTER TABLE plasticos_transaction ADD COLUMN IF NOT EXISTS load_id integer")
+        # S6: a database that already ran 14.6 keeps the old column with values for rows this
+        # test does not own. The replay reads the whole table, so the legacy input is limited
+        # to the rows this test writes below (rolled back with the test).
+        cr.execute("UPDATE plasticos_transaction SET load_id = NULL WHERE load_id IS NOT NULL")
         cr.execute(
             """
             UPDATE plasticos_transaction AS t
@@ -541,6 +547,10 @@ class TestLoadCardinality(TransactionCase):
         load = self.env["plasticos.load"].create({"sale_order_id": order.id})
         cr = self.env.cr
         cr.execute("ALTER TABLE plasticos_transaction ADD COLUMN IF NOT EXISTS load_id integer")
+        # S6: a database that already ran 14.6 keeps the old column with values for rows this
+        # test does not own. The replay reads the whole table, so the legacy input is limited
+        # to the rows this test writes below (rolled back with the test).
+        cr.execute("UPDATE plasticos_transaction SET load_id = NULL WHERE load_id IS NOT NULL")
         cr.execute("UPDATE plasticos_load SET transaction_id = NULL WHERE id = %s", (load.id,))
         cr.execute("UPDATE plasticos_transaction SET load_id = %s WHERE id = %s", (load.id, tx.id))
         post.migrate(cr, "19.0.1.14.5")
@@ -847,3 +857,976 @@ class TestLoadCardinality(TransactionCase):
         tx.write({"sale_order_id": order.id})
         self.assertFalse(load.transaction_id)
         self.assertFalse(tx.load_ids)
+
+
+def _migration_1420(filename):
+    path = get_module_path("plasticos_logistics") + "/migrations/19.0.1.14.21/" + filename
+    spec = importlib.util.spec_from_file_location(f"load_company_{filename}", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+@tagged("post_install", "-at_install")
+class TestLoadSourceCompanyAndPhysicalEvents(TransactionCase):
+    """S2 witnesses: V01 company and exact parent, V03 manual freight, V04 release guard, V10 actual clocks.
+
+    BRS-EXP-01-R003, BRS-EXP-04-R001/R003, BRS-EXP-08-R001/R008, BRS-EXP-10-R004/R006/R007/R008.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.company = cls.env.company
+        cls.currency = cls.company.currency_id
+        cls.supplier = cls.env["res.partner"].create(
+            {"name": "S2 Supplier", "is_company": True, "supplier_rank": 1, "street": "1 Mill Rd", "city": "Houston"}
+        )
+        cls.terminal = cls.env["res.partner"].create(
+            {"name": "S2 Rail Ramp", "is_company": True, "street": "9 Ramp Way", "city": "Dallas"}
+        )
+        cls.buyer = cls.env["res.partner"].create({"name": "S2 Buyer", "is_company": True, "customer_rank": 1})
+        cls.carrier = cls.env["res.partner"].create(
+            {"name": "S2 Carrier", "is_company": True, "supplier_rank": 1, "email": "dispatch@carrier.example"}
+        )
+
+    # ── helpers ──────────────────────────────────────────────────────────
+
+    def _buyerless_load(self, **extra):
+        values = {
+            "company_id": self.company.id,
+            "pickup_partner_id": self.supplier.id,
+            "delivery_partner_id": self.terminal.id,
+            "reference_weight": 42000,
+            "carrier_id": self.carrier.id,
+            "rate_currency_id": self.currency.id,
+        }
+        values.update(extra)
+        return self.env["plasticos.load"].create(values)
+
+    def _ready(self, load):
+        load._transition("awaiting_ready")
+        load.action_confirm_ready()
+        return load
+
+    def _manual_rate(self, load, rate=950.0):
+        self._ready(load)
+        load.action_confirm_rate(rate)
+        return load
+
+    def _attach(self, load, name="bol.pdf"):
+        return self.env["ir.attachment"].create(
+            {"name": name, "raw": b"%PDF-1.4 actual", "res_model": "plasticos.load", "res_id": load.id}
+        )
+
+    def _purchase_transaction(self, company=None, **extra):
+        po = self.env["purchase.order"].create(
+            {"partner_id": self.supplier.id, "company_id": (company or self.company).id}
+        )
+        values = {"name": "TX-S2-PO", "supplier_id": self.supplier.id, "purchase_order_ids": [(6, 0, po.ids)]}
+        values.update(extra)
+        return self.env["plasticos.transaction"].create(values)
+
+    def _logistics_user(self, login):
+        groups = self.env.ref("base.group_user") | self.env.ref("plasticos_security_base.group_logistics")
+        return self.env["res.users"].create(
+            {
+                "name": login,
+                "login": login,
+                "company_id": self.company.id,
+                "company_ids": [(6, 0, self.company.ids)],
+                "group_ids": [(6, 0, groups.ids)],
+            }
+        )
+
+    # ── V01: source company and exact parent (BRS-EXP-08-R001/R008) ──────
+
+    def test_sale_order_load_takes_its_sale_order_company(self):
+        order = self.env["sale.order"].create({"partner_id": self.buyer.id})
+        load = self.env["plasticos.load"].create({"sale_order_id": order.id})
+        self.assertEqual(load.company_id, order.company_id)
+
+    def test_named_company_must_match_the_sale_order(self):
+        other = self.env["res.company"].create({"name": "S2 Other Co"})
+        order = self.env["sale.order"].create({"partner_id": self.buyer.id})
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            self.env["plasticos.load"].create({"sale_order_id": order.id, "company_id": other.id})
+
+    def test_user_must_name_the_company_of_a_buyerless_load(self):
+        """The user's current company is never taken as the source of a new load."""
+        user = self._logistics_user("s2.nocompany")
+        with self.assertRaises(UserError), self.env.cr.savepoint():
+            self.env["plasticos.load"].with_user(user).create({"pickup_partner_id": self.supplier.id})
+        load = self.env["plasticos.load"].with_user(user).create({"company_id": self.company.id})
+        self.assertEqual(load.company_id, self.company)
+
+    def test_company_is_immutable_once_the_load_leaves_draft(self):
+        other = self.env["res.company"].create({"name": "S2 Locked Co"})
+        load = self._buyerless_load()
+        load._transition("awaiting_ready")
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            load.write({"company_id": other.id})
+        self.assertEqual(load.company_id, self.company)
+
+    def test_buyerless_load_joins_a_purchase_backed_transaction(self):
+        """BRS-EXP-01-R003 / AC-EXP-08-001: no buyer, no sale order, no dummy counterpart."""
+        load = self._buyerless_load()
+        tx = self._purchase_transaction()
+        partners = self.env["res.partner"].search_count([])
+        orders = self.env["sale.order"].search_count([])
+        result = self.env["plasticos.load"].action_bind_exact_transaction_load(
+            tx.id, load.id, {"route": "purchase"}, "op-s2-po"
+        )
+        self.assertEqual(result, {"status": "applied", "record_id": load.id})
+        self.assertEqual(load.transaction_id, tx)
+        self.assertFalse(tx.buyer_id)
+        self.assertEqual(self.env["res.partner"].search_count([]), partners)
+        self.assertEqual(self.env["sale.order"].search_count([]), orders)
+        replay = self.env["plasticos.load"].action_bind_exact_transaction_load(
+            tx.id, load.id, {"route": "purchase"}, "op-s2-po"
+        )
+        self.assertEqual(replay["status"], "already_applied")
+
+    def test_bind_refuses_a_route_the_records_do_not_support(self):
+        load = self._buyerless_load()
+        tx = self._purchase_transaction()
+        result = self.env["plasticos.load"].action_bind_exact_transaction_load(
+            tx.id, load.id, {"route": "sale"}, "op-s2-wrong-route"
+        )
+        self.assertEqual(result["status"], "blocked")
+        self.assertFalse(load.transaction_id)
+
+    def test_buyerless_load_cannot_join_a_purchase_order_of_another_company(self):
+        other = self.env["res.company"].create({"name": "S2 PO Co"})
+        load = self._buyerless_load()
+        tx = self._purchase_transaction(company=other)
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            load.transaction_id = tx
+        self.assertFalse(load.transaction_id)
+
+    def test_buyerless_load_cannot_join_a_transaction_without_purchase_orders(self):
+        load = self._buyerless_load()
+        tx = self.env["plasticos.transaction"].create({"name": "TX-S2-BARE", "supplier_id": self.supplier.id})
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            load.transaction_id = tx
+        self.assertFalse(load.transaction_id)
+
+    def test_sale_backed_route_still_requires_the_real_buyer(self):
+        """AC-EXP-08-008: ordinary sale dispatch still rejects an absent buyer."""
+        order = self.env["sale.order"].create({"partner_id": self.buyer.id})
+        load = self.env["plasticos.load"].create({"sale_order_id": order.id})
+        tx = self.env["plasticos.transaction"].create(
+            {"name": "TX-S2-NOBUYER", "sale_order_id": order.id, "supplier_id": self.supplier.id}
+        )
+        result = self.env["plasticos.load"].action_bind_exact_transaction_load(
+            tx.id, load.id, {"route": "sale"}, "op-s2-nobuyer"
+        )
+        self.assertEqual(result["status"], "blocked")
+        self.assertFalse(load.transaction_id)
+
+    # ── V03: manual freight versus repeat-rate reuse (BRS-EXP-10-R006) ───
+
+    def test_buyerless_manual_rate_uses_the_manual_context(self):
+        from odoo.addons.plasticos_logistics.services.freight_context import FREIGHT_CONTEXT_MANUAL_VERSION
+
+        load = self._manual_rate(self._buyerless_load())
+        self.assertEqual(load.state, "rate_confirmed")
+        self.assertEqual(load.rate_resolution_method, "manual")
+        self.assertEqual(load.freight_context_version, FREIGHT_CONTEXT_MANUAL_VERSION)
+        self.assertFalse(load.transaction_id)
+
+    def test_same_as_last_abstains_for_a_buyerless_load(self):
+        self._manual_rate(self._buyerless_load())
+        fresh = self._ready(self._buyerless_load(carrier_id=False))
+        fresh.action_resolve_freight()
+        self.assertEqual(fresh.sal_decision, "not_eligible")
+        self.assertEqual(fresh.sal_miss_reason, "missing_lane_identity")
+        self.assertFalse(fresh.rate_confirmed_at)
+        self.assertFalse(fresh.sal_source_load_id)
+
+    def test_manual_context_cannot_confirm_a_same_as_last_rate(self):
+        from odoo.addons.plasticos_logistics.services.freight_context import (
+            FREIGHT_CONTEXT_MANUAL_VERSION,
+            build_manual_freight_context,
+        )
+
+        load = self._ready(self._buyerless_load())
+        context = build_manual_freight_context(load)
+        with self.assertRaises(ValidationError):
+            load._confirm_freight_rate(
+                rate=900.0,
+                carrier=self.carrier,
+                currency=self.currency,
+                resolution_method="sal",
+                context_fingerprint=context.fingerprint,
+                sal_source_load=load,
+                context_version=FREIGHT_CONTEXT_MANUAL_VERSION,
+            )
+
+    def test_changed_lane_withholds_release_of_a_manual_rate(self):
+        load = self._manual_rate(self._buyerless_load())
+        now = fields.Datetime.now()
+        load.delivery_partner_id.street = "10 Moved Ramp Way"
+        with self.assertRaises(UserError):
+            load.action_schedule(now, now)
+        self.assertEqual(load.state, "rate_confirmed")
+
+    # ── V04: one release guard on every new-instruction path ─────────────
+
+    def _scheduled(self):
+        load = self._manual_rate(self._buyerless_load())
+        now = fields.Datetime.now()
+        load.action_schedule(now, now)
+        return load
+
+    def test_owner_hold_blocks_every_release_path(self):
+        """A downstream owner's hold (e.g. a rolled booking) stops each route to a new instruction."""
+        load = self._scheduled()
+        dispatch = self.env["plasticos.dispatch"].create({"load_id": load.id})
+        hold = patch.object(PlasticosLoad, "_physical_release_errors", lambda self, kind: ["Booking rolled."])
+        with hold:
+            verdict = self.env["plasticos.load"].assert_can_release_physical_operation(load.id, "dispatch")
+            self.assertEqual(verdict["status"], "blocked")
+            for attempt in (
+                load.action_dispatch,
+                lambda: load._transition("dispatched"),
+                load.action_send_dispatch_packet,
+                load.action_send_bol_pickup,
+                load.action_send_dispatch_direct,
+                lambda: dispatch.action_transition("dispatched"),
+            ):
+                with self.subTest(attempt=attempt), self.assertRaises(UserError), self.env.cr.savepoint():
+                    attempt()
+        self.assertEqual(load.state, "scheduled")
+        self.assertEqual(dispatch.state, "quoted")
+        self.assertEqual(
+            self.env["plasticos.load"].assert_can_release_physical_operation(load.id, "dispatch"),
+            {"status": "applied", "record_id": load.id},
+        )
+
+    def test_release_check_reports_a_stale_context_token(self):
+        load = self._scheduled()
+        verdict = self.env["plasticos.load"].assert_can_release_physical_operation(load.id, "dispatch", "old-token")
+        self.assertEqual(verdict["status"], "stale")
+        unknown = self.env["plasticos.load"].assert_can_release_physical_operation(load.id, "sail")
+        self.assertEqual(unknown["status"], "not_available")
+
+    def test_hold_does_not_block_recording_what_already_happened(self):
+        """A hold withholds new release; it cannot erase evidence that the truck already moved."""
+        load = self._scheduled()
+        load.action_dispatch()
+        evidence = self._attach(load, "signed-bol.pdf")
+        picked_at = fields.Datetime.now() - timedelta(hours=2)
+        with patch.object(PlasticosLoad, "_physical_release_errors", lambda self, kind: ["Booking rolled."]):
+            result = load.action_record_actual_event("pickup", picked_at, evidence)
+            load._transition("picked_up")
+        self.assertEqual(result["status"], "applied")
+        self.assertEqual(load.actual_pickup_at, picked_at.replace(microsecond=0))
+        self.assertEqual(load.state, "picked_up")
+
+    def test_dispatch_state_cannot_be_written_around_the_guard(self):
+        load = self._scheduled()
+        with self.assertRaises(UserError), self.env.cr.savepoint():
+            self.env["plasticos.dispatch"].create({"load_id": load.id, "state": "dispatched"})
+        dispatch = self.env["plasticos.dispatch"].create({"load_id": load.id})
+        with self.assertRaises(UserError), self.env.cr.savepoint():
+            dispatch.write({"state": "dispatched"})
+        dispatch.action_transition("dispatched")
+        self.assertEqual(dispatch.state, "dispatched")
+
+    def test_acknowledgment_job_escalates_without_resending_the_packet(self):
+        load = self._scheduled()
+        load.action_dispatch()
+        load.write({"dispatch_sent": fields.Datetime.now() - timedelta(hours=5)})
+        with patch.object(
+            PlasticosLoad, "action_send_dispatch_direct", side_effect=AssertionError("blind resend")
+        ) as resend:
+            # S6: scoped to this test's load; other dispatched loads in the database are not its subject.
+            self.env["plasticos.load"].with_context(
+                linda_load_sweep_ids=load.ids
+            )._cron_check_dispatch_acknowledgments()
+        resend.assert_not_called()
+        summary = f"URGENT: No carrier acknowledgment for {load.name}"
+        self.assertEqual(
+            self.env["mail.activity"].search_count([("res_id", "=", load.id), ("summary", "=", summary)]), 1
+        )
+
+    def test_acknowledgment_job_reaches_loads_beyond_one_page_once_each(self):
+        """S6 D9: escalated loads stay eligible, so a fixed oldest-first page must not starve newer loads."""
+        loads = self.env["plasticos.load"].create(
+            [
+                {
+                    "company_id": self.company.id,
+                    "pickup_partner_id": self.supplier.id,
+                    "delivery_partner_id": self.terminal.id,
+                    "carrier_id": self.carrier.id,
+                }
+                for _index in range(101)
+            ]
+        )
+        oldest = fields.Datetime.now() - timedelta(hours=30)
+        for offset, load in enumerate(loads):
+            # Legacy dispatched rows: the state and clock are written directly, oldest first.
+            self.env.cr.execute(
+                "UPDATE plasticos_load SET state = 'dispatched', dispatch_sent = %s, dispatch_acknowledged = NULL "
+                "WHERE id = %s",
+                (oldest + timedelta(minutes=offset), load.id),
+            )
+        loads.invalidate_recordset()
+        cron = self.env["plasticos.load"].with_context(linda_load_sweep_ids=loads.ids)
+
+        def escalated():
+            activities = self.env["mail.activity"].search(
+                [
+                    ("res_model", "=", "plasticos.load"),
+                    ("res_id", "in", loads.ids),
+                    ("summary", "ilike", "URGENT: No carrier acknowledgment"),
+                ]
+            )
+            return activities.mapped("res_id")
+
+        with patch.object(PlasticosLoad, "action_send_dispatch_direct", side_effect=AssertionError("blind resend")):
+            cron._cron_check_dispatch_acknowledgments()
+            self.assertEqual(len(escalated()), 100, "one run is bounded to one page")
+            cron._cron_check_dispatch_acknowledgments()
+            self.assertEqual(sorted(escalated()), sorted(loads.ids), "the next run reaches the newest load, once each")
+            cron._cron_check_dispatch_acknowledgments()
+        self.assertEqual(len(escalated()), 101, "a load is never escalated twice on one day")
+
+    def test_acknowledgment_job_dedupes_in_the_user_timezone(self):
+        """S6 D9 review N1: a cron user whose date differs from UTC still escalates a load once."""
+        load = self._scheduled()
+        load.action_dispatch()
+        load.write({"dispatch_sent": fields.Datetime.now() - timedelta(hours=5)})
+        # A zone whose calendar date differs from UTC's right now (UTC+14 late in the UTC day, UTC-12 early).
+        tz = "Pacific/Kiritimati" if fields.Datetime.now().hour >= 12 else "Etc/GMT+12"
+        cron = self.env["plasticos.load"].with_context(tz=tz, linda_load_sweep_ids=load.ids)
+        self.assertNotEqual(fields.Date.context_today(cron), fields.Date.today(), tz)
+        with patch.object(PlasticosLoad, "action_send_dispatch_direct", side_effect=AssertionError("blind resend")):
+            cron._cron_check_dispatch_acknowledgments()
+            cron._cron_check_dispatch_acknowledgments()
+        summary = f"URGENT: No carrier acknowledgment for {load.name}"
+        self.assertEqual(
+            self.env["mail.activity"].search_count([("res_id", "=", load.id), ("summary", "=", summary)]), 1
+        )
+
+    # ── V10: actual event clocks (BRS-EXP-04-R001/R003, BRS-EXP-10-R007) ──
+
+    def test_state_changes_never_fill_actual_clocks(self):
+        load = self._scheduled()
+        load.action_dispatch()
+        load._transition("picked_up")
+        load._transition("delivered")
+        self.assertTrue(load.delivered_at)
+        self.assertFalse(load.actual_pickup_at)
+        self.assertFalse(load.actual_delivery_at)
+
+    def test_actual_pickup_needs_evidence_attached_to_this_load(self):
+        load = self._buyerless_load()
+        other = self._buyerless_load()
+        foreign = self._attach(other, "other-bol.pdf")
+        when = fields.Datetime.now() - timedelta(days=1)
+        with self.assertRaises(ValidationError):
+            load.action_record_actual_event("pickup", when, foreign)
+        with self.assertRaises(UserError):
+            load.action_record_actual_event("pickup", when, self.env["ir.attachment"])
+        self.assertFalse(load.actual_pickup_at)
+
+    def test_delayed_entry_keeps_the_actual_time_and_replays_once(self):
+        load = self._buyerless_load()
+        evidence = self._attach(load)
+        when = fields.Datetime.now() - timedelta(days=3)
+        first = load.action_record_actual_event("pickup", when, evidence)
+        replay = load.action_record_actual_event("pickup", when, evidence)
+        self.assertEqual((first["status"], replay["status"]), ("applied", "already_applied"))
+        self.assertEqual(load.actual_pickup_at, when.replace(microsecond=0))
+        self.assertEqual(load.pickup_evidence_attachment_id, evidence)
+        events = self.env["plasticos.freight.event"].search(
+            [("load_id", "=", load.id), ("event_type", "=", "actual_pickup_recorded")]
+        )
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events.facts["evidence_attachment_id"], evidence.id)
+        self.assertEqual(events.company_id, load.company_id)
+
+    def test_correction_needs_a_reason_and_keeps_the_first_event(self):
+        load = self._buyerless_load()
+        evidence = self._attach(load)
+        first_time = fields.Datetime.now() - timedelta(days=2)
+        load.action_record_actual_event("pickup", first_time, evidence)
+        corrected = first_time + timedelta(hours=1)
+        with self.assertRaises(UserError):
+            load.action_record_actual_event("pickup", corrected, evidence)
+        load.action_record_actual_event("pickup", corrected, evidence, reason="Scale ticket shows the later time.")
+        self.assertEqual(load.actual_pickup_at, corrected.replace(microsecond=0))
+        types = self.env["plasticos.freight.event"].search([("load_id", "=", load.id)]).mapped("event_type")
+        self.assertIn("actual_pickup_recorded", types)
+        self.assertIn("actual_event_corrected", types)
+
+    def test_actual_clocks_refuse_future_time_order_and_direct_writes(self):
+        load = self._buyerless_load()
+        evidence = self._attach(load)
+        now = fields.Datetime.now()
+        with self.assertRaises(ValidationError):
+            load.action_record_actual_event("pickup", now + timedelta(days=1), evidence)
+        load.action_record_actual_event("pickup", now - timedelta(hours=1), evidence)
+        with self.assertRaises(ValidationError):
+            load.action_record_actual_event("delivery", now - timedelta(hours=5), evidence)
+        with self.assertRaises(UserError):
+            load.write({"actual_delivery_at": now})
+        with self.assertRaises(UserError):
+            self._buyerless_load(actual_pickup_at=now)
+
+    def test_delivered_to_port_without_a_buyer_fact(self):
+        """AC-EXP-04-003 / AC-EXP-10-007: physical delivery evidence with buyer allocation pending."""
+        load = self._buyerless_load()
+        evidence = self._attach(load, "ramp-receipt.pdf")
+        moves = self.env["account.move"].search_count([])
+        load.action_record_actual_event("delivery", fields.Datetime.now() - timedelta(hours=1), evidence)
+        self.assertTrue(load.actual_delivery_at)
+        self.assertFalse(load.transaction_id)
+        self.assertEqual(self.env["account.move"].search_count([]), moves)
+
+    # ── 19.0.1.14.21 migration (company census; first shipped as 19.0.1.14.20) ───────────────────────────
+
+    def test_company_census_repairs_one_source_and_refuses_none(self):
+        pre = _migration_1420("pre-migrate.py")
+        order = self.env["sale.order"].create({"partner_id": self.buyer.id})
+        repairable = self.env["plasticos.load"].create({"sale_order_id": order.id})
+        orphan = self.env["plasticos.load"].create({"pickup_partner_id": self.supplier.id})
+        self.assertFalse(orphan.company_id)
+        self.env.cr.execute("UPDATE plasticos_load SET company_id = NULL WHERE id = %s", (repairable.id,))
+        repairable.invalidate_recordset(["company_id"])
+        repairs, refusals = pre.census(self.env.cr)
+        self.assertIn((repairable.id, order.company_id.id, "sale_order"), repairs)
+        self.assertIn((orphan.id, "no_source_company", []), refusals)
+        with self.assertRaises(RuntimeError):
+            pre.migrate(self.env.cr, "19.0.1.14.19")
+        repairable.invalidate_recordset(["company_id"])
+        self.assertFalse(repairable.company_id, "a refused census changes no row")
+        orphan.unlink()
+        pre.migrate(self.env.cr, "19.0.1.14.19")
+        repairable.invalidate_recordset(["company_id"])
+        self.assertEqual(repairable.company_id, order.company_id)
+        self.assertEqual(pre.census(self.env.cr), ([], []))
+
+    def test_post_migration_rerun_is_a_no_op(self):
+        post = _migration_1420("post-migrate.py")
+        order = self.env["sale.order"].create({"partner_id": self.buyer.id})
+        self.env["plasticos.load"].create({"sale_order_id": order.id})
+        journeys = self.env["plasticos.iso.journey"].search_count([])
+        post.migrate(self.env.cr, "19.0.1.14.19")
+        post.migrate(self.env.cr, "19.0.1.14.19")
+        self.assertEqual(self.env["plasticos.iso.journey"].search_count([]), journeys)
+        self.assertEqual(post.discrepancies(self.env.cr), [])
+
+    # ── Verification round 1 (C01-REAUTH-2): D1, D3 and refinements ──────
+
+    def test_user_cannot_clear_the_company_of_a_load(self):
+        """D1: a cleared company would hide the load behind the global rule for every user."""
+        user = self._logistics_user("s2.clearco")
+        load = self.env["plasticos.load"].with_user(user).create({"company_id": self.company.id})
+        with self.assertRaises(ValidationError), self.env.cr.savepoint():
+            load.with_user(user).write({"company_id": False})
+        load.invalidate_recordset(["company_id"])
+        self.assertEqual(load.company_id, self.company)
+        as_superuser = self.env["plasticos.load"].sudo().browse(load.id)
+        as_superuser.write({"company_id": False})
+        self.assertFalse(as_superuser.company_id, "only the superuser may clear a company")
+
+    def test_actual_event_replay_ignores_sub_second_precision(self):
+        load = self._buyerless_load()
+        evidence = self._attach(load)
+        when = fields.Datetime.now() - timedelta(hours=3)
+        first = load.action_record_actual_event("pickup", when.replace(microsecond=250000), evidence)
+        replay = load.action_record_actual_event("pickup", when.replace(microsecond=750000), evidence)
+        self.assertEqual((first["status"], replay["status"]), ("applied", "already_applied"))
+        self.assertEqual(load.actual_pickup_at, when.replace(microsecond=0))
+        corrected = self.env["plasticos.freight.event"].search_count(
+            [("load_id", "=", load.id), ("event_type", "=", "actual_event_corrected")]
+        )
+        self.assertEqual(corrected, 0)
+
+    def _null_company(self, load):
+        # Pending ORM writes reach the table before the raw census reads it.
+        self.env.flush_all()
+        self.env.cr.execute("UPDATE plasticos_load SET company_id = NULL WHERE id = %s", (load.id,))
+        load.invalidate_recordset(["company_id"])
+
+    def test_company_census_repairs_from_a_purchase_backed_parent(self):
+        pre = _migration_1420("pre-migrate.py")
+        load = self._buyerless_load()
+        tx = self._purchase_transaction()
+        load.transaction_id = tx
+        self._null_company(load)
+        repairs, refusals = pre.census(self.env.cr)
+        self.assertIn((load.id, self.company.id, "transaction_purchase_order"), repairs)
+        self.assertFalse([row for row in refusals if row[0] == load.id])
+
+    def test_company_census_refuses_conflicting_and_disagreeing_sources(self):
+        pre = _migration_1420("pre-migrate.py")
+        other = self.env["res.company"].create({"name": "S2 Census Other"})
+        order_a = self.env["sale.order"].create({"partner_id": self.buyer.id})
+        order_b = (
+            self.env["sale.order"].with_company(other).create({"partner_id": self.buyer.id, "company_id": other.id})
+        )
+        tx_b = self.env["plasticos.transaction"].create({"name": "TX-S2-CENSUS-B", "sale_order_id": order_b.id})
+        conflicting = self.env["plasticos.load"].create({"sale_order_id": order_a.id})
+        self.env.cr.execute("UPDATE plasticos_load SET transaction_id = %s WHERE id = %s", (tx_b.id, conflicting.id))
+        disagreeing = self.env["plasticos.load"].create({"sale_order_id": order_a.id})
+        self.env.cr.execute("UPDATE plasticos_load SET company_id = %s WHERE id = %s", (other.id, disagreeing.id))
+        _repairs, refusals = pre.census(self.env.cr)
+        reasons = {load_id: reason for load_id, reason, _detail in refusals}
+        self.assertEqual(reasons.get(conflicting.id), "conflicting_source_companies")
+        self.assertEqual(reasons.get(disagreeing.id), "company_disagrees_with_source")
+        message = pre.refusal_message(refusals)
+        self.assertIn("correct the wrong link", message)
+        self.assertIn("correct one of them", message)
+
+    def test_company_census_reads_the_pre_14_6_parent_column(self):
+        """Old-column path: before 14.6 the parent was plasticos_transaction.load_id."""
+        pre = _migration_1420("pre-migrate.py")
+        order = self.env["sale.order"].create({"partner_id": self.buyer.id})
+        tx_one = self.env["plasticos.transaction"].create({"name": "TX-S2-OLD-1", "sale_order_id": order.id})
+        tx_two = self.env["plasticos.transaction"].create({"name": "TX-S2-OLD-2", "sale_order_id": order.id})
+        repairable = self._buyerless_load()
+        doubled = self._buyerless_load()
+        cr = self.env.cr
+        cr.execute("ALTER TABLE plasticos_transaction ADD COLUMN IF NOT EXISTS load_id integer")
+        cr.execute("UPDATE plasticos_transaction SET load_id = %s WHERE id = %s", (repairable.id, tx_one.id))
+        cr.execute("UPDATE plasticos_transaction SET load_id = %s WHERE id = %s", (doubled.id, tx_two.id))
+        tx_three = self.env["plasticos.transaction"].create({"name": "TX-S2-OLD-3", "sale_order_id": order.id})
+        cr.execute("UPDATE plasticos_transaction SET load_id = %s WHERE id = %s", (doubled.id, tx_three.id))
+        self._null_company(repairable)
+        real_has_column = pre.has_column
+
+        def old_schema(cursor, table, column):
+            if (table, column) == ("plasticos_load", "transaction_id"):
+                return False
+            return real_has_column(cursor, table, column)
+
+        with patch.object(pre, "has_column", old_schema):
+            self.assertEqual(pre._parent_link_sql(cr), pre._PARENT_FROM_TRANSACTION)
+            repairs, refusals = pre.census(cr)
+        self.assertIn((repairable.id, order.company_id.id, "transaction_sale_order"), repairs)
+        self.assertIn((doubled.id, "several_parent_transactions", sorted([tx_two.id, tx_three.id])), refusals)
+
+    def test_refusal_message_names_the_remedy_and_caps_the_listing(self):
+        pre = _migration_1420("pre-migrate.py")
+        refusals = [(load_id, "no_source_company", []) for load_id in range(1, 31)]
+        refusals.append((99, "several_parent_transactions", [7, 8]))
+        message = pre.refusal_message(refusals, cap=5)
+        self.assertIn("no_source_company (30 load(s))", message)
+        self.assertIn("attach its sale order", message)
+        self.assertIn("delete it if it is a stray draft", message)
+        self.assertIn("and 25 more", message)
+        self.assertNotIn(" 6,", message)
+        self.assertIn("keep exactly one parent transaction", message)
+
+    # ── C01-REAUTH-4 (a): carrier documents name the load's own company ──
+
+    _CARRIER_REPORTS = (
+        "plasticos_logistics.report_delivery_order",
+        "plasticos_logistics.report_bol_pickup",
+        "plasticos_logistics.report_bol_delivery",
+    )
+
+    def _render(self, report_ref, load):
+        html, _kind = self.env["ir.actions.report"]._render_qweb_html(report_ref, load.ids)
+        return html.decode() if isinstance(html, bytes) else str(html)
+
+    def _assert_issuer_block(self, html, company):
+        """The template's own issuer block (bold name, then street), not the layout header."""
+        import re
+
+        from markupsafe import escape
+
+        pattern = (
+            r"<strong[^>]*>\s*"
+            + re.escape(str(escape(company.name)))
+            + r"\s*</strong>\s*<br\s*/?>\s*"
+            + re.escape(str(escape(company.street or "")))
+        )
+        self.assertRegex(html, pattern)
+
+    def test_carrier_documents_name_the_company_of_a_buyerless_load(self):
+        # A second company makes the issuer come from the load, never env.company.
+        other = self.env["res.company"].create({"name": "S2 Buyerless Issuer Co", "street": "7 Yard Rd"})
+        load = self._buyerless_load(company_id=other.id)
+        load.transaction_id = self._purchase_transaction(company=other)
+        self.assertFalse(load.sale_order_id)
+        self.assertNotEqual(self.env.company, other)
+        for report_ref in self._CARRIER_REPORTS:
+            with self.subTest(report_ref):
+                self._assert_issuer_block(self._render(report_ref, load), other)
+
+    def test_carrier_documents_keep_the_sale_order_company_of_a_sale_backed_load(self):
+        order = self.env["sale.order"].create({"partner_id": self.buyer.id})
+        load = self.env["plasticos.load"].create(
+            {"sale_order_id": order.id, "pickup_partner_id": self.supplier.id, "delivery_partner_id": self.terminal.id}
+        )
+        self.assertEqual(load.company_id, order.company_id)
+        for report_ref in self._CARRIER_REPORTS:
+            with self.subTest(report_ref):
+                self._assert_issuer_block(self._render(report_ref, load), order.company_id)
+
+
+@tagged("post_install", "-at_install")
+class TestCarrierComposerSendTimeRelease(TransactionCase):
+    """S4 D2 / V06 witness: opening a carrier composer is not the release authorization.
+
+    The guard is read again inside ``mail.compose.message._action_send_mail``. A lane
+    change made while the composer is open must refuse the send and queue no mail
+    (Codex 4545252969, BRS-EXP-10-R004/R008).
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.company = cls.env.company
+        # D5: carrier mail is sent from the load's own company and nothing stands in for it.
+        cls.company.email = "dispatch@s4-composer-company.example"
+        cls.supplier = cls.env["res.partner"].create(
+            {"name": "S4 Composer Mill", "is_company": True, "supplier_rank": 1, "street": "2 Mill Rd"}
+        )
+        cls.terminal = cls.env["res.partner"].create(
+            {"name": "S4 Composer Ramp", "is_company": True, "street": "3 Ramp Way", "city": "Dallas"}
+        )
+        cls.carrier = cls.env["res.partner"].create(
+            {"name": "S4 Composer Carrier", "is_company": True, "email": "packet@s4-composer.example"}
+        )
+
+    def _scheduled_load(self):
+        load = self.env["plasticos.load"].create(
+            {
+                "company_id": self.company.id,
+                "pickup_partner_id": self.supplier.id,
+                "delivery_partner_id": self.terminal.id,
+                "reference_weight": 42000,
+                "carrier_id": self.carrier.id,
+                "rate_currency_id": self.company.currency_id.id,
+            }
+        )
+        load._transition("awaiting_ready")
+        load.action_confirm_ready()
+        load.action_confirm_rate(950.0)
+        now = fields.Datetime.now()
+        load.action_schedule(now, now)
+        return load
+
+    def _open(self, action):
+        return self.env["mail.compose.message"].with_context(**action["context"]).create({})
+
+    def _outgoing_for(self, load):
+        return self.env["mail.message"].search_count(
+            [("model", "=", "plasticos.load"), ("res_id", "=", load.id), ("message_type", "=", "email_outgoing")]
+        ) + self.env["mail.mail"].search_count([("model", "=", "plasticos.load"), ("res_id", "=", load.id)])
+
+    def test_lane_change_while_the_composer_is_open_refuses_the_send(self):
+        load = self._scheduled_load()
+        composer = self._open(load.action_send_dispatch_packet())
+        self.assertEqual(composer._plasticos_load_release_operation(), "dispatch_packet")
+        before = self._outgoing_for(load)
+        messages_before = len(load.message_ids)
+        # The governed context changes after the composer opened.
+        load.delivery_partner_id.street = "11 Moved Ramp Way"
+        with self.assertRaises(UserError), self.env.cr.savepoint():
+            composer.action_send_mail()
+        self.assertEqual(self._outgoing_for(load), before, "no dispatch mail is queued")
+        self.assertEqual(len(load.message_ids), messages_before, "no message is posted")
+
+    def test_each_carrier_document_composer_rechecks_at_send(self):
+        load = self._scheduled_load()
+        for action in (load.action_send_delivery_order, load.action_send_bol_pickup, load.action_send_bol_delivery):
+            with self.subTest(action=action.__name__):
+                composer = self._open(action())
+                self.assertEqual(composer._plasticos_load_release_operation(), "carrier_document")
+                with patch.object(PlasticosLoad, "_physical_release_errors", lambda self, kind: ["Booking rolled."]):
+                    with self.assertRaises(UserError), self.env.cr.savepoint():
+                        composer.action_send_mail()
+
+    def test_a_carrier_composer_cannot_be_scheduled_past_the_check(self):
+        load = self._scheduled_load()
+        composer = self._open(load.action_send_dispatch_packet())
+        composer.scheduled_date = fields.Datetime.now() + timedelta(hours=1)
+        with self.assertRaises(UserError), self.env.cr.savepoint():
+            composer.action_send_mail()
+        self.assertFalse(
+            self.env["mail.scheduled.message"].search([("model", "=", "plasticos.load"), ("res_id", "=", load.id)])
+        )
+
+    def test_only_a_confirmed_packet_send_starts_the_acknowledgement_clock(self):
+        """Codex 4545894603: the composer path stamps dispatch_sent on transport success, not on queueing."""
+        load = self._scheduled_load()
+        load.action_dispatch()
+        self.assertFalse(load.dispatch_sent)
+        other = self._scheduled_load()
+        # A mail whose marker names another load never stamps this one.
+        forged = self.env["mail.mail"].create(
+            {
+                "model": "plasticos.load",
+                "res_id": load.id,
+                "email_to": self.carrier.email,
+                "subject": "not a packet",
+                "body_html": "<p>forged</p>",
+                "headers": repr({"X-Plasticos-Release": f"dispatch_packet:{other.id}"}),
+            }
+        )
+        server_class = type(self.env["ir.mail_server"])
+        sink = (
+            patch.object(server_class, "_disable_send", lambda *args: False),
+            patch.object(server_class, "_connect__", lambda *args, **kwargs: None),
+            patch.object(server_class, "send_email", lambda server, message, *a, **k: message["Message-Id"]),
+        )
+        with sink[0], sink[1], sink[2]:
+            self.env["mail.mail"].process_email_queue(email_ids=forged.ids)
+        self.assertEqual(forged.state, "sent", "the forged mail really went out, so the checks below are not vacuous")
+        load.invalidate_recordset()
+        other.invalidate_recordset()
+        self.assertFalse(load.dispatch_sent, "a foreign marker does not stamp this load")
+        self.assertFalse(other.dispatch_sent, "a marker on another load's mail does not stamp it either")
+        self._open(load.action_send_dispatch_packet()).action_send_mail()
+        packet_mails = self.env["mail.mail"].search(
+            [("model", "=", "plasticos.load"), ("res_id", "=", load.id), ("headers", "ilike", "X-Plasticos-Release")]
+        )
+        self.assertTrue(packet_mails, "the packet mail is tagged for the acknowledgement clock")
+        self.assertFalse(load.dispatch_sent, "queueing is not sending")
+        to_carrier = packet_mails.filtered(
+            lambda mail: (
+                self.carrier.email in (mail.email_to or "") or self.carrier.email in mail.recipient_ids.mapped("email")
+            )
+        )
+        self.assertTrue(
+            to_carrier, "the composer emails the carrier: " + "; ".join(map(self._mail_diagnosis, packet_mails))
+        )
+        packet_ids = packet_mails.ids
+        with sink[0], sink[1], sink[2]:
+            self.env["mail.mail"].process_email_queue(email_ids=packet_ids)
+        for mail in self.env["mail.mail"].browse(packet_ids):
+            if mail.exists():
+                self.assertEqual(mail.state, "sent", f"{self._mail_diagnosis(mail)} headers={mail.headers}")
+        load.invalidate_recordset()
+        self.assertTrue(load.dispatch_sent, "a confirmed send stamps the clock")
+        stamped = load.dispatch_sent
+        # A second confirmed packet never moves the first clock.
+        self._open(load.action_send_dispatch_packet()).action_send_mail()
+        load.invalidate_recordset()
+        self.assertEqual(load.dispatch_sent, stamped)
+
+    def _sink(self):
+        server_class = type(self.env["ir.mail_server"])
+        return (
+            patch.object(server_class, "_disable_send", lambda *args: False),
+            patch.object(server_class, "_connect__", lambda *args, **kwargs: None),
+            patch.object(server_class, "send_email", lambda server, message, *a, **k: message["Message-Id"]),
+        )
+
+    def _last_load_mail(self, load):
+        return self.env["mail.mail"].search(
+            [("model", "=", "plasticos.load"), ("res_id", "=", load.id)], order="id desc", limit=1
+        )
+
+    @staticmethod
+    def _mail_diagnosis(mail):
+        return (
+            f"state={mail.state} failure={mail.failure_type} {mail.failure_reason} from={mail.email_from} "
+            f"to={mail.email_to} partners={mail.recipient_ids.mapped('email')}"
+        )
+
+    def test_a_company_without_its_own_sender_never_confirms_a_packet(self):
+        """D5 fails closed: no sender address means no confirmed send and no ACK clock."""
+        load = self._scheduled_load()
+        load.action_dispatch()
+        self.company.email = False
+        sink = self._sink()
+        with sink[0], sink[1], sink[2]:
+            self.assertFalse(load.action_send_dispatch_direct())
+        self.assertFalse(
+            self.env["mail.mail"].search(
+                [("model", "=", "plasticos.load"), ("res_id", "=", load.id), ("state", "=", "sent")]
+            ),
+            "no load mail reached sent",
+        )
+        self.assertFalse(load.dispatch_sent, "an unsent packet never starts the clock")
+        # A malformed address is no sender either.
+        self.company.email = "not-an-address"
+        with sink[0], sink[1], sink[2]:
+            self.assertFalse(load.action_send_dispatch_direct())
+        self.assertFalse(load.dispatch_sent)
+
+    def test_a_composer_for_a_company_without_its_own_sender_refuses_the_send(self):
+        """D5 fails closed on the composer path too: a UserError naming the company, and no mail."""
+        load = self._scheduled_load()
+        load.action_dispatch()
+        composer = self._open(load.action_send_dispatch_packet())
+        self.company.email = False
+        before = self._outgoing_for(load)
+        with self.assertRaisesRegex(UserError, re.escape(self.company.name)), self.env.cr.savepoint():
+            composer.action_send_mail()
+        self.assertEqual(self._outgoing_for(load), before, "no carrier mail is queued")
+        self.assertFalse(
+            self.env["mail.mail"].search(
+                [("model", "=", "plasticos.load"), ("res_id", "=", load.id), ("state", "=", "sent")]
+            )
+        )
+        self.assertFalse(load.dispatch_sent)
+
+    def _packet_mail(self, load, **values):
+        return self.env["mail.mail"].create(
+            {
+                "model": "plasticos.load",
+                "res_id": load.id,
+                "subject": "packet",
+                "body_html": "<p>packet</p>",
+                "headers": repr({"X-Plasticos-Release": f"dispatch_packet:{load.id}"}),
+                **values,
+            }
+        )
+
+    def test_a_follower_copy_does_not_start_the_carrier_clock(self):
+        """Review R1: only the copy addressed to the load's own carrier proves the instruction left."""
+        load = self._scheduled_load()
+        load.action_dispatch()
+        follower = self.env["res.partner"].create({"name": "S4 Internal Follower", "email": "ops@s4-follower.example"})
+        follower_copy = self._packet_mail(load, recipient_ids=[(6, 0, follower.ids)])
+        carrier_copy = self._packet_mail(load, recipient_ids=[(6, 0, self.carrier.ids)])
+        sink = self._sink()
+        with sink[0], sink[1], sink[2]:
+            self.env["mail.mail"].process_email_queue(email_ids=follower_copy.ids)
+        self.assertEqual(follower_copy.state, "sent", self._mail_diagnosis(follower_copy))
+        load.invalidate_recordset()
+        self.assertFalse(load.dispatch_sent, "a follower copy is not the carrier receiving the packet")
+        with sink[0], sink[1], sink[2]:
+            self.env["mail.mail"].process_email_queue(email_ids=carrier_copy.ids)
+        self.assertEqual(carrier_copy.state, "sent", self._mail_diagnosis(carrier_copy))
+        load.invalidate_recordset()
+        self.assertTrue(load.dispatch_sent, "the carrier copy's confirmed send starts the clock")
+
+    def test_a_carrier_document_composer_never_tags_the_packet_header(self):
+        """Review item 5: only the dispatch packet starts the ACK clock; a BOL or Delivery Order does not."""
+        load = self._scheduled_load()
+        load.action_dispatch()
+        before = self.env["mail.mail"].search([("model", "=", "plasticos.load"), ("res_id", "=", load.id)])
+        for action in (load.action_send_delivery_order, load.action_send_bol_pickup):
+            self._open(action()).action_send_mail()
+        created = self.env["mail.mail"].search([("model", "=", "plasticos.load"), ("res_id", "=", load.id)]) - before
+        self.assertTrue(created, "the document composers produced carrier mail")
+        for mail in created:
+            self.assertNotIn("X-Plasticos-Release", mail.headers or "", self._mail_diagnosis(mail))
+        sink = self._sink()
+        with sink[0], sink[1], sink[2]:
+            self.env["mail.mail"].process_email_queue(email_ids=created.ids)
+        load.invalidate_recordset()
+        self.assertFalse(load.dispatch_sent, "a carrier document is not the dispatch packet")
+
+    def test_one_invalid_co_recipient_does_not_stop_the_clock(self):
+        """Review O2: the transport's sent state is the gate, not the absence of any failure_type.
+
+        The carrier is reached even though a co-recipient's address is invalid, so the clock
+        starts. Mirror (review R1): a reached non-carrier with the same bad co-recipient does not.
+        """
+        load = self._scheduled_load()
+        load.action_dispatch()
+        invalid = self.env["res.partner"].create({"name": "S4 Broken Address", "email": "not-an-address"})
+        packet = self._packet_mail(load, recipient_ids=[(6, 0, (self.carrier | invalid).ids)])
+        sink = self._sink()
+        with sink[0], sink[1], sink[2]:
+            self.env["mail.mail"].process_email_queue(email_ids=packet.ids)
+        load.invalidate_recordset()
+        self.assertEqual(packet.state, "sent", "the valid recipient was reached")
+        self.assertTrue(load.dispatch_sent, "a confirmed send starts the clock despite one bad co-recipient")
+
+        other = self._scheduled_load()
+        other.action_dispatch()
+        bystander = self.env["res.partner"].create({"name": "S4 Valid Dispatcher", "email": "desk@s4-carrier.example"})
+        mirror = self._packet_mail(other, recipient_ids=[(6, 0, (bystander | invalid).ids)])
+        with sink[0], sink[1], sink[2]:
+            self.env["mail.mail"].process_email_queue(email_ids=mirror.ids)
+        other.invalidate_recordset()
+        self.assertEqual(mirror.state, "sent", self._mail_diagnosis(mirror))
+        self.assertFalse(other.dispatch_sent, "reaching someone other than the carrier starts no clock")
+
+    def test_a_second_direct_packet_never_moves_the_clock(self):
+        """Review O3: the direct send keeps the first confirmed time, like the composer path."""
+        load = self._scheduled_load()
+        load.action_dispatch()
+        sink = self._sink()
+        template = self.env.ref("plasticos_automation.email_template_dispatch_packet")
+        self.assertFalse(template.use_default_to, "default recipients would replace the carrier")
+        self.assertEqual(template._render_field("email_to", load.ids)[load.id], self.carrier.email)
+        with sink[0], sink[1], sink[2]:
+            sent = load.action_send_dispatch_direct()
+            self.assertTrue(sent, self._mail_diagnosis(self._last_load_mail(load)))
+            first = load.dispatch_sent
+            self.assertTrue(first)
+            with patch.object(fields.Datetime, "now", lambda *args, **kwargs: first + timedelta(hours=3)):
+                self.assertTrue(load.action_send_dispatch_direct())
+        self.assertEqual(load.dispatch_sent, first, "the acknowledgement clock and its revision key do not move")
+
+    def test_unchanged_context_still_sends_and_ordinary_notes_are_untouched(self):
+        load = self._scheduled_load()
+        composer = self._open(load.action_send_dispatch_packet())
+        messages_before = len(load.message_ids)
+        composer.action_send_mail()
+        self.assertGreater(len(load.message_ids), messages_before, "the unchanged packet is posted")
+        # An internal note on a held load issues no instruction and is not the guard's business.
+        note = (
+            self.env["mail.compose.message"]
+            .with_context(
+                default_model="plasticos.load", default_res_ids=load.ids, default_subtype_xmlid="mail.mt_note"
+            )
+            .create({"body": "internal"})
+        )
+        with patch.object(PlasticosLoad, "_physical_release_errors", lambda self, kind: ["Booking rolled."]):
+            note.action_send_mail()
+
+
+@tagged("post_install", "-at_install")
+class TestCarrierPaperworkWithoutABuyer(TransactionCase):
+    """S4 RP-03-E007..E009: carrier paperwork renders a buyerless load from its own company.
+
+    No sale-order or buyer detail is printed when the load has none, and no literal
+    stands in for a missing company (BRS-EXP-08-R001, BRS-EXP-10-R003).
+    """
+
+    REPORTS = (
+        "plasticos_logistics.report_delivery_order",
+        "plasticos_logistics.report_bol_pickup",
+        "plasticos_logistics.report_bol_delivery",
+    )
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.issuer = cls.env["res.company"].create({"name": "S4 Paperwork Co", "street": "8 Yard Rd"})
+        cls.supplier = cls.env["res.partner"].create({"name": "S4 Paper Mill", "is_company": True})
+        cls.terminal = cls.env["res.partner"].create({"name": "S4 Paper Ramp", "is_company": True})
+        cls.buyer = cls.env["res.partner"].create({"name": "S4 Hidden Buyer", "is_company": True, "customer_rank": 1})
+
+    def _render(self, report_ref, load):
+        html, _kind = self.env["ir.actions.report"]._render_qweb_html(report_ref, load.ids)
+        return html.decode() if isinstance(html, bytes) else str(html)
+
+    def test_buyerless_paperwork_prints_no_order_or_buyer(self):
+        load = self.env["plasticos.load"].create(
+            {
+                "company_id": self.issuer.id,
+                "pickup_partner_id": self.supplier.id,
+                "delivery_partner_id": self.terminal.id,
+            }
+        )
+        self.assertFalse(load.sale_order_id)
+        for report_ref in self.REPORTS:
+            with self.subTest(report_ref):
+                html = self._render(report_ref, load)
+                self.assertIn(self.issuer.name, html)
+                self.assertNotIn("Order No.", html)
+                self.assertNotIn(self.buyer.name, html)
+
+    def test_sale_backed_paperwork_keeps_its_order_number(self):
+        order = self.env["sale.order"].create({"partner_id": self.buyer.id})
+        load = self.env["plasticos.load"].create(
+            {"sale_order_id": order.id, "pickup_partner_id": self.supplier.id, "delivery_partner_id": self.terminal.id}
+        )
+        html = self._render("plasticos_logistics.report_bol_delivery", load)
+        self.assertIn("Order No.", html)
+        self.assertIn(order.name, html)

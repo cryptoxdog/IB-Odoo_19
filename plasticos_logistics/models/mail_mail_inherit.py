@@ -14,13 +14,31 @@ SMTP; a manual "Send Now" keeps native transactional semantics.
 An issue mail is held, untouched and still outgoing, until an earlier
 cancellation notice to the same party is confirmed sent. Selection in the
 same batch is not delivery. Unknown and failed notices keep the hold.
+
+The claim is the logical send authorization (S4, V06). It takes the source row
+lock first (the order revision acceptance uses), then the request row, and
+re-reads the current source, recipient and payload under both locks. A
+revision that won the source lock first leaves the old unclaimed mail canceled
+before SMTP; a claim that won first is kept, and the later revision treats it
+as in-flight history. Ordinary mail never reaches this path.
 """
 
+import ast
+import json
 import smtplib
 
-from odoo import models
+from odoo import fields, models
+from odoo.exceptions import LockError
+from odoo.tools import email_normalize, email_normalize_all
 
 LOGISTICS_REQUEST = "plasticos.logistics.request"
+PLASTICOS_LOAD = "plasticos.load"
+# Set on the outgoing notification mail of a carrier dispatch-packet composer (S4, V10).
+# Its value names the load ("dispatch_packet:<load id>") and must match the mail's own res_id.
+DISPATCH_PACKET_HEADER = "X-Plasticos-Release"
+DISPATCH_PACKET_VALUE = "dispatch_packet"
+# Context set by the composer only while it sends a release packet.
+DISPATCH_PACKET_SEND_CONTEXT = "plasticos_dispatch_packet_send"
 REQUEST_TABLE = "plasticos_logistics_request"
 
 
@@ -86,10 +104,32 @@ class MailMailInherit(models.Model):
         two queue workers from both passing ``_guard_mails_before_send`` and
         both reaching SMTP.
         """
+        if not mail:
+            # No mail: nothing to hand to SMTP and nothing to claim. Binding an empty
+            # record's id would compare the integer column with false (S6 finding).
+            return "skip"
+        mail.ensure_one()
         requests = self.env[LOGISTICS_REQUEST].sudo()  # sudo: queue claim locks the Linda request row
         if requests._table != REQUEST_TABLE:
             raise RuntimeError("Linda request storage name drifted")
         requests.flush_model()
+        self.env.cr.execute(
+            "SELECT id FROM plasticos_logistics_request WHERE mail_id = %s AND state = %s",
+            (mail.id, "queued"),
+        )
+        candidates = [row[0] for row in self.env.cr.fetchall()]
+        if not candidates:
+            return "skip" if requests.search([("mail_id", "=", mail.id)], limit=1) else "send"
+        if len(candidates) != 1:
+            return "skip"
+        source_model, source_id = requests.browse(candidates[0])._source_lock_target()
+        try:
+            with self.env.cr.savepoint():
+                # Source before request: the same order revision acceptance uses.
+                requests._lock_source(source_model, source_id)
+        except LockError:
+            # A revision is being accepted on this source; decide on the next queue run.
+            return "skip"
         self.env.cr.execute(
             """
             SELECT id, COALESCE(send_attempt_count, 0)
@@ -102,12 +142,18 @@ class MailMailInherit(models.Model):
         )
         rows = self.env.cr.fetchall()
         if not rows:
-            return "skip" if requests.search([("mail_id", "=", mail.id)], limit=1) else "send"
+            return "skip"
         if len(rows) != 1 or rows[0][1]:
             return "skip"
         request_id, attempt_count = rows[0]
         request = requests.browse(request_id)
-        request.invalidate_recordset(["send_attempt_count", "state"])
+        # Re-read what other transactions committed before the locks were granted.
+        self.env.invalidate_all()
+        reason = request._current_block_reason()
+        if reason:
+            # The source moved before this claim: the unclaimed mail never reaches SMTP.
+            request._cancel_queued(reason)
+            return "skip"
         # Same field write as _mark_attempt, bound to the locked row.
         request.write({"send_attempt_count": attempt_count + 1})
         return "claimed"
@@ -176,7 +222,59 @@ class MailMailInherit(models.Model):
             post_send_callback=post_send_callback,
         )
 
+    @staticmethod
+    def _plasticos_header_map(raw):
+        """Headers stored on a mail.mail, as a dict; anything unreadable is no header."""
+        if not raw:
+            return {}
+        for parse in (json.loads, ast.literal_eval):
+            try:
+                value = parse(raw)
+            except (ValueError, SyntaxError, TypeError):
+                continue
+            if isinstance(value, dict):
+                return value
+        return {}
+
+    def _plasticos_dispatch_packet_loads(self):
+        """Loads whose own carrier this packet mail reached.
+
+        The header value must name the mail's own load, and the mail must be addressed to
+        that load's carrier: one packet post also mails internal followers, and a follower
+        copy reaching "sent" is not the carrier receiving the instruction.
+        """
+        load_ids = []
+        for mail in self:
+            if mail.model != PLASTICOS_LOAD or not mail.res_id:
+                continue
+            marker = self._plasticos_header_map(mail.headers).get(DISPATCH_PACKET_HEADER)
+            if marker != f"{DISPATCH_PACKET_VALUE}:{mail.res_id}":
+                continue
+            load = self.env[PLASTICOS_LOAD].browse(mail.res_id).exists()
+            carrier = load.carrier_id
+            if not carrier:
+                continue
+            carrier_email = email_normalize(carrier.email or "")
+            addressed = carrier in mail.recipient_ids or (
+                carrier_email and carrier_email in email_normalize_all(mail.email_to or "")
+            )
+            if addressed:
+                load_ids.append(load.id)
+        return self.env[PLASTICOS_LOAD].browse(load_ids)
+
+    def _plasticos_stamp_dispatch_sent(self):
+        """First confirmed send of a dispatch packet starts the acknowledgement clock."""
+        for load in self._plasticos_dispatch_packet_loads().filtered(lambda load: not load.dispatch_sent):
+            load.write({"dispatch_sent": fields.Datetime.now()})
+            load.message_post(body="Dispatch packet confirmed sent to carrier.")
+
     def _postprocess_sent_message(self, success_pids, success_emails, failure_reason=False, failure_type=None):
+        # Read before native post-processing: an auto-delete mail is gone afterwards. The gate is
+        # the transport's own verdict (state "sent"): native _send also reports a failure_type such
+        # as mail_email_invalid for a mail that still reached its valid recipients.
+        sent = self.filtered(lambda mail: mail.state == "sent")
+        if sent and sent._plasticos_dispatch_packet_loads():
+            sent.sudo()._plasticos_stamp_dispatch_sent()  # sudo: queue workers stamp the sent packet's own load
         res = super()._postprocess_sent_message(
             success_pids,
             success_emails,

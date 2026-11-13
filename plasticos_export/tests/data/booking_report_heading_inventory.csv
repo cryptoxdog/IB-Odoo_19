@@ -1,0 +1,44 @@
+column_index,legacy_heading
+1,Container No
+2,Booking No
+3,Seal No
+4,Cutoff
+5,POL
+6,POD
+7,PDLV
+8,Carrier
+9,Vessel
+10,Voyage No
+11,ETS
+12,ETA
+13,Grade
+14,Weight LBS
+15,Supplier
+16,Location
+17,PO No
+18,Source Wks
+19,Customer
+20,SO No
+21,Invoice No
+22,Units
+23,PRVC
+24,Rcv Dt
+25,Release No
+26,Pickup No
+27,Shipping Notes
+28,Wt (MT)
+29,Ship Dt
+30,Ship Time
+31,Rcvd Wt
+32,User
+33,PRA Status
+34,PRA Sent Date
+35,VGM
+36,Eq Tare Wt
+37,BL No
+38,Invoice-User
+39,Container-Ref
+40,Customer-Loc
+41,PO-Ref
+42,UDF-Date
+43,Doc-Cutoff

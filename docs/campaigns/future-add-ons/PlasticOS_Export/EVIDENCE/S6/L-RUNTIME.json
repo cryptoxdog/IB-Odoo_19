@@ -1,0 +1,197 @@
+{
+ "receipt": "L-RUNTIME",
+ "contract_digest": "sha256:3383d697f85b3f3ee731ebabbf0a1e9ef35c96c756ee910eef48b4248a28cddd",
+ "admissions": {
+  "staging_for_F7_F9_initial": {
+   "tree": "Staging worktree",
+   "head": "08504e12ba2243b532319918019680bee5e06b59",
+   "porcelain": "",
+   "fp": "340ec5d0f5c3734c…",
+   "installed": 172,
+   "backs": "pre-fix F7/F9/F6 runs"
+  },
+  "slice_prefix_observation": {
+   "label": "PRE-FIX OBSERVATION ONLY (deviation disclosed and accepted)",
+   "head": "53703c778c1fcaa941ffa626b7ed63588375ecc8",
+   "porcelain": "",
+   "srchead": "53703c778c1fcaa941ffa626b7ed63588375ecc8",
+   "srcdigest": "9637cc160d477775711afa4de7561bfc7a5c88fef3f1e7c3f6dd70aeae73d0dc",
+   "install_smoke": "PASSED",
+   "m=all": {
+    "tests": "1565+",
+    "failed": 3,
+    "note": "D3, D4 and the export VERSION pin, all fixed afterwards"
+   }
+  },
+  "staging_for_F7_F9_final": {
+   "tree": "Staging worktree",
+   "head": "08504e12ba2243b532319918019680bee5e06b59",
+   "porcelain": "",
+   "fp": "340ec5d0f5c3734c…",
+   "installed": 172,
+   "srchead": "not recorded (the Staging tree's harness predates F4)",
+   "backs": "final F7 (L-MIGRATE final_run), final F9 (L-RESTORE final_rehearsal), D9 proof"
+  },
+  "slice_final_for_criterion_2": {
+   "tree": "slice worktree (repository root, branch feat/plasticos-export-s6-proof)",
+   "head_at_start": "bf099f3615b3c10304165f45146bb7a48f2204fb",
+   "last_addon_commit": "f8bb8f9c51e6e7f7d3bf78ada88cec6d0118bf92",
+   "porcelain": "",
+   "command": "make test-env-rebuild",
+   "exit": 0,
+   "fp": "b46f6d6f4d881224…",
+   "installed": 173,
+   "srchead": "96223f92b798b94073142be8c61ba59259f25457",
+   "srcdigest": "4f4d1dd794f7f2ba034e583c45807e04d16eeb3689821f22dfea994ffa9abc72",
+   "srchead_note": "a docs-only commit (96223f92, EVIDENCE/S6) landed while the build ran, and the marker read HEAD at stamp time. The addon digest is the source that was installed (f8bb8f9c addons). Fixed in the harness afterwards: the marker is now taken at build start, and a change before the stamp is refused."
+  },
+  "slice_rebuild_attempt_r4": {
+   "tree": "slice worktree",
+   "head": "cbd1a30986feb23db6a8a5eacea001648351c5fc",
+   "porcelain": "",
+   "command": "make test-env-rebuild",
+   "exit": 2,
+   "output": "❌ test-env refused: odoo_test_tpl_ee_c9e8a81f52f23680 is already admitted for the current inputs; not rebuilding it",
+   "meaning": "The admitted slice fixture already matched the clean tree's inputs; the clean m=all below ran on it."
+  },
+  "staging_for_F7_r4": {
+   "tree": "Staging worktree",
+   "head": "08504e12ba2243b532319918019680bee5e06b59",
+   "porcelain": "",
+   "fp": "340ec5d0f5c3734c…",
+   "installed": 172,
+   "backs": "L-MIGRATE final_run (r4)"
+  }
+ },
+ "runs": [
+  {
+   "db": "odoo_test_s6up (pre-fix, seeded+upgraded)",
+   "scope": "roster",
+   "tests": 1565,
+   "failed": 6,
+   "errors": 10,
+   "classified": "S6_FINDINGS.md D3,D4,(b)"
+  },
+  {
+   "db": "odoo_test_s6ctl (pre-fix, unseeded+upgraded control)",
+   "scope": "roster",
+   "tests": 1565,
+   "failed": 2,
+   "errors": 0,
+   "classified": "D3,D4"
+  },
+  {
+   "db": "odoo_test_s6stg (clean Staging, no migration)",
+   "scope": "material_profile / enrichment",
+   "tests": "35 / 18",
+   "failed": "1 / 1",
+   "classified": "D3,D4 pre-existing"
+  },
+  {
+   "db": "odoo_test_s6tst (Staging clone migrated to slice), D9 proof",
+   "scope": "plasticos_logistics",
+   "before_fix": {
+    "tests": 279,
+    "failed": 1
+   },
+   "after_fix": {
+    "tests": 279,
+    "failed": 0,
+    "errors": 0
+   }
+  },
+  {
+   "db": "odoo_test_s6up2 (FINAL, seeded+upgraded from Staging)",
+   "scope": "roster (m=all)",
+   "tests": 1569,
+   "failed": 0,
+   "errors": 0,
+   "code": "f8bb8f9c",
+   "superseded_by": "chain r4 (B1, N1)"
+  },
+  {
+   "db": "odoo_test_s6up2 (FINAL)",
+   "scope": "plasticos_documents_native",
+   "tests": 31,
+   "failed": 0,
+   "errors": 0,
+   "superseded_by": "chain r4 (B1, N1)"
+  },
+  {
+   "db": "odoo_test_s6rst2 (FINAL restore)",
+   "scope": "plasticos_export",
+   "tests": 57,
+   "failed": 0,
+   "errors": 0
+  },
+  {
+   "db": "fresh clone of the final slice fixture",
+   "scope": "install-smoke",
+   "result": "PASSED"
+  },
+  {
+   "db": "fresh clone of the final slice fixture",
+   "scope": "roster (m=all)",
+   "tests": 1569,
+   "failed": 0,
+   "errors": 0
+  },
+  {
+   "db": "same clone",
+   "scope": "plasticos_documents_native",
+   "tests": 31,
+   "failed": 0,
+   "errors": 0
+  },
+  {
+   "chain": "r4",
+   "db": "fresh clone of the slice fixture, code cbd1a309 (addons = 2f4dd682)",
+   "scope": "roster (m=all)",
+   "tests": 1570,
+   "failed": 0,
+   "errors": 0,
+   "note": "1570 = 1569 + the N1 timezone test; TestErpWorksheetImport ran post_install"
+  },
+  {
+   "chain": "r4",
+   "db": "same clone",
+   "scope": "plasticos_documents_native",
+   "tests": 31,
+   "failed": 0,
+   "errors": 0
+  },
+  {
+   "chain": "r4",
+   "db": "odoo_test_s6up3 (FINAL, seeded on Staging 08504e12, migrated to d46b2a60)",
+   "scope": "roster (m=all)",
+   "tests": 1570,
+   "failed": 0,
+   "errors": 0
+  },
+  {
+   "chain": "r4",
+   "db": "odoo_test_s6up3",
+   "scope": "plasticos_documents_native",
+   "tests": 31,
+   "failed": 0,
+   "errors": 0
+  },
+  {
+   "chain": "r4",
+   "db": "odoo_test_s6up3",
+   "scope": "plasticos_transaction",
+   "tests": 88,
+   "failed": 0,
+   "errors": 0
+  }
+ ],
+ "acceptance_witnesses": "All 86 Odoo witness methods of the 84 cited Phase 1 cases ran and passed on m=all plus documents_native; the 2 pure-Python witnesses pass in pytest tests/ (ACCEPTANCE_WITNESS_MATRIX.csv).",
+ "publication": "PR_SMOKE=1 PR_REMEDIATE=0 make pr base=feat/plasticos-export-s5b-export reruns install-smoke and runtime m=all on the pushed head; see the PR body and the execution receipt.",
+ "invalidated_results": [
+  {
+   "tests": "plasticos_transaction TestErpWorksheetImport (7 methods)",
+   "reason": "B1: commit cf724ee6 put the module-level _origin_key helper between @tagged('post_install','-at_install') and the class, so the decorator tagged the function and the class ran untagged. Any earlier result for these 7 tests is invalid. Fixed in 91c32fcc; the valid runs are listed under chain r4.",
+   "fixed_in": "91c32fcc"
+  }
+ ]
+}

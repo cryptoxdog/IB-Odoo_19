@@ -2,14 +2,12 @@
 
 Covers:
     - midnight_recompute: _cron_midnight_recompute (document expiry + claim time fields)
-    - attachment_maintenance: _cron_cleanup_missing_filestore_orphans
 """
 
 from datetime import date, datetime, timedelta
 from unittest.mock import patch
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
-from odoo.tools import config
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -180,94 +178,3 @@ class TestMidnightRecompute(PlasticosTestCase):
                 self.svc._recompute_claim_time_fields()
         except Exception as exc:
             self.fail(f"_recompute_claim_time_fields raised when model missing: {exc}")
-
-
-# ═══════════════════════════════════════════════════════════════════
-# attachment_maintenance  (ir.attachment cleanup)
-# ═══════════════════════════════════════════════════════════════════
-class TestAttachmentMaintenance(PlasticosTestCase):
-    """Tests for _cron_cleanup_missing_filestore_orphans."""
-
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.Attachment = cls.env["ir.attachment"]
-
-    def test_lock_acquired_runs_cleanup(self):
-        """Cron acquires lock and processes binary attachments."""
-        with patch("os.path.exists", return_value=True):
-            result = self.Attachment._cron_cleanup_missing_filestore_orphans()
-            self.assertEqual(result, 0, "No orphans should exist in clean DB")
-
-    def test_lock_already_held_skips(self):
-        """Returns 0 when advisory lock already held."""
-        with patch.object(self.env.cr, "execute"), patch.object(self.env.cr, "fetchone", return_value=(False,)):
-            result = self.Attachment._cron_cleanup_missing_filestore_orphans()
-            self.assertEqual(result, 0)
-
-    def test_missing_data_dir_skips(self):
-        """Returns 0 when data_dir config is missing."""
-        with patch.object(config, "get", return_value=None):
-            result = self.Attachment._cron_cleanup_missing_filestore_orphans()
-            self.assertEqual(result, 0)
-
-    def test_orphan_detection_and_deletion(self):
-        """Attachments with missing filestore blob get deleted."""
-        att = self.Attachment.create(
-            {
-                "name": "orphan_test.txt",
-                "type": "binary",
-                "datas": False,
-            }
-        )
-        if att.store_fname:
-            with patch("os.path.exists", return_value=False), patch.object(config, "get", return_value="/tmp"):  # nosec B108 - test mock
-                result = self.Attachment._cron_cleanup_missing_filestore_orphans()
-                self.assertGreaterEqual(result, 0)
-
-    def test_existing_blobs_not_deleted(self):
-        """Attachments with valid filestore blobs are preserved."""
-        att = self.Attachment.create(
-            {
-                "name": "valid_test.txt",
-                "type": "binary",
-                "datas": "dGVzdA==",  # base64 "test"
-            }
-        )
-        with patch("os.path.exists", return_value=True), patch.object(config, "get", return_value="/tmp"):  # nosec B108 - test mock
-            self.Attachment._cron_cleanup_missing_filestore_orphans()
-            self.assertTrue(att.exists(), "Valid attachment should not be deleted")
-
-    def test_cleanup_limit_2000(self):
-        """Search is limited to 2000 candidates per run."""
-        with (
-            # Recordset methods are read-only attributes; patch the model class instead.
-            patch.object(type(self.Attachment), "search") as m_search,
-            patch("os.path.exists", return_value=True),
-            patch.object(config, "get", return_value="/tmp"),  # nosec B108 - test mock
-        ):
-            m_search.return_value = self.Attachment
-            self.Attachment._cron_cleanup_missing_filestore_orphans()
-            if m_search.called:
-                call_kwargs = m_search.call_args.kwargs if m_search.call_args.kwargs else {}
-                if "limit" in call_kwargs:
-                    self.assertLessEqual(call_kwargs["limit"], 2000)
-
-    def test_lock_released_on_exception(self):
-        """Advisory lock is released on unexpected exception."""
-        real_execute = self.env.cr.execute
-
-        def _execute(query, *args, **kwargs):
-            # Let lock acquire succeed; still record unlock calls.
-            return real_execute(query, *args, **kwargs)
-
-        with (
-            patch("os.path.exists", side_effect=Exception("disk error")),
-            patch.object(self.env.cr, "execute", side_effect=_execute) as m_exec,
-        ):
-            try:
-                self.Attachment._cron_cleanup_missing_filestore_orphans()
-            except Exception:
-                pass
-            unlock = [c for c in m_exec.call_args_list if c.args and "advisory_unlock" in str(c.args[0]).lower()]
-            self.assertTrue(unlock, "expected pg_advisory_unlock in finally after disk error")

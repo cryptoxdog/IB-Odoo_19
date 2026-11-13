@@ -29,14 +29,14 @@
 
                         <!-- Company Header -->
                         <div style="margin-bottom: 20px;">
-                            <t t-if="doc.sale_order_id.company_id">
-                                <strong style="font-size: 14px;"><t t-out="doc.sale_order_id.company_id.name"/></strong><br/>
-                                <t t-out="doc.sale_order_id.company_id.street or ''"/><br/>
-                                <t t-out="doc.sale_order_id.company_id.city or ''"/>
-                                <t t-out="doc.sale_order_id.company_id.state_id.code or ''"/>
-                                <t t-out="doc.sale_order_id.company_id.zip or ''"/><br/>
-                                <t t-if="doc.sale_order_id.company_id.website">
-                                    <t t-out="doc.sale_order_id.company_id.website"/>
+                            <t t-if="doc.company_id">
+                                <strong style="font-size: 14px;"><t t-out="doc.company_id.name"/></strong><br/>
+                                <t t-out="doc.company_id.street or ''"/><br/>
+                                <t t-out="doc.company_id.city or ''"/>
+                                <t t-out="doc.company_id.state_id.code or ''"/>
+                                <t t-out="doc.company_id.zip or ''"/><br/>
+                                <t t-if="doc.company_id.website">
+                                    <t t-out="doc.company_id.website"/>
                                 </t>
                             </t>
                         </div>
@@ -88,14 +88,14 @@
 
                         <!-- Shipper Info -->
                         <div style="margin-bottom: 10px; border: 1px solid #ccc; padding: 10px;">
-                            <strong>SHIPPER NAME:</strong> <t t-out="doc.sale_order_id.company_id.name or ''"/><br/>
+                            <strong>SHIPPER NAME:</strong> <t t-out="doc.company_id.name or ''"/><br/>
                             <strong>CONTACTS:</strong>
                             <!-- Company contacts would go here - using company email/phone -->
-                            <t t-if="doc.sale_order_id.company_id.email">
-                                <t t-out="doc.sale_order_id.company_id.email"/>
+                            <t t-if="doc.company_id.email">
+                                <t t-out="doc.company_id.email"/>
                             </t>
-                            <t t-if="doc.sale_order_id.company_id.phone">
-                                (<t t-out="doc.sale_order_id.company_id.phone"/>)
+                            <t t-if="doc.company_id.phone">
+                                (<t t-out="doc.company_id.phone"/>)
                             </t>
                         </div>
 
@@ -106,7 +106,7 @@
                             </tr>
                             <tr>
                                 <td style="width: 50%;">
-                                    <strong>PICKUP FOR:</strong> <t t-out="doc.sale_order_id.company_id.name or ''"/>
+                                    <strong>PICKUP FOR:</strong> <t t-out="doc.company_id.name or ''"/>
                                 </td>
                                 <td style="width: 50%;">
                                     <strong>PICKUP DATE:</strong>
@@ -154,7 +154,7 @@
                             </tr>
                             <tr>
                                 <td style="width: 50%;">
-                                    <strong>DELIVERY FOR:</strong> <t t-out="doc.sale_order_id.company_id.name or ''"/>
+                                    <strong>DELIVERY FOR:</strong> <t t-out="doc.company_id.name or ''"/>
                                 </td>
                                 <td style="width: 50%;">
                                     <strong>REFERENCE/PO #:</strong> <t t-out="doc.delivery_reference or ''"/>
@@ -196,8 +196,8 @@
                         <!-- Document Submission -->
                         <div style="margin-bottom: 15px; text-align: center;">
                             <strong>Send All Docs to
-                                <t t-if="doc.sale_order_id.company_id.email">
-                                    <t t-out="doc.sale_order_id.company_id.email"/>
+                                <t t-if="doc.company_id.email">
+                                    <t t-out="doc.company_id.email"/>
                                 </t>
                             </strong>
                         </div>
@@ -206,7 +206,7 @@
                         <div style="font-size: 10px; text-align: justify; border-top: 2px solid #000; padding-top: 10px;">
                             By Accepting This Delivery Order, The Above Named Trucker Agrees To Obtain LIGHT &amp; HEAVY 3rd Party Certified Scale
                             Tickets &amp; PROTECT THE BLIND PICK UP By Using The BOL-PICKUP Document Prepared By
-                            <t t-out="doc.sale_order_id.company_id.name or 'Company'"/>
+                            <t t-out="doc.company_id.name or ''"/>
                         </div>
 
                     </div>

@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_enrichment
 component_name: PlastOS Buyer CRM Enrichment Engine
-module_version: 19.0.2.5.9
+module_version: 19.0.2.5.10
 layer: 2
 installable: true
 auto_install: true
@@ -43,6 +43,7 @@ The Odoo shell for partner enrichment. Odoo decides when to ask, sends a converg
 - **Proposal.** By default a usable response leaves the run in `review` with the proposed partner fields stored in `gate_proposal`. Only when both `plasticos.gate.auto_writeback` and `plasticos.gate.auto_writeback_operator_approved` are set (both seeded `0`) are the allowlisted fields written at once and the run marked `injected`.
 - **Retry.** `action_retry_enrichment()` accepts a `retryable`, `failed`, or `degraded` run, advances `gate_attempt` so Gate sees a new operation identity, and calls `action_execute()` again.
 - **Inject.** `action_inject()` is the allowlisted writeback. For a Gate run in `review` it applies only the stored proposal. `_apply_converge_writeback` drops any field outside the partner allowlist, fills only empty values, and records a `plasticos.enrichment.provenance` row ([ADR-012](../docs/adr/ADR-012-crm-writeback-allowlist-provenance.md)).
+- **Bales are packaging.** For extracted materials, `normalize_material` maps `bale`, `bales` and `baled` to the Bales packaging type (`plasticos.packaging.type` code `bales`) with provenance, not to a form. Inject then gives that profile no form and never the `OTHER` fallback, the end state of `plasticos_material_profile` 19.0.5.11.14 (operator decision 2026-11-12). Merge still fills only empty fields.
 - **Retired local paths.** `action_run_inference()` raises a user error. The crawl, extract, and inference methods on `plasticos.enrichment.service` raise. `action_cron_enrich_pending()` and `action_cron_inference_only()` log and return.
 - **Install hook.** `post_init_hook` in `hooks.py` adds the enrichment manager group to `plasticos_base.user_system_cron`.
 

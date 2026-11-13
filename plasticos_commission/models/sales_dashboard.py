@@ -205,73 +205,144 @@ class PlasticosSalesDashboard(models.Model):
         """)
 
     # ── Doc Checklist Compute ─────────────────────────────────────────────────
+    # Checklist item -> plasticos.document.tag code of the legacy business row.
+    _CHECKLIST_TAG_CODES = {
+        "bol": "BOL",
+        "scale_ticket": "SCALE",
+        "invoice": "INV",
+        "customer_order": "CO",
+    }
+    _CHECKLIST_FIELDS = {
+        "bol": "doc_bol",
+        "scale_ticket": "doc_scale_ticket",
+        "invoice": "doc_invoice",
+        "customer_order": "doc_customer_order",
+    }
+
+    def _doc_checklist_source(self):
+        """Business rows when PlasticOS Documents is installed, else the native records, else none.
+
+        Commission does not depend on Documents, so the model is looked up by name.
+        """
+        if "plasticos.document" in self.env:
+            return "plasticos.document"
+        if "documents.document" in self.env:
+            return "documents.document"
+        return False
+
     @api.depends("transaction_id")
     def _compute_doc_checklist(self):
-        """Batch-fetch documents for all transactions in this recordset.
+        """Per-transaction checklist. One dashboard row per transaction; nothing is multiplied.
 
-        Status priority per doc_type:
-          ok      → at least one doc with verified=True or override=True
-          pending → doc exists but not yet verified (AI flagged or just uploaded)
-          missing → no document of this type on file
+        Status per item:
+          ok      → a current legacy business row (verified or overridden, not
+                    expired, superseded, replaced or conflicting) on the transaction
+                    or on one of its loads
+          pending → a row of that type exists but is not currently eligible
+          missing → no row of that type
+        An operation-scoped row never clears a legacy checklist item, and the
+        native per-original projection is not the source when business rows exist.
         """
-        DOC_TYPES = {
-            "bol": "doc_bol",
-            "scale_ticket": "doc_scale_ticket",
-            "invoice": "doc_invoice",
-            "customer_order": "doc_customer_order",
-        }
-
-        if "documents.document" in self.env:
-            active_model = "documents.document"
-        elif "plasticos.document" in self.env:
-            active_model = "plasticos.document"
-        else:
-            for rec in self:
-                for f in DOC_TYPES.values():
-                    rec[f] = "missing"
-                rec.docs_all_clear = False
-            return
-
+        source = self._doc_checklist_source()
         tx_ids = self.mapped("transaction_id").ids
-        if not tx_ids:
-            for rec in self:
-                for f in DOC_TYPES.values():
-                    rec[f] = "missing"
-                rec.docs_all_clear = False
-            return
-
-        docs = (
-            self.env[active_model]
-            .sudo()  # sudo: read-only rep dashboard; document ACL is narrower
-            .search(
-                [
-                    ("transaction_id", "in", tx_ids),
-                    ("doc_type", "in", list(DOC_TYPES.keys())),
-                ]
-            )
-        )
-
-        lookup = {}
-        for doc in docs:
-            tid = doc.transaction_id.id
-            dtype = doc.doc_type
-            if tid not in lookup:
-                lookup[tid] = {}
-            verified = getattr(doc, "verified", False) or getattr(doc, "override", False)
-            new_status = "ok" if verified else "pending"
-            if lookup[tid].get(dtype, "missing") != "ok":
-                lookup[tid][dtype] = new_status
+        if not source or not tx_ids:
+            lookup = {}
+        elif source == "plasticos.document":
+            lookup = self._doc_checklist_from_business_rows(tx_ids)
+        else:
+            lookup = self._doc_checklist_from_native(tx_ids)
 
         for rec in self:
-            tid = rec.transaction_id.id
-            tx_docs = lookup.get(tid, {})
+            tx_docs = lookup.get(rec.transaction_id.id, {})
             all_clear = True
-            for doc_type, field_name in DOC_TYPES.items():
-                status = tx_docs.get(doc_type, "missing")
+            for item, field_name in self._CHECKLIST_FIELDS.items():
+                status = tx_docs.get(item, "missing")
                 rec[field_name] = status
                 if status != "ok":
                     all_clear = False
             rec.docs_all_clear = all_clear
+
+    @staticmethod
+    def _merge_checklist_status(lookup, tid, item, status):
+        current = lookup.setdefault(tid, {}).get(item, "missing")
+        if current != "ok":
+            lookup[tid][item] = status
+
+    def _doc_checklist_from_business_rows(self, tx_ids):
+        tags = (
+            self.env["plasticos.document.tag"]
+            .sudo()  # sudo: read-only rep dashboard; tag codes only
+            .search([("code", "in", list(self._CHECKLIST_TAG_CODES.values()))])
+        )
+        item_by_tag = {}
+        for item, code in self._CHECKLIST_TAG_CODES.items():
+            for tag in tags.filtered(lambda t, code=code: t.code == code):
+                item_by_tag[tag.id] = item
+        if not item_by_tag:
+            return {}
+        loads = (
+            self.env["plasticos.load"]
+            .sudo()  # sudo: read-only rep dashboard; reps never read loads directly
+            .search([("transaction_id", "in", tx_ids)])
+        )
+        rows = (
+            self.env["plasticos.document"]
+            .sudo()  # sudo: read-only rep dashboard; document ACL is narrower
+            .search(
+                [
+                    ("tag_id", "in", list(item_by_tag)),
+                    *self.env["plasticos.document"]._legacy_obligation_domain(),
+                    "|",
+                    "|",
+                    "|",
+                    ("transaction_id", "in", tx_ids),
+                    "&",
+                    ("res_model", "=", PLASTICOS_TRANSACTION),
+                    ("res_id", "in", tx_ids),
+                    ("load_id", "in", loads.ids),
+                    "&",
+                    ("res_model", "=", "plasticos.load"),
+                    ("res_id", "in", loads.ids),
+                ]
+            )
+        )
+        load_parent = {load.id: load.transaction_id.id for load in loads}
+        wanted = set(tx_ids)
+        lookup = {}
+        for row in rows:
+            if row._association_conflict_reason():
+                continue
+            if row.transaction_id:
+                tid = row.transaction_id.id
+            elif row.res_model == PLASTICOS_TRANSACTION:
+                tid = row.res_id
+            elif row.load_id:
+                tid = load_parent.get(row.load_id.id)
+            else:
+                tid = load_parent.get(row.res_id)
+            if tid not in wanted:
+                continue
+            status = "ok" if row._currently_eligible() else "pending"
+            self._merge_checklist_status(lookup, tid, item_by_tag[row.tag_id.id], status)
+        return lookup
+
+    def _doc_checklist_from_native(self, tx_ids):
+        """Fallback when no business rows exist: native records by their plastics type."""
+        docs = (
+            self.env["documents.document"]
+            .sudo()  # sudo: read-only rep dashboard; document ACL is narrower
+            .search(
+                [
+                    ("transaction_id", "in", tx_ids),
+                    ("doc_type", "in", list(self._CHECKLIST_TAG_CODES)),
+                ]
+            )
+        )
+        lookup = {}
+        for doc in docs:
+            verified = getattr(doc, "verified", False) or getattr(doc, "override", False)
+            self._merge_checklist_status(lookup, doc.transaction_id.id, doc.doc_type, "ok" if verified else "pending")
+        return lookup
 
     def _search_docs_all_clear(self, operator, value):
         """Search method for docs_all_clear — translates to compliance_status domain.

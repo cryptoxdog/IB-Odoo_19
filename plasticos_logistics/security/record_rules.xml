@@ -53,4 +53,41 @@
         <field name="model_id" ref="model_plasticos_logistics_response"/>
         <field name="domain_force">[('company_id', 'in', company_ids)]</field>
     </record>
+    <!-- J1/J2 physical journeys: global company isolation with no company-null
+         escape (ADR-130). Business-role grants live in plasticos_security_base,
+         which owns the groups. -->
+    <record id="rule_iso_journey_company" model="ir.rule">
+        <field name="name">ISO container journey company isolation</field>
+        <field name="model_id" ref="model_plasticos_iso_journey"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_iso_journey_source_company" model="ir.rule">
+        <field name="name">ISO container journey source company isolation</field>
+        <field name="model_id" ref="model_plasticos_iso_journey_source"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <record id="rule_iso_journey_fact_company" model="ir.rule">
+        <field name="name">ISO container journey fact company isolation</field>
+        <field name="model_id" ref="model_plasticos_iso_journey_fact"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <!-- S9 journey facts and shipment event proposals: same global company isolation as J1/J2.
+         Business-role grants belong to plasticos_security_base. -->
+    <record id="rule_shipment_event_proposal_company" model="ir.rule">
+        <field name="name">Shipment event proposal company isolation</field>
+        <field name="model_id" ref="model_plasticos_shipment_event_proposal"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <!-- S11 Linda approvals: same global company isolation. -->
+    <record id="rule_linda_approval_company" model="ir.rule">
+        <field name="name">Linda approval company isolation</field>
+        <field name="model_id" ref="model_plasticos_linda_approval"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+    <!-- S11 Linda sweep cursor: one row per lane and company (review N1). -->
+    <record id="rule_linda_sweep_cursor_company" model="ir.rule">
+        <field name="name">Linda sweep cursor company isolation</field>
+        <field name="model_id" ref="model_plasticos_linda_sweep_cursor"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
 </odoo>

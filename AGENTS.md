@@ -868,3 +868,15 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > The two runtime-test owners recorded on 2026-11-06 are unchanged: the `make pr-check` smoke stage, and
 > `make runtime-test m=<modules>` when an integration skill is invoked. Do not run `make test-module` or
 > `make test-odoo` ad hoc.
+
+> **2026-11-11 PlasticOS Export task read path (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> before changing a load's company or parent, container journeys (J1 `plasticos.iso.journey`, J2
+> `plasticos.iso.journey.source`), the physical-release guard, actual pickup/delivery clocks or the manual freight
+> context, read `docs/adr/ADR-130-export-physical-evidence-and-owner-contracts.md`, the 2026-11-11 section of
+> `plasticos_logistics/business_rules/SUPERSESSION.md`, and the Export campaign pack
+> `docs/campaigns/future-add-ons/PlasticOS_Export/` (`STRATEGIC_EXECUTION_PLAN_v2.8.md`, BRS-EXP-01..14). The
+> `plasticos_export` addon and its README do not exist yet (slice S5); until then the campaign pack is the Export
+> source. `plasticos.load.company_id` is an explicit source company (never `env.company`); one transaction owns many
+> loads through `plasticos.load.transaction_id`. Addon census at Staging `08504e12`: **31** `plasticos_*` addons,
+> **29** installable and 2 not installable (`plasticos_dev_tools`, `plasticos_website`); this supersedes the 30/28
+> count in Project Overview.
