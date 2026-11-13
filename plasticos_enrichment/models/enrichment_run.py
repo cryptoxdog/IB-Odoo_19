@@ -430,9 +430,12 @@ class EnrichmentRun(models.Model):
         )
 
         target, record = self._v2_target()
+        field_defs = self._v2_field_defs(target, record)
         pin = CartridgePin(selection.cartridge_id, selection.cartridge_version, selection.cartridge_sha256)
         try:
-            request = build_converge_request_v2(self.env, self, target=target, record=record, cartridge=pin)
+            request = build_converge_request_v2(
+                self.env, self, target=target, record=record, cartridge=pin, field_defs=field_defs
+            )
         except ConvergeV2NothingToRequest as exc:
             return f"Gate converge v2 not sent: {exc}"
         body = request.to_dict()
@@ -445,7 +448,7 @@ class EnrichmentRun(models.Model):
         audit = extract_audit_metadata(result["packet"])
         reply = result["payload"]
         parsed = parse_converge_response_v2(reply, request=request)
-        plan = plan_converge_v2_writeback(target, parsed, request)
+        plan = plan_converge_v2_writeback(target, parsed, request, field_defs)
         if plan.rejection:
             _logger.warning(
                 "Gate converge v2 evidence rejected (packet %s): %s", audit.get("gate_packet_id"), plan.rejection
@@ -554,11 +557,12 @@ class EnrichmentRun(models.Model):
             request = self._v2_request_from_body(proposal["request"])
         except (KeyError, TypeError) as exc:
             raise UserError(_("The stored Gate converge v2 request is malformed: %s") % exc) from exc
+        field_defs = self._v2_field_defs(target, record)
         parsed = parse_converge_response_v2(proposal.get("reply"), request=request)
-        plan = plan_converge_v2_writeback(target, parsed, request)
+        plan = plan_converge_v2_writeback(target, parsed, request, field_defs)
         if plan.rejection:
             raise UserError(_("Gate converge v2 evidence rejected: %s") % plan.rejection)
-        written = self._apply_converge_v2_plan(plan, record)
+        written = self._apply_converge_v2_plan(plan, record, field_defs)
         self.write(
             {
                 "state": "injected",
@@ -577,15 +581,51 @@ class EnrichmentRun(models.Model):
         )
         return True
 
+    def _v2_field_defs(self, target, record):
+        """The target model's field definitions as plain data, for the facility profile.
+
+        The facility profile is open by model definition (ADR-012 amendment
+        2026-11-13 (b)): plasticos_gate derives its rows from these definitions,
+        ``_inherit`` extensions included. Other targets use fixed tables.
+        """
+        from odoo.addons.plasticos_gate.services.gate_allowlists import (
+            V2_TARGET_FACILITY_PROFILE,
+            OdooFieldDef,
+        )
+
+        if target != V2_TARGET_FACILITY_PROFILE:
+            return None
+        defs = []
+        for name, field in record._fields.items():
+            relation = getattr(field, "comodel_name", None) or None
+            has_code = bool(relation) and relation in self.env and "code" in self.env[relation]._fields
+            keys = ()
+            if field.type == "selection":
+                keys = tuple(str(key) for key, _label in field._description_selection(self.env))
+            defs.append(
+                OdooFieldDef(
+                    name=name,
+                    ftype=field.type,
+                    relation=relation,
+                    relation_has_code=has_code,
+                    stored=bool(field.store),
+                    computed=bool(field.compute),
+                    related=bool(field.related),
+                    readonly=bool(field.readonly),
+                    selection_keys=keys,
+                )
+            )
+        return tuple(defs)
+
     @staticmethod
     def _v2_field_refusal(record, field_name):
         """Why a field may never be written by converge, or None (CTO decision 5)."""
-        from odoo.addons.plasticos_gate.services.gate_allowlists import CONVERGE_V2_NEVER_TARGETS
+        from odoo.addons.plasticos_gate.services.gate_allowlists import is_never_target
 
         field = record._fields.get(field_name)
         if field is None:
             return f"{record._name} has no field {field_name}"
-        if field_name in CONVERGE_V2_NEVER_TARGETS:
+        if is_never_target(field_name):
             return f"{field_name} is never a converge target"
         if field.compute or field.related or field.readonly or field.type == "one2many":
             return f"{field_name} is computed, related, readonly or one2many"
@@ -631,16 +671,17 @@ class EnrichmentRun(models.Model):
         note = f"; unresolved codes skipped: {missing}" if missing else ""
         return [Command.set(ids)], note
 
-    def _apply_converge_v2_plan(self, plan, record):
+    def _apply_converge_v2_plan(self, plan, record, field_defs=None):
         """Write a validated v2 plan merge-not-overwrite, one provenance row per considered field."""
         self.ensure_one()
         from odoo.addons.plasticos_gate.services.gate_allowlists import (
-            CONVERGE_V2_TARGETS,
             V2_KIND_MANY2MANY_CODE,
             V2_KIND_MANY2ONE_CODE,
+            V2_KIND_SELECTION,
+            resolve_v2_target,
         )
 
-        spec = CONVERGE_V2_TARGETS[plan.target]
+        spec = resolve_v2_target(plan.target, field_defs)
         packet_id = self.gate_packet_id or ""
         vals = {}
         provenance = []
@@ -667,6 +708,11 @@ class EnrichmentRun(models.Model):
                     else:
                         vals[decision.odoo_field] = resolved
                         status, shown = "written", f"{decision.value}{note}"
+                elif row.kind == V2_KIND_SELECTION and decision.value not in {
+                    str(key) for key, _label in record._fields[decision.odoo_field]._description_selection(self.env)
+                }:
+                    status = "skipped_unresolved_code"
+                    shown = f"{decision.value!r} is not a value of {decision.odoo_field}"
                 else:
                     vals[decision.odoo_field] = decision.value
                     status, shown = "written", str(decision.value)

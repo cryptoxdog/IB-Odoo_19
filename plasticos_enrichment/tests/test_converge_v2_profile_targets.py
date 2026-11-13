@@ -14,6 +14,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+from odoo.addons.plasticos_gate.services import gate_allowlists
 from odoo.addons.plasticos_gate.services.gate_config import (
     GateAvailability,
     GateAvailabilityVerdict,
@@ -44,7 +45,7 @@ def _source(ref="reply:1"):
     return {"source_type": "provider", "source_ref": ref, "method": "provider_reply", "independent": None}
 
 
-def _v2_reply(body, specs):
+def _v2_reply(body, specs, extra=None):
     """A response v2 (Revision 1) answering exactly the request's targets.
 
     ``specs`` maps a cartridge field to ``{"state", "value", "admitted", "unit",
@@ -99,6 +100,11 @@ def _v2_reply(body, specs):
         if entry["admitted"]:
             admitted_values[name] = spec["value"]
         evidence[name] = entry
+    for name, entry in (extra or {}).items():
+        # An entry the request did not target (a reply may carry more than asked).
+        evidence[name] = {**entry, "identity": identity}
+        if entry.get("admitted"):
+            admitted_values[name] = entry["value"]
     return {
         "contract_version": CONVERGE_RESPONSE_V2,
         "state": "completed",
@@ -435,6 +441,66 @@ class TestConvergeV2ProfileTargets(PlasticosTestCase):
         run = self.env["plasticos.enrichment.run"].browse(run_id)
         self.assertEqual(run.state, "degraded")
         self.assertIn("converge contract v2", " ".join(run.validation_issues or []))
+
+    # ── facility profile open by model definition (ADR-012 amendment (b)) ──
+
+    def _with_declarations(self, **extra):
+        decls = {**gate_allowlists._thaw(gate_allowlists.PLASTICOS_FACILITY_DECLARATIONS), **extra}
+        return patch.object(gate_allowlists, "PLASTICOS_FACILITY_DECLARATIONS", gate_allowlists._freeze(decls))
+
+    def test_a_same_named_eligible_facility_field_is_requested_and_written_without_an_alias(self):
+        self.assertNotIn("freeform_notes", gate_allowlists.FACILITY_PROFILE_V2_ALIASES)
+        profile = self._buyer_facility_profile("V2 Buyer Notes")
+        run = self._start(profile)
+        gate = _Gate(
+            lambda body: _v2_reply(
+                body, {"freeform_notes": {"state": "external_claim", "admitted": True, "value": "Takes mixed bales"}}
+            )
+        )
+        with self._with_declarations(freeform_notes={"type": "string"}):
+            self._execute(run, gate)
+            self.assertIn("freeform_notes", [t["field"] for t in gate.bodies[0]["targets"]])
+            run.action_inject()
+        self.assertEqual(profile.freeform_notes, "Takes mixed bales")
+        row = self._provenance(run)["freeform_notes"]
+        self.assertEqual((row.status, row.target_res_id), ("written", profile.id))
+
+    def test_a_never_target_is_refused_even_when_the_reply_proposes_it(self):
+        profile = self._buyer_facility_profile("V2 Buyer Active")
+        run = self._start(profile)
+        proposed_active = {
+            "state": "external_claim",
+            "admitted": True,
+            "value": False,
+            "unit_status": "not_applicable",
+            "confidence": 0.95,
+            "sources": [_source()],
+            "derivation": None,
+            "declaration": {"type": "bool"},
+            "conflict": None,
+            "unknown_reason": None,
+        }
+        gate = _Gate(
+            lambda body: _v2_reply(
+                body,
+                {
+                    "contamination_tolerance": {
+                        "state": "external_claim",
+                        "admitted": True,
+                        "value": 3.0,
+                        "unit": "percent",
+                    }
+                },
+                extra={"active": proposed_active},
+            )
+        )
+        with self._with_declarations(active={"type": "bool"}):
+            self._execute(run, gate)
+            self.assertNotIn("active", [t["field"] for t in gate.bodies[0]["targets"]])
+            run.action_inject()
+        self.assertTrue(profile.active)
+        self.assertAlmostEqual(profile.contamination_tolerance_pct, 3.0)
+        self.assertNotIn("active", self._provenance(run))
 
     # ── run target integrity ─────────────────────────────────────────────
 
