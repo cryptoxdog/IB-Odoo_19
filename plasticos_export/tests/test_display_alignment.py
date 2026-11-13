@@ -135,8 +135,9 @@ class TestDisplayAlignment(ExportFixtureMixin, PlasticosTestCase):
         for name in ("planned_weight_lb", "planned_weight_basis"):
             field = Link._fields[name]
             self.assertTrue(field.store and field.compute, name)
-            self.assertEqual(set(field.depends), allowed, f"{name} may read no journey, load, move or invoice")
-            self.assertEqual({path.split(".")[0] for path in field.depends}, allowed)
+            depends = set(self.env.registry.field_depends[field])  # Odoo 19 resolved dependency paths
+            self.assertEqual(depends, allowed, f"{name} may read no journey, load, move or invoice")
+            self.assertEqual({path.split(".")[0] for path in depends}, allowed)
         self.assertIn("not a weighed, VGM or invoice weight", Link._fields["planned_weight_lb"].help)
         from .test_native_coverage import TestNativeCoverage  # noqa: PLC0415 - the witness's own allow-list
 
