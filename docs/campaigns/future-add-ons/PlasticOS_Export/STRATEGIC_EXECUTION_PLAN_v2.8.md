@@ -149,7 +149,7 @@ The pack is specification only: 163 files, 120 business rules and acceptance cas
 | --- | --- | --- |
 | Approve `plasticos_export` and give the code grant | Repo rule and the pack's CODE-GRANT blocker | Every slice |
 | Make the Enterprise source reachable for the coding host | S1 and every runtime proof | Gate 1 onward |
-| Private operator originals (11 PO 64014 emails, PDFs and booking files under `EXPORT_BRS/SOURCES/PRIVATE_OPERATOR_CASE_PO64014/`, beside its README and inventory) are committed although that README and the pack README say not to | Confidential PO 64014 emails, PDFs and bookings in repo history | Nothing technical; history rewrite is the operator's call |
+| Private operator originals (11 PO 64014 emails, PDFs and booking files, beside their README and inventory) were committed although that README and the pack README said not to | Operator decision 2026-11-12: removed from the repository and held privately; the folder is git-ignored; no history rewrite | Nothing; resolved |
 
 ## Proof limits of v2.8
 
