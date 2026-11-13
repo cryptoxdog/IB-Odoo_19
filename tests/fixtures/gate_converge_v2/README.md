@@ -3,7 +3,9 @@
 Hand-built replies to the requests `tests/test_gate_converge_v2_codec.py` builds,
 shaped by EIE `docs/contracts/converge/response.v2.md` (FROZEN 2026-11-13,
 including Revision 1: `resolution`, `declaration`, source type `graph`) at
-Quantum-L9/Enrichment.Inference.Engine `b1b295a`.
+Quantum-L9/Enrichment.Inference.Engine `8c02aa9`, where main answers a v2 request in v2.
+Each `declaration` is in the engine's emitted form (`app/engines/spec_types.py::shape`):
+`required` on every node and a map's `properties` keyed by name.
 
 | File | Target | Shows |
 |---|---|---|

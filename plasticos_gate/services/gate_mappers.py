@@ -579,8 +579,8 @@ def _rejected(payload: dict[str, Any], code: str, detail: str) -> ConvergeRespon
 def parse_converge_response_v2(payload: Any, *, request: ConvergeRequestV2) -> ConvergeResponseV2:
     """Parse a reply to ``request`` into immutable evidence, or reject it whole.
 
-    A reply without ``contract_version`` is v1 (the engine answers v1 until
-    its v2 response wiring lands) and is rejected for v2 use: its ``fields``
+    A reply without ``contract_version`` is v1 (response.v2.md section 6;
+    EIE main answers a v2 request in v2 since 8c02aa9) and is rejected for v2 use: its ``fields``
     are not evidence. Only a ``completed`` run is usable; ``degraded`` and
     ``failed`` replies are rejected with their reason.
     """
@@ -696,10 +696,29 @@ class V2WritebackPlan:
         return tuple(d for d in self.decisions if d.action == V2_PLAN_WRITE)
 
 
+# Declaration keys that are not part of the typed shape being compared.
+_DECL_IGNORED_KEYS = frozenset({"required", "unit"})
+_DECL_PROPERTIES = "properties"
+
+
 def _declaration_shape(decl: Any) -> Any:
-    """Compare declarations as the engine does: ``required`` and ``unit`` aside."""
+    """Compare declarations as the engine does (``spec_types.shape``), ``required`` and ``unit`` aside.
+
+    The engine emits a map's ``properties`` as an object keyed by property
+    name; the cartridge spec writes them as a list of ``{name, ...}``. Both
+    normalise to the keyed form, so the same declaration compares equal.
+    """
     if isinstance(decl, Mapping):
-        return {k: _declaration_shape(v) for k, v in decl.items() if k not in ("required", "unit")}
+        shaped = {}
+        for key, value in decl.items():
+            if key in _DECL_IGNORED_KEYS:
+                continue
+            if key == _DECL_PROPERTIES and isinstance(value, tuple | list):
+                value = {
+                    p.get("name"): {k: v for k, v in p.items() if k != "name"} for p in value if isinstance(p, Mapping)
+                }
+            shaped[key] = _declaration_shape(value)
+        return shaped
     if isinstance(decl, tuple | list):
         return [_declaration_shape(v) for v in decl]
     return decl
@@ -750,7 +769,7 @@ def plan_converge_v2_writeback(
     rejects the plan: nothing is written. The facility profile target is
     derived from ``field_defs`` exactly as the request builder derived it.
     """
-    spec = resolve_v2_target(target, field_defs)
+    spec = resolve_v2_target(target, field_defs, subject=request.subject_type, version=request.cartridge.version)
     if not response.usable:
         return V2WritebackPlan(target, spec.odoo_model, (), response.rejection)
     decisions = []

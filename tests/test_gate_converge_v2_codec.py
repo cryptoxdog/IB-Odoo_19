@@ -1,7 +1,7 @@
 """Converge contract v2 codec: request builder, response parser, writeback plan.
 
 Contract authority (read-only): Quantum-L9/Enrichment.Inference.Engine at
-``b1b295a`` — ``docs/contracts/converge/request.v2.md`` and ``response.v2.md``
+``8c02aa9`` (contract text unchanged since ``b1b295a``) — ``docs/contracts/converge/request.v2.md`` and ``response.v2.md``
 (both FROZEN 2026-11-13, including Revision 1) and ``domains/plasticos/spec.yaml``
 (cartridge plasticos 0.5.0, ``subjects`` block). These tests are pure Python:
 no Odoo runtime, no Gate, no network.
@@ -17,6 +17,7 @@ import dataclasses
 import json
 import sys
 from pathlib import Path
+from types import MappingProxyType
 
 import pytest
 
@@ -63,7 +64,7 @@ from plasticos_gate.services.gate_mappers import (  # noqa: E402
 FIXTURES = ROOT / "tests" / "fixtures" / "gate_converge_v2"
 PIN = CartridgePin("plasticos", "0.5.0")
 
-# The plasticos 0.5.0 cartridge (EIE domains/plasticos/spec.yaml @ b1b295a):
+# The plasticos 0.5.0 cartridge (EIE domains/plasticos/spec.yaml @ 8c02aa9):
 # node Facility, its declared property types, and the subject vocabulary.
 CARTRIDGE_NODE = "Facility"
 CARTRIDGE_DECLARATIONS = {
@@ -379,6 +380,12 @@ def test_starting_rows_are_exactly_the_reviewed_set():
         ("min_mfi", "melt_index_min", "float"),
         ("max_mfi", "melt_index_max", "float"),
         ("contamination_tolerance", "contamination_tolerance_pct", "float"),
+    }
+    facility_subject = allow.resolve_v2_target(
+        allow.V2_TARGET_FACILITY_PROFILE, FACILITY_FIELD_DEFS, subject=allow.V2_SUBJECT_FACILITY
+    )
+    assert facility_subject.subject_type == "facility"
+    assert {(r.cartridge_field, r.odoo_field, r.kind) for r in facility_subject.rows} == {
         ("capacity_tons_month", "capacity_lbs_month", "integer"),
     }
 
@@ -444,9 +451,37 @@ def test_facility_profile_unmapped_cartridge_fields_are_listed_with_a_reason():
         "email",
         "phone",
         "material_forms",
+        "capacity_tons_month",
     }
     assert unmapped["facility_id"] == "cartridge identity"
-    assert unmapped["tier"] == "no facility-profile field of that name and no alias"
+    assert unmapped["city"] == "subject 'facility': requested under that subject, not 'material'"
+    assert unmapped["material_grade"] == "no facility-profile field of that name and no alias"
+    _target, under_facility = allow.derive_facility_profile_target(FACILITY_FIELD_DEFS, subject="facility")
+    assert under_facility["tier"] == "no facility-profile field of that name and no alias"
+
+
+def test_an_unreviewed_cartridge_version_fails_closed():
+    with pytest.raises(ValueError, match="no reviewed facility-profile vocabulary"):
+        allow.resolve_v2_target(allow.V2_TARGET_FACILITY_PROFILE, FACILITY_FIELD_DEFS, version="0.6.0")
+
+
+def _facility_subject_reply(reply):
+    """Re-label a material-subject reply fixture as an answer to a facility-subject request."""
+    for entry in reply["field_evidence"].values():
+        entry["identity"]["subject_type"] = "facility"
+    for proposal in reply["proposals"]:
+        proposal["identity"]["subject_type"] = "facility"
+    return reply
+
+
+def _patch_vocabulary(monkeypatch, subject, **declarations):
+    """Simulate adopting a cartridge revision: new names, their declarations and subject."""
+    base = allow.PLASTICOS_CARTRIDGES["0.5.0"]
+    vocabulary = allow.CartridgeVocabulary(
+        allow._freeze({**allow._thaw(base.declarations), **declarations}),
+        MappingProxyType({**base.subjects, **dict.fromkeys(declarations, subject)}),
+    )
+    monkeypatch.setattr(allow, "PLASTICOS_CARTRIDGES", MappingProxyType({"0.5.0": vocabulary}))
 
 
 def test_facility_profile_target_needs_the_model_field_definitions():
@@ -455,19 +490,29 @@ def test_facility_profile_target_needs_the_model_field_definitions():
 
 
 def test_a_same_named_eligible_facility_field_maps_without_an_alias(monkeypatch):
-    decls = {**allow._thaw(allow.PLASTICOS_FACILITY_DECLARATIONS), "freeform_notes": {"type": "string"}}
-    monkeypatch.setattr(allow, "PLASTICOS_FACILITY_DECLARATIONS", allow._freeze(decls))
+    # The 0.6.0 candidate's shape: an Odoo-named, evidence-only field in the facility subject.
+    _patch_vocabulary(monkeypatch, "facility", freeform_notes={"type": "string"})
     assert "freeform_notes" not in allow.FACILITY_PROFILE_V2_ALIASES
-    row = allow.resolve_v2_target(allow.V2_TARGET_FACILITY_PROFILE, FACILITY_FIELD_DEFS).row("freeform_notes")
+    row = allow.resolve_v2_target(allow.V2_TARGET_FACILITY_PROFILE, FACILITY_FIELD_DEFS, subject="facility").row(
+        "freeform_notes"
+    )
     assert (row.odoo_field, row.kind) == ("freeform_notes", "char")
     partner, run, profile = _facility_case()
     profile._values["freeform_notes"] = False
     profile._fields["freeform_notes"] = None
     request = build_converge_request_v2(
-        _Env(), run, target="facility_profile", record=profile, cartridge=PIN, field_defs=FACILITY_FIELD_DEFS
+        _Env(),
+        run,
+        target="facility_profile",
+        record=profile,
+        cartridge=PIN,
+        field_defs=FACILITY_FIELD_DEFS,
+        subject="facility",
     )
-    assert {"field": "freeform_notes", "type": {"type": "string"}} in request.to_dict()["targets"]
-    reply = _reply(allow.V2_TARGET_FACILITY_PROFILE)
+    body = request.to_dict()
+    assert body["subject"] == {"type": "facility", "role": "buyer"}
+    assert [t["field"] for t in body["targets"]] == ["freeform_notes"]
+    reply = _facility_subject_reply(_reply(allow.V2_TARGET_FACILITY_PROFILE))
     entry = copy.deepcopy(reply["field_evidence"]["contamination_tolerance"])
     entry.update(value="Accepts mixed bales", unit_status="not_applicable", declaration={"type": "string"})
     entry.pop("unit")
@@ -475,6 +520,12 @@ def test_a_same_named_eligible_facility_field_maps_without_an_alias(monkeypatch)
     reply["fields"]["freeform_notes"] = "Accepts mixed bales"
     reply["proposals"][0]["fields"].append("freeform_notes")
     reply["proposals"][0]["admitted_fields"].append("freeform_notes")
+    for name in ("processed_polymers", "min_density", "contamination_tolerance"):
+        reply["field_evidence"].pop(name)
+        reply["fields"].pop(name, None)
+        reply["proposals"][0]["fields"].remove(name)
+        if name in reply["proposals"][0]["admitted_fields"]:
+            reply["proposals"][0]["admitted_fields"].remove(name)
     response = parse_converge_response_v2(reply, request=request)
     assert response.usable, response.rejection
     plan = plan_converge_v2_writeback("facility_profile", response, request, FACILITY_FIELD_DEFS)
@@ -487,13 +538,13 @@ def test_a_same_named_eligible_facility_field_maps_without_an_alias(monkeypatch)
 
 
 def test_a_never_target_is_refused_even_when_the_reply_proposes_it(monkeypatch):
-    decls = {
-        **allow._thaw(allow.PLASTICOS_FACILITY_DECLARATIONS),
-        "active": {"type": "bool"},
-        "crm_lead_id": {"type": "string"},
-        "partner_id": {"type": "string"},
-    }
-    monkeypatch.setattr(allow, "PLASTICOS_FACILITY_DECLARATIONS", allow._freeze(decls))
+    _patch_vocabulary(
+        monkeypatch,
+        "material",
+        active={"type": "bool"},
+        crm_lead_id={"type": "string"},
+        partner_id={"type": "string"},
+    )
     target, unmapped = allow.derive_facility_profile_target(FACILITY_FIELD_DEFS)
     for never in ("active", "crm_lead_id", "partner_id"):
         assert target.row(never) is None
@@ -522,11 +573,25 @@ def test_capacity_is_written_only_as_whole_pounds(value, unit, expected):
     partner, run, profile = _facility_case()
     profile._values["capacity_lbs_month"] = 0
     request = build_converge_request_v2(
-        _Env(), run, target="facility_profile", record=profile, cartridge=PIN, field_defs=FACILITY_FIELD_DEFS
+        _Env(),
+        run,
+        target="facility_profile",
+        record=profile,
+        cartridge=PIN,
+        field_defs=FACILITY_FIELD_DEFS,
+        subject="facility",
     )
-    reply = _reply(allow.V2_TARGET_FACILITY_PROFILE)
-    entry = copy.deepcopy(reply["field_evidence"]["contamination_tolerance"])
-    entry.update(value=value, unit=unit)
+    assert [t["field"] for t in request.targets] == ["capacity_tons_month"]
+    reply = _facility_subject_reply(_reply(allow.V2_TARGET_FACILITY_PROFILE))
+    for name in ("processed_polymers", "min_density", "contamination_tolerance"):
+        reply["field_evidence"].pop(name)
+        reply["fields"].pop(name, None)
+        reply["proposals"][0]["fields"].remove(name)
+        if name in reply["proposals"][0]["admitted_fields"]:
+            reply["proposals"][0]["admitted_fields"].remove(name)
+    template = _reply(allow.V2_TARGET_FACILITY_PROFILE)["field_evidence"]["contamination_tolerance"]
+    entry = copy.deepcopy(template)
+    entry.update(value=value, unit=unit, identity={**entry["identity"], "subject_type": "facility"})
     reply["field_evidence"]["capacity_tons_month"] = entry
     reply["fields"]["capacity_tons_month"] = value
     reply["proposals"][0]["fields"].append("capacity_tons_month")
@@ -658,13 +723,6 @@ def test_facility_profile_request_observes_filled_tolerances_with_their_odoo_uni
             "source_kind": "odoo_record",
             "source_ref": "plasticos.facility.profile:401#melt_index_max",
             "unit": "g/10min",
-        },
-        {
-            "field": "capacity_tons_month",
-            "value": 50000,
-            "source_kind": "odoo_record",
-            "source_ref": "plasticos.facility.profile:401#capacity_lbs_month",
-            "unit": "lb/month",
         },
     ]
 
@@ -1169,3 +1227,27 @@ def test_v1_allowlist_and_mapper_are_unchanged():
     mapped = map_converge_response(copy.deepcopy(reply))
     assert mapped.status == "ok"
     assert partner_writeback_from_converge(mapped) == {"city": "Charlotte"}
+
+
+def test_a_number_with_unit_status_unknown_is_skipped_as_on_cartridge_0_5_0():
+    """Cartridge 0.5.0 declares no unit, so every number arrives with unit_status 'unknown' (decision 4)."""
+    reply = _reply(allow.V2_TARGET_MATERIAL_PROFILE)
+    for name in ("min_density", "max_density", "min_mfi", "max_mfi"):
+        entry = reply["field_evidence"][name]
+        entry["unit_status"] = "unknown"
+        entry.pop("unit", None)
+    decisions = _by_field(_plan(allow.V2_TARGET_MATERIAL_PROFILE, reply))
+    assert {d.skip_reason for d in decisions.values()} == {V2_SKIP_UNIT}
+    assert all(d.action == V2_PLAN_SKIP for d in decisions.values())
+
+
+def test_engine_and_spec_declaration_forms_compare_equal():
+    from plasticos_gate.services.gate_mappers import _declaration_shape
+
+    spec_form = CARTRIDGE_DECLARATIONS["processed_polymers"]
+    engine_form = {
+        "type": "list",
+        "required": False,
+        "items": {"type": "map", "required": False, "properties": {"code": {"type": "string", "required": True}}},
+    }
+    assert _declaration_shape(spec_form) == _declaration_shape(engine_form)

@@ -2,40 +2,141 @@
   "contract_version": "eie.converge.response/v2",
   "state": "completed",
   "failure_reason": null,
-  "fields": {"processed_polymers": [{"code": "HDPE"}, {"code": "PP"}], "contamination_tolerance": 0.05},
+  "fields": {
+    "processed_polymers": [
+      {
+        "code": "HDPE"
+      },
+      {
+        "code": "PP"
+      }
+    ],
+    "contamination_tolerance": 0.05
+  },
   "confidence": 0.87,
-  "resolution": {"cartridge_id": "plasticos", "cartridge_version": "0.5.0", "cartridge_sha256": "a1b2c3", "node": "Facility"},
+  "resolution": {
+    "cartridge_id": "plasticos",
+    "cartridge_version": "0.5.0",
+    "cartridge_sha256": "a1b2c3",
+    "node": "Facility"
+  },
   "field_evidence": {
     "processed_polymers": {
-      "state": "external_claim", "admitted": true, "value": [{"code": "HDPE"}, {"code": "PP"}], "unit_status": "not_applicable",
+      "state": "external_claim",
+      "admitted": true,
+      "value": [
+        {
+          "code": "HDPE"
+        },
+        {
+          "code": "PP"
+        }
+      ],
+      "unit_status": "not_applicable",
       "confidence": 0.9,
-      "sources": [{"source_type": "graph", "source_ref": "graph:facility:57", "method": "graph_seed", "independent": null}],
+      "sources": [
+        {
+          "source_type": "graph",
+          "source_ref": "graph:facility:57",
+          "method": "graph_seed",
+          "independent": null
+        }
+      ],
       "derivation": null,
-      "identity": {"subject_ref": "res.partner:57", "subject_type": "material", "role": "buyer"},
-      "declaration": {"type": "list", "items": {"type": "map", "properties": [{"name": "code", "type": "string", "required": true}]}},
-      "conflict": null, "unknown_reason": null
+      "identity": {
+        "subject_ref": "res.partner:57",
+        "subject_type": "material",
+        "role": "buyer"
+      },
+      "declaration": {
+        "type": "list",
+        "required": false,
+        "items": {
+          "type": "map",
+          "required": false,
+          "properties": {
+            "code": {
+              "type": "string",
+              "required": true
+            }
+          }
+        }
+      },
+      "conflict": null,
+      "unknown_reason": null
     },
     "min_density": {
-      "state": "unknown", "admitted": false, "confidence": null, "sources": [], "derivation": null,
-      "identity": {"subject_ref": "res.partner:57", "subject_type": "material", "role": "buyer"},
-      "declaration": {"type": "float"}, "conflict": null, "unknown_reason": "source_unavailable"
+      "state": "unknown",
+      "admitted": false,
+      "confidence": null,
+      "sources": [],
+      "derivation": null,
+      "identity": {
+        "subject_ref": "res.partner:57",
+        "subject_type": "material",
+        "role": "buyer"
+      },
+      "declaration": {
+        "type": "float",
+        "required": false
+      },
+      "conflict": null,
+      "unknown_reason": "source_unavailable"
     },
     "contamination_tolerance": {
-      "state": "external_claim", "admitted": true, "value": 0.05, "unit_status": "stated", "unit": "fraction",
+      "state": "external_claim",
+      "admitted": true,
+      "value": 0.05,
+      "unit_status": "stated",
+      "unit": "fraction",
       "confidence": 0.84,
-      "sources": [{"source_type": "provider", "source_ref": "reply:f1", "method": "provider_reply", "independent": null}],
+      "sources": [
+        {
+          "source_type": "provider",
+          "source_ref": "reply:f1",
+          "method": "provider_reply",
+          "independent": null
+        }
+      ],
       "derivation": null,
-      "identity": {"subject_ref": "res.partner:57", "subject_type": "material", "role": "buyer"},
-      "declaration": {"type": "float"}, "conflict": null, "unknown_reason": null
+      "identity": {
+        "subject_ref": "res.partner:57",
+        "subject_type": "material",
+        "role": "buyer"
+      },
+      "declaration": {
+        "type": "float",
+        "required": false
+      },
+      "conflict": null,
+      "unknown_reason": null
     }
   },
   "proposals": [
     {
-      "proposal_id": "p1", "proposal_type": "facility_profile",
-      "identity": {"subject_ref": "res.partner:57", "subject_type": "material", "role": "buyer"},
-      "fields": ["processed_polymers", "min_density", "contamination_tolerance"],
-      "admitted_fields": ["processed_polymers", "contamination_tolerance"],
-      "review": {"required": true, "reasons": ["contains_external_claim", "contains_unknown"]}
+      "proposal_id": "p1",
+      "proposal_type": "facility_profile",
+      "identity": {
+        "subject_ref": "res.partner:57",
+        "subject_type": "material",
+        "role": "buyer"
+      },
+      "fields": [
+        "processed_polymers",
+        "min_density",
+        "contamination_tolerance"
+      ],
+      "admitted_fields": [
+        "processed_polymers",
+        "contamination_tolerance"
+      ],
+      "review": {
+        "required": true,
+        "reasons": [
+          "contains_external_claim",
+          "contains_unknown"
+        ]
+      }
     }
   ]
 }
