@@ -10,7 +10,7 @@ provenance row per considered field. Gate is a test double; no network.
 from __future__ import annotations
 
 from contextlib import contextmanager
-from types import SimpleNamespace
+from types import MappingProxyType, SimpleNamespace
 from unittest.mock import patch
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
@@ -397,6 +397,8 @@ class TestConvergeV2ProfileTargets(PlasticosTestCase):
         run = self.env["plasticos.enrichment.run"].browse(run_id)
         self.assertEqual(run.state, "degraded")
         self.assertIn("v1_reply", " ".join(run.validation_issues or []))
+        self.assertEqual(run.gate_packet_id, "pkt-v2-1", "the rejected reply's packet id is kept on the run")
+        self.assertEqual(run.gate_correlation_id, "corr-v2-1")
         self.assertFalse(profile.density_min)
         self.assertFalse(self.env[PROVENANCE].search([("run_id", "=", run_id)]))
 
@@ -445,8 +447,13 @@ class TestConvergeV2ProfileTargets(PlasticosTestCase):
     # ── facility profile open by model definition (ADR-012 amendment (b)) ──
 
     def _with_declarations(self, **extra):
-        decls = {**gate_allowlists._thaw(gate_allowlists.PLASTICOS_FACILITY_DECLARATIONS), **extra}
-        return patch.object(gate_allowlists, "PLASTICOS_FACILITY_DECLARATIONS", gate_allowlists._freeze(decls))
+        """Simulate a reviewed cartridge vocabulary that also declares ``extra`` (material subject)."""
+        base = gate_allowlists.PLASTICOS_CARTRIDGES["0.5.0"]
+        vocabulary = gate_allowlists.CartridgeVocabulary(
+            gate_allowlists._freeze({**gate_allowlists._thaw(base.declarations), **extra}),
+            MappingProxyType({**base.subjects, **dict.fromkeys(extra, gate_allowlists.V2_SUBJECT_MATERIAL)}),
+        )
+        return patch.object(gate_allowlists, "PLASTICOS_CARTRIDGES", MappingProxyType({"0.5.0": vocabulary}))
 
     def test_a_same_named_eligible_facility_field_is_requested_and_written_without_an_alias(self):
         self.assertNotIn("freeform_notes", gate_allowlists.FACILITY_PROFILE_V2_ALIASES)
@@ -501,6 +508,24 @@ class TestConvergeV2ProfileTargets(PlasticosTestCase):
         self.assertTrue(profile.active)
         self.assertAlmostEqual(profile.contamination_tolerance_pct, 3.0)
         self.assertNotIn("active", self._provenance(run))
+
+    def test_an_approval_that_writes_nothing_is_not_marked_injected(self):
+        profile = self._supplier_material_profile("V2 Supplier Nothing Left")
+        run = self._start(profile)
+        gate = _Gate(
+            lambda body: _v2_reply(
+                body,
+                {"min_density": {"state": "external_claim", "admitted": True, "value": 0.94, "unit": "g/cm3"}},
+            )
+        )
+        self._execute(run, gate)
+        self.assertEqual(run.state, "review")
+        profile.write({"density_min": 0.92})
+        with self.assertRaises(UserError):
+            run.action_inject()
+        self.assertEqual(run.state, "review")
+        self.assertAlmostEqual(profile.density_min, 0.92)
+        self.assertFalse(run.injected_at)
 
     # ── run target integrity ─────────────────────────────────────────────
 

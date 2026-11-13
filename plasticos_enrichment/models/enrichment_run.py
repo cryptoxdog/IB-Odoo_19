@@ -19,6 +19,27 @@ FACILITY_WITHOUT_PARTNER_REASON = "A facility profile with no partner (lead-owne
 V2_REVIEW_ISSUE = "Gate converge v2 proposal awaiting human review."
 
 
+# Run fields that hold a Gate reply's audit ids (the TransportPacket header).
+_AUDIT_FIELDS = ("gate_packet_id", "gate_correlation_id")
+
+
+class GateUnusableReason(str):
+    """Why a Gate reply is not usable, carrying the reply's audit ids.
+
+    The run fails closed on a rollback, so the ids ride on the reason and are
+    written with the durable failure state rather than lost with the rollback.
+    """
+
+    def __new__(cls, reason, audit=None):
+        obj = super().__new__(cls, reason)
+        audit = audit or {}
+        obj.audit_vals = {}
+        for key in _AUDIT_FIELDS:
+            if audit.get(key):
+                obj.audit_vals[key] = audit[key]
+        return obj
+
+
 def _v2_skip_status(skip_reason):
     """Plan skip reason -> provenance status (ADR-012 amendment 2026-11-13)."""
     from odoo.addons.plasticos_gate.services import gate_mappers as gm
@@ -453,10 +474,10 @@ class EnrichmentRun(models.Model):
             _logger.warning(
                 "Gate converge v2 evidence rejected (packet %s): %s", audit.get("gate_packet_id"), plan.rejection
             )
-            return f"Gate converge v2 evidence rejected: {plan.rejection}"
+            return GateUnusableReason(f"Gate converge v2 evidence rejected: {plan.rejection}", audit)
         if not plan.writes:
             skipped = ", ".join(f"{d.cartridge_field}={d.skip_reason}" for d in plan.decisions)
-            return f"Gate converge v2 proposed no writable field ({skipped or 'none'})."
+            return GateUnusableReason(f"Gate converge v2 proposed no writable field ({skipped or 'none'}).", audit)
         self.write(
             {
                 "engine_used": "gate",
@@ -562,7 +583,12 @@ class EnrichmentRun(models.Model):
         plan = plan_converge_v2_writeback(target, parsed, request, field_defs)
         if plan.rejection:
             raise UserError(_("Gate converge v2 evidence rejected: %s") % plan.rejection)
-        written = self._apply_converge_v2_plan(plan, record, field_defs)
+        written = self._apply_converge_v2_plan(plan, record, field_defs, request)
+        if not written:
+            skipped = ", ".join(f"{d.odoo_field}={d.skip_reason or 'filled or unresolved'}" for d in plan.decisions)
+            raise UserError(
+                _("Gate converge v2 proposal has nothing left to write after approval checks (%s).") % skipped
+            )
         self.write(
             {
                 "state": "injected",
@@ -671,7 +697,7 @@ class EnrichmentRun(models.Model):
         note = f"; unresolved codes skipped: {missing}" if missing else ""
         return [Command.set(ids)], note
 
-    def _apply_converge_v2_plan(self, plan, record, field_defs=None):
+    def _apply_converge_v2_plan(self, plan, record, field_defs=None, request=None):
         """Write a validated v2 plan merge-not-overwrite, one provenance row per considered field."""
         self.ensure_one()
         from odoo.addons.plasticos_gate.services.gate_allowlists import (
@@ -681,7 +707,12 @@ class EnrichmentRun(models.Model):
             resolve_v2_target,
         )
 
-        spec = resolve_v2_target(plan.target, field_defs)
+        spec = resolve_v2_target(
+            plan.target,
+            field_defs,
+            subject=request.subject_type if request else None,
+            version=request.cartridge.version if request else "0.5.0",
+        )
         packet_id = self.gate_packet_id or ""
         vals = {}
         provenance = []
@@ -822,8 +853,9 @@ class EnrichmentRun(models.Model):
                     "engine_used": "gate",
                     "state": "degraded",
                     "failure_class": "unknown",
-                    "validation_issues": [unusable_reason],
+                    "validation_issues": [str(unusable_reason)],
                     "availability_status": availability.status,
+                    **getattr(unusable_reason, "audit_vals", {}),
                 },
             )
             raise UserError(_("Gate enrichment degraded: %s") % unusable_reason)
