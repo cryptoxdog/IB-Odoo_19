@@ -297,7 +297,7 @@ def build_converge_request_v2(
     for row in spec.rows:
         current = odoo_value_for_row(record, row)
         if current is None:
-            targets.append({"field": row.cartridge_field, "type": row.declaration_dict()})
+            targets.append({"field": row.cartridge_field, "type": row.request_type()})
             continue
         observation = {
             "field": row.cartridge_field,

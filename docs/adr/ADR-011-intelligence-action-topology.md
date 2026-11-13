@@ -69,3 +69,5 @@ The `converge` action and its route are unchanged: Odoo → Gate → EIE through
 | Action | Destination worker | Odoo builder / sender | Odoo result store |
 |--------|--------------------|----------------------|-------------------|
 | `converge` (v2) | Enrichment.Inference.Engine (EIE) | `build_converge_request_v2` / `send_converge_action` | `plasticos.enrichment.run` (+ partner, material-profile or facility-profile writeback per ADR-012) |
+
+> **2026-11-13 correction (additive).** The amendment above says a run may target a material profile. That is superseded by ADR-012 amendment 2026-11-13 (d): a converge v2 run targets the partner or one of its facility profiles only.

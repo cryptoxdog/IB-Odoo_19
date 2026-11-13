@@ -292,3 +292,9 @@ To modify an invariant:
 > row accepts. A reply whose evidence cannot be fully validated writes nothing and records why.
 > **Rejects:** a v1-shaped or malformed reply to a v2 request mutating a profile, and an unmapped
 > cartridge field reaching any Odoo record.
+
+> **2026-11-13 correction to the POS-INV-18 amendment above (additive; this file is append-only).**
+> A converge result may propose values for the partner and its facility profiles only. It never proposes values for
+> a material profile: the cartridge's `material` subject describes a facility's capability (operator decision 2026-11-13,
+> ADR-012 amendment 2026-11-13 (d)). A number is written only in its governing unit: the value's stated unit, or else
+> the cartridge's declared unit. It must be a unit the field accepts.

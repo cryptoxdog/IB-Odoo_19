@@ -120,7 +120,8 @@ _DECL_POLYMER_CODES = {
 # see gate_config.GateAvailabilityVerdict.as_dict).
 _UNITS_DENSITY = (("g/cm3", 1.0), ("g/cm³", 1.0), ("g/cc", 1.0))
 _UNITS_MFI = (("g/10min", 1.0), ("g/10 min", 1.0))
-_UNITS_PERCENT = (("percent", 1.0), ("%", 1.0), ("fraction", 100.0))
+_UNITS_PERCENT = (("percent", 1.0), ("%", 1.0))
+_UNITS_LB = (("lb", 1.0), ("lbs", 1.0))
 
 
 @dataclass(frozen=True, slots=True)
@@ -143,6 +144,9 @@ class ConvergeV2FieldRow:
     code_field: str = "code"
     code_scope_field: str | None = None
     code_item_key: str | None = None
+    # An Integer Odoo field whose reviewed conversion may land between whole
+    # numbers rounds to the nearest whole unit (capacity: t/month -> lb/month).
+    round_to_integer: bool = False
 
     def __post_init__(self) -> None:
         if self.kind not in V2_KINDS:
@@ -153,8 +157,12 @@ class ConvergeV2FieldRow:
             raise ValueError(f"code row {self.cartridge_field!r} must name the master model")
 
     def declaration_dict(self) -> dict:
-        """A fresh, mutable copy of the declaration for a request body."""
+        """A fresh, mutable copy of the declaration as reviewed (``unit`` included)."""
         return copy.deepcopy(_thaw(self.declaration))
+
+    def request_type(self) -> dict:
+        """The typed shape a request names as ``targets[].type``: ``unit`` is never part of it."""
+        return _strip_unit(_thaw(self.declaration))
 
 
 def _freeze(value):
@@ -163,6 +171,17 @@ def _freeze(value):
     if isinstance(value, (list, tuple)):
         return tuple(_freeze(v) for v in value)
     return value
+
+
+def _strip_unit(value):
+    if isinstance(value, dict):
+        return {k: _strip_unit(v) for k, v in value.items() if k != _UNIT_KEY}
+    if isinstance(value, list):
+        return [_strip_unit(v) for v in value]
+    return value
+
+
+_UNIT_KEY = "unit"
 
 
 def _thaw(value):
@@ -207,7 +226,6 @@ class ConvergeV2Target:
 
 
 V2_TARGET_PARTNER = "partner"
-V2_TARGET_MATERIAL_PROFILE = "material_profile"
 V2_TARGET_FACILITY_PROFILE = "facility_profile"
 
 V2_SUBJECT_FACILITY = "facility"
@@ -240,18 +258,6 @@ CONVERGE_V2_TARGETS = MappingProxyType(
                     code_model="res.country.state",
                     code_scope_field="country_id",
                 ),
-            ),
-        ),
-        V2_TARGET_MATERIAL_PROFILE: ConvergeV2Target(
-            V2_TARGET_MATERIAL_PROFILE,
-            V2_SUBJECT_MATERIAL,
-            V2_CARTRIDGE_NODE,
-            "plasticos.material.profile",
-            (
-                _row("min_density", "density_min", V2_KIND_FLOAT, _DECL_FLOAT, units=_UNITS_DENSITY),
-                _row("max_density", "density_max", V2_KIND_FLOAT, _DECL_FLOAT, units=_UNITS_DENSITY),
-                _row("min_mfi", "mfi_min", V2_KIND_FLOAT, _DECL_FLOAT, units=_UNITS_MFI),
-                _row("max_mfi", "mfi_max", V2_KIND_FLOAT, _DECL_FLOAT, units=_UNITS_MFI),
             ),
         ),
     }
@@ -405,15 +411,153 @@ class CartridgeVocabulary:
 
     declarations: MappingProxyType
     subjects: MappingProxyType
+    # "reviewed" for an admitted revision; a candidate names the commit it was verified at.
+    status: str = "reviewed"
 
 
-# Reviewed vocabulary per pinned cartridge version. Adopting a revision (for
-# example the 0.6.0 candidate, which declares facility-profile fields under
-# Odoo's own names in the ``facility`` subject) is: add its version here with
-# its declarations and subjects, then bump the pin. Same-named fields need no
-# mapping row.
+# Reviewed vocabulary per pinned cartridge version. Adopting a listed
+# revision needs only the configuration pin; a new revision is added here with
+# its declarations and subjects. Same-named fields need no mapping row.
+# Candidate 0.6.0, verified against EIE PR #348 at bd345a0
+# (domains/plasticos/candidates/0.6.0/spec.yaml): the 0.5.0 fields with their
+# declared units, plus 27 facility-profile fields under Odoo's own names in
+# the ``facility`` subject. Not active until the configuration pins 0.6.0.
+_PLASTICOS_0_6_0_DECLARATIONS = {
+    "facility_id": {"type": "string"},
+    "name": {"type": "string"},
+    "min_density": {"type": "float", "unit": "g/cm3"},
+    "max_density": {"type": "float", "unit": "g/cm3"},
+    "min_mfi": {"type": "float", "unit": "g/10min"},
+    "max_mfi": {"type": "float", "unit": "g/10min"},
+    "contamination_tolerance": {"type": "float", "unit": "percent"},
+    "capacity_tons_month": {"type": "float", "unit": "t/month"},
+    "tier": {"type": "string"},
+    "processed_polymers": {
+        "type": "list",
+        "items": {"type": "map", "properties": [{"name": "code", "type": "string", "required": True}]},
+    },
+    "city": {"type": "string"},
+    "state": {"type": "string"},
+    "zip_code": {"type": "string"},
+    "material_grade": {"type": "string"},
+    "certifications": {"type": "list", "items": {"type": "string"}},
+    "street": {"type": "string"},
+    "street2": {"type": "string"},
+    "website": {"type": "string"},
+    "email": {"type": "string"},
+    "phone": {"type": "string"},
+    "material_forms": {"type": "list", "items": {"type": "string"}},
+    "equipment_type_ids": {
+        "type": "list",
+        "items": {
+            "type": "enum",
+            "values": [
+                "horizontal_baler",
+                "downstroke_baler",
+                "shredder",
+                "granulator",
+                "wash_line",
+                "pelletizer",
+                "extruder",
+                "compounder",
+                "sorting_line",
+                "bales",
+                "regrind",
+                "pellet",
+                "flake",
+                "rollstock",
+                "metal_removal",
+                "moisture_reduction",
+                "fr_filtration",
+                "fines_screening",
+            ],
+        },
+    },
+    "form_preference_id": {"type": "string"},
+    "process_type": {"type": "string"},
+    "feedstock_type": {"type": "enum", "values": ["post_industrial", "post_consumer", "mixed", "virgin", "unknown"]},
+    "application_class": {"type": "string"},
+    "handles_bales": {"type": "bool"},
+    "handles_regrind": {"type": "bool"},
+    "handles_pellet": {"type": "bool"},
+    "handles_flake": {"type": "bool"},
+    "handles_rollstock": {"type": "bool"},
+    "can_remove_metal": {"type": "bool"},
+    "can_reduce_moisture": {"type": "bool"},
+    "can_filter_fr": {"type": "bool"},
+    "can_screen_fines": {"type": "bool"},
+    "iso_certified": {"type": "bool"},
+    "medical_grade_capable": {"type": "bool"},
+    "accepts_spot": {"type": "bool"},
+    "prefers_contract": {"type": "bool"},
+    "accepts_filled_materials": {"type": "bool"},
+    "avg_truckload_lbs": {"type": "float", "unit": "lb"},
+    "min_lot_size_lbs": {"type": "float", "unit": "lb"},
+    "max_lot_size_lbs": {"type": "float", "unit": "lb"},
+    "moisture_tolerance_pct": {"type": "float", "unit": "percent"},
+    "pcr_pct_min": {"type": "float", "unit": "percent"},
+    "pcr_pct_max": {"type": "float", "unit": "percent"},
+    "freeform_notes": {"type": "string"},
+    "application_notes": {"type": "string"},
+}
+_PLASTICOS_0_6_0_SUBJECTS = {
+    "name": "facility",
+    "city": "facility",
+    "state": "facility",
+    "zip_code": "facility",
+    "street": "facility",
+    "street2": "facility",
+    "website": "facility",
+    "email": "facility",
+    "phone": "facility",
+    "capacity_tons_month": "facility",
+    "tier": "facility",
+    "equipment_type_ids": "facility",
+    "form_preference_id": "facility",
+    "process_type": "facility",
+    "feedstock_type": "facility",
+    "application_class": "facility",
+    "handles_bales": "facility",
+    "handles_regrind": "facility",
+    "handles_pellet": "facility",
+    "handles_flake": "facility",
+    "handles_rollstock": "facility",
+    "can_remove_metal": "facility",
+    "can_reduce_moisture": "facility",
+    "can_filter_fr": "facility",
+    "can_screen_fines": "facility",
+    "iso_certified": "facility",
+    "medical_grade_capable": "facility",
+    "accepts_spot": "facility",
+    "prefers_contract": "facility",
+    "accepts_filled_materials": "facility",
+    "avg_truckload_lbs": "facility",
+    "min_lot_size_lbs": "facility",
+    "max_lot_size_lbs": "facility",
+    "moisture_tolerance_pct": "facility",
+    "pcr_pct_min": "facility",
+    "pcr_pct_max": "facility",
+    "freeform_notes": "facility",
+    "application_notes": "facility",
+    "processed_polymers": "material",
+    "min_density": "material",
+    "max_density": "material",
+    "min_mfi": "material",
+    "max_mfi": "material",
+    "contamination_tolerance": "material",
+    "material_grade": "material",
+    "material_forms": "material",
+    "certifications": "material",
+}
+
+
 PLASTICOS_CARTRIDGES = MappingProxyType(
-    {"0.5.0": CartridgeVocabulary(PLASTICOS_FACILITY_DECLARATIONS, PLASTICOS_FIELD_SUBJECTS)}
+    {
+        "0.5.0": CartridgeVocabulary(PLASTICOS_FACILITY_DECLARATIONS, PLASTICOS_FIELD_SUBJECTS),
+        "0.6.0": CartridgeVocabulary(
+            _freeze(_PLASTICOS_0_6_0_DECLARATIONS), MappingProxyType(_PLASTICOS_0_6_0_SUBJECTS), "candidate@bd345a0"
+        ),
+    }
 )
 
 
@@ -428,22 +572,16 @@ def cartridge_vocabulary(version: str) -> CartridgeVocabulary:
     return vocabulary
 
 
-# Capacity: lb/month in Odoo (an Integer). A converted value that is not a
-# whole number of pounds is skipped, never rounded (decision 4).
-_LB_PER_METRIC_TON = 1000.0 / 0.45359237
-_UNITS_CAPACITY = (
-    ("lb/month", 1.0),
-    ("lbs/month", 1.0),
-    ("short_ton/month", 2000.0),
-    ("t/month", _LB_PER_METRIC_TON),
-    ("tonne/month", _LB_PER_METRIC_TON),
-)
+# Capacity: metric tonnes per month in the cartridge (operator decision
+# 2026-11-13), lb/month in Odoo (an Integer): x 2204.62262185, rounded to the
+# nearest whole lb; provenance keeps the original value and unit.
+LB_PER_METRIC_TON = 2204.62262185
+_UNITS_CAPACITY = (("t/month", LB_PER_METRIC_TON), ("lb/month", 1.0))
 
 
 @dataclass(frozen=True, slots=True)
 class FacilityAlias:
     odoo_field: str
-    units: tuple[tuple[str, float], ...] = ()
 
 
 # Only the names that differ between the cartridge and the facility profile.
@@ -451,15 +589,39 @@ FACILITY_PROFILE_V2_ALIASES = MappingProxyType(
     dict(
         (
             ("processed_polymers", FacilityAlias("accepted_polymer_ids")),
-            ("min_density", FacilityAlias("density_min", _UNITS_DENSITY)),
-            ("max_density", FacilityAlias("density_max", _UNITS_DENSITY)),
-            ("min_mfi", FacilityAlias("melt_index_min", _UNITS_MFI)),
-            ("max_mfi", FacilityAlias("melt_index_max", _UNITS_MFI)),
-            ("contamination_tolerance", FacilityAlias("contamination_tolerance_pct", _UNITS_PERCENT)),
-            ("capacity_tons_month", FacilityAlias("capacity_lbs_month", _UNITS_CAPACITY)),
+            ("min_density", FacilityAlias("density_min")),
+            ("max_density", FacilityAlias("density_max")),
+            ("min_mfi", FacilityAlias("melt_index_min")),
+            ("max_mfi", FacilityAlias("melt_index_max")),
+            ("contamination_tolerance", FacilityAlias("contamination_tolerance_pct")),
+            ("capacity_tons_month", FacilityAlias("capacity_lbs_month")),
         )
     )
 )
+
+# The unit each numeric facility-profile field is stored in, as the units a
+# governing unit may be (decision 4 as amended 2026-11-13). A numeric field
+# with no entry is never written.
+FACILITY_PROFILE_FIELD_UNITS = MappingProxyType(
+    dict(
+        (
+            ("density_min", _UNITS_DENSITY),
+            ("density_max", _UNITS_DENSITY),
+            ("melt_index_min", _UNITS_MFI),
+            ("melt_index_max", _UNITS_MFI),
+            ("contamination_tolerance_pct", _UNITS_PERCENT),
+            ("capacity_lbs_month", _UNITS_CAPACITY),
+            ("avg_truckload_lbs", _UNITS_LB),
+            ("min_lot_size_lbs", _UNITS_LB),
+            ("max_lot_size_lbs", _UNITS_LB),
+            ("moisture_tolerance_pct", _UNITS_PERCENT),
+            ("pcr_pct_min", _UNITS_PERCENT),
+            ("pcr_pct_max", _UNITS_PERCENT),
+        )
+    )
+)
+# Integer fields whose reviewed conversion may be rounded to the nearest whole unit.
+FACILITY_PROFILE_ROUNDED_FIELDS = frozenset({"capacity_lbs_month"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -527,6 +689,7 @@ def eligible_odoo_fields(field_defs) -> MappingProxyType:
 DECL_STRING = "string"
 DECL_LIST = "list"
 DECL_MAP = "map"
+DECL_ENUM = "enum"
 DECL_NUMBER_TYPES = frozenset({"float", "int", "integer", "number"})
 DECL_BOOL_TYPES = frozenset({"bool", "boolean"})
 _CODE_PROPERTY = "code"
@@ -537,6 +700,8 @@ def _declaration_kind_problem(declaration, kind: str) -> str | None:
     decl_type = declaration.get("type")
     if decl_type == DECL_STRING:
         ok = kind in (V2_KIND_CHAR, V2_KIND_SELECTION, V2_KIND_MANY2ONE_CODE)
+    elif decl_type == DECL_ENUM:
+        ok = kind == V2_KIND_SELECTION
     elif decl_type in DECL_NUMBER_TYPES:
         ok = kind in V2_NUMERIC_KINDS
     elif decl_type in DECL_BOOL_TYPES:
@@ -551,7 +716,7 @@ def _declaration_kind_problem(declaration, kind: str) -> str | None:
 def _list_code_key(declaration):
     """For a list declaration: None for a list of strings, 'code' for a list of {code}, else False."""
     items = declaration.get("items") or {}
-    if items.get("type") == DECL_STRING:
+    if items.get("type") in (DECL_STRING, DECL_ENUM):
         return None
     if items.get("type") == DECL_MAP:
         properties = items.get("properties") or ()
@@ -597,7 +762,7 @@ def derive_facility_profile_target(
         if problem:
             unmapped[cartridge_field] = f"{odoo_name}: {problem}"
             continue
-        units = alias.units if alias else ()
+        units = FACILITY_PROFILE_FIELD_UNITS.get(odoo_name, ())
         if kind in V2_NUMERIC_KINDS and not units:
             unmapped[cartridge_field] = f"{odoo_name}: no reviewed unit for this Odoo number"
             continue
@@ -606,6 +771,8 @@ def derive_facility_profile_target(
             code_kwargs = {"code_model": field_def.relation}
             if kind == V2_KIND_MANY2MANY_CODE and _list_code_key(declaration):
                 code_kwargs["code_item_key"] = _CODE_PROPERTY
+        if odoo_name in FACILITY_PROFILE_ROUNDED_FIELDS:
+            code_kwargs["round_to_integer"] = True
         rows.append(_row(cartridge_field, odoo_name, kind, declaration, units=units, **code_kwargs))
     target = ConvergeV2Target(
         V2_TARGET_FACILITY_PROFILE,
