@@ -236,22 +236,35 @@ class PlasticosOpportunityApproval(models.Model):
                 snapshot["lon"] = lon
         return snapshot
 
-    def _plasticos_require_match_material(self):
-        """Refuse matching and offer creation while the frozen material lacks a required fact."""
+    @api.model
+    def _plasticos_refuse_incomplete_material(self, opportunity, values):
+        """Raise when ``values`` (Gate query vocabulary) lack a fact matching and offers need."""
         from odoo.addons.plasticos_intake.match_material import missing_match_material  # noqa: PLC0415
 
+        missing = missing_match_material(values)
+        if missing:
+            raise UserError(
+                _(
+                    "Opportunity '%(opportunity)s' cannot be matched or offered: %(missing)s not set "
+                    "on its material. Fill it on the opportunity material, then run Match via Gate again.",
+                    opportunity=opportunity.name,
+                    missing=" and ".join(missing),
+                )
+            )
+
+    @api.model
+    def _plasticos_require_source_material(self, opportunity, material_profile):
+        """Refuse before a lot is minted: read the material ``mint`` would freeze (the sheet, else the profile)."""
+        source = opportunity.opportunity_material_ids[:1] or material_profile
+        self._plasticos_refuse_incomplete_material(
+            opportunity, {"polymer_type": source.polymer_id, "form": source.form_id}
+        )
+
+    def _plasticos_require_match_material(self):
+        """Refuse matching and offer creation while the frozen material lacks a required fact."""
         for rec in self:
             snapshot = rec.snapshot if isinstance(rec.snapshot, dict) else {}
-            missing = missing_match_material(snapshot)
-            if missing:
-                raise UserError(
-                    _(
-                        "Opportunity '%(opportunity)s' cannot be matched or offered: %(missing)s not set "
-                        "on its material. Fill it on the opportunity material, then run Match via Gate again.",
-                        opportunity=rec.opportunity_id.name,
-                        missing=" and ".join(missing),
-                    )
-                )
+            self._plasticos_refuse_incomplete_material(rec.opportunity_id, snapshot)
 
     @api.model
     def mint(self, opportunity, *, source, partner, material_profile, facility_profile=None, source_intake=None):

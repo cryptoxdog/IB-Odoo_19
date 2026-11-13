@@ -496,6 +496,46 @@ class TestOpportunityApproval(PlasticosTestCase):
         self.assertFalse(opportunity.approval_ids)
         self.assertFalse(self.Run.search([("opportunity_id", "=", opportunity.id)]))
 
+    def test_refused_match_mints_no_lot_even_when_the_caller_keeps_the_transaction(self):
+        """The refusal precedes minting: a caller that catches the error holds no incomplete lot."""
+        opportunity = self._opportunity()
+        opportunity.opportunity_material_ids.write({"polymer_id": False, "form_id": False})
+        lots_before = self.Approval.search_count([])
+        mint = AssertionError("no lot may be minted from incomplete material")
+        raised = None
+        with (
+            patch.object(type(self.Approval), "mint", side_effect=mint),
+            patch(_CLASSIFY, return_value=_available_verdict()),
+            patch(_ENABLED, return_value=True),
+            patch(_SEND, side_effect=AssertionError("Gate must not be addressed for incomplete material")),
+        ):
+            try:
+                opportunity.action_match_opportunity()
+            except UserError as exc:
+                raised = exc
+        self.assertIsNotNone(raised)
+        self.assertIn("Polymer and Form not set", str(raised))
+        self.assertEqual(self.Approval.search_count([]), lots_before)
+
+    def test_lot_minted_by_other_means_with_an_incomplete_snapshot_is_refused_by_the_orchestrator(self):
+        """``mint`` itself does not check; the orchestrator's snapshot check is the backstop."""
+        opportunity = self._opportunity()
+        opportunity.opportunity_material_ids.form_id = False
+        lot = self.Approval.mint(opportunity, source="manual", partner=self.supplier, material_profile=self.profile)
+        self.assertNotIn("form", lot.snapshot)
+        with (
+            patch(_CLASSIFY, return_value=_available_verdict()),
+            patch(_ENABLED, return_value=True),
+            patch(_SEND, side_effect=AssertionError("Gate must not be addressed for incomplete material")),
+            self.assertRaisesRegex(UserError, r"lot cannot be matched: Form not set"),
+        ):
+            self.env["plasticos.match.orchestrator"].run_match_for_lot(
+                supplier_partner_id=lot.partner_id.id,
+                snapshot=lot.snapshot,
+                run_vals={"opportunity_id": opportunity.id, "approval_id": lot.id},
+            )
+        self.assertFalse(self.Run.search([("approval_id", "=", lot.id)]), "the refused lot has no run")
+
     def test_match_runs_again_once_the_sheet_is_completed(self):
         opportunity = self._opportunity()
         sheet = opportunity.opportunity_material_ids
