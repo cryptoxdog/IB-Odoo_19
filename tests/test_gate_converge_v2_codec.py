@@ -255,8 +255,58 @@ def _facility_case():
         melt_index_min=0.2,
         melt_index_max=8.0,
         contamination_tolerance_pct=0.0,
+        capacity_lbs_month=50000,
     )
     return partner, _run(9, partner), profile
+
+
+def _fd(name, ftype, **kw):
+    return allow.OdooFieldDef(name, ftype, **kw)
+
+
+# plasticos.facility.profile as its field definitions say (plasticos_facility_profile
+# + plasticos_crm_bridge at Staging 26211b5), the shape the Odoo caller passes in.
+FACILITY_FIELD_DEFS = (
+    _fd("id", "integer", readonly=True),
+    _fd("display_name", "char", stored=False, computed=True),
+    _fd("create_uid", "many2one", relation="res.users", readonly=True),
+    _fd("partner_id", "many2one", relation="res.partner"),
+    _fd("crm_lead_id", "many2one", relation="crm.lead"),
+    _fd("active", "boolean"),
+    _fd("associated_lead_ids", "one2many", relation="crm.lead", stored=False),
+    _fd("material_profile_ids", "one2many", relation="plasticos.material.profile", stored=False),
+    _fd("message_ids", "one2many", relation="mail.message", stored=False),
+    _fd("message_partner_ids", "many2many", relation="res.partner", computed=True),
+    _fd("equipment_type_ids", "many2many", relation="plasticos.equipment.type", relation_has_code=True),
+    _fd("has_shredder", "boolean", computed=True),
+    _fd("avg_truckload_lbs", "float"),
+    _fd("handles_bales", "boolean"),
+    _fd("iso_certified", "boolean"),
+    _fd("food_grade_certified", "boolean"),
+    _fd("min_lot_size_lbs", "float"),
+    _fd("freeform_notes", "text"),
+    _fd("accepted_polymer_ids", "many2many", relation="plasticos.polymer", relation_has_code=True),
+    _fd("form_preference_id", "many2one", relation="plasticos.material.form", relation_has_code=True),
+    _fd("form_preference", "selection", computed=True, selection_keys=("pellet",)),
+    _fd("process_type", "selection", selection_keys=("recycler", "compounder")),
+    _fd("density_min", "float"),
+    _fd("density_max", "float"),
+    _fd("melt_index_min", "float"),
+    _fd("melt_index_max", "float"),
+    _fd("contamination_tolerance_pct", "float"),
+    _fd("moisture_tolerance_pct", "float"),
+    _fd("capacity_lbs_month", "integer"),
+    _fd("application_notes", "text"),
+    _fd("embedding_ready", "boolean", computed=True),
+)
+
+
+def _defs(target):
+    return FACILITY_FIELD_DEFS if target == allow.V2_TARGET_FACILITY_PROFILE else None
+
+
+def _spec(target):
+    return allow.resolve_v2_target(target, _defs(target))
 
 
 CASES = {
@@ -268,7 +318,7 @@ CASES = {
 
 def _request(target: str, pin: CartridgePin = PIN):
     _partner_rec, run, record = CASES[target][0]()
-    return build_converge_request_v2(_Env(), run, target=target, record=record, cartridge=pin)
+    return build_converge_request_v2(_Env(), run, target=target, record=record, cartridge=pin, field_defs=_defs(target))
 
 
 def _reply(target: str) -> dict:
@@ -283,19 +333,27 @@ def _parse(target: str, reply: dict | None = None):
 # ── Mapping table vs the cartridge ──────────────────────────────────────────
 
 
-@pytest.mark.parametrize("target", sorted(allow.CONVERGE_V2_TARGETS))
-def test_every_row_is_a_declared_field_of_its_subject_with_the_cartridge_type(target):
-    spec = allow.CONVERGE_V2_TARGETS[target]
+@pytest.mark.parametrize("target", sorted(CASES))
+def test_every_row_is_a_declared_node_field_with_the_cartridge_type(target):
+    spec = _spec(target)
     assert spec.node == CARTRIDGE_NODE
     assert spec.subject_type in CARTRIDGE_SUBJECTS
     for row in spec.rows:
-        assert row.cartridge_field in CARTRIDGE_SUBJECTS[spec.subject_type], row
+        assert row.cartridge_field in CARTRIDGE_DECLARATIONS, row
         assert row.declaration_dict() == CARTRIDGE_DECLARATIONS[row.cartridge_field], row
+        if target != allow.V2_TARGET_FACILITY_PROFILE:
+            # Hand-picked tables stay inside their subject; the facility profile is
+            # open by model definition (operator decision 2026-11-13).
+            assert row.cartridge_field in CARTRIDGE_SUBJECTS[spec.subject_type], row
+
+
+def test_pinned_cartridge_declarations_match_plasticos_0_5_0():
+    assert allow._thaw(allow.PLASTICOS_FACILITY_DECLARATIONS) == CARTRIDGE_DECLARATIONS
 
 
 def test_starting_rows_are_exactly_the_reviewed_set():
     def rows(key):
-        return {(r.cartridge_field, r.odoo_field, r.kind) for r in allow.CONVERGE_V2_TARGETS[key].rows}
+        return {(r.cartridge_field, r.odoo_field, r.kind) for r in _spec(key).rows}
 
     assert rows(allow.V2_TARGET_PARTNER) == {
         ("name", "name", "char"),
@@ -321,6 +379,7 @@ def test_starting_rows_are_exactly_the_reviewed_set():
         ("min_mfi", "melt_index_min", "float"),
         ("max_mfi", "melt_index_max", "float"),
         ("contamination_tolerance", "contamination_tolerance_pct", "float"),
+        ("capacity_tons_month", "capacity_lbs_month", "integer"),
     }
 
 
@@ -341,12 +400,154 @@ def test_never_targets_and_unmapped_fields_have_no_row():
     )
 
 
+def test_facility_profile_is_open_by_model_definition_minus_never_targets():
+    eligible = set(allow.eligible_odoo_fields(FACILITY_FIELD_DEFS))
+    assert eligible == {
+        "equipment_type_ids",
+        "avg_truckload_lbs",
+        "handles_bales",
+        "iso_certified",
+        "food_grade_certified",
+        "min_lot_size_lbs",
+        "freeform_notes",
+        "accepted_polymer_ids",
+        "form_preference_id",
+        "process_type",
+        "density_min",
+        "density_max",
+        "melt_index_min",
+        "melt_index_max",
+        "contamination_tolerance_pct",
+        "moisture_tolerance_pct",
+        "capacity_lbs_month",
+        "application_notes",
+    }
+    for never in ("id", "display_name", "create_uid", "partner_id", "crm_lead_id", "active", "message_partner_ids"):
+        assert never not in eligible
+    assert allow.field_ineligibility(FACILITY_FIELD_DEFS[3]) == "never a converge target"
+
+
+def test_facility_profile_unmapped_cartridge_fields_are_listed_with_a_reason():
+    _target, unmapped = allow.derive_facility_profile_target(FACILITY_FIELD_DEFS)
+    assert set(unmapped) == {
+        "facility_id",
+        "name",
+        "tier",
+        "city",
+        "state",
+        "zip_code",
+        "material_grade",
+        "certifications",
+        "street",
+        "street2",
+        "website",
+        "email",
+        "phone",
+        "material_forms",
+    }
+    assert unmapped["facility_id"] == "cartridge identity"
+    assert unmapped["tier"] == "no facility-profile field of that name and no alias"
+
+
+def test_facility_profile_target_needs_the_model_field_definitions():
+    with pytest.raises(ValueError, match="field definitions"):
+        allow.resolve_v2_target(allow.V2_TARGET_FACILITY_PROFILE)
+
+
+def test_a_same_named_eligible_facility_field_maps_without_an_alias(monkeypatch):
+    decls = {**allow._thaw(allow.PLASTICOS_FACILITY_DECLARATIONS), "freeform_notes": {"type": "string"}}
+    monkeypatch.setattr(allow, "PLASTICOS_FACILITY_DECLARATIONS", allow._freeze(decls))
+    assert "freeform_notes" not in allow.FACILITY_PROFILE_V2_ALIASES
+    row = allow.resolve_v2_target(allow.V2_TARGET_FACILITY_PROFILE, FACILITY_FIELD_DEFS).row("freeform_notes")
+    assert (row.odoo_field, row.kind) == ("freeform_notes", "char")
+    partner, run, profile = _facility_case()
+    profile._values["freeform_notes"] = False
+    profile._fields["freeform_notes"] = None
+    request = build_converge_request_v2(
+        _Env(), run, target="facility_profile", record=profile, cartridge=PIN, field_defs=FACILITY_FIELD_DEFS
+    )
+    assert {"field": "freeform_notes", "type": {"type": "string"}} in request.to_dict()["targets"]
+    reply = _reply(allow.V2_TARGET_FACILITY_PROFILE)
+    entry = copy.deepcopy(reply["field_evidence"]["contamination_tolerance"])
+    entry.update(value="Accepts mixed bales", unit_status="not_applicable", declaration={"type": "string"})
+    entry.pop("unit")
+    reply["field_evidence"]["freeform_notes"] = entry
+    reply["fields"]["freeform_notes"] = "Accepts mixed bales"
+    reply["proposals"][0]["fields"].append("freeform_notes")
+    reply["proposals"][0]["admitted_fields"].append("freeform_notes")
+    response = parse_converge_response_v2(reply, request=request)
+    assert response.usable, response.rejection
+    plan = plan_converge_v2_writeback("facility_profile", response, request, FACILITY_FIELD_DEFS)
+    decision = next(d for d in plan.decisions if d.cartridge_field == "freeform_notes")
+    assert (decision.action, decision.odoo_field, decision.value) == (
+        V2_PLAN_WRITE,
+        "freeform_notes",
+        "Accepts mixed bales",
+    )
+
+
+def test_a_never_target_is_refused_even_when_the_reply_proposes_it(monkeypatch):
+    decls = {
+        **allow._thaw(allow.PLASTICOS_FACILITY_DECLARATIONS),
+        "active": {"type": "bool"},
+        "crm_lead_id": {"type": "string"},
+        "partner_id": {"type": "string"},
+    }
+    monkeypatch.setattr(allow, "PLASTICOS_FACILITY_DECLARATIONS", allow._freeze(decls))
+    target, unmapped = allow.derive_facility_profile_target(FACILITY_FIELD_DEFS)
+    for never in ("active", "crm_lead_id", "partner_id"):
+        assert target.row(never) is None
+        assert "never a converge target" in unmapped[never]
+    request = _request(allow.V2_TARGET_FACILITY_PROFILE)
+    assert not {"active", "crm_lead_id", "partner_id"} & {t["field"] for t in request.targets}
+    reply = _reply(allow.V2_TARGET_FACILITY_PROFILE)
+    proposed = copy.deepcopy(reply["field_evidence"]["processed_polymers"])
+    proposed.update(value=False, declaration={"type": "bool"})
+    reply["field_evidence"]["active"] = proposed
+    reply["fields"]["active"] = False
+    reply["proposals"][0]["fields"].append("active")
+    reply["proposals"][0]["admitted_fields"].append("active")
+    response = parse_converge_response_v2(reply, request=request)
+    assert response.usable, response.rejection
+    plan = plan_converge_v2_writeback("facility_profile", response, request, FACILITY_FIELD_DEFS)
+    assert "active" not in {d.cartridge_field for d in plan.decisions}
+    assert "active" not in {d.odoo_field for d in plan.writes}
+
+
+@pytest.mark.parametrize(
+    ("value", "unit", "expected"),
+    [(50000, "lb/month", 50000), (20, "short_ton/month", 40000), (10, "t/month", None), (12.5, "lb/month", None)],
+)
+def test_capacity_is_written_only_as_whole_pounds(value, unit, expected):
+    partner, run, profile = _facility_case()
+    profile._values["capacity_lbs_month"] = 0
+    request = build_converge_request_v2(
+        _Env(), run, target="facility_profile", record=profile, cartridge=PIN, field_defs=FACILITY_FIELD_DEFS
+    )
+    reply = _reply(allow.V2_TARGET_FACILITY_PROFILE)
+    entry = copy.deepcopy(reply["field_evidence"]["contamination_tolerance"])
+    entry.update(value=value, unit=unit)
+    reply["field_evidence"]["capacity_tons_month"] = entry
+    reply["fields"]["capacity_tons_month"] = value
+    reply["proposals"][0]["fields"].append("capacity_tons_month")
+    reply["proposals"][0]["admitted_fields"].append("capacity_tons_month")
+    response = parse_converge_response_v2(reply, request=request)
+    plan = plan_converge_v2_writeback("facility_profile", response, request, FACILITY_FIELD_DEFS)
+    assert plan.rejection is None
+    decision = next(d for d in plan.decisions if d.cartridge_field == "capacity_tons_month")
+    if expected is None:
+        assert decision.skip_reason == V2_SKIP_UNIT
+    else:
+        assert (decision.action, decision.value) == (V2_PLAN_WRITE, expected)
+        assert isinstance(decision.value, int)
+
+
 def test_numeric_rows_name_their_odoo_unit_and_conversions():
-    for spec in allow.CONVERGE_V2_TARGETS.values():
+    for spec in (_spec(t) for t in CASES):
         for row in spec.rows:
             if row.kind in allow.V2_NUMERIC_KINDS:
                 assert 1.0 in row.units.values(), row
-    contamination = allow.CONVERGE_V2_TARGETS[allow.V2_TARGET_FACILITY_PROFILE].row("contamination_tolerance")
+    contamination = _spec(allow.V2_TARGET_FACILITY_PROFILE).row("contamination_tolerance")
     assert dict(contamination.units) == {"percent": 1.0, "%": 1.0, "fraction": 100.0}
 
 
@@ -380,7 +581,7 @@ def test_request_carries_only_v2_members_and_never_v1_field_selectors(target):
     assert body["targets"], "targets must be non-empty"
     names = [t["field"] for t in body["targets"]]
     assert len(names) == len(set(names))
-    spec = allow.CONVERGE_V2_TARGETS[target]
+    spec = _spec(target)
     assert body["subject"]["type"] == spec.subject_type
     for t in body["targets"]:
         assert set(t) == {"field", "type"}
@@ -434,8 +635,8 @@ def test_material_profile_request_is_about_the_partner_entity_and_targets_the_pr
 def test_facility_profile_request_observes_filled_tolerances_with_their_odoo_unit():
     body = _request(allow.V2_TARGET_FACILITY_PROFILE).to_dict()
     assert body["subject"] == {"type": "material", "role": "buyer"}
-    assert [t["field"] for t in body["targets"]] == ["processed_polymers", "min_density", "contamination_tolerance"]
-    assert body["targets"][0]["type"] == CARTRIDGE_DECLARATIONS["processed_polymers"]
+    assert [t["field"] for t in body["targets"]] == ["min_density", "contamination_tolerance", "processed_polymers"]
+    assert body["targets"][2]["type"] == CARTRIDGE_DECLARATIONS["processed_polymers"]
     assert body["observations"] == [
         {
             "field": "max_density",
@@ -458,13 +659,22 @@ def test_facility_profile_request_observes_filled_tolerances_with_their_odoo_uni
             "source_ref": "plasticos.facility.profile:401#melt_index_max",
             "unit": "g/10min",
         },
+        {
+            "field": "capacity_tons_month",
+            "value": 50000,
+            "source_kind": "odoo_record",
+            "source_ref": "plasticos.facility.profile:401#capacity_lbs_month",
+            "unit": "lb/month",
+        },
     ]
 
 
 def test_filled_polymers_are_observed_as_cartridge_codes():
     partner, run, profile = _facility_case()
     profile._values["accepted_polymer_ids"] = [_Coded("hdpe"), _Coded("pp")]
-    body = build_converge_request_v2(_Env(), run, target="facility_profile", record=profile, cartridge=PIN).to_dict()
+    body = build_converge_request_v2(
+        _Env(), run, target="facility_profile", record=profile, cartridge=PIN, field_defs=FACILITY_FIELD_DEFS
+    ).to_dict()
     obs = next(o for o in body["observations"] if o["field"] == "processed_polymers")
     assert obs["value"] == [{"code": "hdpe"}, {"code": "pp"}]
     assert "unit" not in obs
@@ -516,7 +726,32 @@ def test_nothing_to_request_when_every_mapped_field_is_filled():
 def test_builder_refuses_a_record_of_the_wrong_model():
     _partner_rec, run, profile = _material_case()
     with pytest.raises(ValueError, match="enriches plasticos.facility.profile"):
-        build_converge_request_v2(_Env(), run, target="facility_profile", record=profile, cartridge=PIN)
+        build_converge_request_v2(
+            _Env(), run, target="facility_profile", record=profile, cartridge=PIN, field_defs=FACILITY_FIELD_DEFS
+        )
+
+
+def test_builder_refuses_a_profile_of_another_partner():
+    _partner_rec, _run_rec, profile = _material_case()
+    stranger = _partner(99, name="Stranger")
+    with pytest.raises(ValueError, match="does not belong to the run partner"):
+        build_converge_request_v2(_Env(), _run(12, stranger), target="material_profile", record=profile, cartridge=PIN)
+
+
+def test_builder_refuses_another_partner_as_the_partner_target():
+    partner, _run_rec, _record = _partner_case()
+    stranger = _partner(98, name="Stranger")
+    with pytest.raises(ValueError, match="does not belong to the run partner"):
+        build_converge_request_v2(_Env(), _run(13, stranger), target="partner", record=partner, cartridge=PIN)
+
+
+def test_builder_refuses_a_lead_owned_facility_profile():
+    partner, run, profile = _facility_case()
+    profile._values["partner_id"] = False
+    with pytest.raises(ValueError, match="lead-owned"):
+        build_converge_request_v2(
+            _Env(), run, target="facility_profile", record=profile, cartridge=PIN, field_defs=FACILITY_FIELD_DEFS
+        )
 
 
 def test_request_is_immutable():
@@ -705,6 +940,24 @@ def test_a_refusal_without_evidence_is_rejected_with_its_code():
     assert "cartridge_pin_mismatch" in resp.rejection
 
 
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda r: r.__setitem__("state", ["completed"]),
+        lambda r: r["field_evidence"]["city"].__setitem__("state", {"v": 1}),
+        lambda r: r["field_evidence"]["city"].__setitem__("unit_status", ["stated"]),
+        lambda r: r["field_evidence"]["city"]["sources"][0].__setitem__("source_type", ["provider"]),
+        lambda r: r["field_evidence"]["street2"].__setitem__("unknown_reason", ["no_evidence"]),
+        lambda r: r["proposals"][0]["review"].__setitem__("reasons", [["contains_unknown"]]),
+        lambda r: r["proposals"][0].__setitem__("fields", [["city"]]),
+    ],
+)
+def test_a_non_string_where_a_string_is_due_rejects_instead_of_raising(mutation):
+    resp = _mutate(allow.V2_TARGET_PARTNER, mutation)
+    assert not resp.usable
+    assert resp.rejection.startswith(V2_REJECT_MALFORMED), resp.rejection
+
+
 def test_non_object_payload_is_rejected():
     _req, resp = _parse(allow.V2_TARGET_PARTNER, ["not", "an", "object"])
     assert resp.rejection.startswith(V2_REJECT_MALFORMED)
@@ -715,7 +968,7 @@ def test_non_object_payload_is_rejected():
 
 def _plan(target, reply=None):
     request, resp = _parse(target, reply)
-    return plan_converge_v2_writeback(target, resp, request)
+    return plan_converge_v2_writeback(target, resp, request, _defs(target))
 
 
 def _by_field(plan):

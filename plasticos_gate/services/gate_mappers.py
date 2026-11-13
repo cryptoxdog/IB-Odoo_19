@@ -10,7 +10,6 @@ from types import MappingProxyType
 from typing import Any
 
 from .gate_allowlists import (
-    CONVERGE_V2_TARGETS,
     PARTNER_WRITEBACK_FIELD_ALLOWLIST,
     V2_KIND_BOOLEAN,
     V2_KIND_CHAR,
@@ -20,6 +19,8 @@ from .gate_allowlists import (
     V2_KIND_SELECTION,
     V2_NUMERIC_KINDS,
     WEB_LEAD_WRITEBACK_FIELD_MAP,
+    is_never_target,
+    resolve_v2_target,
 )
 from .gate_contracts import (
     CONVERGE_RESPONSE_V2,
@@ -592,7 +593,7 @@ def parse_converge_response_v2(payload: Any, *, request: ConvergeRequestV2) -> C
     if version != CONVERGE_RESPONSE_V2:
         return _rejected(payload, V2_REJECT_UNSUPPORTED_CONTRACT, repr(version))
     state = payload.get("state")
-    if state not in V2_RUN_STATES:
+    if not isinstance(state, str) or state not in V2_RUN_STATES:
         return _rejected(payload, V2_REJECT_MALFORMED, f"run state {state!r} is unrecognised")
     if state != EIE_STATE_COMPLETED or payload.get("failure_reason"):
         return _rejected(payload, V2_REJECT_NOT_COMPLETED, f"{state}: {payload.get('failure_reason') or 'no reason'}")
@@ -637,6 +638,10 @@ def parse_converge_response_v2(payload: Any, *, request: ConvergeRequestV2) -> C
         proposals = tuple(_proposal(p, i, entries, expected) for i, p in enumerate(raw_proposals))
     except _Malformed as exc:
         return _rejected(payload, exc.code, str(exc).split(": ", 1)[1])
+    except TypeError as exc:
+        # An unhashable JSON value (list or object) where a string was due
+        # fails a membership test; it is a malformed reply, never a crash.
+        return _rejected(payload, V2_REJECT_MALFORMED, f"value of the wrong JSON type: {exc}")
     return ConvergeResponseV2(
         contract_version=version,
         state=state,
@@ -711,7 +716,8 @@ def _coerce(row, entry: FieldEvidence) -> tuple[str, Any, str | None]:
             return V2_PLAN_SKIP, None, f"unit {stated!r} is not one of {sorted(row.units)}"
         converted = float(value) * row.units[entry.unit]
         if row.kind == V2_KIND_INTEGER:
-            _need(converted.is_integer(), f"{where} is not an integer in the Odoo unit")
+            if not converted.is_integer():
+                return V2_PLAN_SKIP, None, f"{value} {entry.unit} is not a whole number in the Odoo unit"
             converted = int(converted)
         return V2_PLAN_WRITE, converted, None
     if row.kind == V2_KIND_BOOLEAN:
@@ -732,7 +738,7 @@ def _coerce(row, entry: FieldEvidence) -> tuple[str, Any, str | None]:
 
 
 def plan_converge_v2_writeback(
-    target: str, response: ConvergeResponseV2, request: ConvergeRequestV2
+    target: str, response: ConvergeResponseV2, request: ConvergeRequestV2, field_defs=None
 ) -> V2WritebackPlan:
     """Decide, per requested field, what the approved evidence-state policy allows.
 
@@ -741,9 +747,10 @@ def plan_converge_v2_writeback(
     ``unknown`` and ``conflicting`` are skipped and recorded; an ``observed``
     or unadmitted value is skipped as not admitted. A rejected response, a
     declaration that no longer matches the row, or a value of the wrong shape
-    rejects the plan: nothing is written.
+    rejects the plan: nothing is written. The facility profile target is
+    derived from ``field_defs`` exactly as the request builder derived it.
     """
-    spec = CONVERGE_V2_TARGETS[target]
+    spec = resolve_v2_target(target, field_defs)
     if not response.usable:
         return V2WritebackPlan(target, spec.odoo_model, (), response.rejection)
     decisions = []
@@ -751,6 +758,7 @@ def plan_converge_v2_writeback(
         for requested in request.targets:
             row = spec.row(requested["field"])
             _need(row is not None, f"requested field {requested['field']!r} has no mapping row")
+            _need(not is_never_target(row.odoo_field), f"{row.odoo_field} is never a converge target")
             entry = response.field_evidence[row.cartridge_field]
             _need(
                 _declaration_shape(entry.declaration) == _declaration_shape(row.declaration),

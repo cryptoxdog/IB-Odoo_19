@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Any
 
 from .gate_allowlists import (
-    CONVERGE_V2_TARGETS,
     INTAKE_SNAPSHOT_FIELD_MAP,
     PARTNER_SNAPSHOT_FIELD_MAP,
     PARTNER_WRITEBACK_FIELD_ALLOWLIST,
@@ -15,6 +14,7 @@ from .gate_allowlists import (
     V2_NUMERIC_KINDS,
     WEB_LEAD_SEED_FIELD_MAP,
     ConvergeV2FieldRow,
+    resolve_v2_target,
 )
 from .gate_config import gate_consensus_threshold
 from .gate_contracts import (
@@ -258,6 +258,7 @@ def build_converge_request_v2(
     record,
     cartridge: CartridgePin,
     max_passes: int | None = None,
+    field_defs=None,
 ) -> ConvergeRequestV2:
     """Build a converge request v2 for one partner, material profile or facility profile.
 
@@ -266,13 +267,27 @@ def build_converge_request_v2(
     value, offered as evidence only. The entity stays ``res.partner:<id>`` of
     the run's partner (gate-integration ADR-005); the engine never mints one.
 
+    The facility profile has no fixed table: pass the model's field
+    definitions (``field_defs``, a sequence of ``OdooFieldDef``) and the target
+    is derived from them (operator decision 2026-11-13).
+
     Raises ConvergeV2NothingToRequest when no mapped field is empty, and
     KeyError for a target the table does not declare.
     """
-    spec = CONVERGE_V2_TARGETS[target]
+    spec = resolve_v2_target(target, field_defs)
     if getattr(record, "_name", None) != spec.odoo_model:
         raise ValueError(f"target {target!r} enriches {spec.odoo_model}, not {getattr(record, '_name', None)}")
     partner = run_rec.partner_id
+    if spec.odoo_model == "res.partner":
+        owner = record
+    else:
+        owner = getattr(record, "partner_id", None)
+        if not owner:
+            raise ValueError(f"{spec.odoo_model}:{record.id} has no partner (lead-owned) and cannot be enriched")
+    if not partner or getattr(owner, "id", None) != partner.id:
+        raise ValueError(
+            f"{spec.odoo_model}:{record.id} does not belong to the run partner res.partner:{getattr(partner, 'id', None)}"
+        )
     record_ref = f"{spec.odoo_model}:{record.id}"
     targets = []
     observations = []
