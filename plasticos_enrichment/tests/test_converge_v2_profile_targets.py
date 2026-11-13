@@ -195,6 +195,7 @@ class TestConvergeV2ProfileTargets(PlasticosTestCase):
             {
                 "name": name,
                 "parent_id": company.id,
+                "is_company": True,
                 "type": "other",
                 "company_role_tag_ids": [(6, 0, self.tag_buyer.ids)],
             }
