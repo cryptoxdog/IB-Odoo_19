@@ -58,6 +58,13 @@ Approved by the operator on 2026-11-12 (decision B).
   - `tests/test_module_descriptions.py` resolves every module the way Odoo 19 does and includes a check that the test is not vacuous.
   - `plasticos_export/tests/test_module_pages.py` renders every installed `description_html` and includes a negative witness.
 
+## Excluded by operator ruling
+
+Operator ruling of 2026-11-13: `plasticos_material_profile` and `plasticos_facility_profile` are out of scope for the Export campaign. They are excluded by operator ruling.
+
+- This slice changes no path under either module: `git diff --name-only 8c15b3bc..HEAD -- plasticos_material_profile plasticos_facility_profile` is empty, so no revert was needed.
+- The module-page pass (OP12-E04) made no manifest edit in any module. The repo-level witness still reads every module's page source; it does not write.
+
 ## Versions
 
 | Module | From | To | Why |
