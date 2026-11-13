@@ -206,6 +206,8 @@ class TestBookingAuditFixes(ExportFixtureMixin, PlasticosTestCase):
         self.assertFalse(any(slots.mapped("hold_reason")))
         self.assertEqual(link.state, "committed")
         self.assertEqual(booking.display_state, "confirmed")
+        # The retained slots are still confirmed capacity on the booking and its summary.
+        self.assertEqual(booking.slot_confirmed_count, 3)
 
     def test_unstated_confirmed_count_changes_no_slot(self):
         """A class named with a requested count only: confirmed is not stated, so its slots stay."""
@@ -222,6 +224,8 @@ class TestBookingAuditFixes(ExportFixtureMixin, PlasticosTestCase):
         self.assertEqual(row_versions(slots), before)
         live = self.env[SLOT].search([("booking_id", "=", booking.id)])
         self.assertEqual(sorted(live.mapped("slot_key")), ["20STD-1", "40HC-1", "40HC-2"])
+        # One stated 20STD slot plus the two retained 40HC slots the revision did not mention.
+        self.assertEqual(booking.slot_confirmed_count, 3)
         self.assertEqual((live - slots).created_from_revision_id, other_class)
 
     def test_stated_zero_and_cancellation_still_withdraw(self):
