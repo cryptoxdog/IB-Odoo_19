@@ -802,14 +802,20 @@ class PlasticosExportBookingRevision(models.Model):
         return (self.additional_terms or {}).get("booking_status") or False
 
     def _confirmed_counts(self):
-        """Confirmed slots per class. A missing confirmed count is zero confirmed capacity."""
+        """Confirmed slots per class, for the classes whose confirmed count the source stated.
+
+        A stated count, 0 included, is in the mapping. A class the revision does not
+        mention, or whose confirmed count is not stated (None), is absent: not stated
+        is not zero (POS-INV-03), so its slots are left as they are. A cancelled
+        booking confirms nothing.
+        """
         self.ensure_one()
         if self._stated_status() == CANCELLED:
             return {}
         return {
-            code: counts.get("confirmed") or 0
+            code: counts["confirmed"]
             for code, counts in (self.equipment_counts or {}).items()
-            if counts.get("confirmed")
+            if counts.get("confirmed") is not None
         }
 
     def _original_attachment_ids(self):
@@ -889,6 +895,11 @@ class PlasticosExportBookingRevision(models.Model):
             if revision.decision != "candidate":
                 raise UserError("Only a candidate revision can be rejected.")
             guard(revision).write({"decision": "rejected"})
+            revision.booking_id.message_post(
+                body=f"Revision {revision.source_revision_key} rejected by {self.env.user.name}",
+                message_type="comment",
+                subtype_xmlid="mail.mt_note",
+            )
         return True
 
 
