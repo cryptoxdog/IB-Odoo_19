@@ -11,7 +11,7 @@
         "code": "PP"
       }
     ],
-    "contamination_tolerance": 0.05
+    "contamination_tolerance": 5.0
   },
   "confidence": 0.87,
   "resolution": {
@@ -86,9 +86,9 @@
     "contamination_tolerance": {
       "state": "external_claim",
       "admitted": true,
-      "value": 0.05,
+      "value": 5.0,
       "unit_status": "stated",
-      "unit": "fraction",
+      "unit": "percent",
       "confidence": 0.84,
       "sources": [
         {

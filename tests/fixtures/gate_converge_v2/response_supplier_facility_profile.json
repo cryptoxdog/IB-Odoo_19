@@ -126,12 +126,58 @@
       },
       "conflict": null,
       "unknown_reason": null
+    },
+    "contamination_tolerance": {
+      "state": "unknown",
+      "admitted": false,
+      "confidence": null,
+      "sources": [],
+      "derivation": null,
+      "identity": {
+        "subject_ref": "res.partner:56",
+        "subject_type": "material",
+        "role": "supplier"
+      },
+      "declaration": {
+        "type": "float",
+        "required": false
+      },
+      "conflict": null,
+      "unknown_reason": "no_evidence"
+    },
+    "processed_polymers": {
+      "state": "unknown",
+      "admitted": false,
+      "confidence": null,
+      "sources": [],
+      "derivation": null,
+      "identity": {
+        "subject_ref": "res.partner:56",
+        "subject_type": "material",
+        "role": "supplier"
+      },
+      "declaration": {
+        "type": "list",
+        "required": false,
+        "items": {
+          "type": "map",
+          "required": false,
+          "properties": {
+            "code": {
+              "type": "string",
+              "required": true
+            }
+          }
+        }
+      },
+      "conflict": null,
+      "unknown_reason": "no_evidence"
     }
   },
   "proposals": [
     {
       "proposal_id": "p1",
-      "proposal_type": "material_profile",
+      "proposal_type": "facility_profile",
       "identity": {
         "subject_ref": "res.partner:56",
         "subject_type": "material",
@@ -141,7 +187,9 @@
         "min_density",
         "max_density",
         "min_mfi",
-        "max_mfi"
+        "max_mfi",
+        "contamination_tolerance",
+        "processed_polymers"
       ],
       "admitted_fields": [
         "min_density",
@@ -153,7 +201,8 @@
         "required": true,
         "reasons": [
           "contains_external_claim",
-          "contains_inferred"
+          "contains_inferred",
+          "contains_unknown"
         ]
       }
     }

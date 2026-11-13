@@ -128,3 +128,27 @@ Recorded by the CTO session for the same campaign. This adds to (b).
    - `facility` holds the 0.5.0 contact fields, `capacity_tons_month` → `capacity_lbs_month`, and future same-named fields. The derivation is ready (`resolve_v2_target(..., subject="facility")`), but no run sends that second request yet.
 3. **Declarations compare by typed shape.** A map's `properties` may arrive as the engine emits them (an object keyed by name) or as the spec writes them (a list). `required` and `unit` are not part of the comparison.
 4. **Numbers on 0.5.0.** Cartridge 0.5.0 declares no unit, so every number arrives with `unit_status: unknown`. Under decision 4, every number is skipped until a cartridge revision states units. This is the intended result.
+
+### Amendment 2026-11-13 (d) — two targets; governing unit; cartridge 0.6.0 candidate
+
+**Authorized by:** operator decisions of 2026-11-13, made on the engine side and relayed by the CTO session:
+- cartridge 0.6.0 adds all 27 facility fields;
+- capacity is in metric tonnes;
+- contamination tolerance is in percent;
+- `food_grade_certified` stays CEG-owned;
+- the `material` subject means the facility's material capability.
+
+This supersedes the "three targets" wording of the amendments above.
+
+1. **Two targets.** A v2 run targets the partner or one of its facility profiles. The `material` subject describes a facility's overall capability, not one material, so no reply is written onto a `plasticos.material.profile`. A material profile cannot start a v2 run. The run gains `facility_profile_id`, and provenance gains `target_res_id`. These are the only two new stored fields.
+2. **Governing unit.** This replaces the unit wording of decision 4.
+   - A number is read in the value's own `unit` when `unit_status` is `stated`. Otherwise it is read in the cartridge's declared `unit` (`field_evidence[name].declaration.unit`, response.v2.md section 10.2).
+   - It is written only when that governing unit is one the field accepts (`FACILITY_PROFILE_FIELD_UNITS`). No governing unit means the number is skipped and recorded.
+   - On cartridge 0.5.0 no declaration carries a unit, so every number is still skipped.
+   - `unit` is never part of a request's `targets[].type`.
+3. **Capacity.** `capacity_tons_month` (`t/month`, metric tonnes) is multiplied by 2204.62262185 and rounded to the nearest whole lb, because `capacity_lbs_month` is an Integer. The provenance row keeps the original value and unit.
+4. **Subjects.**
+   - Capability fields go under subject `material`: `processed_polymers`, the densities, the MFIs and `contamination_tolerance`.
+   - `capacity_tons_month` and every same-named 0.6.0 field go under subject `facility`.
+   - Each request carries one subject.
+5. **Cartridge 0.6.0.** Its names, typed declarations, units and subjects are in `PLASTICOS_CARTRIDGES`, marked as a candidate verified against EIE PR #348 at `bd345a0`. The default pin stays 0.5.0. Adopting 0.6.0 needs only the configuration pin.

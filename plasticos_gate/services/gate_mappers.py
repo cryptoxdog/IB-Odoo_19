@@ -682,6 +682,9 @@ class V2WritebackDecision:
     detail: str | None = None
     evidence_state: str | None = None
     confidence: float | None = None
+    # For a converted number: the value and governing unit as the reply stated them.
+    source_value: Any = None
+    source_unit: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -724,21 +727,41 @@ def _declaration_shape(decl: Any) -> Any:
     return decl
 
 
+def governing_unit(entry: FieldEvidence) -> str | None:
+    """The unit a number is read in (decision 4 as amended 2026-11-13).
+
+    The value's own unit when ``unit_status`` is ``stated``; otherwise the unit
+    the cartridge declares for the field (response.v2.md 10.2,
+    ``declaration.unit``); otherwise none, and the number is not written.
+    """
+    if entry.unit_status == V2_UNIT_STATED and entry.unit:
+        return entry.unit
+    declared = entry.declaration.get(_DECL_UNIT) if isinstance(entry.declaration, Mapping) else None
+    return declared if isinstance(declared, str) and declared.strip() else None
+
+
+_DECL_UNIT = "unit"
+
+
 def _coerce(row, entry: FieldEvidence) -> tuple[str, Any, str | None]:
     """Return (action, value, detail) for an admitted writable entry, or raise _Malformed."""
     value = entry.value
     where = f"field_evidence.{entry.field}.value"
     if row.kind in V2_NUMERIC_KINDS:
         _need(_is_number(value), f"{where} is not a finite number")
-        if entry.unit_status != V2_UNIT_STATED or entry.unit not in row.units:
-            stated = entry.unit if entry.unit_status == V2_UNIT_STATED else f"unit_status={entry.unit_status}"
-            return V2_PLAN_SKIP, None, f"unit {stated!r} is not one of {sorted(row.units)}"
-        converted = float(value) * row.units[entry.unit]
+        unit = governing_unit(entry)
+        if unit is None:
+            return V2_PLAN_SKIP, None, "no governing unit (value states none and the declaration declares none)"
+        if unit not in row.units:
+            return V2_PLAN_SKIP, None, f"unit {unit!r} is not one of {sorted(row.units)}"
+        converted = float(value) * row.units[unit]
         if row.kind == V2_KIND_INTEGER:
-            if not converted.is_integer():
-                return V2_PLAN_SKIP, None, f"{value} {entry.unit} is not a whole number in the Odoo unit"
+            if row.round_to_integer:
+                converted = math.floor(converted + 0.5)
+            elif not converted.is_integer():
+                return V2_PLAN_SKIP, None, f"{value} {unit} is not a whole number in the Odoo unit"
             converted = int(converted)
-        return V2_PLAN_WRITE, converted, None
+        return V2_PLAN_WRITE, converted, unit
     if row.kind == V2_KIND_BOOLEAN:
         _need(isinstance(value, bool), f"{where} is not a boolean")
         return V2_PLAN_WRITE, value, None
@@ -814,6 +837,13 @@ def plan_converge_v2_writeback(
             if action == V2_PLAN_SKIP:
                 decisions.append(
                     V2WritebackDecision(**base, action=V2_PLAN_SKIP, skip_reason=V2_SKIP_UNIT, detail=detail)
+                )
+                continue
+            if row.kind in V2_NUMERIC_KINDS:
+                decisions.append(
+                    V2WritebackDecision(
+                        **base, action=V2_PLAN_WRITE, value=value, source_value=entry.value, source_unit=detail
+                    )
                 )
                 continue
             decisions.append(V2WritebackDecision(**base, action=V2_PLAN_WRITE, value=value))
