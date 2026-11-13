@@ -235,9 +235,8 @@ class PlasticosLoadExport(models.Model):
         the evidence itself. The verdict is per operation revision, so one
         eligible row of a revision keeps that revision current.
         """
-        # sudo: the guard must see every accepted confirmation row on this booking, whoever
-        # releases the load; it only reads, and the verdict command writes nothing.
-        Document = self.env["plasticos.document"].sudo()
+        # The guard must see every accepted confirmation row on this booking, whoever releases the load.
+        Document = self.env["plasticos.document"].sudo()  # sudo: read-only guard; the verdict command writes nothing
         rows = Document.search(
             [
                 ("association_state", "=", "accepted"),
