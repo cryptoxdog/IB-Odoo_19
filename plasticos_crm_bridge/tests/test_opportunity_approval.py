@@ -9,7 +9,9 @@ Proves (plan V1–V4 properties, CRM Bridge owns the lineage):
     verified Partner and Material Profile, no synthetic intake, no facility;
   * two commands on one partner and profile are two independent lots;
   * the Gate request is built from the frozen lot and omits facility evidence
-    when none is linked; a later profile edit does not rewrite the lot;
+    when none is linked; the lot freezes the opportunity's material sheet (the
+    profile only when there is no sheet), and a later sheet or profile edit
+    does not rewrite the lot or its retry;
   * reviewed results create idempotent unsent drafts with typed lineage;
   * terms freeze once sent; exactly one commercial winner per opportunity;
   * acceptance marks the native Won stage and creates no purchase order,
@@ -300,19 +302,109 @@ class TestOpportunityApproval(PlasticosTestCase):
         opportunity.write({"name": "Renamed Opportunity", "description": "Seller confirmed the weight."})
         self.assertFalse(opportunity.approval_ids, "only a matching command records a lot")
 
-    def test_new_match_after_a_profile_change_keeps_the_earlier_lot(self):
+    def test_new_match_after_a_sheet_change_keeps_the_earlier_lot(self):
         opportunity = self._opportunity()
         first_run, _sent = self._match(opportunity)
         first_lot = first_run.approval_id
         first_digest = first_lot.snapshot_digest
-        self.profile.contamination_percent = 4.0
-        second_run, _sent = self._match(opportunity)
+        opportunity.opportunity_material_ids.contamination_percent = 4.0
+        second_run, second_sent = self._match(opportunity)
         self.env.invalidate_all()
         self.assertNotEqual(second_run.approval_id, first_lot)
         self.assertEqual(first_lot.snapshot_digest, first_digest, "the historical lot is unchanged")
         self.assertEqual(first_lot.snapshot["contamination_pct"], 2.5)
         self.assertEqual(second_run.approval_id.snapshot["contamination_pct"], 4.0)
+        self.assertEqual(second_sent["payload"]["query"]["contamination_pct"], 4.0)
         self.assertEqual(first_run.approval_id, first_lot, "the earlier run keeps its own lot")
+
+    # ── The opportunity's material sheet is what Gate matches ──
+
+    def test_match_freezes_the_opportunity_material_sheet_not_the_profile(self):
+        opportunity = self._opportunity()
+        sheet = opportunity.opportunity_material_ids
+        self.assertEqual(len(sheet), 1, "a profile-backed opportunity carries its own material sheet")
+        sheet.write({"quantity_per_load_lbs": 1000, "contamination_percent": 4.0, "buy_price_per_lb": 0.25})
+
+        run, sent = self._match(opportunity)
+
+        lot = run.approval_id
+        self.assertEqual(lot.material_profile_id, self.profile, "the approved profile stays the lot's provenance")
+        self.assertEqual(lot.snapshot["opportunity_material_id"], sheet.id)
+        self.assertEqual(lot.snapshot["material_profile_id"], self.profile.id)
+        self.assertEqual(lot.snapshot["quantity_per_load_lbs"], 1000)
+        self.assertEqual(lot.snapshot["contamination_pct"], 4.0)
+        self.assertNotIn("buy_price_per_lb", lot.snapshot, "a Gate match carries no price authority")
+        query = sent["payload"]["query"]
+        self.assertEqual(query["quantity_per_load_lbs"], 1000, "Gate matches the broker's sheet")
+        self.assertEqual(query["contamination_pct"], 4.0)
+        self.assertNotIn("opportunity_material_id", query, "sheet lineage stays on the lot")
+        self.env.invalidate_all()
+        self.assertEqual(self.profile.quantity_per_load_lbs, 40000, "the sheet never writes the profile")
+        self.assertEqual(self.profile.contamination_percent, 2.5)
+
+    def test_lot_names_the_profile_the_sheet_was_copied_from(self):
+        """Switching the opportunity's profile does not recopy the sheet, so the lot keeps the sheet's own profile."""
+        opportunity = self._opportunity()
+        sheet = opportunity.opportunity_material_ids
+        other_polymer = self._get_or_create_polymer(code="LDPE", name="LDPE")
+        other_profile = self.env["plasticos.material.profile"].create(
+            {
+                "partner_id": self.supplier.id,
+                "polymer_id": other_polymer.id,
+                "form_id": self.form.id,
+                "quantity_per_load_lbs": 15000,
+                "contamination_percent": 7.0,
+            }
+        )
+        opportunity.material_profile_id = other_profile
+        self.assertEqual(opportunity.opportunity_material_ids, sheet, "a profile change does not recopy the sheet")
+        self.assertEqual(sheet.source_profile_id, self.profile)
+
+        run, sent = self._match(opportunity)
+
+        lot = run.approval_id
+        self.assertEqual(lot.material_profile_id, self.profile, "the lot names the sheet's source profile")
+        self.assertEqual(lot.snapshot["material_profile_id"], self.profile.id)
+        self.assertEqual(lot.snapshot["opportunity_material_id"], sheet.id)
+        self.assertEqual(
+            lot.snapshot["quantity_per_load_lbs"], 40000, "values come from the sheet, not the new profile"
+        )
+        self.assertEqual(sent["payload"]["query"]["material_profile_id"], self.profile.id)
+
+    def test_sheet_edit_after_match_does_not_rewrite_the_lot(self):
+        opportunity = self._opportunity()
+        run, _sent = self._match(opportunity)
+        lot = run.approval_id
+        digest = lot.snapshot_digest
+        opportunity.opportunity_material_ids.write({"quantity_per_load_lbs": 1000, "contamination_percent": 9.0})
+        self.env.invalidate_all()
+        self.assertEqual(lot.snapshot_digest, digest)
+        self.assertEqual(lot.snapshot["quantity_per_load_lbs"], 40000)
+        self.assertEqual(lot.snapshot["contamination_pct"], 2.5)
+
+    def test_match_copies_the_profile_onto_an_opportunity_without_a_sheet(self):
+        opportunity = self._opportunity()
+        opportunity.opportunity_material_ids.unlink()
+        self.assertFalse(opportunity.opportunity_material_ids)
+
+        run, sent = self._match(opportunity)
+
+        sheet = opportunity.opportunity_material_ids
+        self.assertEqual(len(sheet), 1, "matching copies the profile onto the opportunity first")
+        self.assertEqual(sheet.source_profile_id, self.profile)
+        self.assertEqual(run.approval_id.snapshot["opportunity_material_id"], sheet.id)
+        self.assertEqual(sent["payload"]["query"]["quantity_per_load_lbs"], 40000)
+
+    def test_mint_without_a_sheet_freezes_the_profile(self):
+        opportunity = self.Lead.create(
+            {"name": "Profile-only lot", "type": "opportunity", "partner_id": self.supplier.id}
+        )
+        self.assertFalse(opportunity.opportunity_material_ids)
+        lot = self.Approval.mint(opportunity, source="manual", partner=self.supplier, material_profile=self.profile)
+        self.assertNotIn("opportunity_material_id", lot.snapshot)
+        self.assertEqual(lot.snapshot["quantity_per_load_lbs"], 40000)
+        self.assertEqual(lot.snapshot["contamination_pct"], 2.5)
+        self.assertFalse(opportunity.opportunity_material_ids, "minting a lot creates no sheet")
 
     def test_matching_chatter_carries_no_lot_or_snapshot_terms(self):
         opportunity = self._opportunity()
@@ -424,6 +516,13 @@ class TestOpportunityApproval(PlasticosTestCase):
         self.assertEqual(len(failed), 1)
         self.assertEqual(failed.approval_id, opportunity.approval_ids.sorted("id")[-1])
         self.assertTrue(failed._plasticos_lot_retry_subject(), "the retry is built from the surviving lot")
+        # A sheet edit after the failure does not reach the retry: it is built from the frozen lot.
+        opportunity.opportunity_material_ids.write({"quantity_per_load_lbs": 1000, "contamination_percent": 9.0})
+        self.env.invalidate_all()
+        retry_snapshot = failed._plasticos_lot_retry_subject()["snapshot"]
+        self.assertEqual(retry_snapshot, dict(failed.approval_id.snapshot))
+        self.assertEqual(retry_snapshot["quantity_per_load_lbs"], 40000)
+        self.assertEqual(retry_snapshot["contamination_pct"], 2.5)
 
     def test_exactly_one_commercial_winner_per_opportunity(self):
         opportunity, _run = self._reviewed_run()

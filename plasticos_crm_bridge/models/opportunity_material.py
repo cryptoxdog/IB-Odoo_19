@@ -2,7 +2,10 @@
 
 Copied once from the linked material profile. Later edits stay on this row.
 They never write ``plasticos.material.profile`` or its image attachments.
-The approved lot stays frozen; this copy is the broker's working sheet.
+This copy is the broker's working sheet and the material authority of the
+pursuit: Gate matching freezes it into an approved lot when matching starts,
+and manual offers and the release read it. A frozen lot never changes after
+a later edit here; the next match freezes the edited sheet as a new lot.
 """
 
 from __future__ import annotations

@@ -130,7 +130,10 @@ class CrmLeadPlastOS(models.Model):
         "plasticos.opportunity.material",
         "opportunity_id",
         string="Material Copy",
-        help="The opportunity's own material sheet. Editing it does not write the live profile.",
+        help=(
+            "The opportunity's own material sheet. Editing it does not write the live profile. "
+            "Match via Gate freezes this sheet as it stands when matching starts."
+        ),
     )
     offer_weight_lbs = fields.Float(
         string="Weight",
@@ -1197,10 +1200,14 @@ class CrmLeadPlastOS(models.Model):
     def action_approve_lot(self):
         """Mint one immutable approved lot from the current Partner, Material Profile and optional Facility.
 
+        The lot freezes the opportunity's material sheet as it stands now, so
+        Gate matches the material manual offers and the release sell. An
+        opportunity without a sheet gets one copied from its profile first.
         The lot is backend evidence only: it posts nothing to the chatter. Its
         provenance lives on the ``plasticos.opportunity.approval`` record.
         """
         self._plasticos_require_lot_inputs()
+        self._plasticos_ensure_opportunity_material()
         return self.env["plasticos.opportunity.approval"].mint(
             self,
             source=self._plasticos_opportunity_source(),
