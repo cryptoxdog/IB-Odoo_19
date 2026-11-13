@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Domestic road equipment seed (BRS-EXP-07-R002). Stable reference data: an
+     operator may add types or archive one, and an upgrade does not reset them.
+     A flatbed names no length; the actual move records its own dimensions. -->
+<odoo noupdate="1">
+    <record id="road_equipment_trailer_53" model="plasticos.road.equipment.type">
+        <field name="name">53 ft Trailer</field>
+        <field name="code">trailer_53</field>
+        <field name="sequence">10</field>
+        <field name="nominal_length_ft">53</field>
+    </record>
+    <record id="road_equipment_trailer_48" model="plasticos.road.equipment.type">
+        <field name="name">48 ft Trailer</field>
+        <field name="code">trailer_48</field>
+        <field name="sequence">20</field>
+        <field name="nominal_length_ft">48</field>
+    </record>
+    <record id="road_equipment_flatbed" model="plasticos.road.equipment.type">
+        <field name="name">Flatbed</field>
+        <field name="code">flatbed</field>
+        <field name="sequence">30</field>
+        <field name="description">A flatbed of any length. Record the actual deck length and restrictions on the load.</field>
+    </record>
+</odoo>

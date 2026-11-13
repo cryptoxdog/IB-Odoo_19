@@ -7,7 +7,7 @@ from datetime import timedelta
 
 from odoo import fields
 
-from .freight_context import build_freight_context
+from .freight_context import FREIGHT_CONTEXT_VERSION, build_freight_context
 
 SAL_WINDOW = timedelta(days=30)
 QUALIFYING_STATES = ("picked_up", "delivered", "closed")
@@ -31,6 +31,13 @@ def _company_for(load):
     )
 
 
+def _intake_stream_id(load):
+    """The admitted SAL repeat stream: the exact transaction intake, or None."""
+    transaction = getattr(load, "transaction_id", None)
+    intake = getattr(transaction, "intake_id", None) if transaction else None
+    return intake.id if intake else None
+
+
 def _movement_at(load):
     if load.state in ("delivered", "closed") and load.delivered_at:
         return load.delivered_at
@@ -47,8 +54,13 @@ def resolve_sal(load) -> SalDecision:
         return SalDecision("not_eligible", "already_rate_confirmed")
 
     company = _company_for(load)
+    # A buyerless or manual movement has no intake repeat stream. SAL abstains
+    # before any history lookup, so a missing stream can never match every other
+    # stream-less load.
+    if not _intake_stream_id(load):
+        return SalDecision("not_eligible", "missing_lane_identity")
     context = build_freight_context(load)
-    if not company or not context:
+    if not company or not context or context.repeat_stream_id is None:
         return SalDecision("not_eligible", "missing_lane_identity")
 
     cutoff = fields.Datetime.now() - SAL_WINDOW
@@ -72,6 +84,10 @@ def resolve_sal(load) -> SalDecision:
     saw_inactive_carrier = False
     for candidate in candidates:
         if _company_for(candidate) != company:
+            continue
+        # A manual-context confirmation is never repeat-rate evidence.
+        candidate_version = getattr(candidate, "freight_context_version", None)
+        if candidate_version and candidate_version != FREIGHT_CONTEXT_VERSION:
             continue
         moved_at = _movement_at(candidate)
         if not moved_at:

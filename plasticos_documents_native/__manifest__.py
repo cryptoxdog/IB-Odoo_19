@@ -1,6 +1,6 @@
 {
     "name": "Plasticos Documents — Native Bridge",
-    "version": "19.0.1.3.0",
+    "version": "19.0.1.3.1",
     "summary": "Plastics fields on Odoo Enterprise Documents, pending evidence rows for classified "
     "originals with manager review, and a posting guard on digitized vendor bills",
     "category": "Document Management",

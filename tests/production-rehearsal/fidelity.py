@@ -44,7 +44,13 @@ _ROLE = {
     "P": ("", 1, 1),
 }
 _UOM_XMLID = {"L": "uom.product_uom_lb", "S": "uom.product_uom_lb", "E": "uom.product_uom_unit"}
-_INCOTERM = {"fob": "FOB", "fob supplier dock": "FOB", "pickup": "FOB", "fas": "FAS"}
+# The importer's crosswalk (plasticos_partner_import/erp/native_orders.py), copied so the verifier
+# does not call it. Only ``fas`` is an Incoterm. The domestic shipping-point bases are declined like
+# ``delivered``, but unlike it they never rewrite a stored Incoterm (BRS-EXP-02-R006, ADR-021
+# amendment 2026-11-12).
+_INCOTERM = {"fas": "FAS"}
+_DOMESTIC_BASES = frozenset({"fob", "fob supplier dock", "pickup"})
+_DECLINED_BASES = frozenset({"delivered"}) | _DOMESTIC_BASES
 
 COVERAGE: list[dict] = [
     {
@@ -208,7 +214,7 @@ COVERAGE: list[dict] = [
         "target_field": "incoterm",
         "kind": "direct",
         "scope": "all_imported",
-        "note": "PO.PriceBasis when set; otherwise the last mapped or declined BuySell.PriceBasis in importer worksheet order",
+        "note": "PO.PriceBasis when set; otherwise the last mapped or delivered BuySell.PriceBasis in importer worksheet order, else the last domestic shipping-point basis (no Incoterm)",
     },
     {
         "source_table": "GPLedger",
@@ -470,7 +476,7 @@ def same_when(expected, actual) -> bool:
 
 def incoterm_of(basis) -> str | None:
     folded = text(basis).lower()
-    if not folded or "do not use" in folded or folded == "delivered":
+    if not folded or "do not use" in folded or folded in _DECLINED_BASES:
         return None
     return _INCOTERM.get(folded)
 
@@ -1172,12 +1178,16 @@ def _basis_effect(basis: str) -> str:
 
     This is the importer's write, copied here so the verifier does not call it.
     A blank basis and a basis with no Incoterm leave the stored value. ``delivered``
-    clears it. A mapped basis replaces it.
+    clears it. A domestic shipping-point basis is declined: it leaves the stored
+    value and is the reported basis only when nothing else applies. A mapped
+    basis replaces it.
     """
     folded = text(basis).lower()
     if not folded or "do not use" in folded:
         return "keep"
-    if folded == "delivered":
+    if folded in _DOMESTIC_BASES:
+        return "decline"
+    if folded in _DECLINED_BASES:
         return "clear"
     if folded in _INCOTERM:
         return "map"
@@ -1200,16 +1210,23 @@ def effective_price_basis(header: dict, origin, buysells) -> tuple[str, str, str
     chosen = ""
     table = "PO"
     winner = ""
+    declined = ("", "PO", "")
     numbers = sorted(part.strip() for part in text(origin).split(",") if part.strip())
     indexed = buysells if isinstance(buysells, dict) else {}
     for number in numbers:
         row = indexed.get(number)
         basis = text((row or {}).get("PriceBasis")) if isinstance(row, dict) else ""
-        if _basis_effect(basis) == "keep":
+        effect = _basis_effect(basis)
+        if effect == "keep":
+            continue
+        if effect == "decline":
+            declined = (basis, "BuySell", number)
             continue
         chosen = basis
         table = "BuySell"
         winner = number
+    if not chosen:
+        return declined
     return chosen, table, winner
 
 
@@ -2082,7 +2099,7 @@ def fixture_bundles() -> tuple[dict, dict]:
                 "origin": "100",
                 "date_order": "2024-03-01 00:00:00",
                 "client_order_ref": "REF",
-                "incoterm_code": "FOB",
+                "incoterm_code": "",
                 "state": "draft",
             }
         ],
@@ -2093,7 +2110,7 @@ def fixture_bundles() -> tuple[dict, dict]:
                 "origin": "100",
                 "date_order": "2024-03-01 00:00:00",
                 "date_approve": "2024-03-02 06:00:00",
-                "incoterm_code": "FOB",
+                "incoterm_code": "",
                 "state": "draft",
             }
         ],

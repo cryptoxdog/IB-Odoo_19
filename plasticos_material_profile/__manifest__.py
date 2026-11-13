@@ -35,9 +35,11 @@
         "views/material_color_views.xml",
         "views/source_type_views.xml",
         "views/process_type_views.xml",
+        # Load order matters on upgrade: the partner tab embeds material-profile fields, so it must be
+        # refreshed before material_profile_views.xml writes its res.partner view and re-validates the form.
+        "views/partner_material_ux.xml",
         "views/material_profile_views.xml",
         "views/material_profile_ux.xml",
-        "views/partner_material_ux.xml",
     ],
     "assets": {
         "web.assets_backend": [

@@ -124,6 +124,27 @@ class TestManualOffers(PlasticosTestCase):
         with self.assertRaisesRegex(UserError, "closed"):
             lost.action_select_offer_buyers()
 
+    def test_select_buyers_button_is_hidden_once_won(self):
+        from lxml import etree  # noqa: PLC0415
+
+        from odoo.tests import Form  # noqa: PLC0415
+        from odoo.tools.safe_eval import safe_eval  # noqa: PLC0415
+
+        arch = etree.fromstring(self.Lead.get_view(view_type="form")["arch"])
+        [button] = arch.xpath("//button[@name='action_select_offer_buyers']")
+        expression = button.get("invisible")
+        self.assertNotIn("stage_id.", expression, "a modifier cannot read through a many2one")
+
+        def hidden(record):
+            form = Form(record)
+            return bool(safe_eval(expression, form._get_eval_context(form._values)))
+
+        opportunity = self._opportunity()
+        self.assertFalse(hidden(opportunity), "an open opportunity offers Select Buyers")
+        opportunity._plasticos_mark_won()
+        self.assertTrue(opportunity.stage_is_won)
+        self.assertTrue(hidden(opportunity), "a won opportunity hides Select Buyers")
+
     def test_contact_picker_domain_is_valid_and_hides_the_supplier(self):
         from odoo.tools.safe_eval import safe_eval  # noqa: PLC0415
 
@@ -182,6 +203,15 @@ class TestManualOffers(PlasticosTestCase):
         with self.assertRaisesRegex(UserError, "Archived"):
             self._generate(opportunity, gone)
 
+    def test_mixed_active_and_archived_selection_is_refused(self):
+        """An archived contact is refused, never silently dropped from a mixed selection."""
+        opportunity = self._opportunity()
+        gone = self._contact(self.buyer_b, "Gone Mixed B", "gone-mixed@buyer-b.example.com")
+        gone.action_archive()
+        with self.assertRaisesRegex(UserError, "Archived contacts cannot receive offers: Gone Mixed B"):
+            self._generate(opportunity, self.alice | gone)
+        self.assertFalse(self.Offer.search([("opportunity_id", "=", opportunity.id)]))
+
     def test_contact_of_another_company_is_refused(self):
         other_company = self.env["res.company"].create({"name": "Other Legal Company"})
         hidden = self.env["res.partner"].create(
@@ -197,12 +227,24 @@ class TestManualOffers(PlasticosTestCase):
             }
         )
         opportunity = self._opportunity()
-        with self.assertRaises((AccessError, UserError)):
+        # AccessError subclasses UserError in Odoo 19; the regex pins the
+        # company refusal, not a generic access error.
+        with self.assertRaisesRegex(UserError, "belong to a company you are not working in") as caught:
             wizard = self.Wizard.with_user(rep).create(
                 {"opportunity_id": opportunity.id, "contact_ids": [Command.set(hidden.ids)]}
             )
             wizard.action_generate_draft_offers()
+        self.assertNotIsInstance(caught.exception, AccessError)
+        self.assertNotIn("Hidden Buyer", str(caught.exception), "a hidden contact is never named")
         self.assertFalse(self.Offer.search([("buyer_id", "=", hidden.id)]))
+
+        # Mixed with a contact the rep may offer to: refused, not silently reduced.
+        with self.assertRaisesRegex(UserError, "belong to a company you are not working in"):
+            wizard = self.Wizard.with_user(rep).create(
+                {"opportunity_id": opportunity.id, "contact_ids": [Command.set((self.alice | hidden).ids)]}
+            )
+            wizard.action_generate_draft_offers()
+        self.assertFalse(self.Offer.search([("opportunity_id", "=", opportunity.id)]))
 
     # ── Draft content ───────────────────────────────────────
 

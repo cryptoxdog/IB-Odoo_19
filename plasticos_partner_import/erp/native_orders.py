@@ -34,10 +34,12 @@ __all__ = [
     "CUSTOMER_CREDIT",
     "CUSTOMER_DEBIT",
     "DECLINED_PRICE_BASES",
+    "DOMESTIC_SHIPPING_POINT_BASES",
     "EQUIPMENT_GL",
     "EXPENSE_GL",
     "FREIGHT_GL",
     "HANDLING_GL",
+    "INCOTERM_BY_BASIS",
     "LINK_REASON_CLASSES",
     "MATERIAL_GL",
     "NOT_REALIZED",
@@ -49,6 +51,7 @@ __all__ = [
     "UNBILLABLE",
     "WORKSHEET_SEPARATOR",
     "amount_drift",
+    "clears_incoterm",
     "commission_recipients",
     "commission_slots",
     "declined_price_basis",
@@ -590,10 +593,20 @@ def freight_vendor_id(rows) -> str:
     return chosen
 
 
-# Price bases with no Incoterm that means the same thing. ``delivered`` is not
-# FAS (seller delivers alongside the ship), and neither DAP nor DDP is proven
-# by the source, so the order carries no Incoterm and the basis is reported.
-DECLINED_PRICE_BASES = frozenset({"delivered"})
+# Price bases with no Incoterm that means the same thing (BRS-EXP-02-R006,
+# ADR-021 amendment 2026-11-12). ``delivered`` is not FAS (seller delivers
+# alongside the ship), and neither DAP nor DDP is proven by the source: the
+# order carries no Incoterm, and an Incoterm an earlier run wrote is cleared.
+# The recycler's domestic shipping-point bases (``fob``, ``fob supplier dock``,
+# ``pickup``: the buyer collects at the supplier's dock) are not the Incoterms
+# 2020 FOB, which is delivery on board a vessel at the port of shipment. They
+# set no Incoterm on a new order and never rewrite the Incoterm of an order
+# already imported. Every declined basis is reported.
+DOMESTIC_SHIPPING_POINT_BASES = frozenset({"fob", "fob supplier dock", "pickup"})
+DECLINED_PRICE_BASES = frozenset({"delivered"}) | DOMESTIC_SHIPPING_POINT_BASES
+
+# The only source basis that is the literal Incoterms 2020 rule of the same name.
+INCOTERM_BY_BASIS = {"fas": "FAS"}
 
 
 def incoterm_code(basis: str | None) -> str | None:
@@ -601,16 +614,22 @@ def incoterm_code(basis: str | None) -> str | None:
     text = (basis or "").strip().lower()
     if not text or "do not use" in text:
         return None
-    if text in {"fob", "fob supplier dock", "pickup"}:
-        return "FOB"
-    if text == "fas":
-        return "FAS"
-    return None
+    return INCOTERM_BY_BASIS.get(text)
 
 
 def declined_price_basis(basis: str | None) -> bool:
     """True when the basis is known and deliberately carries no Incoterm."""
     return (basis or "").strip().lower() in DECLINED_PRICE_BASES
+
+
+def clears_incoterm(basis: str | None) -> bool:
+    """True when a declined basis also clears an Incoterm an earlier run wrote.
+
+    Only ``delivered`` does. A domestic shipping-point basis never rewrites an
+    order already imported (ADR-021 amendment 2026-11-12).
+    """
+    text = (basis or "").strip().lower()
+    return text in DECLINED_PRICE_BASES and text not in DOMESTIC_SHIPPING_POINT_BASES
 
 
 def vendor_bill_header_facts(payable: dict, header: dict | None) -> dict[str, str]:

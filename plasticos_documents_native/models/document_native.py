@@ -294,6 +294,7 @@ class DocumentNative(models.Model):
         "plasticos_doc_id.res_model",
         "plasticos_doc_id.res_id",
         "plasticos_doc_id.association_state",
+        "plasticos_doc_id.obligation_kind",
         "attachment_id",
         "verification_review_required",
         "shortcut_document_id",
@@ -318,6 +319,8 @@ class DocumentNative(models.Model):
                 and legacy.res_model not in excluded
                 and legacy.res_id
                 and legacy.association_state == "accepted"
+                # A sole operation-scoped row is not global native verification.
+                and legacy._is_legacy_obligation()
             )
             if exact:
                 rec.verified = bool(legacy.verified)
@@ -333,13 +336,18 @@ class DocumentNative(models.Model):
                 rec.override_reason = False
 
     def _exact_projected_rows(self, predicate):
-        """Accepted domain rows that are the only row on their original."""
+        """Accepted legacy domain rows that are the only row on their original.
+
+        Siblings of every obligation are counted, so an original with a legacy
+        row and an operation row stays ambiguous at the native Boolean.
+        """
         document = self.env["plasticos.document"]
         excluded = list(self._excluded_evidence_models())
         matched = document.search(
             [
                 *predicate,
                 ("association_state", "=", "accepted"),
+                *document._legacy_obligation_domain(),
                 ("res_id", "!=", 0),
                 ("res_model", "not in", excluded),
             ]

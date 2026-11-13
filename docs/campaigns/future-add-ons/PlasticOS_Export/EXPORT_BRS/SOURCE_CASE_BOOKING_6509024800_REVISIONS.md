@@ -1,6 +1,6 @@
 # Same-number ocean booking: extracted version candidates and coordinator decisions
 
-**Status:** direct readings of user-supplied files and screenshot on 2026-10-28; not a chronology certification, regulatory statement, source-owner approval or live Odoo test. These sources are private fixtures at `SOURCES/PRIVATE_OPERATOR_CASE_PO64014/`.
+**Status:** direct readings of user-supplied files and screenshot on 2026-10-28; not a chronology certification, regulatory statement, source-owner approval or live Odoo test. These sources are private fixtures. They were removed from the repository on 2026-11-12 by operator decision and are held privately; repository history was not rewritten.
 
 | Source | Booking reference | Capacity | Cargo cutoff | ERD / terminal | Sail/ETA | Other |
 |---|---|---|---|---|---|---|

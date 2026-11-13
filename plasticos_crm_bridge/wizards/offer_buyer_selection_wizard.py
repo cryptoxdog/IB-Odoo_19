@@ -137,22 +137,44 @@ class PlasticosOfferBuyerSelectionWizard(models.TransientModel):
         """Selected contacts with an email. A selected company without an email is not a recipient."""
         return contacts.filtered(lambda partner: partner.email)
 
+    def _plasticos_selected_contacts(self):
+        """Every stored selected contact, in the current user's environment.
+
+        Reading ``contact_ids`` normally drops archived contacts (``active_test``)
+        and contacts hidden by record rules (another company's partners). The
+        selection would then be silently reduced and the refusals below could
+        never fire, so the relation is read without either filter.
+        """
+        self.ensure_one()
+        stored = self.sudo().with_context(active_test=False).contact_ids  # sudo: raw selected ids; caller checks access
+        return stored.with_env(self.env)
+
     def _plasticos_validated_groups(self, opportunity):
         """Server-side check of the selection; never trusts the dialog domain."""
         self.ensure_one()
-        contacts = self.contact_ids
+        contacts = self._plasticos_selected_contacts()
         if not contacts:
             raise UserError(_("Select at least one buyer contact."))
+        # Company before access: the res.partner record rule hides another
+        # company's contacts, so check_access would only report a generic access
+        # error. The company is read as superuser to name the cause; hidden
+        # contacts are counted, never named.
+        allowed_companies = self.env.companies
+        foreign = contacts.sudo().filtered(  # sudo: company of rule-hidden contacts; only counted, never returned
+            lambda partner: partner.company_id and partner.company_id not in allowed_companies
+        )
+        if foreign:
+            raise UserError(
+                _(
+                    "%s selected contact(s) belong to a company you are not working in. Remove them from the "
+                    "selection.",
+                    len(foreign),
+                )
+            )
         contacts.check_access("read")
         archived = contacts.filtered(lambda partner: not partner.active)
         if archived:
             raise UserError(_("Archived contacts cannot receive offers: %s.") % ", ".join(archived.mapped("name")))
-        allowed_companies = self.env.companies
-        foreign = contacts.filtered(lambda partner: partner.company_id and partner.company_id not in allowed_companies)
-        if foreign:
-            raise UserError(
-                _("These contacts belong to a company you are not working in: %s.") % ", ".join(foreign.mapped("name"))
-            )
         supplier = opportunity.partner_id.commercial_partner_id
         groups = self._plasticos_group_contacts(contacts)
         undeliverable = []

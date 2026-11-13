@@ -31,6 +31,9 @@ Please confirm readiness at your earliest convenience.</p>
             <field name="subject">Readiness Confirmation Required — {{ object.name }}</field>
             <field name="email_from">{{ (object.user_id.email_formatted or user.email_formatted) }}</field>
             <field name="email_to">{{ object.supplier_id.email }}</field>
+            <!-- Odoo 19 defaults use_default_to to True, which replaces email_to with the record's
+                 default recipients; this record's default is not the intended counterparty. -->
+            <field name="use_default_to" eval="False"/>
             <field name="body_html"><![CDATA[
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f8f9fa; padding: 20px;">
     <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
@@ -99,6 +102,9 @@ Please confirm receipt at your earliest convenience.</p>
             ]]></field>
             <field name="email_from">{{ (object.company_id.email or user.email) }}</field>
             <field name="email_to">{{ object.carrier_id.email }}</field>
+            <!-- Odoo 19 defaults use_default_to to True, which replaces email_to with the record's
+                 default recipients; this record's default is not the intended counterparty. -->
+            <field name="use_default_to" eval="False"/>
             <field name="auto_delete" eval="True"/>
         </record>
 
@@ -106,58 +112,63 @@ Please confirm receipt at your earliest convenience.</p>
              LOGISTICS LOAD DOCUMENT TEMPLATES (Paperless Send)
              ═══════════════════════════════════════════════════════════════════ -->
 
+        <!-- Carrier templates (S4, RP-03-E010, D5). Issuer, phone and email_from come from the
+             load's own company_id: a buyerless load has no sale order, and env.company is never
+             the issuer. No literal fallback name or address is rendered. Bodies are QWeb
+             (t-out); the body_html engine does not evaluate {{ }} placeholders. -->
+
         <!-- Delivery Order Email Template -->
         <record id="email_template_delivery_order" model="mail.template">
             <field name="name">PlasticOS: Delivery Order to Carrier</field>
             <field name="model_id" ref="plasticos_logistics.model_plasticos_load"/>
             <field name="subject">DELIVERY ORDER {{ object.name }} — {{ object.pickup_partner_id.city or '' }} to {{ object.delivery_partner_id.city or '' }}</field>
-            <field name="body_html"><![CDATA[
-<p>Dear {{ object.carrier_contact_name or object.carrier_id.name }},</p>
-
-<p>Please find attached the <strong>Delivery Order #{{ object.name }}</strong> for your records.</p>
-
+            <field name="body_html" type="html">
+<div style="margin: 0px; padding: 0px; font-size: 14px;">
+<p>Dear <t t-out="object.carrier_contact_name or object.carrier_id.name or ''">Carrier</t>,</p>
+<p>Please find attached the <strong>Delivery Order #<t t-out="object.name or ''">LOAD</t></strong> for your records.</p>
 <table style="border-collapse: collapse; width: 100%; margin: 15px 0;">
     <tr style="background-color: #f5f5f5;">
         <td style="padding: 10px; border: 1px solid #ddd;"><strong>Rate:</strong></td>
-        <td style="padding: 10px; border: 1px solid #ddd;">${{ "%.2f"|format(object.rate_amount) }} USD</td>
+        <td style="padding: 10px; border: 1px solid #ddd;"><t t-out="'%.2f' % (object.rate_amount or 0.0)">0.00</t> <t t-out="object.rate_currency_id.name or ''">USD</t></td>
     </tr>
     <tr>
         <td style="padding: 10px; border: 1px solid #ddd;"><strong>Pickup Location:</strong></td>
-        <td style="padding: 10px; border: 1px solid #ddd;">{{ object.pickup_partner_id.name }}<br/>{{ object.pickup_partner_id.street or '' }}<br/>{{ object.pickup_partner_id.city or '' }}, {{ object.pickup_partner_id.state_id.code or '' }} {{ object.pickup_partner_id.zip or '' }}</td>
+        <td style="padding: 10px; border: 1px solid #ddd;"><t t-out="object.pickup_partner_id.name or ''"/><br/><t t-out="object.pickup_partner_id.street or ''"/><br/><t t-out="object.pickup_partner_id.city or ''"/>, <t t-out="object.pickup_partner_id.state_id.code or ''"/> <t t-out="object.pickup_partner_id.zip or ''"/></td>
     </tr>
     <tr style="background-color: #f5f5f5;">
         <td style="padding: 10px; border: 1px solid #ddd;"><strong>Pickup Date:</strong></td>
-        <td style="padding: 10px; border: 1px solid #ddd;">{{ object.pickup_datetime }}</td>
+        <td style="padding: 10px; border: 1px solid #ddd;"><t t-out="object.pickup_datetime or ''"/></td>
     </tr>
     <tr>
         <td style="padding: 10px; border: 1px solid #ddd;"><strong>Delivery Location:</strong></td>
-        <td style="padding: 10px; border: 1px solid #ddd;">{{ object.delivery_partner_id.name }}<br/>{{ object.delivery_partner_id.street or '' }}<br/>{{ object.delivery_partner_id.city or '' }}, {{ object.delivery_partner_id.state_id.code or '' }} {{ object.delivery_partner_id.zip or '' }}</td>
+        <td style="padding: 10px; border: 1px solid #ddd;"><t t-out="object.delivery_partner_id.name or ''"/><br/><t t-out="object.delivery_partner_id.street or ''"/><br/><t t-out="object.delivery_partner_id.city or ''"/>, <t t-out="object.delivery_partner_id.state_id.code or ''"/> <t t-out="object.delivery_partner_id.zip or ''"/></td>
     </tr>
     <tr style="background-color: #f5f5f5;">
         <td style="padding: 10px; border: 1px solid #ddd;"><strong>Delivery Date:</strong></td>
-        <td style="padding: 10px; border: 1px solid #ddd;">{{ object.delivery_datetime }}</td>
+        <td style="padding: 10px; border: 1px solid #ddd;"><t t-out="object.delivery_datetime or ''"/></td>
     </tr>
     <tr>
         <td style="padding: 10px; border: 1px solid #ddd;"><strong>Product:</strong></td>
-        <td style="padding: 10px; border: 1px solid #ddd;">{{ object.product_description or 'See attached' }}</td>
+        <td style="padding: 10px; border: 1px solid #ddd;"><t t-out="object.product_description or 'See attached'"/></td>
     </tr>
 </table>
-
 <p><strong>Important:</strong></p>
 <ul>
     <li>Obtain LIGHT &amp; HEAVY 3rd Party Certified Scale Tickets</li>
     <li>Use the attached BOL-PICKUP document at origin</li>
-    <li>Send all completed docs to {{ object.sale_order_id.company_id.email or 'docs@company.com' }}</li>
+    <li t-if="object.company_id.email">Send all completed docs to <t t-out="object.company_id.email"/></li>
 </ul>
-
 <p>Please confirm receipt of this Delivery Order by replying to this email.</p>
-
 <p>Thank you,<br/>
-{{ object.sale_order_id.company_id.name or 'PlasticOS Logistics' }}<br/>
-{{ object.sale_order_id.company_id.phone or '' }}</p>
-            ]]></field>
-            <field name="email_from">{{ (object.sale_order_id.company_id.email or user.email) }}</field>
+<t t-out="object.company_id.name or ''"/><br/>
+<t t-out="object.company_id.phone or ''"/></p>
+</div>
+            </field>
+            <field name="email_from">{{ object.company_id.email_formatted }}</field>
             <field name="email_to">{{ object.carrier_id.email }}</field>
+            <!-- Odoo 19: with default recipients on, email_to is ignored and the record's default
+                 recipients (none for a load) are used, so the carrier got no mail. -->
+            <field name="use_default_to" eval="False"/>
             <field name="report_template_ids" eval="[(4, ref('plasticos_logistics.action_report_delivery_order'))]"/>
             <field name="auto_delete" eval="False"/>
         </record>
@@ -167,40 +178,41 @@ Please confirm receipt at your earliest convenience.</p>
             <field name="name">PlasticOS: BOL Pickup to Carrier</field>
             <field name="model_id" ref="plasticos_logistics.model_plasticos_load"/>
             <field name="subject">BOL - PICKUP {{ object.name }} — {{ object.pickup_partner_id.name or '' }}</field>
-            <field name="body_html"><![CDATA[
-<p>Dear {{ object.carrier_contact_name or object.carrier_id.name }},</p>
-
-<p>Please find attached the <strong>Bill of Lading - Pickup #{{ object.name }}</strong>.</p>
-
+            <field name="body_html" type="html">
+<div style="margin: 0px; padding: 0px; font-size: 14px;">
+<p>Dear <t t-out="object.carrier_contact_name or object.carrier_id.name or ''">Carrier</t>,</p>
+<p>Please find attached the <strong>Bill of Lading - Pickup #<t t-out="object.name or ''">LOAD</t></strong>.</p>
 <p><strong>IMPORTANT - DOUBLE BLIND PICKUP:</strong><br/>
 Use this BOL document at the pickup location. Do NOT share delivery destination details with the shipper.</p>
-
 <table style="border-collapse: collapse; width: 100%; margin: 15px 0;">
     <tr style="background-color: #f5f5f5;">
         <td style="padding: 10px; border: 1px solid #ddd;"><strong>Pickup At:</strong></td>
-        <td style="padding: 10px; border: 1px solid #ddd;">{{ object.pickup_partner_id.name }}<br/>{{ object.pickup_partner_id.street or '' }}<br/>{{ object.pickup_partner_id.city or '' }}, {{ object.pickup_partner_id.state_id.code or '' }} {{ object.pickup_partner_id.zip or '' }}</td>
+        <td style="padding: 10px; border: 1px solid #ddd;"><t t-out="object.pickup_partner_id.name or ''"/><br/><t t-out="object.pickup_partner_id.street or ''"/><br/><t t-out="object.pickup_partner_id.city or ''"/>, <t t-out="object.pickup_partner_id.state_id.code or ''"/> <t t-out="object.pickup_partner_id.zip or ''"/></td>
     </tr>
     <tr>
         <td style="padding: 10px; border: 1px solid #ddd;"><strong>Pickup Contact:</strong></td>
-        <td style="padding: 10px; border: 1px solid #ddd;">{{ object.pickup_contact_name or '' }}<br/>{{ object.pickup_contact_phone or '' }}</td>
+        <td style="padding: 10px; border: 1px solid #ddd;"><t t-out="object.pickup_contact_name or ''"/><br/><t t-out="object.pickup_contact_phone or ''"/></td>
     </tr>
     <tr style="background-color: #f5f5f5;">
         <td style="padding: 10px; border: 1px solid #ddd;"><strong>Pickup Date:</strong></td>
-        <td style="padding: 10px; border: 1px solid #ddd;">{{ object.pickup_datetime }}</td>
+        <td style="padding: 10px; border: 1px solid #ddd;"><t t-out="object.pickup_datetime or ''"/></td>
     </tr>
     <tr>
         <td style="padding: 10px; border: 1px solid #ddd;"><strong>Reference #:</strong></td>
-        <td style="padding: 10px; border: 1px solid #ddd;">{{ object.pickup_reference or '' }}</td>
+        <td style="padding: 10px; border: 1px solid #ddd;"><t t-out="object.pickup_reference or ''"/></td>
     </tr>
 </table>
-
-<p>Please have the shipper sign the BOL and return a copy to {{ object.sale_order_id.company_id.email or 'docs@company.com' }}.</p>
-
+<p>Please have the shipper sign the BOL and return a copy<t t-if="object.company_id.email"> to <t t-out="object.company_id.email"/></t>.</p>
 <p>Thank you,<br/>
-{{ object.sale_order_id.company_id.name or 'PlasticOS Logistics' }}</p>
-            ]]></field>
-            <field name="email_from">{{ (object.sale_order_id.company_id.email or user.email) }}</field>
+<t t-out="object.company_id.name or ''"/><br/>
+<t t-out="object.company_id.phone or ''"/></p>
+</div>
+            </field>
+            <field name="email_from">{{ object.company_id.email_formatted }}</field>
             <field name="email_to">{{ object.carrier_id.email }}</field>
+            <!-- Odoo 19: with default recipients on, email_to is ignored and the record's default
+                 recipients (none for a load) are used, so the carrier got no mail. -->
+            <field name="use_default_to" eval="False"/>
             <field name="report_template_ids" eval="[(4, ref('plasticos_logistics.action_report_bol_pickup'))]"/>
             <field name="auto_delete" eval="False"/>
         </record>
@@ -210,39 +222,40 @@ Use this BOL document at the pickup location. Do NOT share delivery destination 
             <field name="name">PlasticOS: BOL Delivery to Carrier</field>
             <field name="model_id" ref="plasticos_logistics.model_plasticos_load"/>
             <field name="subject">BOL - DELIVERY {{ object.name }} — {{ object.delivery_partner_id.name or '' }}</field>
-            <field name="body_html"><![CDATA[
-<p>Dear {{ object.carrier_contact_name or object.carrier_id.name }},</p>
-
-<p>Please find attached the <strong>Bill of Lading - Delivery #{{ object.name }}</strong>.</p>
-
+            <field name="body_html" type="html">
+<div style="margin: 0px; padding: 0px; font-size: 14px;">
+<p>Dear <t t-out="object.carrier_contact_name or object.carrier_id.name or ''">Carrier</t>,</p>
+<p>Please find attached the <strong>Bill of Lading - Delivery #<t t-out="object.name or ''">LOAD</t></strong>.</p>
 <p>Use this BOL document at the delivery location for the consignee signature.</p>
-
 <table style="border-collapse: collapse; width: 100%; margin: 15px 0;">
     <tr style="background-color: #f5f5f5;">
         <td style="padding: 10px; border: 1px solid #ddd;"><strong>Deliver To:</strong></td>
-        <td style="padding: 10px; border: 1px solid #ddd;">{{ object.delivery_partner_id.name }}<br/>{{ object.delivery_partner_id.street or '' }}<br/>{{ object.delivery_partner_id.city or '' }}, {{ object.delivery_partner_id.state_id.code or '' }} {{ object.delivery_partner_id.zip or '' }}</td>
+        <td style="padding: 10px; border: 1px solid #ddd;"><t t-out="object.delivery_partner_id.name or ''"/><br/><t t-out="object.delivery_partner_id.street or ''"/><br/><t t-out="object.delivery_partner_id.city or ''"/>, <t t-out="object.delivery_partner_id.state_id.code or ''"/> <t t-out="object.delivery_partner_id.zip or ''"/></td>
     </tr>
     <tr>
         <td style="padding: 10px; border: 1px solid #ddd;"><strong>Delivery Contact:</strong></td>
-        <td style="padding: 10px; border: 1px solid #ddd;">{{ object.delivery_contact_name or '' }}<br/>{{ object.delivery_contact_phone or '' }}</td>
+        <td style="padding: 10px; border: 1px solid #ddd;"><t t-out="object.delivery_contact_name or ''"/><br/><t t-out="object.delivery_contact_phone or ''"/></td>
     </tr>
     <tr style="background-color: #f5f5f5;">
         <td style="padding: 10px; border: 1px solid #ddd;"><strong>Delivery Date:</strong></td>
-        <td style="padding: 10px; border: 1px solid #ddd;">{{ object.delivery_datetime }}</td>
+        <td style="padding: 10px; border: 1px solid #ddd;"><t t-out="object.delivery_datetime or ''"/></td>
     </tr>
     <tr>
         <td style="padding: 10px; border: 1px solid #ddd;"><strong>Reference #:</strong></td>
-        <td style="padding: 10px; border: 1px solid #ddd;">{{ object.delivery_reference or '' }}</td>
+        <td style="padding: 10px; border: 1px solid #ddd;"><t t-out="object.delivery_reference or ''"/></td>
     </tr>
 </table>
-
-<p>Please have the consignee sign the BOL and return a copy to {{ object.sale_order_id.company_id.email or 'docs@company.com' }}.</p>
-
+<p>Please have the consignee sign the BOL and return a copy<t t-if="object.company_id.email"> to <t t-out="object.company_id.email"/></t>.</p>
 <p>Thank you,<br/>
-{{ object.sale_order_id.company_id.name or 'PlasticOS Logistics' }}</p>
-            ]]></field>
-            <field name="email_from">{{ (object.sale_order_id.company_id.email or user.email) }}</field>
+<t t-out="object.company_id.name or ''"/><br/>
+<t t-out="object.company_id.phone or ''"/></p>
+</div>
+            </field>
+            <field name="email_from">{{ object.company_id.email_formatted }}</field>
             <field name="email_to">{{ object.carrier_id.email }}</field>
+            <!-- Odoo 19: with default recipients on, email_to is ignored and the record's default
+                 recipients (none for a load) are used, so the carrier got no mail. -->
+            <field name="use_default_to" eval="False"/>
             <field name="report_template_ids" eval="[(4, ref('plasticos_logistics.action_report_bol_delivery'))]"/>
             <field name="auto_delete" eval="False"/>
         </record>
@@ -252,56 +265,55 @@ Use this BOL document at the pickup location. Do NOT share delivery destination 
             <field name="name">PlasticOS: Full Dispatch Packet to Carrier</field>
             <field name="model_id" ref="plasticos_logistics.model_plasticos_load"/>
             <field name="subject">DISPATCH PACKET {{ object.name }} — {{ object.pickup_partner_id.city or '' }} to {{ object.delivery_partner_id.city or '' }}</field>
-            <field name="body_html"><![CDATA[
-<p>Dear {{ object.carrier_contact_name or object.carrier_id.name }},</p>
-
-<p>Please find attached the complete <strong>Dispatch Packet for Load #{{ object.name }}</strong>.</p>
-
+            <field name="body_html" type="html">
+<div style="margin: 0px; padding: 0px; font-size: 14px;">
+<p>Dear <t t-out="object.carrier_contact_name or object.carrier_id.name or ''">Carrier</t>,</p>
+<p>Please find attached the complete <strong>Dispatch Packet for Load #<t t-out="object.name or ''">LOAD</t></strong>.</p>
 <p><strong>Attached Documents:</strong></p>
 <ol>
     <li><strong>Delivery Order</strong> — Your dispatch instructions and rate confirmation</li>
     <li><strong>BOL - Pickup</strong> — Use at origin (PROTECT THE BLIND)</li>
     <li><strong>BOL - Delivery</strong> — Use at destination for consignee signature</li>
 </ol>
-
 <table style="border-collapse: collapse; width: 100%; margin: 15px 0;">
     <tr style="background-color: #2c3e50; color: white;">
         <td colspan="2" style="padding: 10px;"><strong>LOAD SUMMARY</strong></td>
     </tr>
     <tr style="background-color: #f5f5f5;">
         <td style="padding: 10px; border: 1px solid #ddd; width: 30%;"><strong>Rate:</strong></td>
-        <td style="padding: 10px; border: 1px solid #ddd;">${{ "%.2f"|format(object.rate_amount) }} USD</td>
+        <td style="padding: 10px; border: 1px solid #ddd;"><t t-out="'%.2f' % (object.rate_amount or 0.0)">0.00</t> <t t-out="object.rate_currency_id.name or ''">USD</t></td>
     </tr>
     <tr>
         <td style="padding: 10px; border: 1px solid #ddd;"><strong>Pickup:</strong></td>
-        <td style="padding: 10px; border: 1px solid #ddd;">{{ object.pickup_partner_id.name }}, {{ object.pickup_partner_id.city or '' }} {{ object.pickup_partner_id.state_id.code or '' }}<br/>{{ object.pickup_datetime }}</td>
+        <td style="padding: 10px; border: 1px solid #ddd;"><t t-out="object.pickup_partner_id.name or ''"/>, <t t-out="object.pickup_partner_id.city or ''"/> <t t-out="object.pickup_partner_id.state_id.code or ''"/><br/><t t-out="object.pickup_datetime or ''"/></td>
     </tr>
     <tr style="background-color: #f5f5f5;">
         <td style="padding: 10px; border: 1px solid #ddd;"><strong>Delivery:</strong></td>
-        <td style="padding: 10px; border: 1px solid #ddd;">{{ object.delivery_partner_id.name }}, {{ object.delivery_partner_id.city or '' }} {{ object.delivery_partner_id.state_id.code or '' }}<br/>{{ object.delivery_datetime }}</td>
+        <td style="padding: 10px; border: 1px solid #ddd;"><t t-out="object.delivery_partner_id.name or ''"/>, <t t-out="object.delivery_partner_id.city or ''"/> <t t-out="object.delivery_partner_id.state_id.code or ''"/><br/><t t-out="object.delivery_datetime or ''"/></td>
     </tr>
     <tr>
         <td style="padding: 10px; border: 1px solid #ddd;"><strong>Product:</strong></td>
-        <td style="padding: 10px; border: 1px solid #ddd;">{{ object.product_description or 'See attached' }}</td>
+        <td style="padding: 10px; border: 1px solid #ddd;"><t t-out="object.product_description or 'See attached'"/></td>
     </tr>
 </table>
-
 <p><strong>REQUIREMENTS:</strong></p>
 <ul>
     <li>✓ Obtain LIGHT &amp; HEAVY 3rd Party Certified Scale Tickets</li>
     <li>✓ Use BOL-PICKUP at origin — PROTECT THE BLIND</li>
     <li>✓ Use BOL-DELIVERY at destination for consignee signature</li>
-    <li>✓ Send all completed docs to {{ object.sale_order_id.company_id.email or 'docs@company.com' }}</li>
+    <li t-if="object.company_id.email">✓ Send all completed docs to <t t-out="object.company_id.email"/></li>
 </ul>
-
 <p><strong>Please confirm receipt of this dispatch packet by replying to this email.</strong></p>
-
 <p>Thank you,<br/>
-{{ object.sale_order_id.company_id.name or 'PlasticOS Logistics' }}<br/>
-{{ object.sale_order_id.company_id.phone or '' }}</p>
-            ]]></field>
-            <field name="email_from">{{ (object.sale_order_id.company_id.email or user.email) }}</field>
+<t t-out="object.company_id.name or ''"/><br/>
+<t t-out="object.company_id.phone or ''"/></p>
+</div>
+            </field>
+            <field name="email_from">{{ object.company_id.email_formatted }}</field>
             <field name="email_to">{{ object.carrier_id.email }}</field>
+            <!-- Odoo 19: with default recipients on, email_to is ignored and the record's default
+                 recipients (none for a load) are used, so the carrier got no mail. -->
+            <field name="use_default_to" eval="False"/>
             <field name="report_template_ids" eval="[(4, ref('plasticos_logistics.action_report_delivery_order')), (4, ref('plasticos_logistics.action_report_bol_pickup')), (4, ref('plasticos_logistics.action_report_bol_delivery'))]"/>
             <field name="auto_delete" eval="False"/>
         </record>

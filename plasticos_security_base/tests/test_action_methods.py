@@ -652,7 +652,9 @@ class TestCrmLeadActions(PlasticosTestCase):
         result = lead.action_view_match_results()
         self.assertEqual(result["type"], "ir.actions.act_window")
         self.assertEqual(result["res_model"], "plasticos.match.result")
+        self.assertEqual(result["view_mode"], "list,form")
         self.assertEqual(result["domain"], [("match_run_id.opportunity_id", "=", lead.id)])
+        self.assertEqual(result["target"], "current")
         self.assertNotEqual(result["domain"], other.action_view_match_results()["domain"])
         # The domain is a real filter on the result model: a new lead has no runs.
         self.assertFalse(self.env["plasticos.match.result"].search(result["domain"]))

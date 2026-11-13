@@ -13,6 +13,8 @@
                 <field name="tag_id"/>
                 <field name="res_model"/>
                 <field name="verified_by"/>
+                <field name="obligation_kind"/>
+                <field name="operation_revision_key"/>
                 <filter name="filter_verified" string="Verified"
                         domain="[('verified', '=', True)]"/>
                 <filter name="filter_unverified" string="Unverified"
@@ -31,6 +33,8 @@
                         context="{'group_by': 'res_model'}"/>
                 <filter name="group_verified_by" string="Verified By"
                         context="{'group_by': 'verified_by'}"/>
+                <filter name="group_obligation" string="Obligation"
+                        context="{'group_by': 'obligation_kind'}"/>
             </search>
         </field>
     </record>
@@ -52,6 +56,9 @@
                 <field name="tag_id"/>
                 <field name="verified" widget="boolean" readonly="1"/>
                 <field name="association_state" optional="show" readonly="1"/>
+                <field name="obligation_kind" optional="show" readonly="1"/>
+                <field name="operation_revision_key" optional="hide" readonly="1"/>
+                <field name="coverage_key" optional="hide" readonly="1"/>
                 <field name="verified_by" optional="show" widget="many2one_avatar_user" readonly="1"/>
                 <field name="verified_at" optional="hide" readonly="1"/>
                 <field name="override" widget="boolean" readonly="1"/>
@@ -94,7 +101,17 @@
                             <field name="association_subject_model"/>
                             <field name="association_subject_id"/>
                             <field name="association_source_reference"/>
+                            <field name="association_obligation_kind"
+                                   placeholder="legacy"/>
+                            <field name="association_operation_revision_key"
+                                   invisible="not association_obligation_kind or association_obligation_kind == 'legacy'"/>
+                            <field name="association_coverage_key"
+                                   invisible="not association_obligation_kind or association_obligation_kind == 'legacy'"/>
+                            <field name="association_quantity_known"
+                                   invisible="not association_obligation_kind or association_obligation_kind == 'legacy'"/>
                             <field name="association_covered_quantity"/>
+                            <field name="association_evidence_uom_id"
+                                   invisible="not association_quantity_known"/>
                         </group>
                         <group>
                             <field name="source_reference" readonly="1"/>
@@ -104,6 +121,18 @@
                             <field name="associated_at" readonly="1"/>
                             <field name="subject_company_id" readonly="1"/>
                             <field name="pending_reason" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Operation Scope" name="operation_scope"
+                           invisible="obligation_kind == 'legacy'">
+                        <group>
+                            <field name="obligation_kind" readonly="1"/>
+                            <field name="operation_revision_key" readonly="1"/>
+                            <field name="coverage_key" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="quantity_known" readonly="1"/>
+                            <field name="evidence_uom_id" readonly="1"/>
                         </group>
                     </group>
                     <group string="Verification" name="verification">

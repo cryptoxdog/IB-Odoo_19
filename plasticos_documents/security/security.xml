@@ -31,5 +31,13 @@
                 Manages document validation matrix and extended document rules.
             </field>
         </record>
+
+        <!-- Accepted operation-scoped evidence is visible only inside its subject company.
+             Legacy rows, including company-null pending originals, keep their existing access. -->
+        <record id="rule_document_operation_scope_company" model="ir.rule">
+            <field name="name">Operation evidence: subject company only</field>
+            <field name="model_id" ref="model_plasticos_document"/>
+            <field name="domain_force">['|', ('obligation_kind', '=', 'legacy'), ('subject_company_id', 'in', company_ids)]</field>
+        </record>
     </data>
 </odoo>

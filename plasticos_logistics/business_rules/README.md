@@ -42,3 +42,7 @@ The seven original `BRS-01..07.md`, 60 historical `rules.json`, `REGISTRY.json`,
 <!-- LINDA_BRS_NATIVE_ALIGNMENT_20261026_END -->
 
 The dated supersession of 2026-11-05 admits exactly one copied Native-First chapter, BRS-POS-10, and admits BRS-POS-09-R006 through BRS-POS-09-R012 as Linda external-send obligations. Every other BRS-POS chapter stays a cross-domain reference and is not a second copied authority. BRS-POS-04 through BRS-POS-08, BRS-POS-11 and BRS-POS-12 stay with their owners.
+
+## 2026-11-11 Export campaign successor interfaces (S2)
+
+The 2026-11-11 section of `SUPERSESSION.md` records the Logistics owner interface the PlasticOS Export campaign realized in this module (`19.0.1.14.20`): the explicit load source company, one parent transaction per load, the container journeys J1 `plasticos.iso.journey` and J2 `plasticos.iso.journey.source`, the physical-release guard `assert_can_release_physical_operation`, the evidence-backed actual clocks `actual_pickup_at` / `actual_delivery_at`, and the manual freight context. Architecture: `docs/adr/ADR-130-export-physical-evidence-and-owner-contracts.md`. The original BRS-01..07 IDs, `rules.json` and BRS-POS-10 are unchanged and remain the cited rules. These interfaces are target behavior proven by the module's runtime tests on the pinned Enterprise fixture; they are not proof of a production rollout, and they add no approval actor.

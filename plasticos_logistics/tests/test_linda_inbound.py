@@ -461,6 +461,37 @@ class TestLindaInbound(PlasticosTestCase):
             response.unlink()
         self.assertEqual(response.disposition, "identity_unverified")
 
+    # ── S4: typed source branches (RP-04-E009) ───────────────
+
+    def test_reply_on_an_unregistered_source_kind_is_not_linda_evidence(self):
+        """An inbound email on a model no resolver registered is not Linda's (Export absent).
+
+        A reply whose In-Reply-To names a Linda mail is routed by the native gateway
+        to that ancestor's own thread, so the unregistered-model branch is exercised
+        with an email message posted directly on a partner thread.
+        """
+        po, issue = self._sent_po()
+        self.assertNotIn("res.partner", self.Request._linda_source_models())
+        message = self.supplier.message_post(
+            body="CONFIRMED",
+            message_type="email",
+            email_from=SUPPLIER_EMAIL,
+            subtype_xmlid="mail.mt_comment",
+        )
+        self.assertEqual((message.model, message.message_type), ("res.partner", "email"))
+        self.assertFalse(self.Response._record_incoming(message))
+        self.assertFalse(self._response(message))
+        self.assertFalse(self.Response.search([("request_id", "=", issue.id)]), "the PO issue gained no evidence")
+
+    def test_reply_on_a_registered_source_without_a_typed_request_records_nothing(self):
+        """A load is a registered typed source, but Linda never wrote to this one."""
+        self._set_mode("live")
+        load = self.env["plasticos.load"].create({"company_id": self.company.id, "pickup_partner_id": self.supplier.id})
+        message = self._receive(self._raw("CONFIRMED", SUPPLIER_EMAIL), model="plasticos.load", thread_id=load.id)
+        self.assertTrue(message)
+        self.assertFalse(self.Response._record_incoming(message))
+        self.assertFalse(self._response(message))
+
     # ── Recorder containment: a recorder failure never loses the inbound email ──
 
     def _assert_kept_with_failure_evidence(self, message, po):

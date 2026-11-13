@@ -336,7 +336,7 @@ class TestGoldenHotWebLeadToIntake(PlasticosTestCase):
 
         self.assertTrue(lead.intake_id, "HOT lead still requires an intake for auditability")
         self.assertEqual(lead.mack_review_state, "blocked")
-        self.assertIn("not configured", lead.mack_review_reason.lower())
+        self.assertIn("no web-lead reviewer is configured", lead.mack_review_reason.lower())
         self.assertFalse(lead.intake_id.activity_ids, "No arbitrary internal user may receive the activity")
 
         # Once a reviewer exists, Route Review completes the handoff to that user only.

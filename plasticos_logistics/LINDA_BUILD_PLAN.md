@@ -32,6 +32,8 @@ This document **replaces** the uploaded `Linda Logistics Build Plan (1).md` as t
 
 **Existing Odoo limitation:** at this pinned revision `plasticos_logistics/models/load.py`, `plasticos.load.company_id` is a stored related value from `sale_order_id.company_id`. A PO-only load is therefore company-less. Do **not** create one to represent an inventory purchase and do **not** relax company isolation to allow it. Keep PO-only correspondence on the PO-scoped request, and inventory receipts on native incoming pickings. Any missing inbound scheduling feature is implemented at that existing owner after WP00 establishes its supported seam, or escalated as a **capability gap** before promising automated inbound dispatch. The existing `plasticos.transaction` generally originates during SO confirmation; it is not a prerequisite for PO-first issuance.
 
+> **Successor reference (2026-11-11, ADR-130; `business_rules/SUPERSESSION.md` 2026-11-11 section):** the limitation above is superseded for `plasticos_logistics` 19.0.1.14.20. `plasticos.load.company_id` is an explicit source company: the sale order's company, or the company named for a buyerless movement, never `env.company`. A buyerless load may join only a purchase-backed transaction in its company. A sale order with several eligible transactions is refused, never matched to its first one. The acknowledgment job no longer resends the packet; `dispatch_sent` is stamped only on a confirmed send, and the T+2h reminder below remains Linda-owned. The rest of this paragraph, including PO-scoped correspondence and native incoming pickings, is unchanged.
+
 ## 3. Decision record D-01 through D-08 (revised target)
 
 | ID | Governing disposition for this revised plan | Bounded implementation consequence |

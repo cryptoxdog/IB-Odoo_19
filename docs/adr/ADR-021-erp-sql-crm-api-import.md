@@ -52,6 +52,18 @@ Not proven: source-accurate posting state, settlement, vendor bill identity (`Pa
 - A `Delivered` price basis carries no Incoterm. Confirming a historical sale order launches no procurement, so no picking or stock move is created.
 - Whether a re-import updates documents that already exist is not decided. They are left as they are.
 
+### 2026-11-12 — Price basis to Incoterm (BRS-EXP-02-R006, operator decision)
+
+The 2026-10-24 crosswalk mapped the recycler's `fob`, `fob supplier dock` and `pickup` price bases onto the Incoterms 2020 `FOB`. That is wrong. These are domestic shipping-point bases: the buyer collects at the supplier's dock. Incoterms FOB is delivery on board a vessel at the port of shipment. BRS-EXP-02-R006 keeps the commercial trade label apart from the legal Incoterm.
+
+- `fob`, `fob supplier dock` and `pickup` map to no Incoterm. They are declined and reported like `delivered` (`plasticos_partner_import/erp/native_orders.py`: `DOMESTIC_SHIPPING_POINT_BASES`, `DECLINED_PRICE_BASES`).
+- `fas` maps to `FAS` only, because it is the literal Incoterm.
+- `delivered` is unchanged. It sets no Incoterm and clears one an earlier run wrote.
+- Already-imported orders are not rewritten. A domestic shipping-point basis never writes the Incoterm field of an order that already exists. The stored value is reported ("stored Incoterm … left unchanged"), not cleared. No migration changes them.
+- No field is added: the commercial label lives on the Export cargo link (BRS-EXP-02-R006), not on the order.
+- Import summaries reconcile as before. A declined basis is an anomaly row, not a rejected record, so `records_seen == records_created + records_updated + records_unchanged + records_rejected` is unaffected.
+- The production-rehearsal fidelity verifier (`tests/production-rehearsal/fidelity.py`) applies the same crosswalk. An order that still carries the pre-amendment `FOB` for a domestic basis is reported there as a difference from the source, not rewritten.
+
 ## Direct database projections
 
 The direct database reader covers the five partner-side sources and the six transaction-reconstruction sources used by the deterministic pipeline:
