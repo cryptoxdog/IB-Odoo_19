@@ -1299,6 +1299,11 @@ _MODULE_STATE_STUB = _STATEFUL_STUB.replace(
 )
 
 
+# An excluded, installable module with tests. plasticos_documents_native was the example until Staging put it
+# in the roster (PlasticOS Export single merge, 2026-11-13); config/odoo_module_order.yaml still excludes this one.
+EXCLUDED_EXAMPLE = "plasticos_semantic_kernel"
+
+
 def _excluded_test_run(tmp_path: Path, module_state: str) -> subprocess.CompletedProcess:
     assert _MODULE_STATE_STUB != _STATEFUL_STUB
     base = _enterprise(tmp_path)
@@ -1323,7 +1328,7 @@ def _excluded_test_run(tmp_path: Path, module_state: str) -> subprocess.Complete
         "TEST_ENV_EVIDENCE_DIR": str(tmp_path / "evidence"),
         **base,
     }
-    recipe = [*TEST_RECIPE, "-d", "odoo_test_a", "--log-level=test", "-u", "plasticos_documents_native"]
+    recipe = [*TEST_RECIPE, "-d", "odoo_test_a", "--log-level=test", "-u", EXCLUDED_EXAMPLE]
     return subprocess.run(
         ["bash", str(ROOT / "scripts" / "test_env.sh"), "run", "odoo_test_a", "--", *recipe],
         capture_output=True,
@@ -1335,14 +1340,14 @@ def _excluded_test_run(tmp_path: Path, module_state: str) -> subprocess.Complete
 
 
 def test_excluded_module_installed_in_the_fixture_is_test_scoped(tmp_path):
-    """plasticos_documents_native auto-installs on the Enterprise fixture: its tests run, tagged like the roster."""
+    """An excluded module the fixture has installed is test-scoped: its tests run, tagged like the roster."""
     result = _excluded_test_run(tmp_path, "installed")
     assert result.returncode == 0, result.stderr
-    assert "scope plasticos_documents_native" in result.stdout
+    assert f"scope {EXCLUDED_EXAMPLE}" in result.stdout
     call = _odoo_call(tmp_path)
     assert f" -u {ROSTER} " in call
-    assert "plasticos_documents_native" not in ROSTER.split(",")
-    assert " --test-tags /plasticos_documents_native " in call
+    assert EXCLUDED_EXAMPLE not in ROSTER.split(",")
+    assert f" --test-tags /{EXCLUDED_EXAMPLE} " in call
 
 
 @pytest.mark.parametrize("module_state", ["", "uninstalled", "to install"])
