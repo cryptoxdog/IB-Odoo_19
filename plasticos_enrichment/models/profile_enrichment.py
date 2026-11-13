@@ -1,8 +1,8 @@
-"""Start a converge v2 enrichment run from a material or facility profile.
+"""Start a converge v2 enrichment run from a facility profile.
 
-No stored field is added to either profile. The run carries the target
-(``material_profile_id`` / ``facility_profile_id``) and takes its partner from
-the profile (ADR-012 amendment 2026-11-13).
+No stored field is added to the profile. The run carries the target
+(``facility_profile_id``) and takes its partner from the profile. A material
+profile cannot start a v2 run (ADR-012 amendment 2026-11-13 (d)).
 """
 
 from odoo import _, models
@@ -23,14 +23,6 @@ def _open_new_run(profile, target_field):
         "view_mode": "form",
         "target": "current",
     }
-
-
-class PlasticosMaterialProfileEnrichment(models.Model):
-    _inherit = "plasticos.material.profile"
-
-    def action_start_enrichment_run(self):
-        """Create a draft enrichment run targeting this material profile and open it."""
-        return _open_new_run(self, "material_profile_id")
 
 
 class PlasticosFacilityProfileEnrichment(models.Model):

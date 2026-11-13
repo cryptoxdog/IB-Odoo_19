@@ -191,9 +191,9 @@ class TestConvergeV2ProfileTargets(PlasticosTestCase):
             return
         self.fail(f"{exc_type.__name__} not raised")
 
-    def _supplier_material_profile(self, name, **vals):
+    def _supplier_facility_profile(self, name, **vals):
         partner = self._create_partner(name, supplier_rank=1, company_role_tag_ids=[(6, 0, self.tag_supplier.ids)])
-        return self._create_material_profile(partner=partner, polymer=self.hdpe, **vals)
+        return self.env["plasticos.facility.profile"].create({"partner_id": partner.id, **vals})
 
     def _buyer_facility_profile(self, name, **vals):
         company = self._create_partner(f"{name} Co", customer_rank=1)
@@ -221,14 +221,12 @@ class TestConvergeV2ProfileTargets(PlasticosTestCase):
 
     # ── (1) supplier material profile ────────────────────────────────────
 
-    def test_supplier_material_profile_run_writes_only_admitted_claims_into_that_profile(self):
-        profile = self._supplier_material_profile("V2 Supplier One")
-        other = self._create_material_profile(
-            partner=profile.partner_id, polymer=self._get_or_create_polymer(code="pp", name="PP")
-        )
+    def test_supplier_facility_profile_run_writes_only_admitted_claims_into_that_profile(self):
+        profile = self._supplier_facility_profile("V2 Supplier One")
+        other = self._supplier_facility_profile("V2 Supplier One Other")
         run = self._start(profile)
         self.assertEqual(run.partner_id, profile.partner_id)
-        self.assertEqual(run.material_profile_id, profile)
+        self.assertEqual(run.facility_profile_id, profile)
         gate = _Gate(
             lambda body: _v2_reply(
                 body,
@@ -254,20 +252,20 @@ class TestConvergeV2ProfileTargets(PlasticosTestCase):
         self.assertEqual(run.state, "injected")
         self.assertAlmostEqual(profile.density_min, 0.94)
         self.assertAlmostEqual(profile.density_max, 0.96)
-        self.assertFalse(profile.mfi_max, "an unadmitted claim is never written")
+        self.assertFalse(profile.melt_index_max, "an unadmitted claim is never written")
         self.assertFalse(other.density_min, "only the targeted profile is written")
         self.assertEqual(run.fields_written, 2)
         rows = self._provenance(run)
-        self.assertEqual(set(rows), {"density_min", "density_max", "mfi_min", "mfi_max"})
+        self.assertLessEqual({"density_min", "density_max", "melt_index_min", "melt_index_max"}, set(rows))
         for row in rows.values():
-            self.assertEqual((row.target_model, row.target_res_id), ("plasticos.material.profile", profile.id))
+            self.assertEqual((row.target_model, row.target_res_id), ("plasticos.facility.profile", profile.id))
         self.assertEqual(rows["density_min"].status, "written")
-        self.assertEqual(rows["mfi_max"].status, "skipped_not_admitted")
-        self.assertEqual(rows["mfi_min"].status, "skipped_unknown")
+        self.assertEqual(rows["melt_index_max"].status, "skipped_not_admitted")
+        self.assertEqual(rows["melt_index_min"].status, "skipped_unknown")
 
     # ── (2) buyer facility profile ───────────────────────────────────────
 
-    def test_buyer_facility_profile_run_writes_codes_and_converted_units(self):
+    def test_buyer_facility_profile_run_writes_codes_and_percent(self):
         profile = self._buyer_facility_profile("V2 Buyer Site", density_max=0.97)
         run = self._start(profile)
         gate = _Gate(
@@ -282,8 +280,8 @@ class TestConvergeV2ProfileTargets(PlasticosTestCase):
                     "contamination_tolerance": {
                         "state": "external_claim",
                         "admitted": True,
-                        "value": 0.04,
-                        "unit": "fraction",
+                        "value": 4.0,
+                        "unit": "percent",
                     },
                 },
             )
@@ -310,7 +308,7 @@ class TestConvergeV2ProfileTargets(PlasticosTestCase):
     # ── (3) unknown and conflicting ──────────────────────────────────────
 
     def test_unknown_and_conflicting_write_nothing_and_are_recorded(self):
-        profile = self._supplier_material_profile("V2 Supplier Three")
+        profile = self._supplier_facility_profile("V2 Supplier Three")
         run = self._start(profile)
         gate = _Gate(
             lambda body: _v2_reply(
@@ -325,7 +323,7 @@ class TestConvergeV2ProfileTargets(PlasticosTestCase):
         run.action_inject()
         self.assertFalse(profile.density_min)
         self.assertFalse(profile.density_max)
-        self.assertAlmostEqual(profile.mfi_min, 0.5)
+        self.assertAlmostEqual(profile.melt_index_min, 0.5)
         rows = self._provenance(run)
         self.assertEqual(rows["density_min"].status, "skipped_unknown")
         self.assertEqual(rows["density_max"].status, "skipped_conflicting")
@@ -333,7 +331,7 @@ class TestConvergeV2ProfileTargets(PlasticosTestCase):
     # ── (4) merge-not-overwrite ──────────────────────────────────────────
 
     def test_a_field_filled_before_approval_is_not_overwritten(self):
-        profile = self._supplier_material_profile("V2 Supplier Four")
+        profile = self._supplier_facility_profile("V2 Supplier Four")
         run = self._start(profile)
         gate = _Gate(
             lambda body: _v2_reply(
@@ -356,7 +354,7 @@ class TestConvergeV2ProfileTargets(PlasticosTestCase):
     # ── (5) units ────────────────────────────────────────────────────────
 
     def test_a_number_with_a_missing_or_different_unit_is_skipped(self):
-        profile = self._supplier_material_profile("V2 Supplier Five")
+        profile = self._supplier_facility_profile("V2 Supplier Five")
         run = self._start(profile)
         gate = _Gate(
             lambda body: _v2_reply(
@@ -372,7 +370,7 @@ class TestConvergeV2ProfileTargets(PlasticosTestCase):
         run.action_inject()
         self.assertFalse(profile.density_min)
         self.assertFalse(profile.density_max)
-        self.assertAlmostEqual(profile.mfi_max, 0.7)
+        self.assertAlmostEqual(profile.melt_index_max, 0.7)
         rows = self._provenance(run)
         self.assertEqual(rows["density_min"].status, "skipped_unit")
         self.assertEqual(rows["density_max"].status, "skipped_unit")
@@ -380,7 +378,7 @@ class TestConvergeV2ProfileTargets(PlasticosTestCase):
     # ── (6) v1-shaped reply to a v2 request ──────────────────────────────
 
     def test_a_v1_shaped_reply_writes_nothing_and_records_why(self):
-        profile = self._supplier_material_profile("V2 Supplier Six")
+        profile = self._supplier_facility_profile("V2 Supplier Six")
         run = self._start(profile)
         gate = _Gate(
             lambda body: {
@@ -432,7 +430,7 @@ class TestConvergeV2ProfileTargets(PlasticosTestCase):
 
     def test_a_profile_run_under_v1_never_reaches_gate(self):
         self._set_param("plasticos.gate.converge_contract", "v1")
-        profile = self._supplier_material_profile("V1 Profile")
+        profile = self._supplier_facility_profile("V1 Profile")
         run = self._start(profile)
         gate = _Gate(lambda body: {})
         run_id = run.id
@@ -510,7 +508,7 @@ class TestConvergeV2ProfileTargets(PlasticosTestCase):
         self.assertNotIn("active", self._provenance(run))
 
     def test_an_approval_that_writes_nothing_is_not_marked_injected(self):
-        profile = self._supplier_material_profile("V2 Supplier Nothing Left")
+        profile = self._supplier_facility_profile("V2 Supplier Nothing Left")
         run = self._start(profile)
         gate = _Gate(
             lambda body: _v2_reply(
@@ -530,20 +528,16 @@ class TestConvergeV2ProfileTargets(PlasticosTestCase):
     # ── run target integrity ─────────────────────────────────────────────
 
     def test_run_partner_must_be_the_profile_partner(self):
-        profile = self._supplier_material_profile("V2 Supplier Eight")
+        profile = self._supplier_facility_profile("V2 Supplier Eight")
         stranger = self._create_partner("Stranger")
         with self.assertRaises(ValidationError):
-            self.env["plasticos.enrichment.run"].create({"partner_id": stranger.id, "material_profile_id": profile.id})
+            self.env["plasticos.enrichment.run"].create({"partner_id": stranger.id, "facility_profile_id": profile.id})
 
-    def test_a_run_targets_at_most_one_profile(self):
-        material = self._supplier_material_profile("V2 Supplier Nine")
-        facility = self.env["plasticos.facility.profile"].create({"partner_id": material.partner_id.id})
-        with self.assertRaises(Exception):  # noqa: B017 - the SQL CHECK raises a psycopg2 IntegrityError
-            with self.env.cr.savepoint():
-                self.env["plasticos.enrichment.run"].create(
-                    {
-                        "partner_id": material.partner_id.id,
-                        "material_profile_id": material.id,
-                        "facility_profile_id": facility.id,
-                    }
-                )
+    def test_a_material_profile_cannot_start_a_v2_run(self):
+        """ADR-012 amendment 2026-11-13 (d): the `material` subject is a facility's capability."""
+        self.assertNotIn("material_profile_id", self.env["plasticos.enrichment.run"]._fields)
+        partner = self._create_partner("V2 Material Owner", supplier_rank=1)
+        material = self._create_material_profile(partner=partner, polymer=self.hdpe)
+        self.assertFalse(hasattr(material, "action_start_enrichment_run"))
+        run = self.env["plasticos.enrichment.run"].create({"partner_id": partner.id})
+        self.assertEqual(run._v2_target(), ("partner", partner))

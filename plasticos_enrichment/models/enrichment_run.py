@@ -9,7 +9,6 @@ _logger = logging.getLogger(__name__)
 PROVENANCE_MODEL = "plasticos.enrichment.provenance"
 SUBTYPE_NOTE = "mail.mt_note"
 NO_INJECTABLE_FIELDS_REASON = "Gate converge produced no injectable allowlisted fields."
-MATERIAL_PROFILE = "plasticos.material.profile"
 FACILITY_PROFILE = "plasticos.facility.profile"
 PROFILE_NEEDS_V2_REASON = (
     "Profile enrichment needs converge contract v2 (plasticos.gate.converge_contract=v2); "
@@ -82,16 +81,10 @@ class EnrichmentRun(models.Model):
         tracking=True,
         ondelete="restrict",
     )
-    # Converge v2 targets (operator-approved stored fields, ADR-012 amendment
-    # 2026-11-13). At most one is set; neither means the run targets the partner.
-    material_profile_id = fields.Many2one(
-        MATERIAL_PROFILE,
-        string="Material Profile",
-        index=True,
-        ondelete="restrict",
-        tracking=True,
-        help="Material profile this run enriches (converge v2). Its partner is the run partner.",
-    )
+    # Converge v2 target (operator-approved stored field, ADR-012 amendment
+    # 2026-11-13 (d)). Empty means the run targets the partner. A material
+    # profile is never a target: the cartridge's `material` subject describes a
+    # facility's capability, not one material.
     facility_profile_id = fields.Many2one(
         FACILITY_PROFILE,
         string="Facility Profile",
@@ -168,15 +161,10 @@ class EnrichmentRun(models.Model):
         ),
     )
 
-    _one_profile_target = models.Constraint(
-        "CHECK(material_profile_id IS NULL OR facility_profile_id IS NULL)",
-        "An enrichment run targets at most one profile.",
-    )
-
-    @api.constrains("partner_id", "material_profile_id", "facility_profile_id")
+    @api.constrains("partner_id", "facility_profile_id")
     def _check_profile_target_partner(self):
         for run in self:
-            profile = run.material_profile_id or run.facility_profile_id
+            profile = run.facility_profile_id
             if not profile:
                 continue
             if not profile.partner_id:
@@ -247,7 +235,7 @@ class EnrichmentRun(models.Model):
         selection = resolve_converge_contract(self.env)
         if selection.is_v2:
             return self._run_gate_converge_v2(selection)
-        if self.material_profile_id or self.facility_profile_id:
+        if self.facility_profile_id:
             return PROFILE_NEEDS_V2_REASON
 
         from odoo.addons.plasticos_gate.services.gate_builders import build_converge_request
@@ -422,8 +410,6 @@ class EnrichmentRun(models.Model):
     def _v2_target(self):
         """Return (target key, record) this run enriches, or raise UserError."""
         self.ensure_one()
-        if self.material_profile_id:
-            return "material_profile", self.material_profile_id
         if self.facility_profile_id:
             if not self.facility_profile_id.partner_id:
                 raise UserError(FACILITY_WITHOUT_PARTNER_REASON)
@@ -747,6 +733,9 @@ class EnrichmentRun(models.Model):
                 else:
                     vals[decision.odoo_field] = decision.value
                     status, shown = "written", str(decision.value)
+                    if decision.source_unit:
+                        # The value as the reply stated it, before any unit conversion or rounding.
+                        shown = f"{decision.value} (from {decision.source_value} {decision.source_unit})"
             provenance.append(
                 {
                     "run_id": self.id,

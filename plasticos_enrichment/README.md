@@ -24,7 +24,6 @@ models_owned:
   - plasticos.enrichment.service
 models_extended:
   - res.partner
-  - plasticos.material.profile
   - plasticos.facility.profile
 crons:
   - cron_enrichment_daily
@@ -46,10 +45,10 @@ The Odoo shell for partner enrichment. Odoo decides when to ask, sends a converg
 - **Proposal.** By default a usable response leaves the run in `review` with the proposed partner fields stored in `gate_proposal`. Only when both `plasticos.gate.auto_writeback` and `plasticos.gate.auto_writeback_operator_approved` are set (both seeded `0`) are the allowlisted fields written at once and the run marked `injected`.
 - **Retry.** `action_retry_enrichment()` accepts a `retryable`, `failed`, or `degraded` run, advances `gate_attempt` so Gate sees a new operation identity, and calls `action_execute()` again.
 - **Inject.** `action_inject()` is the allowlisted writeback. For a Gate run in `review` it applies only the stored proposal. `_apply_converge_writeback` drops any field outside the partner allowlist, fills only empty values, and records a `plasticos.enrichment.provenance` row ([ADR-012](../docs/adr/ADR-012-crm-writeback-allowlist-provenance.md)).
-- **Converge v2 targets.** When `plasticos.gate.converge_contract=v2`, a run may target its partner, one of the partner's material profiles (`material_profile_id`), or one of its facility profiles (`facility_profile_id`). It targets at most one profile, and the run partner is the profile's partner. The **Enrich** button on each profile form creates the run. A facility profile with no partner cannot be enriched.
-  - **Request.** The run asks for the mapped fields that are empty on the target. The partner and the material profile use the `plasticos_gate` `CONVERGE_V2_TARGETS` tables. The facility profile is open by model definition: the run passes the model's field definitions (`_v2_field_defs`) and `plasticos_gate` derives the eligible fields (ADR-012 amendment 2026-11-13 (b)).
+- **Converge v2 targets.** When `plasticos.gate.converge_contract=v2`, a run targets its partner or one of its facility profiles (`facility_profile_id`). The run partner is the profile's partner. A material profile cannot start a v2 run: the cartridge's `material` subject is a facility's capability (ADR-012 amendment 2026-11-13 (d)). The **Enrich** button on the facility profile form creates the run. A facility profile with no partner cannot be enriched.
+  - **Request.** The run asks for the mapped fields that are empty on the target. The partner uses the `plasticos_gate` `CONVERGE_V2_TARGETS` table. The facility profile is open by model definition: the run passes the model's field definitions (`_v2_field_defs`) and `plasticos_gate` derives the eligible fields (ADR-012 amendment 2026-11-13 (b)).
   - **Review.** The validated reply goes to `review` in `gate_proposal`. v2 never writes automatically.
-  - **Approval.** `action_inject()` validates the stored reply again. It then writes only admitted `inferred` and `external_claim` values, with typed coercion. A number is written only in an accepted unit. A code is resolved to an existing master record, matched case-insensitively. A field that already has a value is not overwritten.
+  - **Approval.** `action_inject()` validates the stored reply again. It then writes only admitted `inferred` and `external_claim` values, with typed coercion. A number is written only in its governing unit, and only when the field accepts that unit. The governing unit is the value's stated unit, or else the cartridge's declared unit. A converted number's provenance keeps the original value and unit. A code is resolved to an existing master record, matched case-insensitively. A field that already has a value is not overwritten.
   - **Provenance.** Every considered field gets a provenance row with `target_model`, `target_res_id` and a status. The status is `written`, `skipped_immutable`, `skipped_unknown`, `skipped_conflicting`, `skipped_unit`, `skipped_unresolved_code`, `skipped_not_admitted` or `unmapped`.
   - **Failure.** A v1-shaped, malformed, or other-revision reply writes nothing; the run is `degraded` with the reason. A profile run under v1 never reaches Gate. ([ADR-012 amendment 2026-11-13](../docs/adr/ADR-012-crm-writeback-allowlist-provenance.md))
 - **Bales are packaging.** For extracted materials, `normalize_material` maps `bale`, `bales` and `baled` to the Bales packaging type (`plasticos.packaging.type` code `bales`) with provenance, not to a form. Inject then gives that profile no form and never the `OTHER` fallback, the end state of `plasticos_material_profile` 19.0.5.11.14 (operator decision 2026-11-12). Merge still fills only empty fields.
@@ -68,7 +67,6 @@ The Odoo shell for partner enrichment. Odoo decides when to ask, sends a converg
 | `plasticos.enrichment.extraction` | owned           | `models/enrichment_extraction.py` |
 | `plasticos.enrichment.service`    | owned, abstract | `models/enrichment_service.py`    |
 | `res.partner`                     | extended        | `models/res_partner.py`           |
-| `plasticos.material.profile`      | extended        | `models/profile_enrichment.py`    |
 | `plasticos.facility.profile`      | extended        | `models/profile_enrichment.py`    |
 
 ## Runtime
