@@ -1,3 +1,15 @@
+./docs/campaigns/candidate-add-ons/PlasticOS_Broker_Intelligence_Harvest_Integrated_v2/plasticos_broker_intelligence/views/advice_wizard_views.xml
+./docs/campaigns/candidate-add-ons/PlasticOS_Broker_Intelligence_Harvest_Integrated_v2/plasticos_broker_intelligence/views/intake_advice_views.xml
+./docs/campaigns/candidate-add-ons/PlasticOS_Broker_Intelligence_Harvest_Integrated_v2/plasticos_broker_intelligence/views/knowledge_views.xml
+./docs/campaigns/candidate-add-ons/PlasticOS_Broker_Intelligence_Harvest_Integrated_v2/plasticos_broker_intelligence/views/observation_views.xml
+./docs/campaigns/candidate-add-ons/PlasticOS_Broker_Intelligence_Harvest_Integrated_v2/plasticos_broker_intelligence/views/retire_wizard_views.xml
+./docs/campaigns/candidate-add-ons/PlasticOS_Broker_Intelligence_Harvest_Integrated_v2/plasticos_broker_intelligence_mack/views/consultation_views.xml
+./docs/campaigns/candidate-add-ons/PlasticOS_Broker_Intelligence_Harvest_Integrated_v2/plasticos_broker_intelligence_mack/views/consultation_wizard_views.xml
+./docs/campaigns/candidate-add-ons/PlasticOS_Broker_Intelligence_Harvest_Integrated_v2/plasticos_broker_intelligence_mack/views/intake_mack_views.xml
+./docs/campaigns/candidate-add-ons/PlasticOS_Broker_Intelligence_Harvest_Integrated_v2/plasticos_broker_intelligence_rejections/views/match_rejection_views.xml
+./docs/campaigns/candidate-add-ons/PlasticOS_Broker_Intelligence_Harvest_Integrated_v2/plasticos_broker_intelligence_rejections/views/offer_rejection_views.xml
+./docs/campaigns/candidate-add-ons/PlasticOS_Broker_Intelligence_Harvest_Integrated_v2/plasticos_broker_intelligence_rejections/views/rejection_wizard_views.xml
+./docs/campaigns/candidate-add-ons/PlasticOS_Broker_Intelligence_Harvest_Integrated_v2/plasticos_broker_intelligence_web_leads/views/web_lead_advice_views.xml
 ./plasticos_admin_dashboard/views/admin_dashboard_views.xml
 ./plasticos_automation/views/automation_config_views.xml
 ./plasticos_automation/views/automation_log_views.xml
@@ -18,6 +30,7 @@
 ./plasticos_crm_bridge/views/crm_facility_ownership_views.xml
 ./plasticos_crm_bridge/views/crm_lead_views.xml
 ./plasticos_crm_bridge/views/material_profile_views.xml
+./plasticos_crm_bridge/views/offer_buyer_selection_wizard_views.xml
 ./plasticos_crm_sync/views/crm_call_event_views.xml
 ./plasticos_crm_sync/views/crm_connection_views.xml
 ./plasticos_crm_sync/views/crm_lead_sync_views.xml
@@ -37,6 +50,11 @@
 ./plasticos_enrichment/views/enrichment_run_views.xml
 ./plasticos_enrichment/views/enrichment_source_views.xml
 ./plasticos_enrichment/views/res_partner_enrichment.xml
+./plasticos_export/views/allocation_views.xml
+./plasticos_export/views/booking_views.xml
+./plasticos_export/views/export_analysis_views.xml
+./plasticos_export/views/export_menus.xml
+./plasticos_export/views/shipment_views.xml
 ./plasticos_facility_profile/views/facility_profile_ux.xml
 ./plasticos_facility_profile/views/facility_profile_views.xml
 ./plasticos_facility_profile/views/facility_template_views.xml
@@ -50,6 +68,7 @@
 ./plasticos_intake_normalizer/views/normalizer_config_views.xml
 ./plasticos_logistics/views/freight_actual_correction_wizard_views.xml
 ./plasticos_logistics/views/freight_views.xml
+./plasticos_logistics/views/iso_journey_views.xml
 ./plasticos_logistics/views/linda_response_views.xml
 ./plasticos_logistics/views/load_bulk_update_wizard_views.xml
 ./plasticos_logistics/views/load_dashboard_views.xml
@@ -63,6 +82,7 @@
 ./plasticos_material_profile/views/grade_template_views.xml
 ./plasticos_material_profile/views/material_color_views.xml
 ./plasticos_material_profile/views/material_form_views.xml
+./plasticos_material_profile/views/material_grade_views.xml
 ./plasticos_material_profile/views/material_profile_ux.xml
 ./plasticos_material_profile/views/material_profile_views.xml
 ./plasticos_material_profile/views/partner_material_ux.xml
@@ -71,12 +91,15 @@
 ./plasticos_material_profile/views/source_type_views.xml
 ./plasticos_offer/views/intake_offers_bridge_views.xml
 ./plasticos_offer/views/offer_bulk_action_wizard_views.xml
+./plasticos_offer/views/offer_mail_compose_views.xml
 ./plasticos_offer/views/offer_ux.xml
 ./plasticos_offer/views/offer_views.xml
 ./plasticos_order_lines/views/purchase_order_views.xml
 ./plasticos_order_lines/views/sale_order_views.xml
 ./plasticos_partner_import/views/partner_bulk_update_wizard_views.xml
 ./plasticos_product/views/polymer_views.xml
+./plasticos_screen_views/views/contact_views.xml
+./plasticos_screen_views/views/web_lead_views.xml
 ./plasticos_security_base/views/res_partner_views.xml
 ./plasticos_semantic_kernel/views/buyer_demand_views.xml
 ./plasticos_semantic_kernel/views/capacity_observation_views.xml

@@ -10,3 +10,4 @@ from . import test_state_machines
 from . import test_claim_reference_uniqueness_batch
 from . import test_claim_reminder_batch
 from . import test_claim_manager_routing
+from . import test_document_export_evidence

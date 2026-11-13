@@ -56,7 +56,9 @@ class TestInjectBatchQueries(PlasticosTestCase):
     def test_material_inject_looks_profiles_up_once_and_merges_a_repeated_identity(self):
         partner = self._partner("Inject Batch Material Co")
         polymer = self.env.ref("plasticos_material_profile.polymer_pp")
-        form = self.env.ref("plasticos_material_profile.form_bale")
+        # S6 (C06-SCOPE-3 c): Bales was retired as a form on 2026-11-10 (c1bd4e93; bales are
+        # packaging), so this fixture uses an active form. The test is about one profile lookup.
+        form = self.env.ref("plasticos_material_profile.form_pellets")
         run = self.run_model.create({"partner_id": partner.id})
         source = self.env["plasticos.enrichment.source"].create(
             {"partner_id": partner.id, "source_type": "website", "url": "https://batch.example/materials"}
@@ -85,7 +87,7 @@ class TestInjectBatchQueries(PlasticosTestCase):
 
         def normalize_material(_service, _raw):
             seen["n"] += 1
-            vals = {"polymer": "PP", "form": "BALES", "freeform_notes": "batch inject"}
+            vals = {"polymer": "PP", "form": "PELLETS", "freeform_notes": "batch inject"}
             if seen["n"] == 4:
                 vals["certification_notes"] = "merged note"
             return vals, [], []

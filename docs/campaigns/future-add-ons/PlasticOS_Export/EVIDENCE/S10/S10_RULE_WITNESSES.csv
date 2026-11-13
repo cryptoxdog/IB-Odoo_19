@@ -1,0 +1,31 @@
+case_id,rule_id,aspect,witness
+AC-EXP-01-002,BRS-EXP-01-R002,positive,plasticos_export/tests/test_owner_facts.py::TestExportOwnerFacts::test_01_r002_positive_one_fact_per_owner
+AC-EXP-01-002,BRS-EXP-01-R002,negative,plasticos_export/tests/test_owner_facts.py::TestExportOwnerFacts::test_01_r002_negative_export_stores_no_owner_fact
+AC-EXP-01-002,BRS-EXP-01-R002 / 14-R022,restricted marker,plasticos_export/tests/test_owner_facts.py::TestExportOwnerFacts::test_restricted_owner_fact_is_marked_never_blank
+AC-EXP-02-006,BRS-EXP-02-R006,positive,plasticos_export/tests/test_owner_facts.py::TestExportOwnerFacts::test_02_r006_positive_trade_label_kept_apart_from_formal_incoterm
+AC-EXP-02-006,BRS-EXP-02-R006,negative,plasticos_export/tests/test_owner_facts.py::TestExportOwnerFacts::test_02_r006_negative_fas_label_never_rewrites_an_incoterm
+AC-EXP-07-006,BRS-EXP-07-R006,positive,plasticos_export/tests/test_owner_facts.py::TestExportOwnerFacts::test_07_r006_positive_package_totals_tare_and_vgm_from_owners
+AC-EXP-07-006,BRS-EXP-07-R006,positive,plasticos_export/tests/test_journey_facts_and_see_all.py::TestJourneyFactsAndSeeAll::test_07_r006_tare_and_vgm_weight_are_read_from_the_journey_facts
+AC-EXP-07-006,BRS-EXP-07-R006,negative,plasticos_export/tests/test_owner_facts.py::TestExportOwnerFacts::test_07_r006_negative_equipment_never_implies_weight_or_vgm
+AC-EXP-07-006,BRS-EXP-07-R006,negative,plasticos_export/tests/test_journey_facts_and_see_all.py::TestJourneyFactsAndSeeAll::test_07_r006_negative_export_derives_no_tare_or_vgm
+AC-EXP-08-007,BRS-EXP-08-R007,positive (Export side),plasticos_export/tests/test_journey_facts_and_see_all.py::TestJourneyFactsAndSeeAll::test_08_r007_container_afloat_is_sold_without_rewriting_its_facts
+AC-EXP-08-007,BRS-EXP-08-R007,negative (Export side),plasticos_export/tests/test_journey_facts_and_see_all.py::TestJourneyFactsAndSeeAll::test_08_r007_negative_buyer_change_moves_no_date_party_or_filer
+AC-EXP-09-001,BRS-EXP-09-R001,positive (manual fallback),plasticos_export/tests/test_manual_booking_candidate.py::TestManualBookingCandidate::test_09_r001_manual_entry_records_a_candidate_with_its_original
+AC-EXP-09-001,BRS-EXP-09-R001,negative (manual fallback),plasticos_export/tests/test_manual_booking_candidate.py::TestManualBookingCandidate::test_09_r001_manual_entry_keeps_every_command_guard
+AC-EXP-09-001,BRS-EXP-09-R001,negative (manual fallback),plasticos_export/tests/test_manual_booking_candidate.py::TestManualBookingCandidate::test_09_r001_foreign_company_actor_is_refused_by_the_command
+AC-EXP-14-011,BRS-EXP-14-R011,inventory,plasticos_export/tests/test_legacy_booking_report.py::TestLegacyBookingReport::test_14_r011_all_43_headings_are_inventoried
+AC-EXP-14-011,BRS-EXP-14-R011,positive,plasticos_export/tests/test_legacy_booking_report.py::TestLegacyBookingReport::test_14_r011_grouping_and_explicit_missing_or_unknown
+AC-EXP-14-011,BRS-EXP-14-R011,negative,plasticos_export/tests/test_legacy_booking_report.py::TestLegacyBookingReport::test_14_r011_negative_projection_writes_no_owner_record
+C11-SCOPE-2,OP10-E05,screen,plasticos_export/tests/test_slot_command_screens.py::TestSlotCommandScreens::test_commit_screen_commits_once_and_stores_nothing
+C11-SCOPE-2,OP10-E05,screen,plasticos_export/tests/test_slot_command_screens.py::TestSlotCommandScreens::test_commit_screen_shows_the_command_refusal
+C11-SCOPE-2,OP10-E05,screen,plasticos_export/tests/test_slot_command_screens.py::TestSlotCommandScreens::test_release_screen_releases_once_with_a_reason
+C11-SCOPE-2,OP10-E05,screen,plasticos_export/tests/test_slot_command_screens.py::TestSlotCommandScreens::test_bind_screen_binds_once_and_refuses_a_mismatch
+C11-SCOPE-2,OP10-E05,screen,plasticos_export/tests/test_slot_command_screens.py::TestSlotCommandScreens::test_non_logistics_user_has_no_button_no_screen_and_the_command_refuses
+C11-SCOPE-3,OP10-E06,see-all,plasticos_export/tests/test_journey_facts_and_see_all.py::TestJourneyFactsAndSeeAll::test_rep_searches_bookings_by_container_and_seal
+C11-SCOPE-3,OP10-E06,see-all,plasticos_export/tests/test_journey_facts_and_see_all.py::TestJourneyFactsAndSeeAll::test_rep_gets_no_journey_link_or_journey_button
+C11-SCOPE-3,OP10-E06,see-all,plasticos_export/tests/test_journey_facts_and_see_all.py::TestJourneyFactsAndSeeAll::test_rep_exports_cargo_links_without_access_error
+C11-SCOPE-3,OP10-E06 / C11-RULINGS (a),"see-all, no fact or journey link",plasticos_export/tests/test_journey_facts_and_see_all.py::TestJourneyFactsAndSeeAll::test_rep_reads_the_slot_display_without_access_error_or_journey
+AC-EXP-07-006,BRS-EXP-07-R006,package type weight per package (review B1),plasticos_export/tests/test_owner_facts.py::TestExportOwnerFacts::test_07_r006_package_type_weight_is_summed_per_package
+AC-EXP-14-022,BRS-EXP-14-R022,private party Restricted (review I1),plasticos_export/tests/test_journey_facts_and_see_all.py::TestJourneyFactsAndSeeAll::test_private_party_on_a_fact_shows_restricted_to_another_logistics_user
+AC-EXP-14-011,BRS-EXP-14-R011 / 14-R022,private partners Restricted (review I2),plasticos_export/tests/test_legacy_booking_report.py::TestLegacyBookingReport::test_14_r011_private_partners_show_restricted_not_an_error
+AC-EXP-08-006,BRS-EXP-08-R006,screen-level double allocation (review N4),plasticos_export/tests/test_slot_command_screens.py::TestSlotCommandScreens::test_commit_screens_cannot_double_allocate_one_load

@@ -18,6 +18,12 @@
 
 One original may support multiple explicit typed evidence rows (e.g., two loads) while retaining separate company, reference, revision, party and quantity coverage. No recency/partner-only allocation. For PO-only inbound and 3PL warehouse deliveries, associate the real native PO/picking even when there is no PlasticOS transaction/load; if current schema cannot do so, declare a bounded representation gap under the authorized later coding contract. **Do not invent missing business records or a new field without a proper schema decision.**
 
+### Operation scope (2026-11-12)
+
+Each row names one obligation. `legacy` rows are the invoice, close, transaction and claims evidence. An operation row adds its exact operation revision, coverage, and a quantity only with its unit, and is visible only inside its subject company. One business verifier (`plasticos.document.action_verify` / `action_override`) decides every row; Native Documents delegates and projects only a sole legacy row, so an original with several rows stays ambiguous at the native Boolean. Export and other consumers read `plasticos.document.get_scoped_evidence_verdict`; they are not an alternate evidence owner. Transaction reminders: Documents supplies scale-ticket status and internal activity from the Logistics actual clocks; Logistics keeps the external reminder. See `SUPERSESSION.md` 2026-11-12.
+
+Release hook (2026-11-12): `plasticos.document._release_obligations(operation_kind)` names the operation obligations whose stale accepted evidence withholds a new physical instruction on the Logistics release guard. By default it returns every declared obligation for every operation kind; the obligation owner (Export) narrows it by `_inherit`. Documents defines no obligation-to-operation mapping. Superseded rows never withhold release on staleness; their successor decides. Evidence accepted in another company withholds release whatever its state or obligation.
+
 ## Native Objects
 
 `documents.document` owns files but its native `Linked to` is not proof of all multiple business links; `plasticos.document` owns verified typed evidence on the PlasticOS side. The exact installed Enterprise API and ACLs must be inspected before implementation. Native folder aliases can ingest from external email without external folder grants. Native Documents Request can send reminders, so it must remain **internal-only** and not become a parallel sender.

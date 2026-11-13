@@ -1284,3 +1284,548 @@ def test_lease_session_that_ends_without_a_grant_fails_closed(tmp_path):
     assert result.returncode == 1, result.stderr
     assert "lease session ended" in result.stderr
     assert "does not exist" not in result.stderr
+
+
+# ---------------------------------------------------------------------------
+# 2026-11-12 (Export campaign S3, C02-REAUTH-3): an installable module listed
+# under excluded_modules is test-scoped only when the admitted fixture has it
+# installed. Its state is read from the verified clone, a copy of the fixture.
+# ---------------------------------------------------------------------------
+_MODULE_STATE_STUB = _STATEFUL_STUB.replace(
+    '    if "shobj_description" in query and name is not None:\n',
+    '    if "FROM ir_module_module" in query:\n'
+    '        out(os.environ.get("STUB_MODULE_STATE", ""))\n'
+    '    if "shobj_description" in query and name is not None:\n',
+)
+
+
+# An excluded, installable module with tests. plasticos_documents_native was the example until Staging put it
+# in the roster (PlasticOS Export single merge, 2026-11-13); config/odoo_module_order.yaml still excludes this one.
+EXCLUDED_EXAMPLE = "plasticos_semantic_kernel"
+
+
+def _excluded_test_run(tmp_path: Path, module_state: str) -> subprocess.CompletedProcess:
+    assert _MODULE_STATE_STUB != _STATEFUL_STUB
+    base = _enterprise(tmp_path)
+    fp = _fingerprint(tmp_path, **base)
+    stub = tmp_path / "sbin" / "docker"
+    stub.parent.mkdir(exist_ok=True)
+    stub.write_text(_MODULE_STATE_STUB)
+    stub.chmod(0o755)
+    state = tmp_path / "state.json"
+    state.write_text(json.dumps({PINNED_FIXTURE: _ee_template(fp), "odoo_test_a": _ee_clone(fp)}))
+    environ = {
+        "PATH": f"{stub.parent}{os.pathsep}{os.environ['PATH']}",
+        "HOME": str(tmp_path),
+        "STUB_STATE": str(state),
+        "STUB_ROOT": str(ROOT),
+        "STUB_LOG": str(tmp_path / "stub.log"),
+        "STUB_MODULE_STATE": module_state,
+        "STUB_ODOO_LOG": _summary(0, 0, 12),
+        "TEST_ENV_OWNER": "agenta",
+        "TEST_ENV_PARITY": "community",
+        "TEST_ENV_SAFETY_HARNESS": "1",
+        "TEST_ENV_EVIDENCE_DIR": str(tmp_path / "evidence"),
+        **base,
+    }
+    recipe = [*TEST_RECIPE, "-d", "odoo_test_a", "--log-level=test", "-u", EXCLUDED_EXAMPLE]
+    return subprocess.run(
+        ["bash", str(ROOT / "scripts" / "test_env.sh"), "run", "odoo_test_a", "--", *recipe],
+        capture_output=True,
+        text=True,
+        env=environ,
+        cwd=ROOT,
+        check=False,
+    )
+
+
+def test_excluded_module_installed_in_the_fixture_is_test_scoped(tmp_path):
+    """An excluded module the fixture has installed is test-scoped: its tests run, tagged like the roster."""
+    result = _excluded_test_run(tmp_path, "installed")
+    assert result.returncode == 0, result.stderr
+    assert f"scope {EXCLUDED_EXAMPLE}" in result.stdout
+    call = _odoo_call(tmp_path)
+    assert f" -u {ROSTER} " in call
+    assert EXCLUDED_EXAMPLE not in ROSTER.split(",")
+    assert f" --test-tags /{EXCLUDED_EXAMPLE} " in call
+
+
+@pytest.mark.parametrize("module_state", ["", "uninstalled", "to install"])
+def test_excluded_module_not_installed_in_the_fixture_is_refused(tmp_path, module_state):
+    """An excluded module the fixture does not have installed is refused before Odoo runs."""
+    result = _excluded_test_run(tmp_path, module_state)
+    assert result.returncode != 0, result.stdout
+    assert "test-env refused" in result.stderr
+    assert "is excluded from the roster and is not installed in the admitted fixture" in result.stderr
+    calls = (tmp_path / "stub.log").read_text()
+    assert "--test-enable" not in calls
+
+
+# ---------------------------------------------------------------------------
+# 2026-11-12 (Export campaign S6, C06-RECON F4/F8). F4: a template is admitted
+# only from a tree whose PlasticOS addons equal its Git head, and the ready
+# marker names that head; `status` shows it. F8: `migrate <db> <from-rev>`
+# upgrades an owned clone made in another checkout when only the roster grew,
+# and a migrated clone is checked against the template admitted for its old
+# inputs. backup/restore use Odoo's own database manager.
+# ---------------------------------------------------------------------------
+def _template_build(tmp_path: Path, root: Path) -> subprocess.CompletedProcess:
+    return _stateful(tmp_path, {}, "template", root=root)
+
+
+def test_template_admission_is_refused_from_a_dirty_addon_tree(tmp_path):
+    root, head = _git_checkout(tmp_path)
+    (root / "plasticos_base" / "__init__.py").write_text("# edited, not committed\n")
+    result = _template_build(tmp_path, root)
+    assert result.returncode == 2, result.stdout
+    assert "differs from its Git head" in result.stderr
+    assert head[:12] in result.stderr
+    calls = (tmp_path / "stub.log").read_text()
+    assert " run " not in calls and "COMMENT ON" not in calls
+
+
+def test_template_admission_from_a_clean_tree_is_not_refused_for_its_source(tmp_path):
+    root, _ = _git_checkout(tmp_path)
+    (root / "notes.txt").write_text("outside the addon paths\n")
+    result = _template_build(tmp_path, root)
+    assert "differs from its Git head" not in result.stderr
+    # The source check passed: the build went on to the next gate (this fixture checkout
+    # has one addon, so the module preflight is what stops it).
+    assert "declared modules not found on any addons path" in result.stderr
+
+
+def test_template_ready_marker_records_the_source_head_and_digest():
+    script = (ROOT / "scripts" / "test_env.sh").read_text()
+    assert "$BUILD_SOURCE_MARKER $ADMISSION" in script
+    # The marker names the source when the build starts, and a change before the stamp is refused.
+    assert 'BUILD_SOURCE_MARKER="$(template_source_marker)"' in script
+    assert script.index('BUILD_SOURCE_MARKER="$(template_source_marker)"') < script.index(
+        'preflight_modules "$modules"'
+    )
+    assert "PlasticOS addon source changed while $BUILD_DB was built" in script
+    assert 'echo "srchead=$(git -C "$ROOT" rev-parse --verify -q HEAD) srcdigest=$(addon_source)"' in script
+
+
+@pytest.mark.parametrize(
+    ("extra", "expected"), [(" srchead=abc123 srcdigest=def456", "head abc123, addons def456"), ("", "not recorded")]
+)
+def test_status_shows_the_template_source(tmp_path, extra, expected):
+    base = _enterprise(tmp_path)
+    fp = _fingerprint(tmp_path, **base)
+    result = _stateful(tmp_path, {PINNED_FIXTURE: _ee_template(fp) + extra}, "status", **base)
+    assert result.returncode == 0, result.stderr
+    assert f"template src: {expected}" in result.stdout
+
+
+def _migration_case(
+    tmp_path: Path, *, owner: str = "agenta", template_fp: str | None = None, evidence: bool = True, drop_first=False
+) -> tuple[Path, str, dict, str]:
+    """A checkout, its head, the env, and the old fp of a clone made before plasticos_export joined the roster."""
+    root, head = _git_checkout(tmp_path)
+    base = _enterprise(tmp_path)
+    current = _status(tmp_path, root=root, **base)["inputs"]
+    old = []
+    for line in current:
+        if line.startswith("modules="):
+            modules = line.split("=", 1)[1].split(",")
+            assert modules[-1] == "plasticos_export"
+            modules = modules[1:-1] if drop_first else modules[:-1]
+            line = "modules=" + ",".join(modules)
+        old.append(line)
+    text = "\n".join(old) + "\n"
+    old_fp = _sha256(text)
+    if evidence:
+        (tmp_path / "evidence").mkdir(exist_ok=True)
+        (tmp_path / "evidence" / f"{PINNED_FIXTURE}.inputs.txt").write_text(text)
+    clone = (
+        f"plasticos-test-env/2 role=clone owner={owner} parity=ee template={PINNED_FIXTURE} fp={old_fp} "
+        "created=2026-11-12T00:00:00Z"
+    )
+    databases = {PINNED_FIXTURE: _ee_template(template_fp or old_fp), "odoo_test_a": clone}
+    return root, head, {"databases": databases, **base}, old_fp
+
+
+def _migrate(tmp_path: Path, root: Path, rev: str, case: dict) -> subprocess.CompletedProcess:
+    databases = case.pop("databases")
+    return _stateful(tmp_path, databases, "migrate", "odoo_test_a", rev, root=root, **case)
+
+
+def test_migrate_upgrades_the_roster_installs_the_added_module_and_stamps_the_lineage(tmp_path):
+    root, head, case, old_fp = _migration_case(tmp_path)
+    # The fixture template records no addon source (pre-F4), so the source is acknowledged.
+    case["TEST_ENV_MIGRATE_SOURCE_ACK"] = head
+    result = _migrate(tmp_path, root, head, case)
+    assert result.returncode == 0, result.stderr
+    assert "migrated to" in result.stdout
+    calls = (tmp_path / "stub.log").read_text()
+    run = [line for line in calls.splitlines() if " -i plasticos_export " in line]
+    assert len(run) == 1, calls
+    assert " -u " in run[0] and ",plasticos_export" not in run[0].split(" -u ", 1)[1].split(" ", 1)[0]
+    assert " -d odoo_test_a " in run[0]
+    stamp = [line for line in calls.splitlines() if "COMMENT ON DATABASE" in line and "odoo_test_a" in line]
+    assert stamp and f"migrated_from={old_fp}" in stamp[-1] and f"fromrev={head}" in stamp[-1]
+    assert (tmp_path / "evidence" / "odoo_test_a.migrate.log").exists()
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "rev", "reason"),
+    [
+        ({"owner": "agentb"}, None, "owned by 'agentb'"),
+        ({"template_fp": "f" * 64}, None, "not the template admitted"),
+        ({"evidence": False}, None, "migration source is unproven"),
+        ({"drop_first": True}, None, "with modules appended"),
+        ({}, "not-a-sha", "needs the source revision"),
+        ({}, "0123456", "is not a commit"),
+    ],
+)
+def test_migrate_refuses_an_unproven_or_unsupported_migration(tmp_path, kwargs, rev, reason):
+    root, head, case, _ = _migration_case(tmp_path, **kwargs)
+    result = _migrate(tmp_path, root, rev or head, case)
+    assert result.returncode == 2, result.stdout
+    assert re.search(reason, result.stderr), result.stderr
+    calls = (tmp_path / "stub.log").read_text()
+    assert " -i plasticos_export" not in calls and "COMMENT ON" not in calls
+
+
+def test_migrate_refuses_when_another_fingerprint_config_file_changed(tmp_path):
+    root, head, case, _ = _migration_case(tmp_path)
+    with (root / "docker-compose.yml").open("a") as handle:
+        handle.write("# local edit\n")
+    result = _migrate(tmp_path, root, head, case)
+    assert result.returncode == 2, result.stdout
+    assert re.search("recorded config digest|other than config/odoo_module_order.yaml", result.stderr), result.stderr
+    assert " -i plasticos_export" not in (tmp_path / "stub.log").read_text()
+
+
+def test_migrate_refuses_a_clone_that_already_matches_the_current_inputs(tmp_path):
+    base = _enterprise(tmp_path)
+    fp = _fingerprint(tmp_path, **base)
+    result = _stateful(
+        tmp_path,
+        {PINNED_FIXTURE: _ee_template(fp), "odoo_test_a": _ee_clone(fp)},
+        "migrate",
+        "odoo_test_a",
+        _git(ROOT, "rev-parse", "HEAD"),
+        **base,
+    )
+    assert result.returncode == 2
+    assert "nothing to migrate" in result.stderr
+
+
+def _migrated_clone(fp_now: str, old_fp: str) -> str:
+    return (
+        f"plasticos-test-env/2 role=clone owner=agenta parity=ee template={PINNED_FIXTURE} fp={fp_now} "
+        f"created=2026-11-12T00:00:00Z migrated_from={old_fp} fromrev={'a' * 40} src={'b' * 64}"
+    )
+
+
+def test_a_migrated_clone_is_checked_against_the_template_of_its_old_inputs(tmp_path):
+    base = _enterprise(tmp_path)
+    fp = _fingerprint(tmp_path, **base)
+    old_fp = "c" * 64
+    accepted = _stateful(
+        tmp_path,
+        {PINNED_FIXTURE: _ee_template(old_fp), "odoo_test_a": _migrated_clone(fp, old_fp)},
+        "assert-clone",
+        "odoo_test_a",
+        **base,
+    )
+    assert accepted.returncode == 0, accepted.stderr
+    refused = _stateful(
+        tmp_path,
+        {PINNED_FIXTURE: _ee_template("d" * 64), "odoo_test_a": _migrated_clone(fp, old_fp)},
+        "assert-clone",
+        "odoo_test_a",
+        **base,
+    )
+    assert refused.returncode == 2
+    assert "was migrated from inputs cccccccccccccccc" in refused.stderr
+
+
+@pytest.mark.parametrize(
+    ("args", "reason"),
+    [
+        (["backup", "odoo"], "not a disposable test database name"),
+        (["backup", "odoo_test_tpl_ee_c9e8a81f52f23680"], "template name"),
+        (["restore", "odoo_test_a", "odoo_test_a"], "target other than the backed-up clone"),
+        (["restore", "odoo_test_a", "odoo_prod"], "not a disposable test database name"),
+        (["restore", "odoo_test_a", "odoo_test_staging"], "production or staging"),
+        (["migrate", "odoo"], "not a disposable test database name"),
+    ],
+)
+def test_backup_restore_and_migrate_refuse_unsafe_names_before_docker(tmp_path, args, reason):
+    result, calls = _run(tmp_path, *args)
+    _assert_refused(result, calls, reason)
+    assert calls == ""
+
+
+def test_restore_refuses_a_backup_that_no_longer_matches_its_checksum(tmp_path):
+    base = _enterprise(tmp_path)
+    fp = _fingerprint(tmp_path, **base)
+    backup = tmp_path / "evidence" / "backup"
+    backup.mkdir(parents=True)
+    (backup / "odoo_test_a.zip").write_bytes(b"changed after the backup")
+    (backup / "odoo_test_a.zip.json").write_text(json.dumps({"sha256": "0" * 64, "marker": _ee_clone(fp)}))
+    result = _stateful(tmp_path, {PINNED_FIXTURE: _ee_template(fp)}, "restore", "odoo_test_a", "odoo_test_b", **base)
+    assert result.returncode == 2
+    assert "no longer matches its recorded checksum" in result.stderr
+    assert " load " not in (tmp_path / "stub.log").read_text()
+
+
+def test_restore_loads_with_odoo_and_stamps_the_restored_lineage(tmp_path):
+    base = _enterprise(tmp_path)
+    fp = _fingerprint(tmp_path, **base)
+    backup = tmp_path / "evidence" / "backup"
+    backup.mkdir(parents=True)
+    content = b"PK synthetic"
+    (backup / "odoo_test_a.zip").write_bytes(content)
+    import hashlib
+
+    sha = hashlib.sha256(content).hexdigest()
+    (backup / "odoo_test_a.zip.json").write_text(json.dumps({"sha256": sha, "marker": _ee_clone(fp)}))
+    result = _stateful(tmp_path, {PINNED_FIXTURE: _ee_template(fp)}, "restore", "odoo_test_a", "odoo_test_b", **base)
+    assert result.returncode == 0, result.stderr
+    calls = (tmp_path / "stub.log").read_text()
+    assert " load odoo_test_b /var/lib/odoo/restore-odoo_test_b.zip " in calls
+    stamp = [line for line in calls.splitlines() if "COMMENT ON DATABASE" in line and "odoo_test_b" in line]
+    assert stamp and "restored_from=odoo_test_a" in stamp[-1] and f"backup={sha}" in stamp[-1]
+    assert "role=clone owner=agenta" in stamp[-1]
+
+
+# ---------------------------------------------------------------------------
+# 2026-11-12 (PR #480 review, coordinator ruling): migrate binds <from-rev> to the
+# addon source the template installed. A template that records srcdigest must
+# match the addon digest at <from-rev>; one that records none (admitted before
+# F4) needs TEST_ENV_MIGRATE_SOURCE_ACK equal to the full resolved sha.
+# ---------------------------------------------------------------------------
+def _with_srcdigest(case: dict, digest: str) -> dict:
+    case["databases"][PINNED_FIXTURE] += f" srchead={'a' * 40} srcdigest={digest}"
+    return case
+
+
+def test_migrate_accepts_a_revision_whose_addon_source_is_the_template_source(tmp_path):
+    root, head, case, _old_fp = _migration_case(tmp_path)
+    digest = _status(tmp_path, root=root, **_enterprise(tmp_path))["source"]
+    result = _migrate(tmp_path, root, head, _with_srcdigest(case, digest))
+    assert result.returncode == 0, result.stderr
+    assert f"source bound: the addon digest at {head} equals the template srcdigest {digest}" in result.stdout
+    log = (tmp_path / "evidence" / "odoo_test_a.migrate.log").read_text()
+    assert "source bound: the addon digest" in log
+
+
+def test_migrate_refuses_a_revision_whose_addon_source_differs_from_the_template(tmp_path):
+    root, head, case, _old_fp = _migration_case(tmp_path)
+    result = _migrate(tmp_path, root, head, _with_srcdigest(case, "f" * 64))
+    assert result.returncode == 2, result.stdout
+    assert "is not the source odoo_test_tpl_ee_c9e8a81f52f23680 was admitted from" in result.stderr
+    assert " -i plasticos_export" not in (tmp_path / "stub.log").read_text()
+
+
+def test_migrate_refuses_a_template_without_source_and_without_acknowledgement(tmp_path):
+    root, head, case, _old_fp = _migration_case(tmp_path)
+    result = _migrate(tmp_path, root, head, case)
+    assert result.returncode == 2, result.stdout
+    assert "records no addon source" in result.stderr
+    assert "TEST_ENV_MIGRATE_SOURCE_ACK=<full 40-character sha" in result.stderr
+    assert " -i plasticos_export" not in (tmp_path / "stub.log").read_text()
+
+
+@pytest.mark.parametrize("ack", ["short", "branch", "other"])
+def test_migrate_refuses_an_acknowledgement_that_is_not_the_full_revision(tmp_path, ack):
+    root, head, case, _old_fp = _migration_case(tmp_path)
+    case["TEST_ENV_MIGRATE_SOURCE_ACK"] = {"short": head[:12], "branch": "HEAD", "other": "0" * 40}[ack]
+    result = _migrate(tmp_path, root, head, case)
+    assert result.returncode == 2, result.stdout
+    assert "records no addon source" in result.stderr
+    assert " -i plasticos_export" not in (tmp_path / "stub.log").read_text()
+
+
+def test_migrate_accepts_the_full_revision_as_acknowledgement_and_logs_it(tmp_path):
+    root, head, case, _old_fp = _migration_case(tmp_path)
+    case["TEST_ENV_MIGRATE_SOURCE_ACK"] = head
+    result = _migrate(tmp_path, root, head[:12], case)
+    assert result.returncode == 0, result.stderr
+    line = f"source bound by acknowledgement: TEST_ENV_MIGRATE_SOURCE_ACK={head}"
+    assert line in result.stdout
+    assert line in (tmp_path / "evidence" / "odoo_test_a.migrate.log").read_text()
+
+
+# ---------------------------------------------------------------------------
+# 2026-11-12 (PR #480 independent review, N2/N5/N6): refusals of migrate and
+# restore that had no test, the module-order append-only rule, and an unsafe
+# restore marker.
+# ---------------------------------------------------------------------------
+def _migrate_with_clone(tmp_path: Path, clone_comment, **extra):
+    """A migration case whose clone marker is rewritten by clone_comment(old_fp)."""
+    root, head, case, old_fp = _migration_case(tmp_path)
+    case["databases"]["odoo_test_a"] = clone_comment(old_fp)
+    case["TEST_ENV_MIGRATE_SOURCE_ACK"] = head
+    case.update(extra)
+    return _migrate(tmp_path, root, head, case)
+
+
+@pytest.mark.parametrize(
+    ("clone_comment", "reason"),
+    [
+        (lambda fp: "", "is not a test-env clone"),
+        (
+            lambda fp: f"plasticos-test-env/2 role=clone owner=agenta parity=ce template={PINNED_FIXTURE} fp={fp}",
+            "was cloned with parity 'ce'",
+        ),
+        (
+            lambda fp: (
+                f"plasticos-test-env/2 role=clone owner=agenta parity=ee template=odoo_test_tpl_ee_{'0' * 16} fp={fp}"
+            ),
+            f"was not cloned from {PINNED_FIXTURE}",
+        ),
+        (
+            lambda fp: (
+                f"plasticos-test-env/2 role=clone owner=agenta parity=ee template={PINNED_FIXTURE} fp={fp} "
+                f"migrated_from={'c' * 64}"
+            ),
+            "was already migrated",
+        ),
+    ],
+)
+def test_migrate_refuses_a_database_that_is_not_an_unmigrated_clone_of_the_fixture(tmp_path, clone_comment, reason):
+    result = _migrate_with_clone(tmp_path, clone_comment)
+    assert result.returncode == 2, result.stdout
+    assert reason in result.stderr
+    assert " -i plasticos_export" not in (tmp_path / "stub.log").read_text()
+
+
+def test_migrate_refuses_when_a_non_roster_input_changed(tmp_path):
+    """The recorded inputs differ from the current ones by the image, not only the roster."""
+    root, head, case, _old_fp = _migration_case(tmp_path)
+    evidence = tmp_path / "evidence" / f"{PINNED_FIXTURE}.inputs.txt"
+    lines = [
+        "image=content:" + "9" * 64 if line.startswith("image=") else line for line in evidence.read_text().splitlines()
+    ]
+    text = "\n".join(lines) + "\n"
+    evidence.write_text(text)
+    old_fp = _sha256(text)
+    case["databases"][PINNED_FIXTURE] = _ee_template(old_fp)
+    case["databases"]["odoo_test_a"] = (
+        f"plasticos-test-env/2 role=clone owner=agenta parity=ee template={PINNED_FIXTURE} fp={old_fp}"
+    )
+    case["TEST_ENV_MIGRATE_SOURCE_ACK"] = head
+    result = _migrate(tmp_path, root, head, case)
+    assert result.returncode == 2, result.stdout
+    assert "inputs other than the module roster changed" in result.stderr
+    assert "image" in result.stderr
+
+
+def test_migrate_refuses_a_module_order_change_outside_the_appended_roster(tmp_path):
+    """N5: excluded_modules (or any key other than default_install_order) may not change."""
+    root, head, case, _old_fp = _migration_case(tmp_path)
+    order = root / "config" / "odoo_module_order.yaml"
+    text = order.read_text()
+    assert "excluded_modules:\n" in text
+    order.write_text(text.replace("excluded_modules:\n", "excluded_modules:\n  - plasticos_s6_review_probe\n", 1))
+    case["TEST_ENV_MIGRATE_SOURCE_ACK"] = head
+    result = _migrate(tmp_path, root, head, case)
+    assert result.returncode == 2, result.stdout
+    assert "changed beyond entries appended to default_install_order" in result.stderr
+    assert " -i plasticos_export" not in (tmp_path / "stub.log").read_text()
+
+
+def test_migrate_refuses_a_template_name_before_docker(tmp_path):
+    result, calls = _run(tmp_path, "migrate", PINNED_FIXTURE, "0" * 40)
+    _assert_refused(result, calls, "template name")
+    assert calls == ""
+
+
+def _backup(tmp_path: Path, marker: str) -> dict:
+    import hashlib
+
+    base = _enterprise(tmp_path)
+    backup = tmp_path / "evidence" / "backup"
+    backup.mkdir(parents=True)
+    content = b"PK synthetic"
+    (backup / "odoo_test_a.zip").write_bytes(content)
+    (backup / "odoo_test_a.zip.json").write_text(
+        json.dumps({"sha256": hashlib.sha256(content).hexdigest(), "marker": marker})
+    )
+    return base
+
+
+def test_restore_refuses_a_backup_of_another_owners_clone(tmp_path):
+    base = _backup(tmp_path, "placeholder")
+    fp = _fingerprint(tmp_path, **base)
+    meta = tmp_path / "evidence" / "backup" / "odoo_test_a.zip.json"
+    data = json.loads(meta.read_text())
+    data["marker"] = _ee_clone(fp).replace("owner=agenta", "owner=agentb")
+    meta.write_text(json.dumps(data))
+    result = _stateful(tmp_path, {PINNED_FIXTURE: _ee_template(fp)}, "restore", "odoo_test_a", "odoo_test_b", **base)
+    assert result.returncode == 2
+    assert "is not of a clone owned by agenta" in result.stderr
+    assert " load " not in (tmp_path / "stub.log").read_text()
+
+
+def test_restore_refuses_a_marker_that_is_not_sql_safe(tmp_path):
+    """N2: the recorded marker is written into COMMENT ... IS '...'; an unsafe token is refused."""
+    base = _backup(tmp_path, "placeholder")
+    fp = _fingerprint(tmp_path, **base)
+    meta = tmp_path / "evidence" / "backup" / "odoo_test_a.zip.json"
+    data = json.loads(meta.read_text())
+    data["marker"] = _ee_clone(fp) + " note=x';DROP"
+    meta.write_text(json.dumps(data))
+    result = _stateful(tmp_path, {PINNED_FIXTURE: _ee_template(fp)}, "restore", "odoo_test_a", "odoo_test_b", **base)
+    assert result.returncode == 2
+    assert "carries an unsafe marker" in result.stderr
+    calls = (tmp_path / "stub.log").read_text()
+    assert " load " not in calls and "COMMENT ON" not in calls
+
+
+def test_restore_refuses_an_unsafe_marker_hidden_behind_a_glob(tmp_path):
+    """B2: an unquoted token loop globbed this payload into repository file names and passed it."""
+    base = _backup(tmp_path, "placeholder")
+    fp = _fingerprint(tmp_path, **base)
+    meta = tmp_path / "evidence" / "backup" / "odoo_test_a.zip.json"
+    data = json.loads(meta.read_text())
+    data["marker"] = _ee_clone(fp) + " [A';SELECT(1);--]*"
+    meta.write_text(json.dumps(data))
+    result = _stateful(tmp_path, {PINNED_FIXTURE: _ee_template(fp)}, "restore", "odoo_test_a", "odoo_test_b", **base)
+    assert result.returncode == 2
+    assert "carries an unsafe marker" in result.stderr
+    calls = (tmp_path / "stub.log").read_text()
+    assert " load " not in calls and "COMMENT ON" not in calls
+
+
+def test_restore_removes_its_temporary_copy_when_a_later_check_refuses(tmp_path):
+    """N10: the copy is removed on every exit path, here a refusal of a target owned by someone else."""
+    base = _backup(tmp_path, "placeholder")
+    fp = _fingerprint(tmp_path, **base)
+    meta = tmp_path / "evidence" / "backup" / "odoo_test_a.zip.json"
+    data = json.loads(meta.read_text())
+    data["marker"] = _ee_clone(fp)
+    meta.write_text(json.dumps(data))
+    foreign = _ee_clone(fp).replace("owner=agenta", "owner=agentb")
+    databases = {PINNED_FIXTURE: _ee_template(fp), "odoo_test_b": foreign}
+    result = _stateful(tmp_path, databases, "restore", "odoo_test_a", "odoo_test_b", **base)
+    assert result.returncode == 2, result.stderr
+    assert " load " not in (tmp_path / "stub.log").read_text()
+    assert not list((tmp_path / "evidence" / "backup").glob(".restore-*"))
+
+
+@pytest.mark.parametrize("entry", ["[p']*", "Plasticos_Export2", "bad-name"])
+def test_migrate_refuses_an_appended_entry_that_is_not_a_module_name(tmp_path, entry):
+    """N9: the added roster is split on commas without globbing, and every entry is checked."""
+    root, head, case, _old_fp = _migration_case(tmp_path)
+    case["TEST_ENV_MIGRATE_SOURCE_ACK"] = head
+    order = root / "config" / "odoo_module_order.yaml"
+    text = order.read_text()
+    marker = "default_install_order:\n"
+    assert marker in text
+    head_part, tail = text.split(marker, 1)
+    lines = tail.splitlines(keepends=True)
+    end = 0
+    while end < len(lines) and lines[end].startswith((" ", "\t", "-")):
+        end += 1
+    lines.insert(end, f'  - "{entry}"\n')
+    order.write_text(head_part + marker + "".join(lines))
+    result = _migrate(tmp_path, root, head, case)
+    assert result.returncode == 2, result.stdout + result.stderr
+    assert "is not a module name" in result.stderr, result.stderr
+    calls = (tmp_path / "stub.log").read_text()
+    assert " -i plasticos_export" not in calls and "COMMENT ON DATABASE" not in calls

@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Slot-grain capacity and cargo allocation (RP-07-E050). BRS-EXP-14-R014..R016.
+    One row per distinct slot: several cargo sources on one slot never count twice.
+    Slots and cargo change only through the Export booking commands.
+    Source references (operator decision 2026-11-12): Logistics and Operations
+    Managers (group_logistics, implied by Operations Manager) get the openable
+    source records. Every other reader, such as a Sales Rep reading another rep's
+    allocation, gets the source names as text or a no_open reference, because the
+    load, sale order and purchase order stay owner-scoped.
+-->
+<odoo>
+    <record id="view_export_slot_list" model="ir.ui.view">
+        <field name="name">plasticos.export.booking.slot.list</field>
+        <field name="model">plasticos.export.booking.slot</field>
+        <field name="arch" type="xml">
+            <list create="0" delete="0" edit="0">
+                <field name="booking_id"/>
+                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="slot_key"/>
+                <field name="equipment_class"/>
+                <field name="allocation_state" widget="badge" decoration-success="allocation_state == 'available'" decoration-info="allocation_state == 'committed'" decoration-warning="allocation_state == 'held'" decoration-muted="allocation_state == 'historical'"/>
+                <field name="supplier_count"/>
+                <field name="iso_number"/>
+                <field name="seal_number" optional="hide"/>
+                <field name="hold_reason" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_export_slot_form" model="ir.ui.view">
+        <field name="name">plasticos.export.booking.slot.form</field>
+        <field name="model">plasticos.export.booking.slot</field>
+        <field name="arch" type="xml">
+            <form create="0" delete="0" edit="0">
+                <header>
+                    <button name="action_open_commit_cargo" type="object" string="Commit Cargo" class="btn-primary" invisible="not active or allocation_state == 'held'" groups="plasticos_security_base.group_logistics"/>
+                    <button name="action_open_release_cargo" type="object" string="Release Cargo" invisible="allocation_state not in ('committed', 'held')" groups="plasticos_security_base.group_logistics"/>
+                    <button name="action_open_bind_journey" type="object" string="Bind Container" invisible="not active or journey_binding_state == 'active'" groups="plasticos_security_base.group_logistics"/>
+                    <button name="action_open_journey" type="object" string="Open Container Journey" invisible="not journey_id" groups="plasticos_security_base.group_logistics,plasticos_security_base.group_operations_manager,base.group_system"/>
+                    <field name="allocation_state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group string="Slot">
+                            <field name="active" invisible="1"/>
+                            <field name="booking_id"/>
+                            <field name="slot_key"/>
+                            <field name="equipment_class"/>
+                            <field name="created_from_revision_id"/>
+                            <field name="hold_reason"/>
+                            <field name="hold_revision_id"/>
+                        </group>
+                        <group string="Physical Container (Logistics)">
+                            <!-- Only readers of the Logistics container journey get the journey (OP10-E06, review N7 of C07); others see the container number and seal below. -->
+                            <field name="journey_id" groups="plasticos_security_base.group_logistics,plasticos_security_base.group_operations_manager,base.group_system"/>
+                            <field name="journey_binding_state"/>
+                            <field name="iso_number"/>
+                            <field name="seal_number"/>
+                            <field name="journey_equipment_class"/>
+                        </group>
+                    </group>
+                    <group string="Packages, Tare and VGM (read live from their owners)" name="owner_weights">
+                        <field name="owner_package_summary"/>
+                        <field name="owner_container_tare"/>
+                        <field name="owner_container_vgm_weight"/>
+                        <field name="owner_vgm_verdict"/>
+                    </group>
+                    <group string="Shipment History (Logistics facts and cargo allocations)" name="shipment_history">
+                        <field name="owner_shipment_history" nolabel="1" colspan="2"/>
+                    </group>
+                    <field name="cargo_link_ids">
+                        <list>
+                            <field name="allocation_key"/>
+                            <field name="state" widget="badge"/>
+                            <field name="supplier_id" groups="plasticos_security_base.group_logistics"/>
+                            <field name="supplier_ref" groups="!plasticos_security_base.group_logistics"/>
+                            <field name="purchase_order_id" groups="plasticos_security_base.group_logistics"/>
+                            <field name="purchase_order_ref" groups="!plasticos_security_base.group_logistics"/>
+                            <field name="sale_order_id" groups="plasticos_security_base.group_logistics"/>
+                            <field name="sale_order_ref" groups="!plasticos_security_base.group_logistics"/>
+                            <field name="source_load_id" groups="plasticos_security_base.group_logistics"/>
+                            <field name="source_load_ref" groups="!plasticos_security_base.group_logistics"/>
+                            <field name="stock_move_line_id" optional="hide" groups="plasticos_security_base.group_logistics"/>
+                            <field name="physical_source_kind"/>
+                            <field name="replaces_link_id" optional="hide"/>
+                            <field name="planned_quantity"/>
+                            <field name="planned_quantity_known"/>
+                            <field name="uom_id"/>
+                        </list>
+                    </field>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_export_slot_search" model="ir.ui.view">
+        <field name="name">plasticos.export.booking.slot.search</field>
+        <field name="model">plasticos.export.booking.slot</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="booking_id"/>
+                <field name="carrier_booking_no"/>
+                <field name="iso_number"/>
+                <field name="seal_number"/>
+                <field name="cargo_link_ids" string="Supplier PO" filter_domain="[('cargo_link_ids.purchase_order_ref', 'ilike', self)]"/>
+                <filter name="filter_available" string="Available" domain="[('allocation_state', '=', 'available')]"/>
+                <filter name="filter_committed" string="Committed" domain="[('allocation_state', '=', 'committed')]"/>
+                <filter name="filter_held" string="Held" domain="[('allocation_state', '=', 'held')]"/>
+                <filter name="filter_historical" string="Retired" domain="[('active', '=', False)]"/>
+                <filter name="filter_bound" string="Container Bound" domain="[('journey_binding_state', '=', 'active')]"/>
+                <separator/>
+                <filter name="group_booking" string="Booking" context="{'group_by': 'booking_id'}"/>
+                <filter name="group_equipment" string="Equipment" context="{'group_by': 'equipment_class'}"/>
+                <filter name="group_state" string="Allocation" context="{'group_by': 'allocation_state'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_export_slot_pivot" model="ir.ui.view">
+        <field name="name">plasticos.export.booking.slot.pivot</field>
+        <field name="model">plasticos.export.booking.slot</field>
+        <field name="arch" type="xml">
+            <pivot string="Booking Space Availability">
+                <field name="booking_id" type="row"/>
+                <field name="equipment_class" type="row"/>
+                <field name="allocation_state" type="col"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_export_slot_graph" model="ir.ui.view">
+        <field name="name">plasticos.export.booking.slot.graph</field>
+        <field name="model">plasticos.export.booking.slot</field>
+        <field name="arch" type="xml">
+            <graph string="Booking Space Availability" type="bar" stacked="1">
+                <field name="equipment_class"/>
+                <field name="allocation_state"/>
+            </graph>
+        </field>
+    </record>
+
+    <record id="view_export_cargo_link_list" model="ir.ui.view">
+        <field name="name">plasticos.export.booking.cargo.link.list</field>
+        <field name="model">plasticos.export.booking.cargo.link</field>
+        <field name="arch" type="xml">
+            <list create="0" delete="0" edit="0">
+                <field name="booking_id"/>
+                <field name="slot_id"/>
+                <field name="equipment_class"/>
+                <field name="iso_number"/>
+                <field name="state" widget="badge"/>
+                <field name="supplier_id" groups="plasticos_security_base.group_logistics"/>
+                <field name="supplier_ref" groups="!plasticos_security_base.group_logistics"/>
+                <field name="purchase_order_id" groups="plasticos_security_base.group_logistics"/>
+                <field name="purchase_order_ref" groups="!plasticos_security_base.group_logistics"/>
+                <field name="sale_order_id" groups="plasticos_security_base.group_logistics"/>
+                <field name="sale_order_ref" groups="!plasticos_security_base.group_logistics"/>
+                <field name="source_load_id" groups="plasticos_security_base.group_logistics"/>
+                <field name="source_load_ref" groups="!plasticos_security_base.group_logistics"/>
+                <field name="physical_source_kind"/>
+                <field name="planned_quantity"/>
+                <field name="uom_id"/>
+                <field name="planned_weight_lb" sum="Planned lb"/>
+                <field name="planned_weight_basis" optional="show"/>
+                <field name="allocation_key" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_export_cargo_link_form" model="ir.ui.view">
+        <field name="name">plasticos.export.booking.cargo.link.form</field>
+        <field name="model">plasticos.export.booking.cargo.link</field>
+        <field name="arch" type="xml">
+            <form create="0" delete="0" edit="0">
+                <header>
+                    <button name="action_open_trade_label" type="object" string="Set Trade Label" groups="plasticos_security_base.group_logistics,plasticos_security_base.group_operations_manager"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group string="Allocation">
+                            <field name="booking_id"/>
+                            <field name="slot_id"/>
+                            <field name="allocation_key"/>
+                            <field name="planned_quantity_known"/>
+                            <field name="planned_quantity" invisible="not planned_quantity_known"/>
+                            <field name="uom_id" invisible="not planned_quantity_known"/>
+                            <field name="planned_weight_lb" invisible="planned_weight_basis != 'weight'"/>
+                            <field name="planned_weight_basis"/>
+                            <field name="replaces_link_id"/>
+                        </group>
+                        <group string="Exact Sources">
+                            <field name="purchase_line_id" groups="plasticos_security_base.group_logistics"/>
+                            <field name="purchase_line_id" options="{'no_open': True}" groups="!plasticos_security_base.group_logistics"/>
+                            <field name="sale_line_id" groups="plasticos_security_base.group_logistics"/>
+                            <field name="sale_line_id" options="{'no_open': True}" groups="!plasticos_security_base.group_logistics"/>
+                            <field name="source_load_id" groups="plasticos_security_base.group_logistics"/>
+                            <field name="source_load_id" options="{'no_open': True}" groups="!plasticos_security_base.group_logistics"/>
+                            <field name="stock_move_line_id" groups="plasticos_security_base.group_logistics"/>
+                            <field name="stock_move_line_id" options="{'no_open': True}" groups="!plasticos_security_base.group_logistics"/>
+                            <field name="original_attachment_id" groups="plasticos_security_base.group_logistics"/>
+                            <field name="original_attachment_id" options="{'no_open': True}" groups="!plasticos_security_base.group_logistics"/>
+                            <field name="physical_source_kind"/>
+                            <field name="physical_source_ref"/>
+                            <field name="source_revision_key"/>
+                        </group>
+                    </group>
+                    <group string="Purchase Order Constraints (native PO, read live)">
+                        <field name="po_constraint_display" nolabel="1" colspan="2"/>
+                    </group>
+                    <group>
+                        <group string="Commercial Trade Label (quoted usage, not an Incoterm)" name="trade_label">
+                            <field name="commercial_trade_label"/>
+                            <field name="commercial_trade_label_quote"/>
+                            <field name="sale_incoterm_display"/>
+                            <field name="purchase_incoterm_display"/>
+                        </group>
+                        <group string="Owner Facts (read live from their owners)" name="owner_facts">
+                            <field name="owner_freight_status"/>
+                            <field name="owner_document_verdict"/>
+                            <field name="owner_stock_move_display"/>
+                            <field name="owner_package_display"/>
+                            <field name="owner_invoice_display"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- BRS-EXP-02-R006: the only editable Export fact on a cargo link; the order Incoterms are shown, never written. -->
+    <record id="view_export_cargo_link_trade_label_form" model="ir.ui.view">
+        <field name="name">plasticos.export.booking.cargo.link.trade.label.form</field>
+        <field name="model">plasticos.export.booking.cargo.link</field>
+        <field name="priority">90</field>
+        <field name="arch" type="xml">
+            <form create="0" delete="0">
+                <group>
+                    <field name="allocation_key" readonly="1"/>
+                    <field name="commercial_trade_label"/>
+                    <field name="commercial_trade_label_quote"/>
+                    <field name="sale_incoterm_display"/>
+                    <field name="purchase_incoterm_display"/>
+                </group>
+                <footer>
+                    <button string="Save" special="save" class="btn-primary"/>
+                    <button string="Cancel" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="view_export_cargo_link_search" model="ir.ui.view">
+        <field name="name">plasticos.export.booking.cargo.link.search</field>
+        <field name="model">plasticos.export.booking.cargo.link</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="booking_id"/>
+                <field name="purchase_order_ref" string="Supplier PO"/>
+                <field name="sale_order_ref" string="Customer SO"/>
+                <field name="supplier_ref" string="Supplier"/>
+                <field name="iso_number"/>
+                <filter name="filter_live" string="Committed or Held" domain="[('state', 'in', ['committed', 'held'])]"/>
+                <filter name="filter_buyer_unassigned" string="Buyer Unassigned" domain="[('state', 'in', ['committed', 'held']), ('sale_line_id', '=', False)]"/>
+                <filter name="filter_released" string="Released" domain="[('state', '=', 'released')]"/>
+                <separator/>
+                <filter name="group_booking" string="Booking" context="{'group_by': 'booking_id'}"/>
+                <filter name="group_po" string="Supplier PO" context="{'group_by': 'purchase_order_id'}"/>
+                <filter name="group_so" string="Customer SO" context="{'group_by': 'sale_order_id'}"/>
+                <filter name="group_supplier" string="Supplier" context="{'group_by': 'supplier_id'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_export_cargo_link_pivot" model="ir.ui.view">
+        <field name="name">plasticos.export.booking.cargo.link.pivot</field>
+        <field name="model">plasticos.export.booking.cargo.link</field>
+        <field name="arch" type="xml">
+            <!-- The unit stays the first column group (review D5). The measure is the planned weight in lb,
+                 converted through the native unit of measure; a unit that is not a weight is excluded and
+                 flagged by its weight-basis column. planned_quantity carries no aggregator, so no total ever
+                 adds two units (C13 OP12-E02a). -->
+            <pivot string="Open PO / SO Fulfillment">
+                <field name="purchase_order_id" type="row"/>
+                <field name="uom_id" type="col"/>
+                <field name="planned_weight_basis" type="col"/>
+                <field name="sale_order_id" type="col"/>
+                <field name="planned_weight_lb" type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="action_export_slot" model="ir.actions.act_window">
+        <field name="name">Allocations</field>
+        <field name="res_model">plasticos.export.booking.slot</field>
+        <field name="view_mode">list,pivot,graph,form</field>
+        <field name="search_view_id" ref="view_export_slot_search"/>
+    </record>
+
+    <record id="action_export_cargo_link" model="ir.actions.act_window">
+        <field name="name">Cargo Allocations</field>
+        <field name="res_model">plasticos.export.booking.cargo.link</field>
+        <field name="view_mode">list,pivot,form</field>
+        <field name="search_view_id" ref="view_export_cargo_link_search"/>
+        <field name="context">{'search_default_filter_live': 1}</field>
+    </record>
+</odoo>

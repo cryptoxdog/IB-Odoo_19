@@ -32,7 +32,15 @@ EVENT_TYPES = [
     ("freight_actual_recorded", "Freight Actual Recorded"),
     ("freight_actual_corrected", "Freight Actual Corrected"),
     ("freight_state_transition", "Freight State Transition"),
+    ("actual_pickup_recorded", "Actual Pickup Recorded"),
+    ("actual_delivery_recorded", "Actual Delivery Recorded"),
+    ("actual_event_corrected", "Actual Event Corrected"),
 ]
+
+# Workflow audit of a state change may still be written for a legacy load that
+# has no proven company. It is marked as such. Every other freight evidence row
+# requires the load's own company (no env.company fallback).
+_UNPROVEN_COMPANY_AUDIT_EVENTS = frozenset({"freight_state_transition"})
 
 
 class PlasticosFreightEvent(models.Model):
@@ -267,18 +275,32 @@ class PlasticosRateMemoryReconciliation(models.Model):
         raise UserError("Rate-memory reconciliation evidence cannot be deleted.")
 
 
-def _load_company(load, fallback_company):
-    return getattr(load, "company_id", False) or (
-        load.sale_order_id.company_id if load and load.sale_order_id else fallback_company
-    )
+def _load_company(load):
+    """The load's own source company. Never the acting user's company."""
+    if not load:
+        return False
+    return getattr(load, "company_id", False) or (load.sale_order_id.company_id if load.sale_order_id else False)
 
 
-def _require_freight_evidence_authority(env, load):
-    """Validate actor and source access before narrowly elevating immutable writes."""
+def _require_freight_evidence_authority(env, load, *, allow_unproven_company_audit=False):
+    """Validate actor and source access before narrowly elevating immutable writes.
+
+    Authoritative evidence takes the company of its source load. A load without a
+    proven company cannot produce rates, estimates, calibration or actual-event
+    evidence. Only a workflow state audit of such a legacy load may fall back to
+    the acting company, and that event says so in its facts.
+    """
     if not load:
         raise AccessError("Immutable freight evidence requires a source load.")
-    company = _load_company(load, env.company)
-    if not company or company not in env.companies:
+    company = _load_company(load)
+    if not company:
+        if not allow_unproven_company_audit:
+            raise UserError(
+                f"Load {load.display_name} has no proven company. "
+                "Freight evidence takes the load's own company, never the user's."
+            )
+        company = env.company
+    if company not in env.companies:
         raise AccessError("Freight evidence cannot be created outside an allowed company.")
     # The elevated create below is limited to immutable evidence rows. Source
     # access is always checked first so sudo never becomes a cross-company or
@@ -290,15 +312,19 @@ def _require_freight_evidence_authority(env, load):
     return company
 
 
-def create_freight_evidence_rows(env, model_name, pairs):
+def create_freight_evidence_rows(env, model_name, pairs, *, unproven_company_audit=()):
     """Create one command's evidence rows after checking every source load.
 
     Evidence models are intentionally read-only in ACLs. Each pair is checked
     before the single elevated create that preserves append-only evidence.
+    ``unproven_company_audit`` names the pair indexes that are workflow audit
+    events allowed to fall back for a load with no proven company.
     """
     prepared = []
-    for load, values in pairs:
-        company = _require_freight_evidence_authority(env, load)
+    for index, (load, values) in enumerate(pairs):
+        company = _require_freight_evidence_authority(
+            env, load, allow_unproven_company_audit=index in unproven_company_audit
+        )
         prepared.append({**values, "company_id": company.id})
     if not prepared:
         return env[model_name]
@@ -329,21 +355,30 @@ def _freight_event_values(*, event_type, outcome_code, load=None, facts=None, un
 
 def record_freight_events(env, events):
     """Persist one command's freight events in a single evidence create."""
-    pairs = [
-        (
-            event.get("load"),
-            _freight_event_values(
-                event_type=event["event_type"],
-                outcome_code=event["outcome_code"],
-                load=event.get("load"),
-                facts=event.get("facts"),
-                unknowns=event.get("unknowns"),
-                correlation_id=event.get("correlation_id"),
-            ),
+    pairs = []
+    unproven = set()
+    for index, event in enumerate(events):
+        load = event.get("load")
+        facts = dict(event.get("facts") or {})
+        unknowns = list(event.get("unknowns") or [])
+        if event["event_type"] in _UNPROVEN_COMPANY_AUDIT_EVENTS and load and not _load_company(load):
+            unproven.add(index)
+            facts["company_basis"] = "acting_company_unproven_load"
+            unknowns.append("load_company_unproven")
+        pairs.append(
+            (
+                load,
+                _freight_event_values(
+                    event_type=event["event_type"],
+                    outcome_code=event["outcome_code"],
+                    load=load,
+                    facts=facts,
+                    unknowns=unknowns,
+                    correlation_id=event.get("correlation_id"),
+                ),
+            )
         )
-        for event in events
-    ]
-    return create_freight_evidence_rows(env, "plasticos.freight.event", pairs)
+    return create_freight_evidence_rows(env, "plasticos.freight.event", pairs, unproven_company_audit=unproven)
 
 
 def record_freight_event(env, *, event_type, outcome_code, load=None, facts=None, unknowns=None, correlation_id=None):

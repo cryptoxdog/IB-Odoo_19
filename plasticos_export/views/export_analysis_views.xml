@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The six Phase 1 Export reports (RP-07-E052). BRS-EXP-14-R001, R017, R021, R022.
+    Native list, pivot and graph views over the owners' own records: no
+    warehouse, no SQL view, no OWL client. Each report has one grain, so joins
+    never multiply rows: slot, cargo link, slot with container, booking, and
+    Documents evidence row. Company record rules apply to every row.
+-->
+<odoo>
+    <!-- 1. Booking Space Availability: one row per slot. -->
+    <record id="action_export_report_availability" model="ir.actions.act_window">
+        <field name="name">Booking Space Availability</field>
+        <field name="res_model">plasticos.export.booking.slot</field>
+        <field name="view_mode">pivot,graph,list,form</field>
+        <field name="search_view_id" ref="view_export_slot_search"/>
+        <field name="context">{'search_default_group_booking': 1}</field>
+    </record>
+
+    <!-- 2. Booking Allocation / Container Manifest: one row per live cargo link. -->
+    <record id="action_export_report_manifest" model="ir.actions.act_window">
+        <field name="name">Booking Allocation / Container Manifest</field>
+        <field name="res_model">plasticos.export.booking.cargo.link</field>
+        <field name="view_mode">list,pivot,form</field>
+        <field name="search_view_id" ref="view_export_cargo_link_search"/>
+        <field name="context">{'search_default_filter_live': 1, 'search_default_group_booking': 1}</field>
+    </record>
+
+    <!-- 3. Open Supplier PO / Customer SO Fulfillment: planned cargo by order. -->
+    <record id="action_export_report_fulfillment" model="ir.actions.act_window">
+        <field name="name">Open Supplier PO / Customer SO Fulfillment</field>
+        <field name="res_model">plasticos.export.booking.cargo.link</field>
+        <field name="view_mode">pivot,list,form</field>
+        <field name="search_view_id" ref="view_export_cargo_link_search"/>
+        <field name="context">{'search_default_filter_live': 1}</field>
+    </record>
+
+    <!-- 4. Container Shipment Register: one row per bound container slot. -->
+    <record id="action_export_report_register" model="ir.actions.act_window">
+        <field name="name">Container Shipment Register</field>
+        <field name="res_model">plasticos.export.booking.slot</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('journey_binding_state', '=', 'active')]</field>
+        <field name="view_id" ref="view_export_shipment_list"/>
+        <field name="search_view_id" ref="view_export_slot_search"/>
+    </record>
+
+    <!-- 5. Cutoff and Booking Exceptions: one row per booking. -->
+    <record id="action_export_report_exceptions" model="ir.actions.act_window">
+        <field name="name">Cutoff &amp; Booking Exceptions</field>
+        <field name="res_model">plasticos.export.booking</field>
+        <field name="view_mode">list,calendar,form</field>
+        <field name="domain">['|', '|', ('display_state', 'in', ['candidate', 'held', 'cancelled']), ('current_cargo_cutoff_utc', '=', False), ('current_erd_utc', '=', False)]</field>
+        <field name="search_view_id" ref="view_export_booking_search"/>
+    </record>
+
+    <!-- 6. Missing Export Documents: one row per Export obligation evidence row not yet decided. -->
+    <record id="action_export_report_missing_documents" model="ir.actions.act_window">
+        <field name="name">Missing Export Documents</field>
+        <field name="res_model">plasticos.document</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('obligation_kind', 'in', ['booking_confirmation', 'verified_gross_mass', 'loading_photos', 'terminal_ingate_receipt']), ('verified', '=', False), ('override', '=', False)]</field>
+    </record>
+</odoo>

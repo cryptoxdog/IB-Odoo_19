@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_web_leads
 component_name: PlasticOS Web Leads
-module_version: 19.0.2.11.5
+module_version: 19.0.2.11.6
 layer: 2
 installable: true
 auto_install: true
@@ -67,6 +67,7 @@ Takes inbound web-form submissions from a provider, normalizes them, and qualifi
 - Re-Run Triage applies broker corrections made on the lead (material description, quantity text, verified Lbs/Load, loads per month, contaminant notes) to the triage input and records each in `evidence_bundle["broker_corrections"]`; `canonical_payload` stays the seller's submission.
 - A HOT, REVIEW, or recovery handoff goes only to a reviewer who can edit web leads; otherwise it is recorded as blocked with the reason.
 - Manual promotion (`action_promote_to_hot`, and the `action_force_hot` / `action_force_create_intake` aliases) requires Broker Review Notes and a verified `estimated_lbs_per_load`, and records the actor in `decision_reasons["manual_override"]`. `_create_intake` refuses a zero weight instead of storing a 1 lb placeholder.
+- A bale word (`bale`, `baled`, `bales`) is packaging, not a form: the merge records it as `packaging`, and `_create_intake` sets the intake's `packaging_type_id` to Bales and keeps the required form at the `OTHER` fallback. A stored analysis that still names the retired `BALES` form is read the same way (operator decision 2026-11-12).
 - `unlink` raises when `state` is `intake_created`. It checks `state`, not `intake_id`.
 
 States: `received`, `intake_created`, `skipped`, `error`.

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Manual 'Record booking candidate' screen (BRS-EXP-09-R001 fallback). It hands
+    the typed source terms to the frozen record_booking_revision_candidate command
+    and never makes a revision current. Native Documents AI is not used here.
+-->
+<odoo>
+    <record id="view_export_booking_manual_candidate_form" model="ir.ui.view">
+        <field name="name">plasticos.export.booking.manual.candidate.form</field>
+        <field name="model">plasticos.export.booking.manual.candidate</field>
+        <field name="arch" type="xml">
+            <form>
+                <p class="text-muted">
+                    Type only what the carrier's original or email states. An empty field stays unknown.
+                    The candidate changes nothing current until a Logistics user accepts it.
+                </p>
+                <group>
+                    <group string="Source">
+                        <field name="booking_id" force_save="1"/>
+                        <field name="company_id" groups="base.group_multi_company"/>
+                        <field name="source_original_id"/>
+                        <field name="source_message_id"/>
+                        <field name="source_revision_key"/>
+                        <field name="source_issued_at"/>
+                        <field name="booking_status"/>
+                    </group>
+                    <group string="Stated Terms">
+                        <field name="carrier_booking_no"/>
+                        <field name="steamship_line_id"/>
+                        <field name="pol_text"/>
+                        <field name="pod_text"/>
+                        <field name="vessel"/>
+                        <field name="voyage"/>
+                    </group>
+                    <group string="Earliest Return Date">
+                        <field name="erd_local"/>
+                        <field name="erd_tz"/>
+                        <field name="erd_precision"/>
+                    </group>
+                    <group string="Cargo Cutoff">
+                        <field name="cargo_cutoff_local"/>
+                        <field name="cargo_cutoff_tz"/>
+                        <field name="cargo_cutoff_precision"/>
+                    </group>
+                </group>
+                <field name="line_ids">
+                    <list editable="bottom">
+                        <field name="equipment_class"/>
+                        <field name="requested_stated"/>
+                        <field name="requested_count" readonly="not requested_stated"/>
+                        <field name="confirmed_stated"/>
+                        <field name="confirmed_count" readonly="not confirmed_stated"/>
+                    </list>
+                </field>
+                <field name="operation_key" invisible="1"/>
+                <footer>
+                    <button name="action_record" type="object" string="Record Candidate" class="btn-primary"/>
+                    <button string="Cancel" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

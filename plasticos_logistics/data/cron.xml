@@ -11,16 +11,17 @@
         <field name="interval_type">hours</field>
     <field name="user_id" ref="plasticos_base.user_system_cron" /></record>
 
-    <!-- Dispatch Acknowledgment Check -->
+    <!-- Dispatch Acknowledgment Check (S4, V10): five-minute due polling for the Linda
+         +2h notice and +4h escalation, both anchored on the actual sent time. No
+         "active" field: an upgrade never re-enables a job an operator disabled. -->
     <record id="cron_dispatch_acknowledgment" model="ir.cron">
         <field name="name">Plasticos Dispatch Acknowledgment Check</field>
         <field name="model_id" ref="plasticos_logistics.model_plasticos_load"/>
         <field name="state">code</field>
         <field name="code">model._cron_check_dispatch_acknowledgments()</field>
-        <field name="interval_number">4</field>
-        <field name="interval_type">hours</field>
+        <field name="interval_number">5</field>
+        <field name="interval_type">minutes</field>
         <field name="user_id" ref="plasticos_base.user_system_cron"/>
-        <field name="active" eval="True"/>
     </record>
 
     <!-- Supplier Confirmation Follow-up -->

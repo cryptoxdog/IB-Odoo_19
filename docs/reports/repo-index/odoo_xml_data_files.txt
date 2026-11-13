@@ -1,3 +1,7 @@
+./docs/campaigns/candidate-add-ons/PlasticOS_Broker_Intelligence_Harvest_Integrated_v2/plasticos_broker_intelligence/data/knowledge_drafts.xml
+./docs/campaigns/candidate-add-ons/PlasticOS_Broker_Intelligence_Harvest_Integrated_v2/plasticos_broker_intelligence/security/groups.xml
+./docs/campaigns/candidate-add-ons/PlasticOS_Broker_Intelligence_Harvest_Integrated_v2/plasticos_broker_intelligence/security/record_rules.xml
+./docs/campaigns/candidate-add-ons/PlasticOS_Broker_Intelligence_Harvest_Integrated_v2/plasticos_broker_intelligence_mack/security/record_rules.xml
 ./plasticos_accounting/data/accounts.xml
 ./plasticos_accounting/data/payment_terms.xml
 ./plasticos_admin_dashboard/data/cron_refresh_dashboard.xml
@@ -14,7 +18,6 @@
 ./plasticos_automation/data/workflow_automations.xml
 ./plasticos_automation/security/security.xml
 ./plasticos_base/data/admin_users.xml
-./plasticos_base/data/attachment_maintenance_cron.xml
 ./plasticos_base/data/company.xml
 ./plasticos_base/data/material_taxonomy.xml
 ./plasticos_base/data/midnight_recompute_cron.xml
@@ -46,6 +49,9 @@
 ./plasticos_enrichment/data/cron.xml
 ./plasticos_enrichment/data/sequence.xml
 ./plasticos_enrichment/security/security.xml
+./plasticos_export/data/linda_booking_inbound.xml
+./plasticos_export/security/export_record_rules.xml
+./plasticos_facility_profile/data/company_role_tag_data.xml
 ./plasticos_facility_profile/data/equipment_type_data.xml
 ./plasticos_facility_profile/data/facility_template_data.xml
 ./plasticos_facility_profile/data/partner_type_data.xml
@@ -58,6 +64,9 @@
 ./plasticos_intake_normalizer/data/normalizer_config_data.xml
 ./plasticos_logistics/data/cron.xml
 ./plasticos_logistics/data/incoterms.xml
+./plasticos_logistics/data/linda_booking_mail_template.xml
+./plasticos_logistics/data/linda_dispatch_ack_notice.xml
+./plasticos_logistics/data/linda_document_chase.xml
 ./plasticos_logistics/data/linda_inbound_ai.xml
 ./plasticos_logistics/data/linda_order_cancel_mail_templates.xml
 ./plasticos_logistics/data/linda_po_mail_template.xml
@@ -69,6 +78,7 @@
 ./plasticos_material_profile/data/material_attribute_data.xml
 ./plasticos_material_profile/data/material_color_data.xml
 ./plasticos_material_profile/data/material_form_data.xml
+./plasticos_material_profile/data/material_grade_data.xml
 ./plasticos_material_profile/data/packaging_type_data.xml
 ./plasticos_material_profile/data/polymer_data.xml
 ./plasticos_material_profile/data/process_type_data.xml

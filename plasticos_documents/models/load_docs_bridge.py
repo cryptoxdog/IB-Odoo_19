@@ -32,6 +32,67 @@ class PlasticosLoadDocsBridge(models.Model):
         )
         return protected | accepted.load_id
 
+    def _physical_release_errors(self, operation_kind):
+        """Documents evidence policy on the Logistics release guard.
+
+        Logistics does not import Documents; this owner appends its reasons by
+        inheritance. Only accepted operation-scoped evidence on this exact load
+        can withhold a NEW physical instruction: evidence from another company,
+        or a current accepted decision that is no longer eligible (expired or
+        its original replaced) with no eligible row for the same scope. A
+        superseded row is history: its successor decides. Only obligations that
+        ``plasticos.document._release_obligations(operation_kind)`` names apply.
+        Recording an actual event that already happened is not routed here.
+        """
+        errors = super()._physical_release_errors(operation_kind)
+        errors.extend(self._scoped_evidence_release_errors(operation_kind))
+        return errors
+
+    def _scoped_evidence_release_errors(self, operation_kind):
+        self.ensure_one()
+        rows = (
+            self.env["plasticos.document"]
+            .sudo()  # sudo: the guard must see every accepted scope row on this load; it only reads
+            .search(
+                [
+                    ("association_state", "=", "accepted"),
+                    *self.env["plasticos.document"]._operation_obligation_domain(),
+                    "|",
+                    ("load_id", "=", self.id),
+                    "&",
+                    ("res_model", "=", "plasticos.load"),
+                    ("res_id", "=", self.id),
+                ],
+                order="id ASC",
+            )
+        )
+        errors = []
+        # Every accepted operation row, superseded or not and whatever its
+        # obligation, is checked for the company it was accepted in.
+        foreign = rows.filtered(
+            lambda row: row.subject_company_id and self.company_id and row.subject_company_id != self.company_id
+        )
+        if foreign:
+            errors.append(f"Load {self.name} carries evidence from another company. Review it before release.")
+        relevant = self.env["plasticos.document"]._release_obligations(operation_kind)
+        if not relevant:
+            return errors
+        # Staleness: only current rows of the obligations this operation needs.
+        stale_candidates = (rows - foreign).filtered(
+            lambda row: row.obligation_kind in relevant and row.is_current and not row.superseded_by
+        )
+        scopes = {}
+        for row in stale_candidates:
+            scopes.setdefault((row.obligation_kind, row.operation_revision_key, row.coverage_key), []).append(row)
+        for (kind, revision, coverage), scope_rows in sorted(scopes.items()):
+            decided = [row for row in scope_rows if row.verified or row.override]
+            if decided and not any(row._currently_eligible() for row in scope_rows):
+                errors.append(
+                    f"Load {self.name}: the accepted {kind} evidence for revision {revision} ({coverage}) "
+                    "is no longer current."
+                )
+        return errors
+
     def action_view_documents(self):
         """View documents linked to this load."""
         self.ensure_one()

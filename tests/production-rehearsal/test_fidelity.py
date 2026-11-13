@@ -321,8 +321,12 @@ def _incoterm(report, name):
 
 
 # The five orders from the 2026-11-08 rehearsal. Each PO header basis is empty.
-# Worksheet bases are the restored source. 5429 applies Delivered and then two
-# later FOB worksheets, so FOB is the value the importer writes.
+# Worksheet bases are the restored source. Since the ADR-021 amendment of
+# 2026-11-12 (BRS-EXP-02-R006) every one of these bases is declined: the
+# recycler's FOB Supplier Dock is a dock pickup, not the Incoterms 2020 FOB, so
+# the importer writes no Incoterm. A domestic basis never rewrites a stored
+# Incoterm, so it is the reported basis only when no mapped or Delivered
+# worksheet applies: 5429 reports its Delivered worksheet.
 _FIVE = (
     ("11998", "sale_orders", "SO", "52225", {"52225": "FOB Supplier Dock"}),
     ("4998", "purchase_orders", "PO", "52046", {"52046": "FOB Supplier Dock"}),
@@ -346,7 +350,7 @@ _FIVE = (
 def test_empty_header_uses_the_last_worksheet_basis_for_the_five_rehearsal_orders():
     odoo, source = _bundles()
     for name, kind, side, origin, bases in _FIVE:
-        odoo[kind].append(_order(name, kind, origin, "FOB"))
+        odoo[kind].append(_order(name, kind, origin, ""))
         source["orders"][f"{name}|{side}"] = {
             "PONumber": name,
             "Source": side,
@@ -360,10 +364,28 @@ def test_empty_header_uses_the_last_worksheet_basis_for_the_five_rehearsal_order
     for name, _kind, _side, _origin, _bases in _FIVE:
         row = _incoterm(report, name)
         assert row["result"] == "PASS"
-        assert row["expected"] == "FOB"
-        assert row["actual"] == "FOB"
-        assert row["source_value"] == "FOB Supplier Dock"
+        assert row["classification"] == "unmapped"
+        assert not row["expected"]
+        assert not row["actual"]
+        assert row["source_value"] == ("Delivered" if name == "5429" else "FOB Supplier Dock")
         assert row["source_table"] == "BuySell"
+    stale_fob = _incoterm(
+        fid.evaluate(
+            *_with_basis(odoo, source, "9002", "purchase_orders", "PO", "1", {"1": "FOB Supplier Dock"}, "FOB")
+        ),
+        "9002",
+    )
+    assert stale_fob["result"] == "FAIL", "a dock-pickup basis stored as Incoterms FOB is a defect"
+    assert stale_fob["source_value"] == "FOB Supplier Dock"
+    fas_last = _incoterm(
+        fid.evaluate(
+            *_with_basis(
+                odoo, source, "9003", "purchase_orders", "PO", "1, 2", {"1": "FOB Supplier Dock", "2": "FAS"}, "FAS"
+            )
+        ),
+        "9003",
+    )
+    assert (fas_last["result"], fas_last["expected"], fas_last["actual"]) == ("PASS", "FAS", "FAS")
     delivered_last = _incoterm(
         fid.evaluate(
             *_with_basis(
@@ -408,16 +430,23 @@ def test_header_basis_blocks_a_later_worksheet_and_string_order_is_the_importer_
     basis, table, winner = fid.effective_price_basis(
         {"PriceBasis": ""},
         "9, 10",
+        {"10": {"PriceBasis": "Delivered"}, "9": {"PriceBasis": "FAS"}},
+    )
+    assert (basis, table, winner) == ("FAS", "BuySell", "9")
+    # A domestic shipping-point basis writes nothing (ADR-021 amendment 2026-11-12): the Delivered clear stands.
+    basis, table, winner = fid.effective_price_basis(
+        {"PriceBasis": ""},
+        "9, 10",
         {"10": {"PriceBasis": "Delivered"}, "9": {"PriceBasis": "FOB Supplier Dock"}},
     )
-    assert (basis, table, winner) == ("FOB Supplier Dock", "BuySell", "9")
+    assert (basis, table, winner) == ("Delivered", "BuySell", "10")
 
 
 def test_failure_only_retention_matches_full_detection_and_coverage():
     odoo, source = _bundles()
     odoo["partners"][0]["name"] = "Wrong"
     for name, kind, side, origin, bases in _FIVE:
-        odoo[kind].append(_order(name, kind, origin, "FOB"))
+        odoo[kind].append(_order(name, kind, origin, ""))
         source["orders"][f"{name}|{side}"] = {
             "PONumber": name,
             "Source": side,
