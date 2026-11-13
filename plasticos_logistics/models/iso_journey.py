@@ -245,6 +245,29 @@ class PlasticosIsoJourney(models.Model):
             "identity_attested_by": self.env.user.id,
         }
 
+    # ── Recorded facts (S11, OP11-E01): the one read path ──────────────
+
+    def current_facts(self, kinds=None):
+        """``{fact_kind: fact}`` holding the current (highest) revision of each recorded kind.
+
+        Superseded revisions are never returned. Runs with the caller's rights: a
+        user who cannot read journey facts gets an ``AccessError``.
+        """
+        self.ensure_one()
+        domain = [("journey_id", "=", self.id)]
+        if kinds:
+            domain.append(("fact_kind", "in", list(kinds)))
+        facts = self.env["plasticos.iso.journey.fact"].search(domain, order="fact_kind, revision desc, id desc")
+        current = {}
+        for fact in facts:
+            current.setdefault(fact.fact_kind, fact)
+        return current
+
+    def current_fact(self, fact_kind):
+        """The current revision of one fact kind, or an empty recordset."""
+        self.ensure_one()
+        return self.current_facts([fact_kind]).get(fact_kind) or self.env["plasticos.iso.journey.fact"]
+
     def action_confirm_identity(self):
         """Attribute a candidate from its source-cycle key; verify it when evidence is attached."""
         _require_logistics_actor(self.env)

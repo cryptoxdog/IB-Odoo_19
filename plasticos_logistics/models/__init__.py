@@ -15,6 +15,8 @@ from . import mail_compose_message
 # J1/J2 physical journeys: registered before the SQL dashboard and its consumers.
 from . import iso_journey
 from . import iso_journey_fact
+from . import linda_sweep_cursor
+from . import linda_approval
 from . import road_equipment
 from . import shipment_event_proposal
 

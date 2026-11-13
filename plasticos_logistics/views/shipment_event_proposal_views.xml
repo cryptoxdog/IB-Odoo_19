@@ -126,7 +126,8 @@
     </record>
 
     <!-- Container journey facts (BRS-EXP-08-R007): read-only; written only by the
-         Logistics record commands from an original attached to the journey. -->
+         Logistics record commands from an original attached to the journey. A correction
+         (S11) is a new row with the next revision; the superseded row stays listed. -->
     <record id="view_iso_journey_fact_search" model="ir.ui.view">
         <field name="name">plasticos.iso.journey.fact.search</field>
         <field name="model">plasticos.iso.journey.fact</field>
@@ -148,6 +149,7 @@
             <list create="0" edit="0" delete="0">
                 <field name="journey_id"/>
                 <field name="fact_kind"/>
+                <field name="revision"/>
                 <field name="occurred_at"/>
                 <field name="facility_partner_id" optional="show"/>
                 <field name="vessel" optional="show"/>
@@ -160,6 +162,10 @@
                 <field name="evidence_reference" optional="show"/>
                 <field name="evidence_attachment_id"/>
                 <field name="recorded_by" optional="hide"/>
+                <field name="supersedes_id" optional="hide"/>
+                <field name="correction_reason" optional="show"/>
+                <field name="corrected_by" optional="hide"/>
+                <field name="corrected_at" optional="hide"/>
                 <field name="company_id" groups="base.group_multi_company"/>
             </list>
         </field>
