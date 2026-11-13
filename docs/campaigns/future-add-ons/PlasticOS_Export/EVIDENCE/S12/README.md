@@ -2,9 +2,8 @@
 
 Contract `PLASTICOS-EXPORT-C13-S12-ALIGNMENT-CLEANUP`.
 
-- Contract digest: `sha256:05f9675e983c7cc925aa6dbed4f15d5d2642def32a420ac032a8479682e8838d` (C13-SCOPE-2). The original freeze was `cc6b768f…`.
-- Base: `e71599d515634da6c66d01286e9ffe288b7ab630`, the accepted S10 head.
-- Predecessor: `feat/plasticos-export-s11-fact-corrections`, merged into this branch with a merge commit before publication.
+- Contract digest: `sha256:3b1b197b351ae6077f5418c729a7562e03b7db637a71422a04865e7b8e01d8c8` (C13-STACK-BIND). Earlier freezes: `cc6b768f…` (original), `05f9675e…` (C13-SCOPE-2).
+- Base: `8c15b3bc10f67f717190a1bdfdda6f58597a5f92`, the accepted S11 head (`feat/plasticos-export-s11-fact-corrections`, PR #498). It is merged into this branch with a merge commit (`6009e7be`) on top of the accepted S10 head `e71599d5`. The slice is judged on `8c15b3bc..head`.
 - Part of the PlasticOS Export campaign. Plan: `docs/campaigns/future-add-ons/PlasticOS_Export/STRATEGIC_EXECUTION_PLAN_v2.8.md`.
 
 The S6 to S11 evidence folders are unchanged.
@@ -78,8 +77,21 @@ No other module changed. The new stored computed fields fill on module upgrade, 
 
 ## Validation
 
-PENDING: filled in on the merged tree (S11 accepted head merged with a merge commit).
-
 On the base `e71599d5` before any edit:
 - `pytest tests/` gave 3076 passed, 49 skipped.
 - `make audit-baseline` reported no new finding.
+
+On the merged tree:
+
+| Check | Head | Result |
+| --- | --- | --- |
+| `make runtime-test m=plasticos_export,plasticos_logistics,plasticos_documents,plasticos_transaction,plasticos_partner_import,plasticos_enrichment,plasticos_web_leads,plasticos_security_base` | `d198eb3894aded9df1cc41e8f1b3cba3bc7a7fa0` | 1000 run, 0 failed, 0 errors. Receipt `dirty: false`; addon source digest `2d44279f9697ef71676d86a1c6419c591eca3c9c46be34b23aa675dc9559c882`; receipt sha256 `12ba2b5ca25a4bf26a711174f11de03d7ded6bdee3f7a55bd0cbe3217458f487` |
+| `pytest tests/` | `6009e7be` | 3111 passed, 49 skipped |
+| `pre-commit run --files` (the 34 files changed in `8c15b3bc..HEAD`) | `6009e7be` | all hooks pass |
+| `make audit-baseline` | `6009e7be` | no new finding |
+
+Two earlier runs are kept on the record:
+- A trial on a disposable merge with S11 `0beb2eb4` found five S12 test and fixture defects, fixed in `5717f670`.
+- A first runtime on `6009e7be` gave 1000 run, 0 failed, 1 error. The error was the dependency witness reading `field.depends`, which does not exist in Odoo 19. It now reads `registry.field_depends`, fixed in `d198eb38`.
+
+The coordinator runs the authoritative runtime and install-smoke (PENDING_COORDINATOR). The publication gate (`PR_SMOKE=1 make pr`) also runs install-smoke here.
