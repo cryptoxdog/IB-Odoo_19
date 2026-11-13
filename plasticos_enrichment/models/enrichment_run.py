@@ -416,6 +416,7 @@ class EnrichmentRun(models.Model):
         human approves the whole run. Returns None for a reviewable proposal,
         otherwise the reason it is not one (the caller fails closed).
         """
+        self.ensure_one()
         from odoo.addons.plasticos_gate.services.gate_builders import (
             ConvergeV2NothingToRequest,
             build_converge_request_v2,
@@ -536,6 +537,7 @@ class EnrichmentRun(models.Model):
 
     def _inject_gate_proposal_v2(self, proposal):
         """Approve a stored v2 proposal: re-validate the reply, then write the plan."""
+        self.ensure_one()
         from odoo.addons.plasticos_gate.services.gate_mappers import (
             parse_converge_response_v2,
             plan_converge_v2_writeback,
@@ -631,6 +633,7 @@ class EnrichmentRun(models.Model):
 
     def _apply_converge_v2_plan(self, plan, record):
         """Write a validated v2 plan merge-not-overwrite, one provenance row per considered field."""
+        self.ensure_one()
         from odoo.addons.plasticos_gate.services.gate_allowlists import (
             CONVERGE_V2_TARGETS,
             V2_KIND_MANY2MANY_CODE,
