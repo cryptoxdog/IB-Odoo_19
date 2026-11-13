@@ -172,6 +172,8 @@ class MaterialNormalization:
         self.packaging_type = packaging_type
         self.filler_type = filler_type
         self.process_type = process_type
+        # Set only by the ERP product catalog. The phrase sheet has no tier column.
+        self.quality_tier = None
 
 
 # One collapsed word for web-lead eligibility. The words are the active seed
@@ -412,3 +414,93 @@ def _phrase(value) -> str:
 
 def _collapse(value) -> str:
     return " ".join(str(value or "").split())
+
+
+# ── ERP product catalog ──────────────────────────────────────────────────────
+# ``data/ERP-Products.csv`` maps an ERP product name to masters. It is read by
+# its own columns and is not the phrase sheet: ``normalize_material`` and
+# ``phrase_table`` never open it. Its status column is blank on every row, so a
+# row counts when it names a polymer.
+
+ERP_PRODUCT_NOT_IN_CATALOG = "product not in catalog"
+ERP_PRODUCT_WITHOUT_POLYMER = "catalog row without polymer"
+
+_ERP_CATALOG_FILE = Path(__file__).resolve().parents[1] / "data" / "ERP-Products.csv"
+_ERP_CATALOG: dict[str, _ErpProduct] | None = None
+
+
+class _ErpProduct(NamedTuple):
+    """One catalog row. ``spec`` is empty when the row names no polymer."""
+
+    source_value: str
+    spec: _Spec | None
+    quality_tier: str | None
+
+
+def _listed_codes(value) -> tuple[str, ...]:
+    """Codes in a multi-value cell. The catalog separates them with a comma, a space, or both."""
+    return _codes((value or "").replace(",", " "))
+
+
+def erp_product_catalog() -> dict[str, _ErpProduct]:
+    """Catalog rows keyed by product name, whitespace-collapsed and case-folded. Loaded once."""
+    global _ERP_CATALOG
+    if _ERP_CATALOG is None:
+        _ERP_CATALOG = _load_erp_catalog(_ERP_CATALOG_FILE)
+    return _ERP_CATALOG
+
+
+def _load_erp_catalog(path) -> dict[str, _ErpProduct]:
+    """One entry per material row. Two rows with the same product name fail the load."""
+    catalog: dict[str, _ErpProduct] = {}
+    with Path(path).open(newline="", encoding="utf-8-sig") as handle:
+        for row in csv.DictReader(handle):
+            if (row.get("field_role") or "").strip() != "material":
+                continue
+            key = _phrase(row.get("source_value"))
+            if not key:
+                continue
+            if key in catalog:
+                raise ValueError(f"duplicate ERP product {key}")
+            spec = None
+            if _cell(row, "polymer"):
+                spec = _spec(
+                    polymer=_cell(row, "polymer"),
+                    material_grade=_cell(row, "material_grade"),
+                    form=_cell(row, "form"),
+                    source=_cell(row, "source_type"),
+                    attributes=_listed_codes(row.get("attributes")),
+                    packaging_type=_cell(row, "packaging_type"),
+                    color=_listed_codes(row.get("color")),
+                    filler_type=_cell(row, "filler_type"),
+                    process_type=_cell(row, "process_type"),
+                )
+            catalog[key] = _ErpProduct(_collapse(row.get("source_value")), spec, _cell(row, "quality_tier"))
+    return catalog
+
+
+def normalize_erp_product(env, product):
+    """Resolve one ERP product name through the catalog to existing masters.
+
+    An unknown product, a row without a polymer, and a code whose master is not
+    in the database are unresolved. Nothing is guessed and no master is created.
+    ``quality_tier`` on the result is a ``plasticos.material.quality.tier`` record.
+    """
+    source = _collapse(product)
+    entry = erp_product_catalog().get(_phrase(product))
+    if entry is None:
+        return _erp_unresolved(env, source, (ERP_PRODUCT_NOT_IN_CATALOG,))
+    if entry.spec is None:
+        return _erp_unresolved(env, source, (ERP_PRODUCT_WITHOUT_POLYMER,))
+    result = _realize(env, source, entry.spec)
+    tier, tier_missing = _master(env, "plasticos.material.quality.tier", entry.quality_tier)
+    if result.unresolved or tier_missing:
+        return _erp_unresolved(env, source, (*result.unresolved, *((tier_missing,) if tier_missing else ())))
+    result.quality_tier = tier
+    return result
+
+
+def _erp_unresolved(env, source, unresolved):
+    result = _empty(env, source, unresolved)
+    result.quality_tier = env["plasticos.material.quality.tier"].browse()
+    return result

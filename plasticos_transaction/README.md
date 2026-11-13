@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_transaction
 component_name: Plasticos Transaction Spine
-module_version: 19.0.2.3.70
+module_version: 19.0.2.3.71
 layer: 5
 installable: true
 auto_install: true
@@ -65,6 +65,11 @@ One `plasticos.transaction` per brokered deal: the supplier, the buyer, the sale
   - **Historical import (`import_mode`).** `_compile_worksheet_transactions()` creates one transaction per worksheet number on `origin`, named with that number, starting `closed`. The source order date is kept: `date_order` is not reset on confirmation. Calling it again creates nothing new.
 - **Draft order for an accepted offer.** `sale.order._plasticos_draft_order_for_offer()` creates or reuses one draft sale order for an offer accepted on a native CRM Opportunity (`sale.order.opportunity_id` from `sale_crm`). It confirms, posts, and mails nothing.
 - **ERP historical documents.** `models/legacy_erp_import_service.py` overrides `plasticos.erp.import._extend_historical_import()` from `plasticos_partner_import`. It writes `sale.order`, `purchase.order`, and draft `account.move` records through `models/native_document_import.py`, and does not create `plasticos.transaction` itself; the import confirms the sale orders, and that confirmation compiles the transactions. It creates no payment and posts nothing. A purchase order's `date_approve` is set to the earliest trade date (`GPLedger.TradeDt`) of the worksheets it serves; `date_order` stays the source PO or order date. There is no `transaction_date` field.
+- **ERP material profiles.** `plasticos.erp.material.profile.loader` (`models/erp_material_profile_loader.py`) reads two operator files (Product, Supplier or Customer, Ship From or Ship To) as one list and creates or reuses `plasticos.material.profile` records. The command is `make import-erp-material-profiles` (`DRY=1` rolls back); the driver is `scripts/load_erp_material_profiles_shell.py`.
+  - **Product.** Resolved through the ERP product catalog in `plasticos_material_profile` (`normalize_erp_product`). No other product map is read.
+  - **Partner.** The company is the one ERP counterparty (`legacy_erp_cp_<CpID>`) whose name equals the file's company. The profile goes on the one ERP site child (`legacy_erp_address_<AddressID>`) whose `erp_address_label` equals the ship value. A company with no ERP site children receives the profile itself. Names and labels are compared whitespace-collapsed and case-folded.
+  - **Reuse.** The key is `(partner_id, polymer_id, form_id, material_grade_id)`. On reuse, colors and attributes are unioned, an empty source type, filler type, process type, quality tier, or packaging type is filled, a different value is kept and reported as an anomaly, and `ERP product: <name>` is added to `freeform_notes` once per product.
+  - **Rejected rows** write nothing and carry one reason: blank product, product not in catalog, catalog row without polymer, missing master, company not found, company ambiguous, site not found, site ambiguous. The summary follows the shared import-run contract: seen = created + updated + unchanged + rejected.
 - **States** of `plasticos.transaction`: `draft`, `active`, `pending_supplier`, `supplier_not_ready`, `supplier_ready`, `do_created`, `dispatched`, `in_progress`, `in_transit`, `delivered`, `invoiced`, `closed`, `cancelled`. Commands include `action_activate`, `action_mark_supplier_ready`, `action_mark_supplier_not_ready`, `action_mark_do_created`, `action_mark_dispatched`, `action_mark_in_transit`, `action_mark_delivered`, and `action_close`.
 - **Close.** `action_close` requires the manager group, a posted customer invoice and vendor bills, no missing documents, logistics not behind, and `gross_margin >= 0`, then closes under an advisory lock. `action_reopen_historical` reopens one closed imported transaction to `active` with a reason (`plasticos.transaction.reopen.wizard`).
 - **Margin.** `_compute_financials`:
@@ -89,6 +94,7 @@ The CSV wizard (`plasticos.transaction.import.wizard`) and `plasticos.transactio
 | `plasticos.transaction.line`               | owned              | `models/transaction_line.py`                |
 | `plasticos.audit.cron`                     | owned              | `models/audit_cron.py`                      |
 | `plasticos.transaction.import.service`     | owned, abstract    | `models/transaction_import_service.py`      |
+| `plasticos.erp.material.profile.loader`    | owned, abstract    | `models/erp_material_profile_loader.py`     |
 | `plasticos.transaction.reopen.wizard`      | owned, transient   | `wizards/transaction_reopen_wizard.py`      |
 | `plasticos.transaction.import.wizard`      | owned, transient   | `wizards/transaction_import_wizard.py`      |
 | `plasticos.tx.bulk.wizard`                 | owned, transient   | `wizards/transaction_bulk_update_wizard.py` |
@@ -116,6 +122,7 @@ The CSV wizard (`plasticos.transaction.import.wizard`) and `plasticos.transactio
 - The importer creates no transaction directly; sale-order confirmation does.
 - No payment, clearing entry, or posting is created by the historical import.
 - Commission rules and payouts belong to `plasticos_commission`.
+- The material-profile loader creates no partner, master, or facility profile, stores no supply or demand marker, and has no production permit: the database check refuses a production database.
 
 ## Read next
 
