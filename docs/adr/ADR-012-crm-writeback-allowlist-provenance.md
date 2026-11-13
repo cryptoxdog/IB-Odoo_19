@@ -82,3 +82,36 @@ This amendment adds to the decisions above. It does not rewrite them. Every v1 c
 8. **Provenance.** Each field a v2 run considered gets one `plasticos.enrichment.provenance` row. The row names the target model, the target record (`target_res_id`) and the field, with the written value or the skip reason.
 
 Left unmapped on purpose (`CONVERGE_V2_UNMAPPED`): `tier` (no Odoo home), `capacity_tons_month` (the cartridge declares no unit; Odoo stores lb/month), `material_grade`, `material_forms`, `certifications`.
+
+### Amendment 2026-11-13 (b) — facility profile open by model definition
+
+**Authorized by:** operator decision 2026-11-13, verbatim: "All fields in Odoo facility profile are open to https://github.com/Quantum-L9/Enrichment.Inference.Engine to read and write". It was relayed as a CTO directive in the same campaign.
+
+This supersedes point 3 of the amendment above for `plasticos.facility.profile` only. The partner and material-profile tables are unchanged.
+
+1. **Eligibility.** The facility profile has no hand-picked row list. Every data field of the model, including fields added by `_inherit` extensions, is eligible when it is all of the following:
+   - stored;
+   - not computed, related or readonly;
+   - not One2many;
+   - of a type converge can write (char/text, float, integer, boolean, selection, or many2one/many2many to a model with a `code` field);
+   - not a never target (`CONVERGE_V2_NEVER_TARGETS` plus the mail, activity and stats prefixes).
+
+   Eligibility is derived at run time from the model's own field definitions (`eligible_odoo_fields`, `derive_facility_profile_target`).
+2. **Names.** A cartridge-declared field maps to the eligible Odoo field with the same name. `FACILITY_PROFILE_V2_ALIASES` lists only the names that differ:
+   - `processed_polymers` → `accepted_polymer_ids`
+   - `min_density` / `max_density` → `density_min` / `density_max`
+   - `min_mfi` / `max_mfi` → `melt_index_min` / `melt_index_max`
+   - `contamination_tolerance` → `contamination_tolerance_pct`
+   - `capacity_tons_month` → `capacity_lbs_month`
+
+   A cartridge field with neither a same-named eligible field nor an alias stays unmapped, and the reason is recorded.
+3. **Read.** Filled eligible fields that map to a cartridge-declared field go out as request `observations`. That is the only per-field channel the frozen request contract accepts, so fields the cartridge does not declare are not sent.
+4. **Write.** The engine can still only target fields the cartridge declares, and Odoo no longer narrows that set for the facility profile. Points 4–8 above still hold:
+   - never targets are refused even when a reply proposes them;
+   - merge-not-overwrite applies, and no master record is created;
+   - only an exact unit converts a number. Capacity is written only as a whole number of pounds.
+   - only evidence from an admitted state is written;
+   - every write needs whole-run human approval;
+   - every write carries provenance.
+
+   A numeric facility field with no reviewed unit stays unmapped.
