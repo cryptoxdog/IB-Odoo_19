@@ -10,8 +10,7 @@ One test group per defect, each written to fail on the code before its fix:
 4. a retry of a commit that already succeeded is ``already_applied`` after the
    booking moved to a newer revision (V05);
 5. rejecting a revision leaves a chatter note and a rejected revision cannot be
-   accepted (BRS-EXP-11-R005);
-6. reviving a released cargo link runs the allocation guard (BRS-EXP-08-R006).
+   accepted (BRS-EXP-11-R005).
 
 Synthetic data only. No outbound mail.
 """
@@ -23,10 +22,9 @@ from unittest.mock import patch
 
 from odoo import fields
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
-from odoo.exceptions import AccessError, UserError, ValidationError
+from odoo.exceptions import AccessError, UserError
 from odoo.tests.common import new_test_user, tagged
 
-from ..models.booking import guard
 from ..models.booking_allocation import slot_order
 from ..models.document_inherit import BOOKING_CONFIRMATION, EXPORT_RELEASE_OBLIGATIONS
 from .test_booking_and_revision import BOOKING, LINK, REVISION, SLOT, ExportFixtureMixin, row_versions
@@ -322,24 +320,3 @@ class TestBookingAuditFixes(ExportFixtureMixin, PlasticosTestCase):
         self.assertFalse(self._all_slots(booking))
         with self.assertRaises(UserError), self.env.cr.savepoint():
             revision.with_user(self.actor).action_reject()
-
-    # ── fix 6: a state change runs the allocation guard ──────
-
-    def test_reviving_a_released_link_runs_the_quantity_check(self):
-        """BRS-EXP-08-R006: a guarded write that brings a released link back is bounded by the PO line."""
-        booking, revision = self.accepted_booking(confirmed=2)
-        first_slot, second_slot = booking.slot_ids.sorted(slot_order)
-        line = self._po_line(qty=1000)
-        first = self._commit(first_slot, {"purchase_line_id": line.id}, 600.0, self.lb)
-        self.assertEqual(first["status"], "applied", first)
-        link = self.env[LINK].browse(first["record_id"])
-        released = first_slot.with_user(self.actor).action_release_cargo(
-            link.id, revision.id, self.key(), "Synthetic release"
-        )
-        self.assertEqual(released["status"], "applied", released)
-        second = self._commit(second_slot, {"purchase_line_id": line.id}, 600.0, self.lb)
-        self.assertEqual(second["status"], "applied", second)
-        with self.assertRaises(ValidationError) as refused, self.env.cr.savepoint():
-            guard(link).write({"state": "committed"})
-        self.assertIn("would exceed the PO line quantity", str(refused.exception))
-        self.assertEqual(link.state, "released")

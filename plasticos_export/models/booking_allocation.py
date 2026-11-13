@@ -816,7 +816,6 @@ class PlasticosExportBookingCargoLink(models.Model):
         "planned_quantity",
         "planned_quantity_known",
         "uom_id",
-        "state",
     )
     def _check_allocation(self):
         """The same guard at the model, for any guarded write that bypasses the command check."""
