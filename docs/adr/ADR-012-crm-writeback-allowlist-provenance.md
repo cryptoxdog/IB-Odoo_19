@@ -115,3 +115,16 @@ This supersedes point 3 of the amendment above for `plasticos.facility.profile` 
    - every write carries provenance.
 
    A numeric facility field with no reviewed unit stays unmapped.
+
+### Amendment 2026-11-13 (c) — one subject per request; vocabulary per cartridge version
+
+Recorded by the CTO session for the same campaign. This adds to (b).
+
+1. **Vocabulary per cartridge version.** The cartridge's declared field names, their declarations and the subject each one belongs to form a reviewed constant for each pinned cartridge version (`PLASTICOS_CARTRIDGES`; today only `0.5.0`). A pin with no reviewed entry fails closed.
+   - Adopting a new revision means adding its names, declarations and subjects, then bumping the pin. An example is the 0.6.0 candidate, which declares facility-profile fields under Odoo's own names in the `facility` subject.
+   - A same-named field needs no mapping row.
+2. **One subject per request.** A facility-profile request carries one subject:
+   - `material` holds the 0.5.0 capability fields. Runs request it today.
+   - `facility` holds the 0.5.0 contact fields, `capacity_tons_month` → `capacity_lbs_month`, and future same-named fields. The derivation is ready (`resolve_v2_target(..., subject="facility")`), but no run sends that second request yet.
+3. **Declarations compare by typed shape.** A map's `properties` may arrive as the engine emits them (an object keyed by name) or as the spec writes them (a list). `required` and `unit` are not part of the comparison.
+4. **Numbers on 0.5.0.** Cartridge 0.5.0 declares no unit, so every number arrives with `unit_status: unknown`. Under decision 4, every number is skipped until a cartridge revision states units. This is the intended result.

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from types import MappingProxyType
 
@@ -359,6 +360,74 @@ PLASTICOS_FACILITY_DECLARATIONS = _freeze(
 # Cartridge identity: never requested, never written.
 CARTRIDGE_IDENTITY_FIELDS = frozenset({"facility_id"})
 
+# The ``subjects`` block of plasticos 0.5.0: the subject type each declared
+# field belongs to. A request carries one subject, so a facility-profile run
+# asks per subject.
+PLASTICOS_FIELD_SUBJECTS = MappingProxyType(
+    {
+        **dict.fromkeys(
+            (
+                "name",
+                "city",
+                "state",
+                "zip_code",
+                "street",
+                "street2",
+                "website",
+                "email",
+                "phone",
+                "capacity_tons_month",
+                "tier",
+            ),
+            V2_SUBJECT_FACILITY,
+        ),
+        **dict.fromkeys(
+            (
+                "processed_polymers",
+                "min_density",
+                "max_density",
+                "min_mfi",
+                "max_mfi",
+                "contamination_tolerance",
+                "material_grade",
+                "material_forms",
+                "certifications",
+            ),
+            V2_SUBJECT_MATERIAL,
+        ),
+    }
+)
+
+
+@dataclass(frozen=True, slots=True)
+class CartridgeVocabulary:
+    """The reviewed field vocabulary of one pinned cartridge revision."""
+
+    declarations: MappingProxyType
+    subjects: MappingProxyType
+
+
+# Reviewed vocabulary per pinned cartridge version. Adopting a revision (for
+# example the 0.6.0 candidate, which declares facility-profile fields under
+# Odoo's own names in the ``facility`` subject) is: add its version here with
+# its declarations and subjects, then bump the pin. Same-named fields need no
+# mapping row.
+PLASTICOS_CARTRIDGES = MappingProxyType(
+    {"0.5.0": CartridgeVocabulary(PLASTICOS_FACILITY_DECLARATIONS, PLASTICOS_FIELD_SUBJECTS)}
+)
+
+
+def cartridge_vocabulary(version: str) -> CartridgeVocabulary:
+    """The reviewed vocabulary of a pinned cartridge version; an unreviewed pin fails closed."""
+    vocabulary = PLASTICOS_CARTRIDGES.get(version)
+    if vocabulary is None:
+        raise ValueError(
+            f"cartridge version {version!r} has no reviewed facility-profile vocabulary "
+            f"(reviewed: {sorted(PLASTICOS_CARTRIDGES)})"
+        )
+    return vocabulary
+
+
 # Capacity: lb/month in Odoo (an Integer). A converted value that is not a
 # whole number of pounds is skipped, never rounded (decision 4).
 _LB_PER_METRIC_TON = 1000.0 / 0.45359237
@@ -485,19 +554,23 @@ def _list_code_key(declaration):
     if items.get("type") == DECL_STRING:
         return None
     if items.get("type") == DECL_MAP:
-        names = {p.get("name") for p in items.get("properties") or ()}
+        properties = items.get("properties") or ()
+        names = set(properties) if isinstance(properties, Mapping) else {p.get("name") for p in properties}
         return _CODE_PROPERTY if _CODE_PROPERTY in names else False
     return False
 
 
-def derive_facility_profile_target(field_defs, declarations=None) -> tuple[ConvergeV2Target, MappingProxyType]:
+def derive_facility_profile_target(
+    field_defs, declarations=None, *, subject: str = V2_SUBJECT_MATERIAL, version: str = "0.5.0"
+) -> tuple[ConvergeV2Target, MappingProxyType]:
     """The facility-profile target for this model's field definitions.
 
     Returns the target (one row per cartridge field that maps to an eligible
     Odoo field, by alias or by identical name) and the cartridge fields left
     unmapped with the reason.
     """
-    declarations = PLASTICOS_FACILITY_DECLARATIONS if declarations is None else declarations
+    vocabulary = cartridge_vocabulary(version)
+    declarations = vocabulary.declarations if declarations is None else declarations
     eligible = eligible_odoo_fields(field_defs)
     every = {f.name: f for f in field_defs}
     rows = []
@@ -505,6 +578,10 @@ def derive_facility_profile_target(field_defs, declarations=None) -> tuple[Conve
     for cartridge_field, declaration in declarations.items():
         if cartridge_field in CARTRIDGE_IDENTITY_FIELDS:
             unmapped[cartridge_field] = "cartridge identity"
+            continue
+        field_subject = vocabulary.subjects.get(cartridge_field)
+        if field_subject != subject:
+            unmapped[cartridge_field] = f"subject {field_subject!r}: requested under that subject, not {subject!r}"
             continue
         alias = FACILITY_PROFILE_V2_ALIASES.get(cartridge_field)
         odoo_name = alias.odoo_field if alias else cartridge_field
@@ -532,7 +609,7 @@ def derive_facility_profile_target(field_defs, declarations=None) -> tuple[Conve
         rows.append(_row(cartridge_field, odoo_name, kind, declaration, units=units, **code_kwargs))
     target = ConvergeV2Target(
         V2_TARGET_FACILITY_PROFILE,
-        V2_SUBJECT_MATERIAL,
+        subject,
         V2_CARTRIDGE_NODE,
         "plasticos.facility.profile",
         tuple(rows),
@@ -540,10 +617,20 @@ def derive_facility_profile_target(field_defs, declarations=None) -> tuple[Conve
     return target, MappingProxyType(unmapped)
 
 
-def resolve_v2_target(target: str, field_defs=None) -> ConvergeV2Target:
-    """The converge v2 target spec: a static table, or derived for the facility profile."""
+def resolve_v2_target(
+    target: str, field_defs=None, *, subject: str | None = None, version: str = "0.5.0"
+) -> ConvergeV2Target:
+    """The converge v2 target spec: a static table, or derived for the facility profile.
+
+    The facility profile is asked one subject per request. ``material`` (the
+    0.5.0 capability fields) is the subject runs use today; ``facility`` (the
+    0.5.0 contact fields and ``capacity_tons_month``, and the same-named
+    profile fields of the 0.6.0 candidate) derives the same way and is ready
+    for a second request when a run starts sending one.
+    """
     if target == V2_TARGET_FACILITY_PROFILE:
         if field_defs is None:
             raise ValueError("the facility profile target needs the model's field definitions")
-        return derive_facility_profile_target(field_defs)[0]
+        chosen = subject or V2_SUBJECT_MATERIAL
+        return derive_facility_profile_target(field_defs, subject=chosen, version=version)[0]
     return CONVERGE_V2_TARGETS[target]

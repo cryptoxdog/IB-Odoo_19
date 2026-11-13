@@ -259,6 +259,7 @@ def build_converge_request_v2(
     cartridge: CartridgePin,
     max_passes: int | None = None,
     field_defs=None,
+    subject: str | None = None,
 ) -> ConvergeRequestV2:
     """Build a converge request v2 for one partner, material profile or facility profile.
 
@@ -269,12 +270,14 @@ def build_converge_request_v2(
 
     The facility profile has no fixed table: pass the model's field
     definitions (``field_defs``, a sequence of ``OdooFieldDef``) and the target
-    is derived from them (operator decision 2026-11-13).
+    is derived from them (operator decision 2026-11-13), one subject per
+    request: ``subject`` defaults to ``material``; ``facility`` asks the
+    same-named contact/capacity fields.
 
     Raises ConvergeV2NothingToRequest when no mapped field is empty, and
     KeyError for a target the table does not declare.
     """
-    spec = resolve_v2_target(target, field_defs)
+    spec = resolve_v2_target(target, field_defs, subject=subject, version=cartridge.version)
     if getattr(record, "_name", None) != spec.odoo_model:
         raise ValueError(f"target {target!r} enriches {spec.odoo_model}, not {getattr(record, '_name', None)}")
     partner = run_rec.partner_id
