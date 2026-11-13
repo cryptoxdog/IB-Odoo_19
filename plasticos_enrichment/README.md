@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_enrichment
 component_name: PlastOS Buyer CRM Enrichment Engine
-module_version: 19.0.2.5.10
+module_version: 19.0.2.6.0
 layer: 2
 installable: true
 auto_install: true
@@ -15,6 +15,7 @@ depends:
   - mail
   - contacts
   - plasticos_material_profile
+  - plasticos_facility_profile
 models_owned:
   - plasticos.enrichment.run
   - plasticos.enrichment.source
@@ -23,6 +24,8 @@ models_owned:
   - plasticos.enrichment.service
 models_extended:
   - res.partner
+  - plasticos.material.profile
+  - plasticos.facility.profile
 crons:
   - cron_enrichment_daily
   - cron_inference_standalone
@@ -43,6 +46,12 @@ The Odoo shell for partner enrichment. Odoo decides when to ask, sends a converg
 - **Proposal.** By default a usable response leaves the run in `review` with the proposed partner fields stored in `gate_proposal`. Only when both `plasticos.gate.auto_writeback` and `plasticos.gate.auto_writeback_operator_approved` are set (both seeded `0`) are the allowlisted fields written at once and the run marked `injected`.
 - **Retry.** `action_retry_enrichment()` accepts a `retryable`, `failed`, or `degraded` run, advances `gate_attempt` so Gate sees a new operation identity, and calls `action_execute()` again.
 - **Inject.** `action_inject()` is the allowlisted writeback. For a Gate run in `review` it applies only the stored proposal. `_apply_converge_writeback` drops any field outside the partner allowlist, fills only empty values, and records a `plasticos.enrichment.provenance` row ([ADR-012](../docs/adr/ADR-012-crm-writeback-allowlist-provenance.md)).
+- **Converge v2 targets.** When `plasticos.gate.converge_contract=v2`, a run may target its partner, one of the partner's material profiles (`material_profile_id`), or one of its facility profiles (`facility_profile_id`). It targets at most one profile, and the run partner is the profile's partner. The **Enrich** button on each profile form creates the run. A facility profile with no partner cannot be enriched.
+  - **Request.** The run asks for the mapped fields (`plasticos_gate` `CONVERGE_V2_TARGETS`) that are empty on the target.
+  - **Review.** The validated reply goes to `review` in `gate_proposal`. v2 never writes automatically.
+  - **Approval.** `action_inject()` validates the stored reply again. It then writes only admitted `inferred` and `external_claim` values, with typed coercion. A number is written only in an accepted unit. A code is resolved to an existing master record, matched case-insensitively. A field that already has a value is not overwritten.
+  - **Provenance.** Every considered field gets a provenance row with `target_model`, `target_res_id` and a status. The status is `written`, `skipped_immutable`, `skipped_unknown`, `skipped_conflicting`, `skipped_unit`, `skipped_unresolved_code`, `skipped_not_admitted` or `unmapped`.
+  - **Failure.** A v1-shaped, malformed, or other-revision reply writes nothing; the run is `degraded` with the reason. A profile run under v1 never reaches Gate. ([ADR-012 amendment 2026-11-13](../docs/adr/ADR-012-crm-writeback-allowlist-provenance.md))
 - **Bales are packaging.** For extracted materials, `normalize_material` maps `bale`, `bales` and `baled` to the Bales packaging type (`plasticos.packaging.type` code `bales`) with provenance, not to a form. Inject then gives that profile no form and never the `OTHER` fallback, the end state of `plasticos_material_profile` 19.0.5.11.14 (operator decision 2026-11-12). Merge still fills only empty fields.
 - **Retired local paths.** `action_run_inference()` raises a user error. The crawl, extract, and inference methods on `plasticos.enrichment.service` raise. `action_cron_enrich_pending()` and `action_cron_inference_only()` log and return.
 - **Install hook.** `post_init_hook` in `hooks.py` adds the enrichment manager group to `plasticos_base.user_system_cron`.
@@ -59,11 +68,13 @@ The Odoo shell for partner enrichment. Odoo decides when to ask, sends a converg
 | `plasticos.enrichment.extraction` | owned           | `models/enrichment_extraction.py` |
 | `plasticos.enrichment.service`    | owned, abstract | `models/enrichment_service.py`    |
 | `res.partner`                     | extended        | `models/res_partner.py`           |
+| `plasticos.material.profile`      | extended        | `models/profile_enrichment.py`    |
+| `plasticos.facility.profile`      | extended        | `models/profile_enrichment.py`    |
 
 ## Runtime
 
 - Crons in `data/cron.xml`: `cron_enrichment_daily` and `cron_inference_standalone`, both `active` false. Their methods log and return.
-- `auto_install` is true. Odoo installs it once `plasticos_base`, `plasticos_gate`, `base`, `mail`, `contacts`, and `plasticos_material_profile` are installed.
+- `auto_install` is true. Odoo installs it once `plasticos_base`, `plasticos_gate`, `base`, `mail`, `contacts`, `plasticos_material_profile` and `plasticos_facility_profile` are installed.
 - Gate configuration lives in `plasticos_gate`. `plasticos.gate.enrichment_enabled` (seeded `1`) turns Gate enrichment off when set to `0`.
 
 ## Boundaries

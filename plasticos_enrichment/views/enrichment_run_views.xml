@@ -7,6 +7,8 @@
             <list>
                 <field name="name"/>
                 <field name="partner_id"/>
+                <field name="material_profile_id" optional="show"/>
+                <field name="facility_profile_id" optional="show"/>
                 <field name="state" widget="badge"
                        decoration-success="state == 'injected'"
                        decoration-warning="state == 'review'"
@@ -44,6 +46,14 @@
                     <group>
                         <group>
                             <field name="partner_id"/>
+                            <field name="material_profile_id"
+                                   readonly="state != 'draft'"
+                                   invisible="facility_profile_id"
+                                   domain="[('partner_id', '=', partner_id)]"/>
+                            <field name="facility_profile_id"
+                                   readonly="state != 'draft'"
+                                   invisible="material_profile_id"
+                                   domain="[('partner_id', '=', partner_id)]"/>
                             <field name="confidence_score" widget="progressbar"/>
                         </group>
                         <group>
@@ -79,6 +89,8 @@
                         <page string="Provenance">
                             <field name="provenance_ids">
                                 <list>
+                                    <field name="target_model" optional="show"/>
+                                    <field name="target_res_id" optional="hide"/>
                                     <field name="target_field"/>
                                     <field name="value_written"/>
                                     <field name="previous_value"/>

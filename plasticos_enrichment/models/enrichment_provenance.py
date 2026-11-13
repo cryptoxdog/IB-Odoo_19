@@ -18,6 +18,13 @@ class EnrichmentProvenance(models.Model):
         ondelete="cascade",
     )
     target_model = fields.Char(required=True)
+    target_res_id = fields.Integer(
+        index=True,
+        help=(
+            "Id of the exact record the field belongs to (a partner, material profile or facility "
+            "profile). Set by converge v2 runs; empty on older rows."
+        ),
+    )
     target_field = fields.Char(required=True)
     value_written = fields.Char()
     previous_value = fields.Char(
@@ -39,6 +46,11 @@ class EnrichmentProvenance(models.Model):
             ("skipped_immutable", "Skipped — Immutable"),
             ("conflict", "Conflict"),
             ("unmapped", "Unmapped"),
+            ("skipped_unknown", "Skipped — Unknown"),
+            ("skipped_conflicting", "Skipped — Conflicting"),
+            ("skipped_unit", "Skipped — Unit"),
+            ("skipped_unresolved_code", "Skipped — Unresolved Code"),
+            ("skipped_not_admitted", "Skipped — Not Admitted"),
         ]
     )
     created_at = fields.Datetime(

@@ -5,3 +5,4 @@ from . import enrichment_provenance
 from . import enrichment_run
 from . import enrichment_service
 from . import res_partner
+from . import profile_enrichment
