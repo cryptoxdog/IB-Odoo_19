@@ -354,3 +354,59 @@ def resolve_tenant(env) -> str:
     icp = env["ir.config_parameter"].sudo()
     org_id = (icp.get_param("plasticos.gate.org_id") or "").strip()
     return org_id or env.cr.dbname
+
+
+# ── Converge contract selection (request/response v1 or v2) ─────────────────
+#
+# v1 is the default and stays byte-for-byte what it was. v2 is selected only
+# when the operator sets ``plasticos.gate.converge_contract=v2`` AND pins the
+# cartridge id and version it was reviewed against. Shipping this code changes
+# nothing until that parameter is set.
+ICP_CONVERGE_CONTRACT = "plasticos.gate.converge_contract"
+ICP_CONVERGE_CARTRIDGE_ID = "plasticos.gate.converge_cartridge_id"
+ICP_CONVERGE_CARTRIDGE_VERSION = "plasticos.gate.converge_cartridge_version"
+ICP_CONVERGE_CARTRIDGE_SHA256 = "plasticos.gate.converge_cartridge_sha256"
+CONVERGE_CONTRACT_V1 = "v1"
+CONVERGE_CONTRACT_V2 = "v2"
+
+
+@dataclass(frozen=True, slots=True)
+class ConvergeContractSelection:
+    """Which converge contract a run speaks, and the cartridge pin for v2."""
+
+    contract: str
+    cartridge_id: str | None = None
+    cartridge_version: str | None = None
+    cartridge_sha256: str | None = None
+
+    @property
+    def is_v2(self) -> bool:
+        return self.contract == CONVERGE_CONTRACT_V2
+
+
+def resolve_converge_contract(env) -> ConvergeContractSelection:
+    """Read the converge contract selection; fail closed on a half-configured v2.
+
+    Unset or ``v1`` selects v1 and reads nothing else. ``v2`` requires both the
+    cartridge id and version; a missing pin, or any other contract value, is a
+    permanent configuration failure rather than a silent v1 fallback.
+    """
+    icp = env["ir.config_parameter"].sudo()
+    raw = (icp.get_param(ICP_CONVERGE_CONTRACT) or "").strip().lower()
+    if raw in ("", CONVERGE_CONTRACT_V1):
+        return ConvergeContractSelection(CONVERGE_CONTRACT_V1)
+    if raw != CONVERGE_CONTRACT_V2:
+        msg = f"{ICP_CONVERGE_CONTRACT} must be {CONVERGE_CONTRACT_V1!r} or {CONVERGE_CONTRACT_V2!r}, got {raw!r}"
+        raise GateIntegrationError(msg, failure_class="permanent")
+    cartridge_id = (icp.get_param(ICP_CONVERGE_CARTRIDGE_ID) or "").strip()
+    version = (icp.get_param(ICP_CONVERGE_CARTRIDGE_VERSION) or "").strip()
+    sha256 = (icp.get_param(ICP_CONVERGE_CARTRIDGE_SHA256) or "").strip() or None
+    missing = [
+        key
+        for key, value in ((ICP_CONVERGE_CARTRIDGE_ID, cartridge_id), (ICP_CONVERGE_CARTRIDGE_VERSION, version))
+        if not value
+    ]
+    if missing:
+        msg = f"{ICP_CONVERGE_CONTRACT}=v2 requires {', '.join(missing)}"
+        raise GateIntegrationError(msg, failure_class="permanent")
+    return ConvergeContractSelection(CONVERGE_CONTRACT_V2, cartridge_id, version, sha256)

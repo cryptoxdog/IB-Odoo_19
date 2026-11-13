@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_gate
 component_name: PlasticOS Gate Client
-module_version: 19.0.1.9.10
+module_version: 19.0.1.10.0
 layer: 2
 installable: true
 auto_install: false
@@ -33,6 +33,11 @@ The one Odoo client of the Constellation Gate. PlasticOS modules that need exter
 - **Mappers.** `services/gate_mappers.py` turns Gate responses back into Odoo values, such as `map_match_response` and buyer partner ids.
 - **Configuration.** `services/gate_config.py` reads the Gate URL from the process environment only, never from a system parameter. `classify_gate_availability` returns a structured verdict and never raises. The other settings are system parameters seeded in [`data/gate_icp_seed.xml`](data/gate_icp_seed.xml) (`noupdate="1"`), for example `plasticos.gate.matching_enabled`, `plasticos.gate.enrichment_enabled`, `plasticos.gate.timeout_seconds`, and `plasticos.gate.auto_writeback`.
 - **Allowlists.** `services/gate_allowlists.py` holds the partner field maps used in payloads and writebacks.
+- **Converge v2.** `plasticos.gate.converge_contract` selects the converge contract. It is `v1` by default, and v1 requests and replies are unchanged. `v2` also needs `plasticos.gate.converge_cartridge_id` (the Gate tenant, `plasticos`) and `plasticos.gate.converge_cartridge_version`; `plasticos.gate.converge_cartridge_sha256` is optional. A half-configured `v2` fails closed (`resolve_converge_contract`). The contract is EIE `docs/contracts/converge/request.v2.md` and `response.v2.md`, frozen 2026-11-13.
+  - `CONVERGE_V2_TARGETS` in `services/gate_allowlists.py` is the v2 writeback allowlist (ADR-012 amendment 2026-11-13). It has one row per cartridge field and Odoo field, for three targets: the partner, the material profile, and the facility profile. A cartridge field with no row is not requested and not written. `CONVERGE_V2_UNMAPPED` lists the fields left out and why.
+  - `build_converge_request_v2` requests the mapped fields that are empty on the record. It sends the filled ones as `observations`. The entity stays `res.partner:<id>`.
+  - `parse_converge_response_v2` validates a reply and freezes it. A reply without `contract_version` is v1. An unknown contract or state, a missing entry, a malformed entry, a different cartridge revision, or a run that did not complete rejects all of the reply's evidence.
+  - `plan_converge_v2_writeback` applies the write policy. It writes only admitted `inferred` and `external_claim` values, and a number only in a unit the row accepts. It never writes `unknown`, `conflicting` or `observed` values.
 - **Cutover guards.** `services/dual_write.py` and `services/field_family_cutover.py` read their system parameters and fail closed if a decision would restore local intelligence authority.
 
 ## Models
