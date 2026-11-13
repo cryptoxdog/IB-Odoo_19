@@ -10,6 +10,7 @@ from odoo.tools import email_normalize
 RES_PARTNER = "res.partner"
 PLASTICOS_TRANSACTION = "plasticos.transaction"
 PLASTICOS_LOAD = "plasticos.load"
+OPERATIONS_MANAGER_GROUP = "plasticos_security_base.group_operations_manager"
 _logger = logging.getLogger(__name__)
 
 _FREIGHT_INTERNAL_WRITE = "plasticos_logistics_internal_freight_write"
@@ -2238,6 +2239,26 @@ class PlasticosLoad(models.Model):
                 if rec.delivery_datetime < rec.pickup_datetime:
                     raise ValidationError(f"Load {rec.name}: Delivery date/time cannot be before pickup date/time.")
 
+    def _escalate_sla_breach(self, level, hours, limit_hours):
+        """Assign one SLA-breach Activity per load and breach level to an Operations Manager.
+
+        Both SLA jobs call this, so a load breached at one level carries one open Activity
+        however many jobs observe it. With no eligible manager the breach is logged and
+        noted once on the load.
+        """
+        self.ensure_one()
+        return self.env["res.users"]._plasticos_escalate_to_manager(
+            self,
+            OPERATIONS_MANAGER_GROUP,
+            summary=f"ESCALATION: SLA breach [{level.upper()}] on {self.name}",
+            note=(
+                f"Load {self.name} has been in state '{self.state}' for {hours:.1f} hours "
+                f"(limit: {limit_hours} hours). Manual intervention required."
+            ),
+            label=f"SLA breach {level} escalation",
+            companies=self.company_id,
+        )
+
     @api.model
     def _cron_escalation_check(self):
         self.env.cr.execute("SELECT pg_try_advisory_lock(hashtext(%s))", ["plasticos_logistics.cron_escalation_check"])
@@ -2310,17 +2331,19 @@ class PlasticosLoad(models.Model):
             if load.id in already_escalated:
                 continue
 
-            tx = load.transaction_id
-            user_id = tx.user_id.id if tx and tx.user_id else self.env.user.id
-
-            load.activity_schedule(
-                "mail.mail_activity_data_todo",
-                user_id=user_id,
+            # Escalated to an Operations Manager in the load's company: never the salesperson,
+            # never the user running the job. The day filter above is this site's idempotency.
+            self.env["res.users"]._plasticos_escalate_to_manager(
+                load,
+                OPERATIONS_MANAGER_GROUP,
                 summary=f"URGENT: No carrier acknowledgment for {load.name}",
                 note=(
                     f"Carrier has not acknowledged dispatch sent {load.dispatch_sent}. "
                     "The dispatch packet was not resent automatically."
                 ),
+                label="carrier acknowledgment escalation",
+                companies=load.company_id,
+                one_open=False,
             )
 
         return True

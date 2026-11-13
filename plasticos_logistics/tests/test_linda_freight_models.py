@@ -21,6 +21,23 @@ class TestLindaFreightModels(PlasticosTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        # The acknowledgment escalation is owned by an Operations Manager in the load's company.
+        cls.ops_manager = cls.env["res.users"].create(
+            {
+                "name": "linda.freight.ops.manager",
+                "login": "linda.freight.ops.manager",
+                "group_ids": [
+                    (
+                        6,
+                        0,
+                        [
+                            cls.env.ref("base.group_user").id,
+                            cls.env.ref("plasticos_security_base.group_operations_manager").id,
+                        ],
+                    )
+                ],
+            }
+        )
         # These models are the contract under test. A runtime that lacks one has
         # not installed plasticos_logistics correctly, so fail instead of skipping:
         # a skipped suite would let a broken install or upgrade look green.
