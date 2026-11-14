@@ -61,3 +61,13 @@ If EIE consults CEG (or vice versa) for field determination, that traffic stays 
 
 - `plasticos_gate/services/gate_client.py`, `gate_builders.py`, `gate_mappers.py`
 - ADR-002 topology; ADR-003-single authority
+
+## Amendment 2026-11-13 — `converge` row, contract v2
+
+The `converge` action and its route are unchanged: Odoo → Gate → EIE through the Gate SDK in `plasticos_gate`. When `plasticos.gate.converge_contract=v2`, the payload is a converge request v2 (`build_converge_request_v2`). Its reply is read by `parse_converge_response_v2`. The result store is `plasticos.enrichment.run`, which may now target the partner, one of its material profiles, or one of its facility profiles, under the ADR-012 amendment of 2026-11-13. Gate and the SDK treat the payload as opaque, so no Gate or SDK change is part of this.
+
+| Action | Destination worker | Odoo builder / sender | Odoo result store |
+|--------|--------------------|----------------------|-------------------|
+| `converge` (v2) | Enrichment.Inference.Engine (EIE) | `build_converge_request_v2` / `send_converge_action` | `plasticos.enrichment.run` (+ partner, material-profile or facility-profile writeback per ADR-012) |
+
+> **2026-11-13 correction (additive).** The amendment above says a run may target a material profile. That is superseded by ADR-012 amendment 2026-11-13 (d): a converge v2 run targets the partner or one of its facility profiles only.
