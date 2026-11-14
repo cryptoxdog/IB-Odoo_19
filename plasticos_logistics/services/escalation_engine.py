@@ -26,3 +26,4 @@ def check_escalations(env):
         if delta > limit and not load.sla_breached:
             load.sla_breached = True
             load.message_post(body=f"SLA breach: stuck in {load.state} > {limit}h")
+            load._escalate_sla_breach("critical" if delta > limit * 2 else "warning", delta, limit)

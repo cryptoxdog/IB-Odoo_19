@@ -6,6 +6,7 @@ verification), BRS-POS-03-R007 (operation-scoped compliance) and BRS-POS-09-R003
 """
 
 import base64
+from datetime import timedelta
 from unittest.mock import patch
 
 from odoo import fields
@@ -304,6 +305,29 @@ class TestMissingDocEscalationOwner(PlasticosTestCase):
         self._run_page(page, self.managers)
         for transaction in page:
             self.assertEqual(len(self._activities(transaction)), 1)
+
+    def test_escalated_transaction_keeps_one_open_activity_across_days(self):
+        """BRS-POS-09-R003: one open Activity per unresolved obligation, not one per day."""
+        owner = self._user("integrity.manager.daily", self.managers)
+        transaction = self._transaction("TX-INTEGRITY-DAILY")
+        self._run_page(transaction, self.managers)
+        activity = self._activities(transaction)
+        self.assertEqual(len(activity), 1)
+        # The next days' runs see yesterday's still-open escalation.
+        activity.write({"date_deadline": fields.Date.today() - timedelta(days=1)})
+        self._run_page(transaction, self.managers)
+        activity.write({"date_deadline": fields.Date.today() - timedelta(days=4)})
+        self._run_page(transaction, self.managers)
+        self.assertEqual(self._activities(transaction), activity)
+        self.assertEqual(activity.user_id, owner)
+        # Once the manager closes it while documents are still missing, the obligation is raised again, once.
+        activity.action_done()
+        self._run_page(transaction, self.managers)
+        self._run_page(transaction, self.managers)
+        reopened = self._activities(transaction)
+        self.assertEqual(len(reopened), 1)
+        self.assertNotEqual(reopened, activity)
+        self.assertEqual(reopened.user_id, owner)
 
     def test_no_manager_is_logged_noted_once_and_counted(self):
         first = self._transaction("TX-INTEGRITY-NOOWNER-A")

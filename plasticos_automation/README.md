@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_automation
 component_name: PlasticOS Automation Layer
-module_version: 19.0.2.1.12
+module_version: 19.0.2.1.13
 layer: 3
 installable: true
 auto_install: true

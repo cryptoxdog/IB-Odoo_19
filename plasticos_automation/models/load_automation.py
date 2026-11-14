@@ -70,6 +70,7 @@ class PlasticosLoadAutomation(models.Model):
                         ),
                         message_type="notification",
                     )
+                    load._escalate_sla_breach(new_level, delta_hours, limit_hours)
                     log_vals.append(
                         {
                             "name": f"SLA breach [{new_level}] for {load.name}",
