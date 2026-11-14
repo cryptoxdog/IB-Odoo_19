@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_material_profile
 component_name: PlasticOS Material Profile
-module_version: 19.0.5.13.2
+module_version: 19.0.5.13.3
 layer: 1
 installable: true
 auto_install: true
@@ -50,6 +50,7 @@ The material master. It holds the canonical registries (polymer, grade, form, co
 - **Code registries in Python.** `process_codes.py` is the import site for `PROCESS_SELECTION`; other modules import it from here. `form_codes.py`, `grade_codes.py`, and `quality_tier_codes.py` hold the form, grade, and quality-tier codes. A grade is what the items were before processing (drums, totes, pallets); a form is the physical form. Quality tier is the A/B/C/Reusable/Standard master. Tests keep these tuples equal to the seed files.
 - **Grade templates.** `plasticos.grade.template` holds preset specifications that fill a profile's fields when chosen.
 - **Helpers.** `intake_delta_bridge.py` maps intake fields onto profile fields (used by `plasticos_intake`). `profile_features.py` derives features such as residue without the Odoo registry. `grade_migration.py` moves former forms onto grades during the grade upgrade.
+- **ERP product catalog.** `data/ERP-Products.csv` maps an ERP product name to masters. `models/material_normalizer.py` reads it by its own columns: `erp_product_catalog()` keys each row by `source_value` (whitespace-collapsed, case-folded) and `normalize_erp_product(env, product)` resolves one name to existing masters, including the quality tier. Every status cell is blank, so a row counts when it names a polymer. An unknown product, a row without a polymer, and a code whose master is not in the database stay unresolved; nothing is created. The phrase sheet (`data/material_mapping.csv`, `phrase_table()`, `normalize_material()`) does not read this file and is unchanged.
 - **Partner.** The `res.partner` extension adds `material_profile_ids`, a profile count, and a non-stored `is_facility` (true for a child partner or a partner with no children). `plasticos_facility_profile` overrides `is_facility` with a stored version.
 - **Orders.** `action_create_purchase_order` opens a purchase order with a line from the profile; it needs `plasticos_order_lines` for the line's `material_profile_id`. `action_view_po_lines` and `action_view_so_lines` list order lines.
 - **Packet stub.** Create and write call `_emit_material_packet()`, which builds a packet dictionary and discards it. Nothing is sent.

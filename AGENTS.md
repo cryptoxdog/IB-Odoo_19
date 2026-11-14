@@ -880,3 +880,25 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > loads through `plasticos.load.transaction_id`. Addon census at Staging `08504e12`: **31** `plasticos_*` addons,
 > **29** installable and 2 not installable (`plasticos_dev_tools`, `plasticos_website`); this supersedes the 30/28
 > count in Project Overview.
+
+> **2026-11-13 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> `make import-erp-material-profiles` (`DRY=1` rolls back) puts `plasticos.material.profile` records on the exact ERP
+> site partner named by two private operator files (`ERP_PROFILE_SUPPLIERS`, `ERP_PROFILE_CUSTOMERS`; defaults are the
+> gitignored `plasticos_material_profile/data/ERP-Material-Profiles-Suppliers.csv` and `-Customers.csv`). Both files are
+> one list; supplier versus customer carries no meaning. The only product map is
+> `plasticos_material_profile/data/ERP-Products.csv`, read by `material_normalizer.normalize_erp_product`; the phrase
+> sheet `material_mapping.csv` stays the VanillaSoft/CRM map and is unchanged. The loader is
+> `plasticos.erp.material.profile.loader` in `plasticos_transaction`, driven by
+> `plasticos_transaction/scripts/load_erp_material_profiles_shell.py`. The partner is the ERP site child
+> (`legacy_erp_address_<AddressID>`) whose `erp_address_label` equals the ship value, or the company
+> (`legacy_erp_cp_<CpID>`) when it has no ERP site children. Every other case is rejected with a reason and writes
+> nothing. Run it after the ERP partner import. It adds no field and no stored model, and it refuses a production database.
+> Summary: `.l9/pr/import-erp-material-profiles-summary.json`
+> (`records_seen == created + updated + unchanged + rejected`). Never commit the two operator files.
+
+> **2026-11-13 loader review correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> two sentences of the `make import-erp-material-profiles` correction above are made precise. (1) The database check
+> also runs on a dry run (`DRY=1`): a production database is refused for dry and applied runs alike. (2) One load runs
+> at a time on a database; a second run started meanwhile is refused and does not wait. The phrase sheet
+> `material_mapping.csv` is unchanged by the loader, and the ERP order-line import
+> (`plasticos_transaction/models/native_document_import.py`) still classifies order lines through that sheet.
