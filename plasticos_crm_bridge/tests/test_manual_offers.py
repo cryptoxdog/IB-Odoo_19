@@ -114,6 +114,21 @@ class TestManualOffers(PlasticosTestCase):
             no_material.action_select_offer_buyers()
         self.assertEqual(self.env["res.partner"].search_count([]), partners_before, "no partner is fabricated")
 
+    def test_draft_offers_are_refused_until_the_sheet_has_polymer_and_form(self):
+        opportunity = self._opportunity()
+        sheet = opportunity.opportunity_material_ids
+        sheet.form_id = False
+        with self.assertRaisesRegex(UserError, "cannot be matched or offered: Form not set"):
+            self._generate(opportunity, self.alice)
+        sheet.write({"form_id": self.form.id, "polymer_id": False})
+        with self.assertRaisesRegex(UserError, "cannot be matched or offered: Polymer not set"):
+            self._generate(opportunity, self.alice)
+        self.assertFalse(self.Offer.search([("opportunity_id", "=", opportunity.id)]), "no draft was created")
+        sheet.polymer_id = self.polymer
+        offers = self._generate(opportunity, self.alice)
+        self.assertEqual(len(offers), 1, "the completed sheet drafts as before")
+        self.assertEqual(offers.state, "draft")
+
     def test_closed_opportunity_cannot_start_outreach(self):
         opportunity = self._opportunity()
         opportunity._plasticos_mark_won()

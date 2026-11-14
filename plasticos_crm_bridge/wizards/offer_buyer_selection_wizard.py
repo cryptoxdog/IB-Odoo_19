@@ -219,6 +219,9 @@ class PlasticosOfferBuyerSelectionWizard(models.TransientModel):
         opportunity = self.opportunity_id
         opportunity.check_access("write")
         material = opportunity._plasticos_manual_offer_material()
+        self.env["plasticos.opportunity.approval"]._plasticos_refuse_incomplete_material(
+            opportunity, {"polymer_type": material.polymer_id, "form": material.form_id}
+        )
         groups = self._plasticos_validated_groups(opportunity)
         Offer = self.env[OFFER_MODEL]
         # Serialize draft generation per opportunity with the native row lock; the
