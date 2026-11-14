@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_matching
 component_name: PlasticOS Matching
-module_version: 19.0.3.1.5
+module_version: 19.0.3.1.6
 layer: 2
 installable: true
 auto_install: true

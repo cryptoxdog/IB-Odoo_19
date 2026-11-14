@@ -1252,7 +1252,11 @@ class CrmLeadPlastOS(models.Model):
                 raise UserError(
                     _("Gate matching is unavailable (%s).") % ("; ".join(verdict.reasons) or verdict.status)
                 )
+            # Refused before a lot exists: an immutable lot is never minted from incomplete material.
+            self.env["plasticos.opportunity.approval"]._plasticos_require_source_material(rec, rec.material_profile_id)
             approval = rec.action_approve_lot()
+            # Backstop on the frozen values themselves, still before the lot is made durable.
+            approval._plasticos_require_match_material()
             rec._plasticos_ensure_lot_durable()
             run, matches = orchestrator.run_match_for_lot(
                 supplier_partner_id=approval.partner_id.id,
@@ -1316,6 +1320,7 @@ class CrmLeadPlastOS(models.Model):
                 raise UserError(
                     _("Opportunity %s has no successful Gate match yet. Run Match via Gate first.") % rec.name
                 )
+            run.approval_id._plasticos_require_match_material()
             reviewed = run.result_ids.filtered(lambda result: result.state == "accepted")
             if not reviewed:
                 raise UserError(_("No reviewed (accepted) match result on run %s. Review the results first.") % run.id)

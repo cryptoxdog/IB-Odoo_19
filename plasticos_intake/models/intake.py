@@ -1,7 +1,7 @@
 import logging
 import os
 
-from odoo import api, fields, models
+from odoo import _, api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
@@ -203,6 +203,13 @@ class PlasticosIntake(models.Model):
         ondelete="restrict",
         help="Material form from master registry. Empty when triage matched no form.",
     )
+    material_incomplete = fields.Boolean(
+        string="Material Incomplete",
+        compute="_compute_material_incomplete",
+        store=True,
+        index=True,
+        help="True while the intake has no polymer or no form. It can be saved, but matching is refused until both are filled.",
+    )
     color_ids = fields.Many2many(
         "plasticos.material.color",
         "plasticos_intake_color_rel",
@@ -269,6 +276,32 @@ class PlasticosIntake(models.Model):
         store=True,
         help="Derived: True when 'Flame Retardant' attribute is in material_attribute_ids.",
     )
+
+    def _plasticos_missing_match_material(self):
+        """Labels of the material facts a match needs that this intake lacks; empty when complete."""
+        self.ensure_one()
+        from ..match_material import missing_match_material
+
+        return missing_match_material({"polymer_type": self.polymer_id, "form": self.form_id})
+
+    @api.depends("polymer_id", "form_id")
+    def _compute_material_incomplete(self):
+        for rec in self:
+            rec.material_incomplete = bool(rec._plasticos_missing_match_material())
+
+    def _plasticos_require_match_material(self):
+        """Refuse a match start while the intake's material is incomplete."""
+        for rec in self:
+            missing = rec._plasticos_missing_match_material()
+            if missing:
+                raise UserError(
+                    _(
+                        "Intake '%(intake)s' cannot be matched: %(missing)s not set. "
+                        "Fill it on the intake, then match again.",
+                        intake=rec.display_name,
+                        missing=" and ".join(missing),
+                    )
+                )
 
     @api.depends("material_attribute_ids.code")
     def _compute_material_flags(self):
@@ -819,6 +852,8 @@ class PlasticosIntake(models.Model):
 
         if not (os.environ.get("GATE_URL") or "").strip():
             raise UserError("Gate is not configured (GATE_URL is unset).")
+
+        self._plasticos_require_match_material()
 
         if not self.partner_id and self.pending_company_name:
             self._create_partner_from_pending()
