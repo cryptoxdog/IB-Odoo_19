@@ -466,6 +466,129 @@ class TestOpportunityApproval(PlasticosTestCase):
             opportunity.action_create_offers_from_results()
         self.assertFalse(self.Offer.search([("match_result_id.match_run_id.opportunity_id", "=", opportunity.id)]))
 
+    # ── Material completeness: no match and no offer without polymer and form ──
+
+    def _refused_match(self, opportunity, pattern):
+        """Run the matching command expecting a refusal before Gate is addressed and before the lot is durable."""
+        durable = AssertionError("an incomplete lot must never be made durable")
+        with (
+            patch.object(type(self.Lead), "_plasticos_ensure_lot_durable", side_effect=durable),
+            patch(_CLASSIFY, return_value=_available_verdict()),
+            patch(_ENABLED, return_value=True),
+            patch(_SEND, side_effect=AssertionError("Gate must not be addressed for incomplete material")),
+            self.assertRaisesRegex(UserError, pattern),
+        ):
+            opportunity.action_match_opportunity()
+
+    def test_match_is_refused_when_the_sheet_has_no_form(self):
+        opportunity = self._opportunity()
+        opportunity.opportunity_material_ids.form_id = False
+        self._refused_match(opportunity, r"cannot be matched or offered: Form not set")
+        self.env.invalidate_all()
+        self.assertFalse(opportunity.approval_ids, "the refused command leaves no lot")
+        self.assertFalse(self.Run.search([("opportunity_id", "=", opportunity.id)]))
+
+    def test_match_is_refused_when_the_sheet_has_no_polymer(self):
+        opportunity = self._opportunity()
+        opportunity.opportunity_material_ids.polymer_id = False
+        self._refused_match(opportunity, r"cannot be matched or offered: Polymer not set")
+        self.env.invalidate_all()
+        self.assertFalse(opportunity.approval_ids)
+        self.assertFalse(self.Run.search([("opportunity_id", "=", opportunity.id)]))
+
+    def test_refused_match_mints_no_lot_even_when_the_caller_keeps_the_transaction(self):
+        """The refusal precedes minting: a caller that catches the error holds no incomplete lot."""
+        opportunity = self._opportunity()
+        opportunity.opportunity_material_ids.write({"polymer_id": False, "form_id": False})
+        lots_before = self.Approval.search_count([])
+        mint = AssertionError("no lot may be minted from incomplete material")
+        raised = None
+        with (
+            patch.object(type(self.Approval), "mint", side_effect=mint),
+            patch(_CLASSIFY, return_value=_available_verdict()),
+            patch(_ENABLED, return_value=True),
+            patch(_SEND, side_effect=AssertionError("Gate must not be addressed for incomplete material")),
+        ):
+            try:
+                opportunity.action_match_opportunity()
+            except UserError as exc:
+                raised = exc
+        self.assertIsNotNone(raised)
+        self.assertIn("Polymer and Form not set", str(raised))
+        self.assertEqual(self.Approval.search_count([]), lots_before)
+
+    def test_lot_minted_by_other_means_with_an_incomplete_snapshot_is_refused_by_the_orchestrator(self):
+        """``mint`` itself does not check; the orchestrator's snapshot check is the backstop."""
+        opportunity = self._opportunity()
+        opportunity.opportunity_material_ids.form_id = False
+        lot = self.Approval.mint(opportunity, source="manual", partner=self.supplier, material_profile=self.profile)
+        self.assertNotIn("form", lot.snapshot)
+        with (
+            patch(_CLASSIFY, return_value=_available_verdict()),
+            patch(_ENABLED, return_value=True),
+            patch(_SEND, side_effect=AssertionError("Gate must not be addressed for incomplete material")),
+            self.assertRaisesRegex(UserError, r"lot cannot be matched: Form not set"),
+        ):
+            self.env["plasticos.match.orchestrator"].run_match_for_lot(
+                supplier_partner_id=lot.partner_id.id,
+                snapshot=lot.snapshot,
+                run_vals={"opportunity_id": opportunity.id, "approval_id": lot.id},
+            )
+        self.assertFalse(self.Run.search([("approval_id", "=", lot.id)]), "the refused lot has no run")
+
+    def test_match_runs_again_once_the_sheet_is_completed(self):
+        opportunity = self._opportunity()
+        sheet = opportunity.opportunity_material_ids
+        sheet.form_id = False
+        self._refused_match(opportunity, r"Form not set")
+        sheet.form_id = self.form
+        run, sent = self._match(opportunity)
+        self.assertEqual(run.state, "ok")
+        self.assertTrue(sent["payload"]["query"]["polymer_type"])
+        self.assertTrue(sent["payload"]["query"]["form"])
+
+    def test_offers_are_refused_from_a_lot_frozen_without_form(self):
+        """A lot minted before this gate may lack a form; its reviewed results create no offer."""
+        opportunity, run = self._reviewed_run()
+        # The lot is immutable through the ORM; a pre-gate lot is reproduced in the table directly.
+        self.env.cr.execute(
+            "UPDATE plasticos_opportunity_approval SET snapshot = snapshot - 'form' WHERE id = %s",
+            [run.approval_id.id],
+        )
+        self.env.invalidate_all()
+        self.assertNotIn("form", run.approval_id.snapshot)
+        with self.assertRaisesRegex(UserError, r"cannot be matched or offered: Form not set"):
+            opportunity.action_create_offers_from_results()
+        self.assertFalse(self.Offer.search([("match_result_id", "in", run.result_ids.ids)]))
+
+    def test_retry_of_a_lot_frozen_without_polymer_is_refused(self):
+        opportunity, run = self._reviewed_run()
+        self.env.cr.execute(
+            "UPDATE plasticos_opportunity_approval SET snapshot = snapshot - 'polymer_type' WHERE id = %s",
+            [run.approval_id.id],
+        )
+        from odoo.addons.plasticos_matching.models.match_run import RECEIPT_WRITE_CONTEXT  # noqa: PLC0415
+
+        failed = self.Run.with_context(**{RECEIPT_WRITE_CONTEXT: True}).create(
+            {
+                "supplier_partner_id": self.supplier.id,
+                "opportunity_id": opportunity.id,
+                "approval_id": run.approval_id.id,
+                "state": "retryable",
+                "failure_class": "retryable",
+            }
+        )
+        self.env.invalidate_all()
+        runs_before = self.Run.search_count([("opportunity_id", "=", opportunity.id)])
+        with (
+            patch(_CLASSIFY, return_value=_available_verdict()),
+            patch(_ENABLED, return_value=True),
+            patch(_SEND, side_effect=AssertionError("Gate must not be addressed for incomplete material")),
+            self.assertRaisesRegex(UserError, r"lot cannot be matched: Polymer not set"),
+        ):
+            failed.action_retry_match()
+        self.assertEqual(self.Run.search_count([("opportunity_id", "=", opportunity.id)]), runs_before)
+
     def test_sent_offer_terms_are_immutable(self):
         opportunity, _run = self._reviewed_run()
         opportunity.action_create_offers_from_results()

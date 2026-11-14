@@ -476,7 +476,7 @@ class TestScopedEvidence(PlasticosTestCase):
         def run():
             params.set_param("plasticos_documents.scale_ticket_retry_ids", "")
             params.set_param("plasticos_documents.scale_ticket_scan_cursor", str(load.id - 1))
-            with patch.object(type(model), "_get_logistics_manager", lambda self, group: self.env.user):
+            with patch.object(type(model), "_get_logistics_manager", lambda self, group, company=None: self.env.user):
                 model.cron_check_scale_tickets()
 
         run()
@@ -523,7 +523,7 @@ class TestScopedEvidence(PlasticosTestCase):
         params = self.env["ir.config_parameter"]
         params.set_param("plasticos_documents.scale_ticket_retry_ids", "")
         params.set_param("plasticos_documents.scale_ticket_scan_cursor", str(load.id - 1))
-        with patch.object(type(model), "_get_logistics_manager", lambda self, group: self.env.user):
+        with patch.object(type(model), "_get_logistics_manager", lambda self, group, company=None: self.env.user):
             model.with_context(scale_ticket_batch_size=10).cron_check_scale_tickets()
         self.assertFalse(load.scale_ticket_reminder_sent)
         self.assertFalse(load.scale_ticket_escalated)

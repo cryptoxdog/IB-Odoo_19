@@ -1390,3 +1390,50 @@ runtime-test:
 .PHONY: runtime-bootstrap
 runtime-bootstrap:
 	bash scripts/runtime_bootstrap.sh
+
+# 2026-11-13 — make import-erp-material-profiles puts plasticos.material.profile
+# records on the exact ERP site partner named by two operator files (Product,
+# Supplier or Customer, Ship From or Ship To). The product map is
+# plasticos_material_profile/data/ERP-Products.csv and nothing else. The two
+# files are private and gitignored; both are read as one list.
+#   make import-erp-material-profiles DRY=1   resolve and count, persist nothing
+#   make import-erp-material-profiles         applied (ODOO_DB_NAME is the target)
+#   ERP_PROFILE_SUPPLIERS= / ERP_PROFILE_CUSTOMERS=   non-default file paths
+#   REPORT_PATH=                                      machine summary path
+# Same runtimes and database check as import-erp; the driver has no production
+# permit, so a production database is refused. Run it after the ERP partner
+# import: it resolves partners by their legacy_erp_cp_ / legacy_erp_address_ ids.
+.PHONY: import-erp-material-profiles
+ERP_PROFILE_SUPPLIERS ?= plasticos_material_profile/data/ERP-Material-Profiles-Suppliers.csv
+ERP_PROFILE_CUSTOMERS ?= plasticos_material_profile/data/ERP-Material-Profiles-Customers.csv
+ERP_PROFILE_DRY ?= $(DRY)
+ERP_PROFILE_REPORT_PATH ?= $(or $(REPORT_PATH),.l9/pr/import-erp-material-profiles-summary.json)
+import-erp-material-profiles:
+	@if [ -n "$$TEST_ENV_VERIFIED_CLONE" ] && [ "$$TEST_ENV_VERIFIED_CLONE" != "$(ODOO_DB_NAME)" ]; then echo "❌ test-env refused: ODOO_DB_NAME=$(ODOO_DB_NAME) is not the verified clone $$TEST_ENV_VERIFIED_CLONE" >&2; exit 2; fi
+	@for f in "$(ERP_PROFILE_SUPPLIERS)" "$(ERP_PROFILE_CUSTOMERS)"; do [ -r "$$f" ] || { echo "❌ import-erp-material-profiles refused: $$f is not a readable file (ERP_PROFILE_SUPPLIERS / ERP_PROFILE_CUSTOMERS)" >&2; exit 2; }; done
+	@echo "→ ERP material profiles on database $(ODOO_DB_NAME) $(if $(ERP_PROFILE_DRY),[DRY RUN],)…"
+	@echo "   path: make import-erp-material-profiles → plasticos_transaction/scripts/load_erp_material_profiles_shell.py → plasticos.erp.material.profile.loader"
+	@if docker info >/dev/null 2>&1; then \
+		$(call mount_guard,ERP_PROFILE_SUPPLIERS ERP_PROFILE_CUSTOMERS ERP_PROFILE_REPORT_PATH,import-erp-material-profiles); \
+		docker compose run --rm -w /mnt/extra-addons \
+			-e ODOO_STAGE="$(ODOO_STAGE)" \
+			-e ERP_TARGET_DB="$(ODOO_DB_NAME)" \
+			-e ERP_PROFILE_SUPPLIERS="$(call runtime_path,$(ERP_PROFILE_SUPPLIERS))" \
+			-e ERP_PROFILE_CUSTOMERS="$(call runtime_path,$(ERP_PROFILE_CUSTOMERS))" \
+			-e ERP_PROFILE_DRY="$(ERP_PROFILE_DRY)" \
+			-e ERP_PROFILE_REPORT_PATH="$(call runtime_path,$(ERP_PROFILE_REPORT_PATH))" \
+			odoo odoo shell -d $(ODOO_DB_NAME) --no-http < plasticos_transaction/scripts/load_erp_material_profiles_shell.py; \
+	elif [ -n "$$TEST_ENV_VERIFIED_CLONE" ]; then \
+		echo "❌ test-env refused: $(ODOO_DB_NAME) was verified on the Docker stack and Docker is unreachable; the no-Docker harness is another server" >&2; exit 2; \
+	elif [ -x "$(L9_ODOO_VENV)/bin/odoo" ]; then \
+		src=$$(ls -d /opt/odoo-src/odoo-19.0* | sort | tail -1); \
+		ODOO_STAGE="$(ODOO_STAGE)" ERP_TARGET_DB="$(ODOO_DB_NAME)" \
+		ERP_PROFILE_SUPPLIERS="$(ERP_PROFILE_SUPPLIERS)" ERP_PROFILE_CUSTOMERS="$(ERP_PROFILE_CUSTOMERS)" \
+		ERP_PROFILE_DRY="$(ERP_PROFILE_DRY)" ERP_PROFILE_REPORT_PATH="$(ERP_PROFILE_REPORT_PATH)" \
+		"$(L9_ODOO_VENV)/bin/odoo" shell -d $(ODOO_DB_NAME) --no-http \
+			--db_host="$(L9_PG_HOST)" --db_port="$(L9_PG_PORT)" --db_user="$(L9_PG_USER)" \
+			--addons-path="$$src/odoo/addons,$(CURDIR)" \
+			< plasticos_transaction/scripts/load_erp_material_profiles_shell.py; \
+	else \
+		echo "❌ No Odoo runtime: start Docker Desktop or run scripts/setup_local_runtime.sh"; exit 1; \
+	fi
