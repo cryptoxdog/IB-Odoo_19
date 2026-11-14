@@ -1375,6 +1375,7 @@ class PlasticosTransaction(models.Model):
             label="supplier confirmation escalation",
             companies=self.sale_order_id.company_id | self.purchase_order_ids.company_id,
             one_open=False,
+            exclude_users=self.user_id,
         )
 
     # ═════════════════════════════════════════════════════════

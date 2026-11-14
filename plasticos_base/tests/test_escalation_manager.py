@@ -155,3 +155,53 @@ class TestEscalationManager(PlasticosTestCase):
         local = self._user("base.esc.scoped.local", self.managers)
         self.assertEqual(self._escalate(companies=self.env.company), local)
         self.assertEqual(self._activities("ESCALATION: base subject").user_id, local)
+
+    # ── owner exclusion and stale owners ────────────────────────────────
+
+    def test_the_record_owner_never_owns_its_escalation(self):
+        owner_manager = self._user("base.esc.owner.self", self.managers)
+        with self.assertLogs(LOGGER, level="ERROR") as captured:
+            self.assertFalse(self._escalate(exclude_users=owner_manager))
+        self.assertTrue(any("Not routed: base subject escalation." in line for line in captured.output))
+        self.assertFalse(self._activities("ESCALATION: base subject"))
+        other = self._user("base.esc.owner.other", self.managers)
+        self.assertEqual(self._escalate(exclude_users=owner_manager), other)
+        self.assertEqual(self._activities("ESCALATION: base subject").user_id, other)
+
+    def test_the_acting_manager_never_owns_the_escalation_they_raise(self):
+        acting = self._user("base.esc.acting", self.managers)
+        other = self._user("base.esc.acting.other", self.managers)
+        self.assertEqual(self._escalate(self.Users.with_user(acting)), other)
+        self.assertEqual(self._activities("ESCALATION: base subject").user_id, other)
+
+    def test_an_open_activity_of_an_ineligible_owner_is_reassigned(self):
+        salesperson = self._user("base.esc.stale.sales")
+        manager = self._user("base.esc.stale.manager", self.managers)
+        self.record.activity_schedule(
+            "mail.mail_activity_data_todo", user_id=salesperson.id, summary="ESCALATION: base subject"
+        )
+        self.assertEqual(self._escalate(), manager)
+        activities = self._activities("ESCALATION: base subject")
+        self.assertEqual(len(activities), 1, "the old activity is reassigned, not duplicated")
+        self.assertEqual(activities.user_id, manager)
+        self.assertEqual(self._escalate(), manager)
+        self.assertEqual(len(self._activities("ESCALATION: base subject")), 1)
+
+    def test_an_open_activity_of_the_excluded_owner_is_reassigned(self):
+        owner_manager = self._user("base.esc.stale.owner", self.managers)
+        other = self._user("base.esc.stale.other", self.managers)
+        self.record.activity_schedule(
+            "mail.mail_activity_data_todo", user_id=owner_manager.id, summary="ESCALATION: base subject"
+        )
+        self.assertEqual(self._escalate(exclude_users=owner_manager), other)
+        self.assertEqual(self._activities("ESCALATION: base subject").user_id, other)
+
+    def test_an_ineligible_open_activity_with_no_manager_is_noted(self):
+        salesperson = self._user("base.esc.stale.alone")
+        self.record.activity_schedule(
+            "mail.mail_activity_data_todo", user_id=salesperson.id, summary="ESCALATION: base subject"
+        )
+        with self.assertLogs(LOGGER, level="ERROR"):
+            self.assertFalse(self._escalate())
+        self.assertEqual(len(self._notes()), 1)
+        self.assertEqual(self._activities("ESCALATION: base subject").user_id, salesperson)

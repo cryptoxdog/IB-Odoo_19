@@ -107,6 +107,7 @@ class StockPickingAutomation(models.Model):
                         ),
                         label="trucker receipt escalation",
                         companies=picking.company_id,
+                        exclude_users=picking.user_id,
                     )
 
                 _logger.info(

@@ -77,6 +77,7 @@ class PurchaseOrderAutomation(models.Model):
                         ),
                         label="supplier readiness escalation",
                         companies=order.company_id,
+                        exclude_users=order.user_id,
                     )
             if log_vals:
                 log_model.create(log_vals)

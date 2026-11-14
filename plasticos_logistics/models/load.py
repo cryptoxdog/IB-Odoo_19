@@ -2257,6 +2257,7 @@ class PlasticosLoad(models.Model):
             ),
             label=f"SLA breach {level} escalation",
             companies=self.company_id,
+            exclude_users=self.transaction_id.user_id,
         )
 
     @api.model
@@ -2344,6 +2345,7 @@ class PlasticosLoad(models.Model):
                 label="carrier acknowledgment escalation",
                 companies=load.company_id,
                 one_open=False,
+                exclude_users=load.transaction_id.user_id,
             )
 
         return True
