@@ -373,6 +373,8 @@ class PlasticosExportBooking(models.Model):
 
     @api.depends(
         "slot_ids.allocation_state",
+        "slot_ids.equipment_class",
+        "slot_ids.hold_reason",
         "current_revision_id",
         "current_revision_id.equipment_counts",
         "current_revision_id.additional_terms",
@@ -382,7 +384,19 @@ class PlasticosExportBooking(models.Model):
             states = booking.slot_ids.mapped("allocation_state")
             # Confirmed capacity is what the current accepted revision confirms; held slots are counted apart.
             revision = booking.current_revision_id
-            booking.slot_confirmed_count = sum(revision._confirmed_counts().values()) if revision else 0
+            confirmed = 0
+            if revision:
+                stated = revision._confirmed_counts()
+                confirmed = sum(stated.values())
+                if revision._stated_status() != CANCELLED:
+                    # A class the revision does not state keeps its slots (not stated is not
+                    # zero), so its unheld slots are still confirmed capacity.
+                    confirmed += len(
+                        booking.slot_ids.filtered(
+                            lambda slot, stated=stated: not slot.hold_reason and slot.equipment_class not in stated
+                        )
+                    )
+            booking.slot_confirmed_count = confirmed
             booking.slot_committed_count = states.count("committed")
             booking.slot_available_count = states.count("available")
             booking.slot_held_count = states.count("held")
@@ -802,14 +816,20 @@ class PlasticosExportBookingRevision(models.Model):
         return (self.additional_terms or {}).get("booking_status") or False
 
     def _confirmed_counts(self):
-        """Confirmed slots per class. A missing confirmed count is zero confirmed capacity."""
+        """Confirmed slots per class, for the classes whose confirmed count the source stated.
+
+        A stated count, 0 included, is in the mapping. A class the revision does not
+        mention, or whose confirmed count is not stated (None), is absent: not stated
+        is not zero (POS-INV-03), so its slots are left as they are. A cancelled
+        booking confirms nothing.
+        """
         self.ensure_one()
         if self._stated_status() == CANCELLED:
             return {}
         return {
-            code: counts.get("confirmed") or 0
+            code: counts["confirmed"]
             for code, counts in (self.equipment_counts or {}).items()
-            if counts.get("confirmed")
+            if counts.get("confirmed") is not None
         }
 
     def _original_attachment_ids(self):
@@ -889,6 +909,11 @@ class PlasticosExportBookingRevision(models.Model):
             if revision.decision != "candidate":
                 raise UserError("Only a candidate revision can be rejected.")
             guard(revision).write({"decision": "rejected"})
+            revision.booking_id.message_post(
+                body=f"Revision {revision.source_revision_key} rejected by {self.env.user.name}",
+                message_type="comment",
+                subtype_xmlid="mail.mt_note",
+            )
         return True
 
 

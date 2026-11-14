@@ -28,6 +28,7 @@ from .booking import (
     STALE,
     export_actor_error,
 )
+from .document_inherit import BOOKING_CONFIRMATION, EXPORT_RELEASE_OBLIGATIONS
 
 SOURCE_BOOKING = "booking"
 NOT_STATED = "not stated"
@@ -186,7 +187,15 @@ class PlasticosLoadExport(models.Model):
         A load committed as cargo of a slot that is held, retired, or on a
         cancelled booking may not receive a new physical instruction until an
         owner decides. Only live links of this exact load count.
+
+        The carrier's booking confirmation is evidence on the booking, not on
+        the load, so the Documents load guard never reads it. For the operation
+        kinds ``EXPORT_RELEASE_OBLIGATIONS`` maps to ``booking_confirmation``, a
+        booking whose accepted confirmation was decided and is no longer current
+        withholds the load (C05-SCOPE-1). Evidence that was never decided, or
+        never existed, withholds nothing here.
         """
+        self.ensure_one()
         errors = super()._physical_release_errors(operation_kind)
         links = (
             self.env[EXPORT_CARGO_LINK]
@@ -203,7 +212,50 @@ class PlasticosLoadExport(models.Model):
                 errors.append(f"Load {self.name}: export booking {label} was retired by a later revision.")
             elif link.state == "held" or slot.hold_reason:
                 errors.append(f"Load {self.name}: export booking {label} is held: {slot.hold_reason or 'cargo held'}.")
+        if BOOKING_CONFIRMATION in EXPORT_RELEASE_OBLIGATIONS.get(operation_kind, ()):
+            for booking in links.slot_id.booking_id:
+                for revision in self._export_stale_booking_confirmations(booking):
+                    errors.append(
+                        f"Load {self.name}: the accepted {BOOKING_CONFIRMATION} evidence of export booking "
+                        f"{booking.carrier_booking_no or booking.display_name} for revision {revision} "
+                        "is no longer current."
+                    )
         return errors
+
+    @api.model
+    def _export_stale_booking_confirmations(self, booking):
+        """Operation revisions whose decided booking-confirmation evidence on ``booking`` is no longer current.
+
+        The same rule the Documents load guard applies to evidence on a load:
+        only current, not superseded accepted rows count (a superseded row is
+        history, its successor decides), and only a revision with a decided
+        (verified or overridden) row can be stale. Whether that revision is
+        still proven is the Documents owner's answer, read through its frozen
+        ``get_scoped_evidence_verdict`` command; Export decides nothing about
+        the evidence itself. The verdict is per operation revision, so one
+        eligible row of a revision keeps that revision current.
+        """
+        # The guard must see every accepted confirmation row on this booking, whoever releases the load.
+        Document = self.env["plasticos.document"].sudo()  # sudo: read-only guard; the verdict command writes nothing
+        rows = Document.search(
+            [
+                ("association_state", "=", "accepted"),
+                ("res_model", "=", EXPORT_BOOKING),
+                ("res_id", "=", booking.id),
+                ("obligation_kind", "=", BOOKING_CONFIRMATION),
+                ("subject_company_id", "=", booking.company_id.id),
+            ],
+            order="id ASC",
+        ).filtered(lambda row: row.is_current and not row.superseded_by)
+        decided = rows.filtered(lambda row: row.verified or row.override)
+        stale = []
+        for revision in sorted(set(decided.mapped("operation_revision_key"))):
+            verdict = Document.get_scoped_evidence_verdict(
+                booking.company_id.id, EXPORT_BOOKING, booking.id, BOOKING_CONFIRMATION, revision
+            )
+            if verdict.get("status") == STALE:
+                stale.append(revision)
+        return stale
 
 
 class PlasticosDocumentExportSubject(models.Model):

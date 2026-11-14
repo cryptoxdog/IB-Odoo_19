@@ -31,6 +31,7 @@ from .booking import (
     ALREADY_APPLIED,
     APPLIED,
     BLOCKED,
+    CANCELLED,
     DEFAULT_EQUIPMENT,
     EQUIPMENT_CLASSES,
     EXPORT_BOOKING,
@@ -287,13 +288,23 @@ class PlasticosExportBookingSlot(models.Model):
         new slots added with stable keys. When it covers fewer, extra holds are
         lifted or free slots retired (highest key first), and only committed or
         bound slots that cannot be retired are held, naming the revision.
+
+        Only a class whose confirmed count the revision states is reconciled; a
+        stated 0 withdraws it. A class the revision does not mention, or whose
+        confirmed count is not stated, keeps its slots untouched (not stated is
+        not zero). A revision whose stated status is cancelled withdraws every
+        class. A held slot left with no live cargo and no bound container is
+        retired at the end, like any free excess slot.
         """
         Slot = guard(self.with_context(active_test=False))
         existing = Slot.search([("booking_id", "=", booking.id)], order="id ASC")
         existing.lock_for_update()
         live = existing.filtered("active")
         wanted = revision._confirmed_counts()
-        for code in sorted(set(wanted) | set(live.mapped("equipment_class"))):
+        codes = set(wanted)
+        if revision._stated_status() == CANCELLED:
+            codes |= set(live.mapped("equipment_class"))
+        for code in sorted(codes):
             target = wanted.get(code, 0)
             slots = live.filtered(lambda slot, code=code: slot.equipment_class == code)
             held = slots.filtered("hold_reason").sorted(slot_order)
@@ -338,12 +349,37 @@ class PlasticosExportBookingSlot(models.Model):
                         "created_from_revision_id": revision.id,
                     }
                 )
+        existing._retire_emptied_holds()
         return True
+
+    def _retire_emptied_holds(self):
+        """Retire held slots that no longer carry anything to decide.
+
+        A hold keeps committed or bound capacity for an owner decision. Once every
+        cargo link of a held slot is released and no container is actively bound,
+        the slot is the free excess slot ``_reconcile_capacity`` would have retired.
+        The hold reason and revision stay on the retired slot as history.
+        """
+        emptied = self.filtered(
+            lambda slot: (
+                slot.active
+                and slot.hold_reason
+                and slot.journey_binding_state != "active"
+                and not slot.cargo_link_ids.filtered(lambda link: link.state != "released")
+            )
+        )
+        if emptied:
+            guard(emptied).write({"active": False})
+        return emptied
 
     # ── shared command plumbing ──────────────────────────────
 
-    def _slot_preflight(self, operation_key, expected_booking_revision_id):
-        """Lock booking then slot and check currentness. Returns a refusal or False."""
+    def _slot_preflight(self, operation_key, expected_booking_revision_id, check_current=True):
+        """Lock booking then slot and check currentness. Returns a refusal or False.
+
+        ``check_current=False`` leaves the currentness check to the caller, which
+        must run ``_revision_moved`` itself once it has looked up an idempotent replay.
+        """
         self.ensure_one()
         if not (operation_key or "").strip():
             return result(BLOCKED, reason="operation_key is required")
@@ -364,6 +400,12 @@ class PlasticosExportBookingSlot(models.Model):
         except LockError:
             return result(BLOCKED, reason="booking_busy")
         self.invalidate_recordset()
+        return self._revision_moved(expected_booking_revision_id) if check_current else False
+
+    def _revision_moved(self, expected_booking_revision_id):
+        """The ``stale`` refusal when the booking's current revision is not the expected one, or False."""
+        self.ensure_one()
+        booking = self.booking_id
         if (booking.current_revision_id.id or False) != (expected_booking_revision_id or False):
             return result(STALE, booking.current_revision_id, "booking revision changed")
         return False
@@ -405,8 +447,12 @@ class PlasticosExportBookingSlot(models.Model):
         upsert. Two transactions planning on one line therefore serialize on
         that row: the later one fails to serialize and is retried, and its
         retry counts the first one's quantity (no native row is written).
+
+        A retry of a commit that already succeeded (same slot, key and payload)
+        answers ``already_applied`` even when the booking has since moved to a
+        newer revision: the replay is looked up before the currentness check.
         """
-        refusal = self._slot_preflight(operation_key, expected_booking_revision_id)
+        refusal = self._slot_preflight(operation_key, expected_booking_revision_id, check_current=False)
         if refusal:
             return refusal
         refs = dict(source_refs or {})
@@ -415,9 +461,12 @@ class PlasticosExportBookingSlot(models.Model):
         Link = self.env[EXPORT_CARGO_LINK]
         values, reason = Link._source_values(self, refs, planned_quantity, uom_id)
         prior = Link.search([("company_id", "=", self.company_id.id), ("allocation_key", "=", operation_key)], limit=1)
+        if prior and values and prior.slot_id == self and prior._same_source(values):
+            return result(ALREADY_APPLIED, prior)
+        refusal = self._revision_moved(expected_booking_revision_id)
+        if refusal:
+            return refusal
         if prior:
-            if values and prior.slot_id == self and prior._same_source(values):
-                return result(ALREADY_APPLIED, prior)
             return result(STALE, prior, "operation_key was used for a different cargo commitment")
         if reason:
             return result(BLOCKED, reason=reason)
@@ -454,6 +503,7 @@ class PlasticosExportBookingSlot(models.Model):
             )
             for booking in self.booking_id | replaced.booking_id:
                 booking.message_post(body=body, message_type="comment", subtype_xmlid="mail.mt_note")
+            replaced.slot_id._retire_emptied_holds()
         return result(APPLIED, link)
 
     # ── Frozen command: action_release_cargo ─────────────────
@@ -477,6 +527,7 @@ class PlasticosExportBookingSlot(models.Model):
             message_type="comment",
             subtype_xmlid="mail.mt_note",
         )
+        self._retire_emptied_holds()
         return result(APPLIED, link)
 
     # ── Frozen command: action_bind_journey ──────────────────
