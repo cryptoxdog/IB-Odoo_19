@@ -430,11 +430,7 @@ class EnrichmentRun(models.Model):
         )
         from odoo.addons.plasticos_gate.services.gate_client import send_converge_action
         from odoo.addons.plasticos_gate.services.gate_contracts import CartridgePin
-        from odoo.addons.plasticos_gate.services.gate_mappers import (
-            extract_audit_metadata,
-            parse_converge_response_v2,
-            plan_converge_v2_writeback,
-        )
+        from odoo.addons.plasticos_gate.services.gate_mappers import extract_audit_metadata
 
         target, record = self._v2_target()
         field_defs = self._v2_field_defs(target, record)
@@ -453,7 +449,24 @@ class EnrichmentRun(models.Model):
             idempotency_key=request.idempotency_key,
         )
         audit = extract_audit_metadata(result["packet"])
-        reply = result["payload"]
+        return self._v2_review_from_reply(target, record, field_defs, request, result["payload"], audit)
+
+    def _v2_review_from_reply(self, target, record, field_defs, request, reply, audit):
+        """Validate one converge v2 reply against ``request`` and send it to review.
+
+        Shared by the interactive run and the scheduled sweep (ADR-012 amendment
+        2026-11-15): parse, plan, then state ``review`` with the proposal kept
+        for re-validation at approval. Writes nothing to the target. Returns None
+        for a reviewable proposal, otherwise a GateUnusableReason (the caller
+        fails closed and records it).
+        """
+        self.ensure_one()
+        from odoo.addons.plasticos_gate.services.gate_mappers import (
+            parse_converge_response_v2,
+            plan_converge_v2_writeback,
+        )
+
+        body = request.to_dict()
         parsed = parse_converge_response_v2(reply, request=request)
         plan = plan_converge_v2_writeback(target, parsed, request, field_defs)
         if plan.rejection:
