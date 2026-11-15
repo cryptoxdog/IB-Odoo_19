@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_gate
 component_name: PlasticOS Gate Client
-module_version: 19.0.1.10.0
+module_version: 19.0.1.11.0
 layer: 2
 installable: true
 auto_install: false
@@ -39,6 +39,7 @@ The one Odoo client of the Constellation Gate. PlasticOS modules that need exter
   - `build_converge_request_v2` requests the mapped fields that are empty on the record. It sends the filled ones as `observations`. The entity stays `res.partner:<id>`.
   - `parse_converge_response_v2` validates a reply and freezes it. A reply without `contract_version` is v1. An unknown contract or state, a missing entry, a malformed entry, a different cartridge revision, or a run that did not complete rejects all of the reply's evidence.
   - `plan_converge_v2_writeback` applies the write policy. It writes only admitted `inferred` and `external_claim` values. A number is written only in its governing unit: the value's stated unit, or else the cartridge's declared unit. That unit must be one the field accepts (`FACILITY_PROFILE_FIELD_UNITS`). Capacity converts t/month to whole lb/month. It never writes `unknown`, `conflicting` or `observed` values.
+- **Enrichment sweep.** `services/gate_sweep.py` is the only module that knows the `enrichment-sweep` and `enrichment-sweep-results` wire shape. Its authority is EIE `docs/contracts/enrichment-sweep.md` at `a606791` (`CONTRACT_REF`). It defines frozen request and reply types. Its parsers reject a whole reply on an unknown member, a wrong type, a state other than `running` or `completed`, a reason code the contract does not name, or a page for another sweep. `refusal_code` reads the section 7 code from a failure message. `send_sweep_action` calls `send_action`. It asks Gate admission for the two sweep actions on top of `match` and `converge`; the receipt key carries the full action set, so the interactive key is unchanged. EIE builds each sweep converge request itself, so Odoo builds none. `build_sweep_candidate` sends the profile's current values over every cartridge subject (`derive_facility_profile_target_all_subjects`). `parse_sweep_converge_response_v2` validates a stored result against its own resolution echo (Odoo's cartridge id, version and sha256, node `Facility`) and the candidate's entity id. `plan_sweep_converge_v2_writeback` applies the interactive per-field policy (`_decide`) to every field with evidence, and records undeclared or unmapped fields as `unmapped`. The interactive parser and planner are unchanged. (ADR-012 amendment 2026-11-15)
 - **Cutover guards.** `services/dual_write.py` and `services/field_family_cutover.py` read their system parameters and fail closed if a decision would restore local intelligence authority.
 
 ## Models

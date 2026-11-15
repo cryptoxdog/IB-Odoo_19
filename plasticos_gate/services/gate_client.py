@@ -124,16 +124,17 @@ _ADMISSION_RECEIPTS: dict[tuple[Any, ...], Any] = {}
 _ADMISSION_LOCK = threading.Lock()
 
 
-def _admission_key(config: Any, tenant: str) -> tuple[Any, ...]:
-    return (config.gate_url, config.local_node, config.signing_key_id, tenant, _ODOO_REQUIRED_ACTIONS)
+def _admission_key(config: Any, tenant: str, extra_actions: tuple[str, ...] = ()) -> tuple[Any, ...]:
+    # The last element is the full action set asked: unchanged for match + converge alone.
+    return (config.gate_url, config.local_node, config.signing_key_id, tenant, _ODOO_REQUIRED_ACTIONS + extra_actions)
 
 
-def _forget_admission(config: Any, tenant: str) -> None:
+def _forget_admission(config: Any, tenant: str, extra_actions: tuple[str, ...] = ()) -> None:
     with _ADMISSION_LOCK:
-        _ADMISSION_RECEIPTS.pop(_admission_key(config, tenant), None)
+        _ADMISSION_RECEIPTS.pop(_admission_key(config, tenant, extra_actions), None)
 
 
-def ensure_admitted(client: Any, config: Any, tenant: str) -> Any:
+def ensure_admitted(client: Any, config: Any, tenant: str, extra_actions: tuple[str, ...] = ()) -> Any:
     """Ask Gate whether this consumer is admitted for match + converge; fail closed otherwise.
 
     ``GateClient.activate`` and Gate's ``/v1/admission`` are supported surfaces
@@ -146,15 +147,20 @@ def ensure_admitted(client: Any, config: Any, tenant: str) -> Any:
     refusal is a permanent, operator-visible configuration/authority failure.
     Never requests ``sync``. Never calls the registry.
 
+    ``extra_actions`` widens the ask for one caller only (the scheduled
+    enrichment sweep asks for its two actions on top of match + converge). The
+    receipt is keyed by the full action set, so a sweep grant Gate withholds
+    never blocks, and is never vouched for by, the interactive admission.
+
     Returns Gate's ``ConsumerAccessReceipt`` for this identity.
     """
-    key = _admission_key(config, tenant)
+    key = _admission_key(config, tenant, extra_actions)
     with _ADMISSION_LOCK:
         receipt = _ADMISSION_RECEIPTS.get(key)
     if receipt is not None:
         return receipt
     try:
-        receipt = _run_async(client.activate(required_actions=_ODOO_REQUIRED_ACTIONS, tenant=tenant))
+        receipt = _run_async(client.activate(required_actions=_ODOO_REQUIRED_ACTIONS + extra_actions, tenant=tenant))
     except Exception as exc:
         failure = failure_class_for(exc)
         if failure is None:
@@ -198,6 +204,7 @@ def send_action(
     correlation_id: str | None = None,
     compliance_tags: tuple[str, ...] = (),
     idempotency_key: str | None = None,
+    extra_admission_actions: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     """Execute one action through Gate and return response packet + payload dicts.
 
@@ -211,7 +218,7 @@ def send_action(
     # and reply_to from. Forced to odoo so it matches the Gate caller record.
     local_node = config.local_node
     tenant = resolve_tenant(env)
-    ensure_admitted(client, config, tenant)
+    ensure_admitted(client, config, tenant, extra_admission_actions)
     user = env.user
     tenant_ctx = {
         "actor": tenant,
@@ -261,7 +268,7 @@ def send_action(
             # unknown/degraded rather than this bridge mislabelling it.
             raise
         if _SDK_AUTHORIZATION_ERRORS and isinstance(exc, _SDK_AUTHORIZATION_ERRORS):
-            _forget_admission(config, tenant)
+            _forget_admission(config, tenant, extra_admission_actions)
         # Timeout exceptions stringify to nothing: measured against a real Gate
         # transport, an exhausted caller budget surfaced with `str(exc) == ""`.
         # A timeout is the most likely real Gate failure and the caller budget
@@ -313,4 +320,34 @@ def send_converge_action(
         correlation_id=correlation_id,
         compliance_tags=("ERP", "ENRICHMENT"),
         idempotency_key=idempotency_key,
+    )
+
+
+def send_sweep_action(
+    env,
+    *,
+    action: str,
+    payload: dict[str, Any],
+    correlation_id: str | None = None,
+    idempotency_key: str | None = None,
+) -> dict[str, Any]:
+    """One scheduled enrichment-sweep action (send or results) through Gate.
+
+    Same invocation surface as every other action; only the admission ask is
+    widened by the two sweep actions (``gate_sweep.SWEEP_ACTIONS``).
+    """
+    from .gate_sweep import SWEEP_ACTIONS
+
+    if action not in SWEEP_ACTIONS:
+        raise GateIntegrationError(
+            f"not a sweep action: {action!r}", failure_class=TransportFailureClass.PERMANENT.value
+        )
+    return send_action(
+        env,
+        action=action,
+        payload=payload,
+        correlation_id=correlation_id,
+        compliance_tags=("ERP", "ENRICHMENT", "SWEEP"),
+        idempotency_key=idempotency_key,
+        extra_admission_actions=SWEEP_ACTIONS,
     )

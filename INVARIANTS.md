@@ -298,3 +298,12 @@ To modify an invariant:
 > a material profile: the cartridge's `material` subject describes a facility's capability (operator decision 2026-11-13,
 > ADR-012 amendment 2026-11-13 (d)). A number is written only in its governing unit: the value's stated unit, or else
 > the cartridge's declared unit. It must be a unit the field accepts.
+
+> **2026-11-15 amendment to POS-INV-18 (additive; this file is append-only).**
+> Authorized by the operator (2026-11-14/15) for the scheduled EIE enrichment sweep (ADR-012 amendment 2026-11-15).
+> A sweep result is a proposal like any other converge v2 reply. It is never written before review: each usable result
+> becomes one `plasticos.enrichment.run` in `review` and is written only through whole-run approval (`action_inject`),
+> under the same mapping table, evidence-state policy, merge-not-overwrite rule and provenance. An unusable result
+> becomes a `degraded` run with its reason. A malformed sweep reply ingests nothing. One sweep and entity yield at most one run.
+> **Rejects:** a sweep result writing to a partner or facility profile without an approved run, and a sweep reply
+> that does not match the contract module (`plasticos_gate/services/gate_sweep.py`) creating any run.

@@ -430,11 +430,7 @@ class EnrichmentRun(models.Model):
         )
         from odoo.addons.plasticos_gate.services.gate_client import send_converge_action
         from odoo.addons.plasticos_gate.services.gate_contracts import CartridgePin
-        from odoo.addons.plasticos_gate.services.gate_mappers import (
-            extract_audit_metadata,
-            parse_converge_response_v2,
-            plan_converge_v2_writeback,
-        )
+        from odoo.addons.plasticos_gate.services.gate_mappers import extract_audit_metadata
 
         target, record = self._v2_target()
         field_defs = self._v2_field_defs(target, record)
@@ -453,7 +449,24 @@ class EnrichmentRun(models.Model):
             idempotency_key=request.idempotency_key,
         )
         audit = extract_audit_metadata(result["packet"])
-        reply = result["payload"]
+        return self._v2_review_from_reply(target, record, field_defs, request, result["payload"], audit)
+
+    def _v2_review_from_reply(self, target, record, field_defs, request, reply, audit):
+        """Validate one converge v2 reply against ``request`` and send it to review.
+
+        Shared by the interactive run and the scheduled sweep (ADR-012 amendment
+        2026-11-15): parse, plan, then state ``review`` with the proposal kept
+        for re-validation at approval. Writes nothing to the target. Returns None
+        for a reviewable proposal, otherwise a GateUnusableReason (the caller
+        fails closed and records it).
+        """
+        self.ensure_one()
+        from odoo.addons.plasticos_gate.services.gate_mappers import (
+            parse_converge_response_v2,
+            plan_converge_v2_writeback,
+        )
+
+        body = request.to_dict()
         parsed = parse_converge_response_v2(reply, request=request)
         plan = plan_converge_v2_writeback(target, parsed, request, field_defs)
         if plan.rejection:
@@ -461,6 +474,12 @@ class EnrichmentRun(models.Model):
                 "Gate converge v2 evidence rejected (packet %s): %s", audit.get("gate_packet_id"), plan.rejection
             )
             return GateUnusableReason(f"Gate converge v2 evidence rejected: {plan.rejection}", audit)
+        proposal = self._v2_proposal_record(target, record, body, reply, dataclasses.asdict(parsed.resolution), plan)
+        return self._v2_send_to_review(record, plan, proposal, audit)
+
+    def _v2_send_to_review(self, record, plan, proposal, audit):
+        """A validated, non-rejected plan -> state ``review`` with its proposal; nothing is written."""
+        self.ensure_one()
         if not plan.writes:
             skipped = ", ".join(f"{d.cartridge_field}={d.skip_reason}" for d in plan.decisions)
             return GateUnusableReason(f"Gate converge v2 proposed no writable field ({skipped or 'none'}).", audit)
@@ -471,9 +490,7 @@ class EnrichmentRun(models.Model):
                 "gate_packet_id": audit.get("gate_packet_id"),
                 "gate_correlation_id": audit.get("gate_correlation_id"),
                 "validation_issues": [V2_REVIEW_ISSUE],
-                "gate_proposal": self._v2_proposal_record(
-                    target, record, body, reply, dataclasses.asdict(parsed.resolution), plan
-                ),
+                "gate_proposal": proposal,
             }
         )
         self.message_post(
@@ -484,6 +501,56 @@ class EnrichmentRun(models.Model):
             subtype_xmlid=SUBTYPE_NOTE,
         )
         return None
+
+    def _v2_sweep_target(self, record, version):
+        """The facility-profile target over every cartridge subject, and its unmapped reasons (sweep)."""
+        from odoo.addons.plasticos_gate.services.gate_allowlists import (
+            V2_TARGET_FACILITY_PROFILE,
+            derive_facility_profile_target_all_subjects,
+        )
+
+        field_defs = self._v2_field_defs(V2_TARGET_FACILITY_PROFILE, record)
+        return derive_facility_profile_target_all_subjects(field_defs, version=version)
+
+    def _v2_sweep_plan(self, record, sweep_ref, reply):
+        """(parsed, plan, spec) for a stored or fresh sweep result; never an Odoo-built request.
+
+        ``sweep_ref`` holds the candidate ``entity_id`` and the cartridge ``pin``
+        Odoo had configured when the sweep was sent (enrichment-sweep.md 3.4).
+        """
+        from odoo.addons.plasticos_gate.services.gate_contracts import CartridgePin
+        from odoo.addons.plasticos_gate.services.gate_mappers import (
+            parse_sweep_converge_response_v2,
+            plan_sweep_converge_v2_writeback,
+        )
+
+        pin_raw = sweep_ref["pin"]
+        pin = CartridgePin(pin_raw["id"], pin_raw["version"], pin_raw.get("sha256"))
+        entity_id = sweep_ref["entity_id"]
+        if entity_id != f"res.partner:{record.partner_id.id}":
+            raise ValueError(f"sweep result {entity_id} is not for {record._name}:{record.id}'s partner")
+        spec, unmapped = self._v2_sweep_target(record, pin.version)
+        parsed = parse_sweep_converge_response_v2(reply, entity_id=entity_id, pin=pin)
+        return parsed, plan_sweep_converge_v2_writeback(parsed, spec, unmapped), spec
+
+    def _v2_review_sweep_reply(self, record, sweep_ref, reply, audit):
+        """One enrichment-sweep result -> review, through the same tail as an interactive run.
+
+        Returns None for a reviewable proposal, otherwise a GateUnusableReason.
+        """
+        self.ensure_one()
+        parsed, plan, _spec = self._v2_sweep_plan(record, sweep_ref, reply)
+        if plan.rejection:
+            _logger.warning("Gate sweep result rejected (%s): %s", sweep_ref.get("entity_id"), plan.rejection)
+            return GateUnusableReason(f"Gate converge v2 evidence rejected: {plan.rejection}", audit)
+        from odoo.addons.plasticos_gate.services.gate_allowlists import V2_TARGET_FACILITY_PROFILE
+
+        proposal = self._v2_proposal_record(
+            V2_TARGET_FACILITY_PROFILE, record, None, reply, dataclasses.asdict(parsed.resolution), plan
+        )
+        proposal["origin"] = "sweep"
+        proposal["sweep"] = dict(sweep_ref)
+        return self._v2_send_to_review(record, plan, proposal, audit)
 
     @staticmethod
     def _v2_proposal_record(target, record, body, reply, resolution, plan):
@@ -560,16 +627,25 @@ class EnrichmentRun(models.Model):
             record.id,
         ):
             raise UserError(_("The stored Gate proposal is for another record than this run targets."))
-        try:
-            request = self._v2_request_from_body(proposal["request"])
-        except (KeyError, TypeError) as exc:
-            raise UserError(_("The stored Gate converge v2 request is malformed: %s") % exc) from exc
         field_defs = self._v2_field_defs(target, record)
-        parsed = parse_converge_response_v2(proposal.get("reply"), request=request)
-        plan = plan_converge_v2_writeback(target, parsed, request, field_defs)
+        if proposal.get("origin") == "sweep":
+            # A sweep result has no Odoo-built request: re-validate it as it was reviewed.
+            try:
+                _parsed, plan, spec = self._v2_sweep_plan(record, proposal["sweep"], proposal.get("reply"))
+            except (KeyError, TypeError, ValueError) as exc:
+                raise UserError(_("The stored Gate sweep proposal is malformed: %s") % exc) from exc
+            request = None
+        else:
+            try:
+                request = self._v2_request_from_body(proposal["request"])
+            except (KeyError, TypeError) as exc:
+                raise UserError(_("The stored Gate converge v2 request is malformed: %s") % exc) from exc
+            parsed = parse_converge_response_v2(proposal.get("reply"), request=request)
+            plan = plan_converge_v2_writeback(target, parsed, request, field_defs)
+            spec = None
         if plan.rejection:
             raise UserError(_("Gate converge v2 evidence rejected: %s") % plan.rejection)
-        written = self._apply_converge_v2_plan(plan, record, field_defs, request)
+        written = self._apply_converge_v2_plan(plan, record, field_defs, request, spec=spec)
         if not written:
             skipped = ", ".join(f"{d.odoo_field}={d.skip_reason or 'filled or unresolved'}" for d in plan.decisions)
             raise UserError(
@@ -683,8 +759,12 @@ class EnrichmentRun(models.Model):
         note = f"; unresolved codes skipped: {missing}" if missing else ""
         return [Command.set(ids)], note
 
-    def _apply_converge_v2_plan(self, plan, record, field_defs=None, request=None):
-        """Write a validated v2 plan merge-not-overwrite, one provenance row per considered field."""
+    def _apply_converge_v2_plan(self, plan, record, field_defs=None, request=None, spec=None):
+        """Write a validated v2 plan merge-not-overwrite, one provenance row per considered field.
+
+        ``spec`` is the target the plan was made against when it was not built
+        from ``request`` (a sweep result: every cartridge subject).
+        """
         self.ensure_one()
         from odoo.addons.plasticos_gate.services.gate_allowlists import (
             V2_KIND_MANY2MANY_CODE,
@@ -693,7 +773,7 @@ class EnrichmentRun(models.Model):
             resolve_v2_target,
         )
 
-        spec = resolve_v2_target(
+        spec = spec or resolve_v2_target(
             plan.target,
             field_defs,
             subject=request.subject_type if request else None,
@@ -742,7 +822,8 @@ class EnrichmentRun(models.Model):
                     "partner_id": self.partner_id.id,
                     "target_model": record._name,
                     "target_res_id": record.id,
-                    "target_field": decision.odoo_field,
+                    # An unmapped sweep field has no Odoo field: record the cartridge field it named.
+                    "target_field": decision.odoo_field or f"cartridge:{decision.cartridge_field}",
                     "value_written": shown,
                     "previous_value": previous,
                     "source_sentence": (

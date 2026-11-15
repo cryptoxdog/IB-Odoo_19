@@ -6,3 +6,5 @@ from . import enrichment_run
 from . import enrichment_service
 from . import res_partner
 from . import profile_enrichment
+from . import enrichment_sweep
+from . import res_config_settings

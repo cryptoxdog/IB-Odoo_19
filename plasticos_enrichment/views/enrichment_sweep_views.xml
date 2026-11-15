@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_enrichment_sweep_list" model="ir.ui.view">
+        <field name="name">plasticos.enrichment.sweep.list</field>
+        <field name="model">plasticos.enrichment.sweep</field>
+        <field name="arch" type="xml">
+            <list create="false">
+                <field name="name"/>
+                <field name="sweep_date"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'done'"
+                       decoration-info="state in ('sent', 'running')"
+                       decoration-danger="state == 'failed'"/>
+                <field name="eie_state" optional="show"/>
+                <field name="candidate_count"/>
+                <field name="accepted_count"/>
+                <field name="rejected_count" optional="show"/>
+                <field name="ingested_count"/>
+                <field name="skipped_count" optional="show"/>
+                <field name="daily_budget_usd" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_enrichment_sweep_form" model="ir.ui.view">
+        <field name="name">plasticos.enrichment.sweep.form</field>
+        <field name="model">plasticos.enrichment.sweep</field>
+        <field name="arch" type="xml">
+            <form create="false">
+                <header>
+                    <button name="action_collect_results" type="object" string="Collect Results Now"
+                            class="btn-secondary" invisible="state not in ('sent', 'running')"
+                            groups="plasticos_enrichment.group_enrichment_manager"/>
+                    <field name="state" widget="statusbar" statusbar_visible="sent,running,done"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="sweep_date"/>
+                            <field name="sweep_id"/>
+                            <field name="eie_state"/>
+                            <field name="daily_budget_usd"/>
+                        </group>
+                        <group>
+                            <field name="candidate_count"/>
+                            <field name="accepted_count"/>
+                            <field name="rejected_count"/>
+                            <field name="ingested_count"/>
+                            <field name="skipped_count"/>
+                        </group>
+                    </group>
+                    <group invisible="not error">
+                        <field name="error"/>
+                    </group>
+                    <notebook>
+                        <page string="Rejections and Skips" name="rejections">
+                            <field name="rejections"/>
+                        </page>
+                        <page string="Budget" name="budget">
+                            <field name="budget"/>
+                        </page>
+                        <page string="Audit" name="audit">
+                            <group>
+                                <field name="idempotency_key"/>
+                                <field name="gate_packet_id"/>
+                                <field name="gate_correlation_id"/>
+                                <field name="ingested"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_enrichment_sweep" model="ir.actions.act_window">
+        <field name="name">Enrichment Sweeps</field>
+        <field name="res_model">plasticos.enrichment.sweep</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem id="menu_enrichment_sweeps"
+              name="Enrichment Sweeps"
+              parent="menu_enrichment_root"
+              action="action_enrichment_sweep"
+              sequence="20"/>
+
+    <record id="res_config_settings_view_form_enrichment_sweep" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.plasticos.enrichment.sweep</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base_setup.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app string="PlasticOS Enrichment" name="plasticos_enrichment" groups="base.group_system">
+                    <block title="Scheduled Enrichment Sweep (buyers, EIE via Gate)">
+                        <setting id="plasticos_sweep_enabled_setting"
+                                 string="Enable Sweep"
+                                 help="Also activate the two Enrichment Sweep crons. Needs converge contract v2 with a cartridge pin. Results go to review only.">
+                            <field name="plasticos_sweep_enabled"/>
+                        </setting>
+                        <setting id="plasticos_sweep_budget_setting" string="Daily Budget (USD)"
+                                 help="EIE enforces min(this, its own ceiling) per UTC day.">
+                            <field name="plasticos_sweep_daily_budget_usd"/>
+                        </setting>
+                        <setting id="plasticos_sweep_max_setting" string="Max Buyers per Sweep">
+                            <field name="plasticos_sweep_max_candidates"/>
+                        </setting>
+                        <setting id="plasticos_sweep_cooldown_setting" string="Cooldown (days)">
+                            <field name="plasticos_sweep_cooldown_days"/>
+                        </setting>
+                        <setting id="plasticos_sweep_process_setting" string="Process Types"
+                                 help="Comma list of keys; empty = any buyer.">
+                            <field name="plasticos_sweep_process_types" placeholder="injection, compounding"/>
+                        </setting>
+                        <setting id="plasticos_sweep_application_setting" string="Application Classes">
+                            <field name="plasticos_sweep_application_classes" placeholder="packaging, automotive"/>
+                        </setting>
+                        <setting id="plasticos_sweep_feedstock_setting" string="Feedstock Types">
+                            <field name="plasticos_sweep_feedstock_types" placeholder="post_industrial"/>
+                        </setting>
+                        <setting id="plasticos_sweep_equipment_setting" string="Equipment (any of)">
+                            <field name="plasticos_sweep_equipment_type_ids" widget="many2many_tags"/>
+                        </setting>
+                        <setting id="plasticos_sweep_polymer_setting" string="Accepted Polymers (any of)">
+                            <field name="plasticos_sweep_accepted_polymer_ids" widget="many2many_tags"/>
+                        </setting>
+                        <setting id="plasticos_sweep_capacity_setting" string="Min Capacity (lbs/month)">
+                            <field name="plasticos_sweep_min_capacity_lbs_month"/>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+</odoo>

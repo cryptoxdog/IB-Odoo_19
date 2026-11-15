@@ -14,6 +14,7 @@ from .gate_allowlists import (
     V2_NUMERIC_KINDS,
     WEB_LEAD_SEED_FIELD_MAP,
     ConvergeV2FieldRow,
+    ConvergeV2Target,
     resolve_v2_target,
 )
 from .gate_config import gate_consensus_threshold
@@ -27,6 +28,7 @@ from .gate_contracts import (
     ProcessWebLeadRequest,
     freeze,
 )
+from .gate_sweep import SweepCandidate
 
 
 def _get_relation_value(record, field_name: str) -> Any:
@@ -483,3 +485,23 @@ def build_intake_request(env, intake_rec) -> ProcessIntakeRequest:
             snapshot[dst] = value
     odoo = build_odoo_context(env, model=intake_rec._name, record_id=intake_rec.id).to_dict()
     return ProcessIntakeRequest(intake_id=intake_rec.id, domain="plasticos", intake_snapshot=snapshot, odoo=odoo)
+
+
+def build_sweep_candidate(record, spec: ConvergeV2Target) -> SweepCandidate:
+    """One enrichment-sweep candidate for a facility profile (enrichment-sweep.md 3.1).
+
+    ``entity`` is the profile's current values in cartridge field names, for every
+    row of ``spec`` (the facility-profile target over all the cartridge's
+    subjects), read exactly as an interactive request reads its observations.
+    EIE builds the converge request itself from CEG's gaps (3.4); Odoo builds none.
+    The entity id is ``res.partner:<id>`` of the profile's partner (ADR-005).
+    """
+    partner = getattr(record, "partner_id", None)
+    if not partner:
+        raise ValueError(f"{record._name}:{record.id} has no partner (lead-owned) and cannot be swept")
+    entity: dict[str, Any] = {}
+    for row in spec.rows:
+        value = odoo_value_for_row(record, row)
+        if value is not None:
+            entity[row.cartridge_field] = value
+    return SweepCandidate(entity_id=f"res.partner:{partner.id}", entity=entity, node_label=spec.node)

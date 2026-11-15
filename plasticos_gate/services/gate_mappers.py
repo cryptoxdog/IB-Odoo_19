@@ -11,6 +11,7 @@ from typing import Any
 
 from .gate_allowlists import (
     PARTNER_WRITEBACK_FIELD_ALLOWLIST,
+    V2_CARTRIDGE_NODE,
     V2_KIND_BOOLEAN,
     V2_KIND_CHAR,
     V2_KIND_INTEGER,
@@ -24,6 +25,7 @@ from .gate_allowlists import (
 )
 from .gate_contracts import (
     CONVERGE_RESPONSE_V2,
+    CartridgePin,
     CartridgeResolution,
     ConflictCandidate,
     ConvergeRequestV2,
@@ -584,6 +586,33 @@ def parse_converge_response_v2(payload: Any, *, request: ConvergeRequestV2) -> C
     are not evidence. Only a ``completed`` run is usable; ``degraded`` and
     ``failed`` replies are rejected with their reason.
     """
+    expected = EvidenceIdentity(request.entity.get("id"), request.subject_type, request.subject_role)
+    requested = [t["field"] for t in request.targets]
+    return _parse_v2(payload, expected=expected, pin=request.cartridge, node=request.node, requested=requested)
+
+
+def parse_sweep_converge_response_v2(
+    payload: Any, *, entity_id: str, pin: CartridgePin, node: str = V2_CARTRIDGE_NODE
+) -> ConvergeResponseV2:
+    """Parse one enrichment-sweep result's converge v2 body, with no Odoo-built request.
+
+    EIE builds the sweep's converge request itself (enrichment-sweep.md 3.4
+    step 5): targets from CEG readiness gaps, the tenant's pinned cartridge, the
+    candidate's node, no ``subject``. So the reply is validated against its own
+    resolution echo, which must equal Odoo's configured pin (id, version and
+    sha256) and ``node``, and against the candidate: every identity names
+    ``entity_id`` with no subject type or role (response.v2.md section 9.2).
+    Every other check of ``parse_converge_response_v2`` applies unchanged; only
+    "every requested field has an entry" has nothing to check against.
+    """
+    if not pin.sha256:
+        return _rejected({}, V2_REJECT_RESOLUTION, "a sweep result needs a cartridge sha256 pin to compare")
+    return _parse_v2(payload, expected=EvidenceIdentity(entity_id, None, None), pin=pin, node=node, requested=())
+
+
+def _parse_v2(
+    payload: Any, *, expected: EvidenceIdentity, pin: CartridgePin, node: str, requested
+) -> ConvergeResponseV2:
     if not isinstance(payload, dict):
         return _rejected({}, V2_REJECT_MALFORMED, "reply payload is not an object")
     version = payload.get("contract_version")
@@ -598,8 +627,6 @@ def parse_converge_response_v2(payload: Any, *, request: ConvergeRequestV2) -> C
     if state != EIE_STATE_COMPLETED or payload.get("failure_reason"):
         return _rejected(payload, V2_REJECT_NOT_COMPLETED, f"{state}: {payload.get('failure_reason') or 'no reason'}")
 
-    expected = EvidenceIdentity(request.entity.get("id"), request.subject_type, request.subject_role)
-    requested = [t["field"] for t in request.targets]
     try:
         res = payload.get("resolution")
         _need(isinstance(res, dict), "resolution is missing")
@@ -608,12 +635,10 @@ def parse_converge_response_v2(payload: Any, *, request: ConvergeRequestV2) -> C
         resolution = CartridgeResolution(
             res["cartridge_id"], res["cartridge_version"], res["cartridge_sha256"], res["node"]
         )
-        pin = request.cartridge
         _need(
-            (resolution.cartridge_id, resolution.cartridge_version, resolution.node)
-            == (pin.id, pin.version, request.node)
+            (resolution.cartridge_id, resolution.cartridge_version, resolution.node) == (pin.id, pin.version, node)
             and (not pin.sha256 or pin.sha256 == resolution.cartridge_sha256),
-            f"resolved {resolution} is not the pinned {pin} / node {request.node}",
+            f"resolved {resolution} is not the pinned {pin} / node {node}",
             V2_REJECT_RESOLUTION,
         )
         raw_evidence = payload.get("field_evidence")
@@ -802,51 +827,84 @@ def plan_converge_v2_writeback(
             _need(row is not None, f"requested field {requested['field']!r} has no mapping row")
             _need(not is_never_target(row.odoo_field), f"{row.odoo_field} is never a converge target")
             entry = response.field_evidence[row.cartridge_field]
-            _need(
-                _declaration_shape(entry.declaration) == _declaration_shape(row.declaration),
-                f"cartridge declaration of {row.cartridge_field!r} differs from the reviewed row",
-            )
-            base = {
-                "cartridge_field": row.cartridge_field,
-                "odoo_field": row.odoo_field,
-                "kind": row.kind,
-                "evidence_state": entry.state,
-                "confidence": entry.confidence,
-            }
-            if entry.state == V2_STATE_UNKNOWN:
-                decisions.append(
-                    V2WritebackDecision(
-                        **base, action=V2_PLAN_SKIP, skip_reason=V2_SKIP_UNKNOWN, detail=entry.unknown_reason
-                    )
-                )
-                continue
-            if entry.state == V2_STATE_CONFLICTING:
-                detail = f"{len(entry.conflict or ())} disagreeing candidates"
-                decisions.append(
-                    V2WritebackDecision(**base, action=V2_PLAN_SKIP, skip_reason=V2_SKIP_CONFLICTING, detail=detail)
-                )
-                continue
-            if not entry.admitted or entry.state not in V2_WRITABLE_STATES:
-                decisions.append(
-                    V2WritebackDecision(
-                        **base, action=V2_PLAN_SKIP, skip_reason=V2_SKIP_NOT_ADMITTED, detail=f"state {entry.state}"
-                    )
-                )
-                continue
-            action, value, detail = _coerce(row, entry)
-            if action == V2_PLAN_SKIP:
-                decisions.append(
-                    V2WritebackDecision(**base, action=V2_PLAN_SKIP, skip_reason=V2_SKIP_UNIT, detail=detail)
-                )
-                continue
-            if row.kind in V2_NUMERIC_KINDS:
-                decisions.append(
-                    V2WritebackDecision(
-                        **base, action=V2_PLAN_WRITE, value=value, source_value=entry.value, source_unit=detail
-                    )
-                )
-                continue
-            decisions.append(V2WritebackDecision(**base, action=V2_PLAN_WRITE, value=value))
+            decisions.append(_decide(row, entry))
     except _Malformed as exc:
         return V2WritebackPlan(target, spec.odoo_model, (), str(exc))
     return V2WritebackPlan(target, spec.odoo_model, tuple(decisions), None)
+
+
+def _decide(row, entry: FieldEvidence) -> V2WritebackDecision:
+    """The evidence-state write policy for one mapped field (shared by interactive runs and the sweep)."""
+    _need(
+        _declaration_shape(entry.declaration) == _declaration_shape(row.declaration),
+        f"cartridge declaration of {row.cartridge_field!r} differs from the reviewed row",
+    )
+    base = {
+        "cartridge_field": row.cartridge_field,
+        "odoo_field": row.odoo_field,
+        "kind": row.kind,
+        "evidence_state": entry.state,
+        "confidence": entry.confidence,
+    }
+    if entry.state == V2_STATE_UNKNOWN:
+        return V2WritebackDecision(
+            **base, action=V2_PLAN_SKIP, skip_reason=V2_SKIP_UNKNOWN, detail=entry.unknown_reason
+        )
+    if entry.state == V2_STATE_CONFLICTING:
+        detail = f"{len(entry.conflict or ())} disagreeing candidates"
+        return V2WritebackDecision(**base, action=V2_PLAN_SKIP, skip_reason=V2_SKIP_CONFLICTING, detail=detail)
+    if not entry.admitted or entry.state not in V2_WRITABLE_STATES:
+        return V2WritebackDecision(
+            **base, action=V2_PLAN_SKIP, skip_reason=V2_SKIP_NOT_ADMITTED, detail=f"state {entry.state}"
+        )
+    action, value, detail = _coerce(row, entry)
+    if action == V2_PLAN_SKIP:
+        return V2WritebackDecision(**base, action=V2_PLAN_SKIP, skip_reason=V2_SKIP_UNIT, detail=detail)
+    if row.kind in V2_NUMERIC_KINDS:
+        return V2WritebackDecision(
+            **base, action=V2_PLAN_WRITE, value=value, source_value=entry.value, source_unit=detail
+        )
+    return V2WritebackDecision(**base, action=V2_PLAN_WRITE, value=value)
+
+
+V2_SKIP_UNMAPPED = "unmapped"
+
+
+def plan_sweep_converge_v2_writeback(response: ConvergeResponseV2, spec, unmapped=None) -> V2WritebackPlan:
+    """The write policy over every field a sweep result carries evidence for.
+
+    EIE chose the targets (enrichment-sweep.md 3.4 step 4), so the plan walks
+    the reply's ``field_evidence``, not an Odoo request. ``spec`` is the
+    facility-profile target derived for the union of the cartridge's subjects
+    (``derive_facility_profile_target_all_subjects``), so any field EIE
+    targeted can be reviewed. A field with no reviewed row (undeclared,
+    unmapped or a never target) is skipped and recorded as ``unmapped``; every
+    mapped field gets exactly the interactive decision (``_decide``).
+    """
+    if not response.usable:
+        return V2WritebackPlan(spec.key, spec.odoo_model, (), response.rejection)
+    unmapped = unmapped or {}
+    decisions = []
+    try:
+        for name in sorted(response.field_evidence):
+            entry = response.field_evidence[name]
+            row = spec.row(name)
+            if row is None or is_never_target(row.odoo_field):
+                detail = unmapped.get(name) or "no reviewed facility-profile mapping"
+                decisions.append(
+                    V2WritebackDecision(
+                        cartridge_field=name,
+                        odoo_field="",
+                        kind="",
+                        action=V2_PLAN_SKIP,
+                        skip_reason=V2_SKIP_UNMAPPED,
+                        detail=detail,
+                        evidence_state=entry.state,
+                        confidence=entry.confidence,
+                    )
+                )
+                continue
+            decisions.append(_decide(row, entry))
+    except _Malformed as exc:
+        return V2WritebackPlan(spec.key, spec.odoo_model, (), str(exc))
+    return V2WritebackPlan(spec.key, spec.odoo_model, tuple(decisions), None)
