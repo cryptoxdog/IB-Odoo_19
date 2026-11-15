@@ -801,3 +801,38 @@ def resolve_v2_target(
         chosen = subject or V2_SUBJECT_MATERIAL
         return derive_facility_profile_target(field_defs, subject=chosen, version=version)[0]
     return CONVERGE_V2_TARGETS[target]
+
+
+def derive_facility_profile_target_all_subjects(
+    field_defs, *, version: str
+) -> tuple[ConvergeV2Target, MappingProxyType]:
+    """The facility-profile target over every subject the pinned cartridge declares.
+
+    For the enrichment sweep, where EIE picks the targets from CEG readiness
+    gaps and sends no subject (enrichment-sweep.md 3.4): any field it asked can
+    then be reviewed. The rows are the union of the per-subject derivations, so
+    each row is exactly the row an interactive run of that subject would use.
+    A cartridge field is unmapped only when no subject maps it; its reason is
+    the one its own subject's derivation gave.
+    """
+    vocabulary = cartridge_vocabulary(version)
+    rows: list[ConvergeV2FieldRow] = []
+    reasons: dict[str, str] = {}
+    for subject in sorted(set(vocabulary.subjects.values())):
+        target, unmapped = derive_facility_profile_target(field_defs, subject=subject, version=version)
+        rows.extend(target.rows)
+        for name, reason in unmapped.items():
+            if vocabulary.subjects.get(name) == subject or name in CARTRIDGE_IDENTITY_FIELDS:
+                reasons[name] = reason
+    mapped = {row.cartridge_field for row in rows}
+    for name in vocabulary.declarations:
+        if name not in mapped and name not in reasons:
+            reasons[name] = "no subject maps it"
+    union = ConvergeV2Target(
+        V2_TARGET_FACILITY_PROFILE,
+        "+".join(sorted(set(vocabulary.subjects.values()))),
+        V2_CARTRIDGE_NODE,
+        "plasticos.facility.profile",
+        tuple(rows),
+    )
+    return union, MappingProxyType({k: v for k, v in reasons.items() if k not in mapped})

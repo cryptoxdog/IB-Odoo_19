@@ -12,9 +12,9 @@ from .gate_allowlists import (
     V2_KIND_MANY2MANY_CODE,
     V2_KIND_MANY2ONE_CODE,
     V2_NUMERIC_KINDS,
-    V2_TARGET_FACILITY_PROFILE,
     WEB_LEAD_SEED_FIELD_MAP,
     ConvergeV2FieldRow,
+    ConvergeV2Target,
     resolve_v2_target,
 )
 from .gate_config import gate_consensus_threshold
@@ -27,7 +27,6 @@ from .gate_contracts import (
     ProcessIntakeRequest,
     ProcessWebLeadRequest,
     freeze,
-    thaw,
 )
 from .gate_sweep import SweepCandidate
 
@@ -281,34 +280,9 @@ def build_converge_request_v2(
     KeyError for a target the table does not declare.
     """
     spec = resolve_v2_target(target, field_defs, subject=subject, version=cartridge.version)
-    partner = run_rec.partner_id
-    odoo = build_odoo_context(env, model=run_rec._name, record_id=run_rec.id).to_dict()
-    return _assemble_converge_request_v2(
-        env,
-        spec=spec,
-        record=record,
-        partner=partner,
-        cartridge=cartridge,
-        odoo=odoo,
-        idempotency_key=build_operation_id(odoo, attempt=_run_attempt(run_rec)),
-        max_passes=max_passes,
-    )
-
-
-def _assemble_converge_request_v2(
-    env,
-    *,
-    spec,
-    record,
-    partner,
-    cartridge: CartridgePin,
-    odoo: dict[str, Any],
-    idempotency_key: str | None,
-    max_passes: int | None = None,
-) -> ConvergeRequestV2:
-    """The shared converge v2 body: interactive runs and the scheduled sweep build it here."""
     if getattr(record, "_name", None) != spec.odoo_model:
-        raise ValueError(f"target {spec.key!r} enriches {spec.odoo_model}, not {getattr(record, '_name', None)}")
+        raise ValueError(f"target {target!r} enriches {spec.odoo_model}, not {getattr(record, '_name', None)}")
+    partner = run_rec.partner_id
     if spec.odoo_model == "res.partner":
         owner = record
     else:
@@ -349,7 +323,7 @@ def _assemble_converge_request_v2(
     entity_id = f"res.partner:{partner.id}"
     entity["id"] = entity_id
     entity["_odoo_entity_id"] = entity_id
-    odoo = dict(odoo)
+    odoo = build_odoo_context(env, model=run_rec._name, record_id=run_rec.id).to_dict()
     odoo["target_model"] = spec.odoo_model
     odoo["target_res_id"] = record.id
     return ConvergeRequestV2(
@@ -364,48 +338,9 @@ def _assemble_converge_request_v2(
         objective=_DEFAULT_OBJECTIVE,
         max_variations=_clamp_variations(max_passes),
         consensus_threshold=gate_consensus_threshold(env),
-        idempotency_key=idempotency_key,
+        idempotency_key=build_operation_id(odoo, attempt=_run_attempt(run_rec)),
         odoo=freeze(odoo),
     )
-
-
-SWEEP_OPERATION_FAMILY = "enrichment-sweep"
-
-
-def build_facility_sweep_request_v2(
-    env,
-    sweep_rec,
-    *,
-    record,
-    cartridge: CartridgePin,
-    field_defs,
-    subject: str | None = None,
-) -> ConvergeRequestV2:
-    """The converge v2 request one sweep candidate stands for (scheduled sweep, ADR-012 2026-11-15).
-
-    Same rows, targets and observations as an interactive facility-profile run
-    (``_assemble_converge_request_v2``); the partner is the profile's own and the
-    Odoo context names the sweep record, so the reply is parsed against exactly
-    what Odoo asked. Raises ConvergeV2NothingToRequest when nothing is empty.
-    """
-    spec = resolve_v2_target(V2_TARGET_FACILITY_PROFILE, field_defs, subject=subject, version=cartridge.version)
-    odoo = build_odoo_context(env, model=sweep_rec._name, record_id=sweep_rec.id).to_dict()
-    odoo["target_partner_id"] = record.partner_id.id
-    return _assemble_converge_request_v2(
-        env,
-        spec=spec,
-        record=record,
-        partner=record.partner_id,
-        cartridge=cartridge,
-        odoo=odoo,
-        idempotency_key=f"{build_operation_id(odoo, family=SWEEP_OPERATION_FAMILY)}:res.partner:{record.partner_id.id}",
-    )
-
-
-def build_sweep_candidate(request: ConvergeRequestV2) -> SweepCandidate:
-    """The candidate EIE receives: the request's current values in cartridge field names."""
-    entity = {obs["field"]: thaw(obs["value"]) for obs in request.observations}
-    return SweepCandidate(entity_id=request.entity["id"], entity=entity, node_label=request.node)
 
 
 def _run_attempt(run_rec) -> int:
@@ -550,3 +485,23 @@ def build_intake_request(env, intake_rec) -> ProcessIntakeRequest:
             snapshot[dst] = value
     odoo = build_odoo_context(env, model=intake_rec._name, record_id=intake_rec.id).to_dict()
     return ProcessIntakeRequest(intake_id=intake_rec.id, domain="plasticos", intake_snapshot=snapshot, odoo=odoo)
+
+
+def build_sweep_candidate(record, spec: ConvergeV2Target) -> SweepCandidate:
+    """One enrichment-sweep candidate for a facility profile (enrichment-sweep.md 3.1).
+
+    ``entity`` is the profile's current values in cartridge field names, for every
+    row of ``spec`` (the facility-profile target over all the cartridge's
+    subjects), read exactly as an interactive request reads its observations.
+    EIE builds the converge request itself from CEG's gaps (3.4); Odoo builds none.
+    The entity id is ``res.partner:<id>`` of the profile's partner (ADR-005).
+    """
+    partner = getattr(record, "partner_id", None)
+    if not partner:
+        raise ValueError(f"{record._name}:{record.id} has no partner (lead-owned) and cannot be swept")
+    entity: dict[str, Any] = {}
+    for row in spec.rows:
+        value = odoo_value_for_row(record, row)
+        if value is not None:
+            entity[row.cartridge_field] = value
+    return SweepCandidate(entity_id=f"res.partner:{partner.id}", entity=entity, node_label=spec.node)

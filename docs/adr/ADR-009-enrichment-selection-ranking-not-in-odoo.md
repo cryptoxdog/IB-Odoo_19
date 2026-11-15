@@ -101,3 +101,7 @@ Retired pre-M4 cron criteria (50 stale sources / 30-day cutoff) were an **Odoo-l
 - External: [Enrichment.Inference.Engine](https://github.com/Quantum-L9/Enrichment.Inference.Engine) (executor; TODO still lists graph→enrich feedback as constellation work)
 - In-repo: `plasticos_enrichment/data/cron.xml`, `plasticos_enrichment/models/enrichment_run.py` (`action_cron_enrich_pending` no-op)
 - Companion backlog: [PROPOSED-ADR-BACKLOG-2026-08-architecture-convergence.md](PROPOSED-ADR-BACKLOG-2026-08-architecture-convergence.md)
+
+## Amendment 2026-11-15 — scheduled buyer sweep (pointer)
+
+The operator decided that EIE runs a scheduled enrichment sweep over buyers (2026-11-14/15). Odoo now offers EIE a set of buyer facility profiles, chosen by operator filters and ordered only by time since last enrichment. This is a narrow exception to section 1. Readiness ranking, gap priority and target choice stay in EIE and CEG (EIE `docs/contracts/enrichment-sweep.md` section 3.4). The exception is defined in [ADR-012 amendment 2026-11-15, item 7](ADR-012-crm-writeback-allowlist-provenance.md). The earlier text of this ADR is unchanged.

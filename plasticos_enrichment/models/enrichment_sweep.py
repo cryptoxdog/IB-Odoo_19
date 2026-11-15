@@ -24,7 +24,6 @@ _logger = logging.getLogger(__name__)
 
 ENRICHMENT_RUN = "plasticos.enrichment.run"
 FACILITY_PROFILE = "plasticos.facility.profile"
-TARGET_FACILITY_PROFILE = "facility_profile"
 OPEN_STATES = ("sent", "running")
 # Each results cron pass pages one sweep at most this many times.
 MAX_RESULT_PAGES = 200
@@ -53,6 +52,7 @@ class PlasticosEnrichmentSweep(models.Model):
             ("sent", "Sent"),
             ("running", "Running"),
             ("done", "Done"),
+            ("expired", "Expired"),
             ("failed", "Failed"),
         ],
         default="draft",
@@ -70,12 +70,16 @@ class PlasticosEnrichmentSweep(models.Model):
     ingested_count = fields.Integer(readonly=True, help="Results turned into enrichment runs.")
     skipped_count = fields.Integer(readonly=True, help="Candidates EIE skipped (budget or other reason).")
     eie_state = fields.Char(string="EIE Run State", readonly=True)
-    candidate_requests = fields.Json(
-        readonly=True, help="entity_id -> the converge v2 request each candidate stands for (parsed against)."
+    cartridge_pin = fields.Json(
+        readonly=True, help="Cartridge id/version/sha256 Odoo had pinned at send; every result must resolve to it."
     )
+    refusal_code = fields.Char(readonly=True, help="EIE refusal code (enrichment-sweep.md section 7), if refused.")
+    stats = fields.Json(readonly=True, help="Last EIE counters (enriched, per skip reason, dropped targets).")
     facility_map = fields.Json(readonly=True, help="entity_id -> facility profile id.")
     ingested = fields.Json(readonly=True, help="entity_id -> enrichment run id (idempotent ingestion).")
-    rejections = fields.Json(readonly=True, help="Send-time rejections and result-time skips with reasons.")
+    rejections = fields.Json(
+        readonly=True, help="Per candidate: send rejections, EIE skip reasons and unusable results, with stage."
+    )
     budget = fields.Json(readonly=True, help="Last budget object EIE reported (audit only).")
     error = fields.Text(readonly=True)
     gate_packet_id = fields.Char(readonly=True, help="Last Gate response TransportPacket id.")
@@ -150,11 +154,18 @@ class PlasticosEnrichmentSweep(models.Model):
 
     @api.model
     def _v2_selection(self):
-        """The converge contract; the sweep refuses to run unless it is v2 with a pin."""
+        """The converge contract; the sweep refuses to run unless it is v2 with a full pin.
+
+        The sha256 is required too: EIE pins the tenant's cartridge itself
+        (enrichment-sweep.md 3.4 step 5), so each result's resolution echo is
+        checked against Odoo's id, version and sha256.
+        """
         from odoo.addons.plasticos_gate.services.gate_config import resolve_converge_contract
 
         selection = resolve_converge_contract(self.env)
-        if not selection.is_v2 or not selection.cartridge_id or not selection.cartridge_version:
+        if not selection.is_v2 or not (
+            selection.cartridge_id and selection.cartridge_version and selection.cartridge_sha256
+        ):
             return None
         return selection
 
@@ -185,7 +196,7 @@ class PlasticosEnrichmentSweep(models.Model):
             _logger.error("Enrichment sweep not sent: %s", exc)
             return False
         if selection is None:
-            _logger.warning("Enrichment sweep not sent: converge contract is not v2 with a cartridge pin.")
+            _logger.warning("Enrichment sweep not sent: converge contract is not v2 with id, version and sha256 pin.")
             return False
         if not gate_enrichment_enabled(self.env):
             _logger.warning("Enrichment sweep not sent: Gate enrichment is unavailable.")
@@ -207,14 +218,9 @@ class PlasticosEnrichmentSweep(models.Model):
 
     def _send(self, facilities, settings, selection):
         self.ensure_one()
-        from odoo.addons.plasticos_gate.services.gate_builders import (
-            ConvergeV2NothingToRequest,
-            build_facility_sweep_request_v2,
-            build_sweep_candidate,
-        )
+        from odoo.addons.plasticos_gate.services.gate_builders import build_sweep_candidate
         from odoo.addons.plasticos_gate.services.gate_client import send_sweep_action
         from odoo.addons.plasticos_gate.services.gate_config import GateIntegrationError, resolve_tenant
-        from odoo.addons.plasticos_gate.services.gate_contracts import CartridgePin
         from odoo.addons.plasticos_gate.services.gate_mappers import extract_audit_metadata
         from odoo.addons.plasticos_gate.services.gate_sweep import (
             SWEEP_ACTION,
@@ -222,43 +228,34 @@ class PlasticosEnrichmentSweep(models.Model):
             SweepRequest,
             build_sweep_idempotency_key,
             parse_sweep_send_reply,
+            refusal_code,
         )
 
-        pin = CartridgePin(selection.cartridge_id, selection.cartridge_version, selection.cartridge_sha256)
-        Run = self.env[ENRICHMENT_RUN]
-        candidates, requests, facility_map = [], {}, {}
-        for facility in facilities:
-            if len(candidates) >= settings.max_candidates:
-                break
+        pin = dict(id=selection.cartridge_id, version=selection.cartridge_version, sha256=selection.cartridge_sha256)
+        # One target for every candidate: the facility profile over all cartridge subjects.
+        spec, _unmapped = self.env[ENRICHMENT_RUN]._v2_sweep_target(self.env[FACILITY_PROFILE], pin["version"])
+        candidates, facility_map = [], {}
+        for facility in facilities[: settings.max_candidates]:
             try:
-                request = build_facility_sweep_request_v2(
-                    self.env,
-                    self,
-                    record=facility,
-                    cartridge=pin,
-                    field_defs=Run._v2_field_defs(TARGET_FACILITY_PROFILE, facility),
-                )
-                candidate = build_sweep_candidate(request)
-            except ConvergeV2NothingToRequest:
-                continue
+                candidate = build_sweep_candidate(facility, spec)
             except (ValueError, SweepContractError) as exc:
                 _logger.warning("Facility profile %s left out of the sweep: %s", facility.id, exc)
                 continue
             candidates.append(candidate)
-            requests[candidate.entity_id] = request.to_dict()
             facility_map[candidate.entity_id] = facility.id
         if not candidates:
-            self.write({"state": "done", "error": _("No eligible buyer facility had an empty mapped field.")})
+            self.write({"state": "done", "error": _("No eligible buyer facility.")})
             return
-        key = build_sweep_idempotency_key(resolve_tenant(self.env), self.sweep_date.isoformat(), list(requests))
-        vals = {
-            "idempotency_key": key,
-            "daily_budget_usd": settings.daily_budget_usd,
-            "candidate_count": len(candidates),
-            "candidate_requests": requests,
-            "facility_map": facility_map,
-            "ingested": {},
-        }
+        key = build_sweep_idempotency_key(resolve_tenant(self.env), self.sweep_date.isoformat(), list(facility_map))
+        vals = dict(
+            idempotency_key=key,
+            daily_budget_usd=settings.daily_budget_usd,
+            candidate_count=len(candidates),
+            cartridge_pin=pin,
+            facility_map=facility_map,
+            ingested={},
+            refusal_code=False,
+        )
         try:
             sweep_request = SweepRequest(tuple(candidates), settings.daily_budget_usd, key)
             result = send_sweep_action(
@@ -267,8 +264,11 @@ class PlasticosEnrichmentSweep(models.Model):
             audit = extract_audit_metadata(result["packet"])
             reply = parse_sweep_send_reply(result["payload"], request=sweep_request)
         except (GateIntegrationError, SweepContractError) as exc:
-            failure = getattr(exc, "failure_class", None) or "contract"
-            self.write({**vals, "state": "failed", "error": f"{failure}: {exc}"})
+            # Section 7: a refusal (`disabled`, `invalid_request`, ...) or a transport/contract failure.
+            # A failed sweep is never polled; the next nightly pass may resend (same key, same sweep).
+            code = refusal_code(str(exc)) if isinstance(exc, GateIntegrationError) else None
+            failure = code or getattr(exc, "failure_class", None) or "contract"
+            self.write({**vals, "state": "failed", "refusal_code": code or False, "error": f"{failure}: {exc}"})
             _logger.error("Enrichment sweep %s failed to send (%s): %s", self.name, failure, exc)
             return
         self.write(
@@ -332,22 +332,33 @@ class PlasticosEnrichmentSweep(models.Model):
         return True
 
     def _collect(self):
+        """Page ``enrichment-sweep-results`` (section 6) into review-state runs.
+
+        The first page sends no cursor; later pages send the previous
+        ``next_cursor``. Refusals are classified (section 7): ``sweep_not_found``
+        means the sweep passed EIE's retention and is ``expired`` (no more
+        polling); ``disabled``, ``sweep_store_unavailable`` and a retryable
+        transport failure keep it open for the next pass; anything else fails it.
+        """
         self.ensure_one()
         from odoo.addons.plasticos_gate.services.gate_client import send_sweep_action
         from odoo.addons.plasticos_gate.services.gate_config import GateIntegrationError
         from odoo.addons.plasticos_gate.services.gate_mappers import extract_audit_metadata
         from odoo.addons.plasticos_gate.services.gate_sweep import (
+            REFUSAL_DISABLED,
+            REFUSAL_NOT_FOUND,
+            REFUSAL_STORE_UNAVAILABLE,
             SWEEP_RESULTS_ACTION,
-            SWEEP_STATE_FAILED,
             SweepContractError,
             SweepResultsRequest,
             parse_sweep_results_page,
+            refusal_code,
         )
 
         cursor = None
         ingested = dict(self.ingested or {})
         rejections = list(self.rejections or [])
-        seen_skips = {(r.get("entity_id"), r.get("stage")) for r in rejections}
+        seen = {(r.get("entity_id"), r.get("stage")) for r in rejections}
         page = None
         audit = {}
         failed_vals = None
@@ -360,12 +371,14 @@ class PlasticosEnrichmentSweep(models.Model):
                     correlation_id=self.gate_correlation_id or None,
                 )
                 audit = extract_audit_metadata(result["packet"])
-                page = parse_sweep_results_page(result["payload"])
+                page = parse_sweep_results_page(result["payload"], sweep_id=self.sweep_id)
             except (GateIntegrationError, SweepContractError) as exc:
-                failure = getattr(exc, "failure_class", None) or "contract"
-                # A retryable transport failure keeps the sweep open for the next pass.
-                failed_vals = dict(error=f"{failure}: {exc}", ingested=ingested, rejections=rejections)
-                if failure != "retryable":
+                code = refusal_code(str(exc)) if isinstance(exc, GateIntegrationError) else None
+                failure = code or getattr(exc, "failure_class", None) or "contract"
+                failed_vals = dict(error=f"{failure}: {exc}", refusal_code=code or False)
+                if code == REFUSAL_NOT_FOUND:
+                    failed_vals["state"] = "expired"
+                elif code not in (REFUSAL_DISABLED, REFUSAL_STORE_UNAVAILABLE) and failure != "retryable":
                     failed_vals["state"] = "failed"
                 _logger.error("Enrichment sweep %s results failed (%s): %s", self.name, failure, exc)
                 break
@@ -375,40 +388,32 @@ class PlasticosEnrichmentSweep(models.Model):
                 run_id, problem = self._ingest_result(item.entity_id, item.response_dict(), audit)
                 if run_id:
                     ingested[item.entity_id] = run_id
-                elif (item.entity_id, "result") not in seen_skips:
+                elif (item.entity_id, "result") not in seen:
                     rejections.append(_rejection(item.entity_id, problem, "result"))
-                    seen_skips.add((item.entity_id, "result"))
+                    seen.add((item.entity_id, "result"))
             for skip in page.skipped:
-                if (skip.entity_id, "skipped") not in seen_skips:
+                if (skip.entity_id, "skipped") not in seen:
                     rejections.append(_rejection(skip.entity_id, skip.reason, "skipped"))
-                    seen_skips.add((skip.entity_id, "skipped"))
+                    seen.add((skip.entity_id, "skipped"))
             cursor = page.next_cursor
             if cursor is None:
                 break
-        if failed_vals is not None:
-            # Results already ingested on earlier pages stay recorded with the failure.
-            self.write(failed_vals)
-            return
-        finished = page is not None and page.finished
-        state = self.state
-        if finished:
-            state = "failed" if page.state == SWEEP_STATE_FAILED else "done"
-        elif page is not None:
-            state = "running"
         # Keyword form: these are field names, not enum values (phantom-enum scan).
-        self.write(
-            dict(
-                state=state,
-                eie_state=page.state if page else self.eie_state,
-                ingested=ingested,
-                ingested_count=len(ingested),
-                rejections=rejections,
-                skipped_count=len([r for r in rejections if r.get("stage") == "skipped"]),
-                budget=page.budget_dict() if page else self.budget,
-                gate_packet_id=audit.get("gate_packet_id") or self.gate_packet_id,
-                error=False,
-            )
+        vals = dict(
+            ingested=ingested,
+            ingested_count=len(ingested),
+            rejections=rejections,
+            skipped_count=len([r for r in rejections if r.get("stage") == "skipped"]),
+            gate_packet_id=audit.get("gate_packet_id") or self.gate_packet_id,
         )
+        if page is not None:
+            vals.update(eie_state=page.state, budget=page.budget_dict(), stats=page.stats_dict())
+        if failed_vals is not None:
+            # Results ingested on earlier pages stay recorded with the failure.
+            vals.update(failed_vals)
+        else:
+            vals.update(error=False, refusal_code=False, state="done" if page and page.finished else "running")
+        self.write(vals)
 
     def _ingest_result(self, entity_id, response, audit):
         """One result -> one enrichment run in ``review`` (or ``degraded`` with the reason).
@@ -417,9 +422,8 @@ class PlasticosEnrichmentSweep(models.Model):
         what Odoo sent (an entity it never sent, a vanished or re-parented profile).
         """
         self.ensure_one()
-        body = (self.candidate_requests or {}).get(entity_id)
         facility_id = (self.facility_map or {}).get(entity_id)
-        if not body or not facility_id:
+        if not facility_id or not self.cartridge_pin:
             return None, "result for an entity this sweep never sent"
         facility = self.env[FACILITY_PROFILE].browse(int(facility_id)).exists()
         if not facility or not facility.partner_id or f"res.partner:{facility.partner_id.id}" != entity_id:
@@ -434,12 +438,9 @@ class PlasticosEnrichmentSweep(models.Model):
                         "engine_used": "gate",
                     }
                 )
+                sweep_ref = dict(sweep_id=self.sweep_id, entity_id=entity_id, pin=dict(self.cartridge_pin))
                 try:
-                    request = Run._v2_request_from_body(body)
-                    field_defs = run._v2_field_defs(TARGET_FACILITY_PROFILE, facility)
-                    reason = run._v2_review_from_reply(
-                        TARGET_FACILITY_PROFILE, facility, field_defs, request, response, audit
-                    )
+                    reason = run._v2_review_sweep_reply(facility, sweep_ref, response, audit)
                 except (KeyError, TypeError, ValueError) as exc:
                     reason = f"Gate converge v2 sweep result unusable: {exc}"
                 if reason is not None:
