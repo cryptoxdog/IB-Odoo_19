@@ -195,7 +195,13 @@ class PlasticosEnrichmentSweep(models.Model):
             _logger.info("Enrichment sweep already sent for %s (UTC).", today)
             return False
         facilities = self._select_facilities(settings)
-        sweep = self.create({"name": f"Enrichment sweep {today.isoformat()}", "sweep_date": today})
+        # A same-day retry after a failed send reuses that record: the same candidates give the same
+        # idempotency key, so Gate sees a replay of one operation, never a second sweep.
+        sweep = self.search([("sweep_date", "=", today), ("state", "=", "failed")], order="id desc", limit=1)
+        if sweep:
+            sweep.write({"state": "draft", "error": False})
+        else:
+            sweep = self.create({"name": f"Enrichment sweep {today.isoformat()}", "sweep_date": today})
         sweep._send(facilities, settings, selection)
         return sweep
 

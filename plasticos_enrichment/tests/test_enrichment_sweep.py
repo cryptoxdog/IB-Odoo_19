@@ -185,6 +185,24 @@ class TestEnrichmentSweep(PlasticosTestCase):
         with self._gate(gate):
             self.assertFalse(self.env[SWEEP]._cron_send_sweep(), "one sweep per UTC day")
 
+    def test_same_day_retry_after_a_failed_send_reuses_the_record_and_key(self):
+        self._buyer_profile("Sweep Retry")
+        from odoo.addons.plasticos_gate.services.gate_config import GateIntegrationError
+
+        def down(env, **kwargs):
+            raise GateIntegrationError("gate down", failure_class="retryable")
+
+        with self._gate(down):
+            failed = self.env[SWEEP]._cron_send_sweep()
+        self.assertEqual(failed.state, "failed")
+        key = failed.idempotency_key
+        gate = _SweepGate()
+        with self._gate(gate):
+            retried = self.env[SWEEP]._cron_send_sweep()
+        self.assertEqual(retried, failed)
+        self.assertEqual(retried.state, "sent")
+        self.assertEqual(gate.calls[0][2], key, "the retry replays the same Gate operation")
+
     # ── results ─────────────────────────────────────────────────────────
 
     def _send_one(self, name):
