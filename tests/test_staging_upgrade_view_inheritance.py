@@ -73,8 +73,20 @@ class FakeCursor:
         return list(self._result)
 
 
+def _version_tuple(version: str) -> tuple[int, ...]:
+    return tuple(int(part) for part in version.split("."))
+
+
 def test_manifest_version_matches_migration_folder():
-    assert '"version": "19.0.5.4.12"' in FACILITY_MANIFEST.read_text()
+    # Odoo runs migrations/<v>/ when a database upgrades from below <v> to an
+    # installed version at or above <v>. The migration must exist, and the
+    # manifest must be at or past its version; later bumps keep it applicable.
+    import ast
+
+    assert PRE_MIGRATE.is_file()
+    manifest_version = ast.literal_eval(FACILITY_MANIFEST.read_text())["version"]
+    migration_version = PRE_MIGRATE.parent.name
+    assert _version_tuple(migration_version) <= _version_tuple(manifest_version)
 
 
 def test_strips_stale_node_in_every_language_and_keeps_the_rest():
