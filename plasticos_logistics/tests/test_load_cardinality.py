@@ -879,6 +879,23 @@ class TestLoadSourceCompanyAndPhysicalEvents(TransactionCase):
         super().setUpClass()
         cls.company = cls.env.company
         cls.currency = cls.company.currency_id
+        # The acknowledgment escalation is owned by an Operations Manager in the load's company.
+        cls.ops_manager = cls.env["res.users"].create(
+            {
+                "name": "s2.ops.manager",
+                "login": "s2.ops.manager",
+                "group_ids": [
+                    (
+                        6,
+                        0,
+                        [
+                            cls.env.ref("base.group_user").id,
+                            cls.env.ref("plasticos_security_base.group_operations_manager").id,
+                        ],
+                    )
+                ],
+            }
+        )
         cls.supplier = cls.env["res.partner"].create(
             {"name": "S2 Supplier", "is_company": True, "supplier_rank": 1, "street": "1 Mill Rd", "city": "Houston"}
         )
@@ -1208,6 +1225,159 @@ class TestLoadSourceCompanyAndPhysicalEvents(TransactionCase):
         summary = f"URGENT: No carrier acknowledgment for {load.name}"
         self.assertEqual(
             self.env["mail.activity"].search_count([("res_id", "=", load.id), ("summary", "=", summary)]), 1
+        )
+
+    # ── Manager escalation routing (operator decision: managers only, never silent) ──
+
+    def _unacknowledged(self, **extra):
+        load = self._buyerless_load(**extra)
+        # A legacy dispatched row: the state and clock are written directly.
+        self.env.cr.execute(
+            "UPDATE plasticos_load SET state = 'dispatched', dispatch_sent = %s, dispatch_acknowledged = NULL "
+            "WHERE id = %s",
+            (fields.Datetime.now() - timedelta(hours=5), load.id),
+        )
+        load.invalidate_recordset()
+        return load
+
+    def _ack_activities(self, load):
+        return self.env["mail.activity"].search(
+            [
+                ("res_model", "=", "plasticos.load"),
+                ("res_id", "=", load.id),
+                ("summary", "=", f"URGENT: No carrier acknowledgment for {load.name}"),
+            ]
+        )
+
+    def _unrouted_notes(self, load):
+        load.invalidate_recordset(["message_ids"])
+        return load.message_ids.filtered(lambda message: "Not routed:" in (message.body or ""))
+
+    def test_acknowledgment_escalation_goes_to_a_manager_never_the_salesperson(self):
+        sales = self.env["res.users"].create(
+            {
+                "name": "s2.ack.sales",
+                "login": "s2.ack.sales",
+                "group_ids": [(6, 0, [self.env.ref("base.group_user").id])],
+            }
+        )
+        order = self.env["sale.order"].create({"partner_id": self.buyer.id})
+        transaction = self.env["plasticos.transaction"].create(
+            {
+                "name": "TX-S2-ACK-ROUTE",
+                "supplier_id": self.supplier.id,
+                "buyer_id": self.buyer.id,
+                "sale_order_id": order.id,
+                "user_id": sales.id,
+            }
+        )
+        load = self.env["plasticos.load"].create(
+            {
+                "sale_order_id": order.id,
+                "pickup_partner_id": self.supplier.id,
+                "delivery_partner_id": self.buyer.id,
+                "carrier_id": self.carrier.id,
+            }
+        )
+        self.assertEqual(load.transaction_id, transaction)
+        self.assertEqual(load.transaction_id.user_id, sales)
+        self.env.cr.execute(
+            "UPDATE plasticos_load SET state = 'dispatched', dispatch_sent = %s, dispatch_acknowledged = NULL "
+            "WHERE id = %s",
+            (fields.Datetime.now() - timedelta(hours=5), load.id),
+        )
+        load.invalidate_recordset()
+        seen = []
+        users = type(self.env["res.users"])
+        original = users._plasticos_escalation_manager
+
+        def recorder(self, group_xmlid, company=None):
+            seen.append((group_xmlid, company))
+            return original(self, group_xmlid, company)
+
+        cron = self.env["plasticos.load"].with_context(linda_load_sweep_ids=load.ids)
+        with patch.object(users, "_plasticos_escalation_manager", recorder):
+            cron._cron_check_dispatch_acknowledgments()
+        self.assertEqual(seen, [("plasticos_security_base.group_operations_manager", load.company_id)])
+        activities = self._ack_activities(load)
+        self.assertEqual(len(activities), 1)
+        self.assertTrue(activities.user_id.has_group("plasticos_security_base.group_operations_manager"))
+        cron_user = self.env.ref("plasticos_base.user_system_cron")
+        self.assertNotIn(activities.user_id, sales | cron_user | self.env.user)
+        self.assertFalse(self._unrouted_notes(load))
+
+    def test_acknowledgment_escalation_without_a_manager_is_logged_and_noted_once(self):
+        load = self._unacknowledged()
+        users = type(self.env["res.users"])
+        cron = self.env["plasticos.load"].with_context(linda_load_sweep_ids=load.ids)
+        with patch.object(
+            users, "_plasticos_escalation_manager", lambda self, group_xmlid, company=None: self.browse()
+        ):
+            with self.assertLogs("odoo.addons.plasticos_base.models.res_users", level="ERROR") as captured:
+                cron._cron_check_dispatch_acknowledgments()
+            with self.assertLogs("odoo.addons.plasticos_base.models.res_users", level="ERROR"):
+                cron._cron_check_dispatch_acknowledgments()
+        self.assertTrue(any("Not routed: carrier acknowledgment escalation." in line for line in captured.output))
+        self.assertEqual(len(self._unrouted_notes(load)), 1)
+        self.assertFalse(self._ack_activities(load), "neither the cron user nor a salesperson takes it")
+
+    def test_acknowledgment_escalation_is_scoped_to_the_load_company(self):
+        """A manager of another company never owns the load's escalation."""
+        other = self.env["res.company"].create({"name": "S2 Escalation Other Company"})
+        load = self._unacknowledged(company_id=other.id, rate_currency_id=other.currency_id.id)
+        cron = self.env["plasticos.load"].with_context(linda_load_sweep_ids=load.ids)
+        with self.assertLogs("odoo.addons.plasticos_base.models.res_users", level="ERROR"):
+            cron._cron_check_dispatch_acknowledgments()
+        self.assertFalse(self._ack_activities(load))
+        self.assertEqual(len(self._unrouted_notes(load)), 1)
+        group = self.env.ref("plasticos_security_base.group_operations_manager")
+        local = self.env["res.users"].create(
+            {
+                "name": "s2.ack.other.manager",
+                "login": "s2.ack.other.manager",
+                "company_id": other.id,
+                "company_ids": [(6, 0, [other.id])],
+                "group_ids": [(6, 0, [self.env.ref("base.group_user").id, group.id])],
+            }
+        )
+        cron._cron_check_dispatch_acknowledgments()
+        self.assertEqual(self._ack_activities(load).user_id, local)
+
+    def test_sla_breach_is_assigned_to_a_manager_once(self):
+        load = self._buyerless_load()
+        self.env.cr.execute(
+            "UPDATE plasticos_load SET state = 'awaiting_ready', entered_state_at = %s, sla_breached = FALSE "
+            "WHERE id = %s",
+            (fields.Datetime.now() - timedelta(hours=60), load.id),
+        )
+        load.invalidate_recordset()
+        summary = f"ESCALATION: SLA breach [WARNING] on {load.name}"
+        self.env["plasticos.load"]._cron_escalation_check()
+        self.assertTrue(load.sla_breached)
+        activities = self.env["mail.activity"].search([("res_id", "=", load.id), ("summary", "=", summary)])
+        self.assertEqual(len(activities), 1)
+        self.assertTrue(activities.user_id.has_group("plasticos_security_base.group_operations_manager"))
+        self.assertNotIn(activities.user_id, self.env.ref("plasticos_base.user_system_cron") | self.env.user)
+        self.env["plasticos.load"]._cron_escalation_check()
+        load._escalate_sla_breach("warning", 61.0, 48)
+        self.assertEqual(
+            self.env["mail.activity"].search_count([("res_id", "=", load.id), ("summary", "=", summary)]), 1
+        )
+
+    def test_sla_breach_without_a_manager_is_logged_and_noted_once(self):
+        load = self._buyerless_load()
+        users = type(self.env["res.users"])
+        with patch.object(
+            users, "_plasticos_escalation_manager", lambda self, group_xmlid, company=None: self.browse()
+        ):
+            with self.assertLogs("odoo.addons.plasticos_base.models.res_users", level="ERROR") as captured:
+                load._escalate_sla_breach("critical", 100.0, 48)
+            with self.assertLogs("odoo.addons.plasticos_base.models.res_users", level="ERROR"):
+                load._escalate_sla_breach("critical", 100.0, 48)
+        self.assertTrue(any("Not routed: SLA breach critical escalation." in line for line in captured.output))
+        self.assertEqual(len(self._unrouted_notes(load)), 1)
+        self.assertFalse(
+            self.env["mail.activity"].search([("res_id", "=", load.id), ("summary", "ilike", "SLA breach")])
         )
 
     # ── V10: actual event clocks (BRS-EXP-04-R001/R003, BRS-EXP-10-R007) ──

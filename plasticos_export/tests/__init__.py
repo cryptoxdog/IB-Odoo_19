@@ -15,3 +15,4 @@ from . import test_allocation_guard
 from . import test_journey_facts_and_see_all
 from . import test_module_pages
 from . import test_display_alignment
+from . import test_booking_audit_fixes

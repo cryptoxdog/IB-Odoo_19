@@ -16,7 +16,7 @@ class PlasticosWebLeadCRM(models.Model):
     )
     opportunity_user_id = fields.Many2one(
         "res.users",
-        string="Assigned To",
+        string="Opportunity Salesperson",
         related="crm_lead_id.user_id",
         readonly=False,
         ondelete="set null",

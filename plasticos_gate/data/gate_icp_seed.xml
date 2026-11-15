@@ -71,4 +71,20 @@
         <field name="value">0</field>
     </record>
 
+    <!-- Converge contract selection. v1 is the default and unchanged; v2 needs
+         converge_contract=v2 plus the cartridge id and version it was reviewed
+         against (ADR-012 amendment 2026-11-13). -->
+    <record id="param_gate_converge_contract" model="ir.config_parameter">
+        <field name="key">plasticos.gate.converge_contract</field>
+        <field name="value">v1</field>
+    </record>
+    <record id="param_gate_converge_cartridge_id" model="ir.config_parameter">
+        <field name="key">plasticos.gate.converge_cartridge_id</field>
+        <field name="value">plasticos</field>
+    </record>
+    <record id="param_gate_converge_cartridge_version" model="ir.config_parameter">
+        <field name="key">plasticos.gate.converge_cartridge_version</field>
+        <field name="value"></field>
+    </record>
+
 </odoo>

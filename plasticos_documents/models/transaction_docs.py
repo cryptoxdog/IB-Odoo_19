@@ -1,7 +1,7 @@
 import logging
 from datetime import date, timedelta
 
-from odoo import SUPERUSER_ID, api, fields, models
+from odoo import api, fields, models
 
 _logger = logging.getLogger(__name__)
 
@@ -187,7 +187,8 @@ class PlasticosTransactionDocs(models.Model):
             [
                 ("res_model", "=", "plasticos.transaction"),
                 ("res_id", "in", transactions.ids),
-                ("date_deadline", "=", today),
+                # Open activities of any deadline: an escalated transaction keeps one open
+                # Activity per obligation, not a new one each day (BRS-POS-09-R003).
                 ("summary", "in", list(summaries.values())),
             ]
         )
@@ -400,26 +401,9 @@ class PlasticosTransactionDocs(models.Model):
         Active internal users only, never the cron service user or the superuser.
         Implied membership counts. The lowest id wins, so the pick is deterministic.
         With a company, the owner must be allowed in that company (POS-INV-05).
+        The rule lives in plasticos_base so every escalation site resolves the same owner.
         """
-        users = self.env["res.users"]
-        if not group:
-            return users
-        scope = [("company_ids", "in", company.ids)] if company else []
-        excluded = [SUPERUSER_ID]
-        cron_user = self.env.ref("plasticos_base.user_system_cron", raise_if_not_found=False)
-        if cron_user:
-            excluded.append(cron_user.id)
-        return users.search(
-            [
-                ("all_group_ids", "in", group.ids),
-                ("active", "=", True),
-                ("share", "=", False),
-                ("id", "not in", excluded),
-                *scope,
-            ],
-            order="id ASC",
-            limit=1,
-        )
+        return self.env["res.users"]._plasticos_escalation_manager_in_group(group, company)
 
     def _escalation_owners(self, group, companies_by_record):
         """Map each record id to its owner, resolved once per legal company.
@@ -580,6 +564,13 @@ class PlasticosTransactionDocs(models.Model):
                                 _logger.error(
                                     "Scale ticket ESCALATION skipped: load %s has no Operations Manager in its company.",
                                     load.name,
+                                )
+                                self.env["res.users"]._plasticos_note_unrouted_escalation(
+                                    load,
+                                    "scale ticket escalation",
+                                    f"Load {load.name} is missing a scale ticket {bd_since_pickup} business days "
+                                    "after pickup and no active Operations Manager exists in its company. "
+                                    "Assign it manually.",
                                 )
                             else:
                                 self._record_scale_ticket_escalation(

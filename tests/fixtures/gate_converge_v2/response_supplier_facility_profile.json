@@ -1,0 +1,210 @@
+{
+  "contract_version": "eie.converge.response/v2",
+  "state": "completed",
+  "failure_reason": null,
+  "fields": {
+    "min_density": 0.941,
+    "max_density": 960.0,
+    "min_mfi": 0.3,
+    "max_mfi": 0.7
+  },
+  "confidence": 0.84,
+  "resolution": {
+    "cartridge_id": "plasticos",
+    "cartridge_version": "0.5.0",
+    "cartridge_sha256": "a1b2c3",
+    "node": "Facility"
+  },
+  "field_evidence": {
+    "min_density": {
+      "state": "external_claim",
+      "admitted": true,
+      "value": 0.941,
+      "unit_status": "stated",
+      "unit": "g/cm3",
+      "confidence": 0.88,
+      "sources": [
+        {
+          "source_type": "provider",
+          "source_ref": "reply:m1",
+          "method": "provider_reply",
+          "independent": null
+        }
+      ],
+      "derivation": null,
+      "identity": {
+        "subject_ref": "res.partner:56",
+        "subject_type": "material",
+        "role": "supplier"
+      },
+      "declaration": {
+        "type": "float",
+        "required": false
+      },
+      "conflict": null,
+      "unknown_reason": null
+    },
+    "max_density": {
+      "state": "external_claim",
+      "admitted": true,
+      "value": 960.0,
+      "unit_status": "stated",
+      "unit": "kg/m3",
+      "confidence": 0.85,
+      "sources": [
+        {
+          "source_type": "provider",
+          "source_ref": "reply:m1",
+          "method": "provider_reply",
+          "independent": null
+        }
+      ],
+      "derivation": null,
+      "identity": {
+        "subject_ref": "res.partner:56",
+        "subject_type": "material",
+        "role": "supplier"
+      },
+      "declaration": {
+        "type": "float",
+        "required": false
+      },
+      "conflict": null,
+      "unknown_reason": null
+    },
+    "min_mfi": {
+      "state": "external_claim",
+      "admitted": true,
+      "value": 0.3,
+      "unit_status": "not_applicable",
+      "confidence": 0.81,
+      "sources": [
+        {
+          "source_type": "provider",
+          "source_ref": "reply:m2",
+          "method": "provider_reply",
+          "independent": null
+        }
+      ],
+      "derivation": null,
+      "identity": {
+        "subject_ref": "res.partner:56",
+        "subject_type": "material",
+        "role": "supplier"
+      },
+      "declaration": {
+        "type": "float",
+        "required": false
+      },
+      "conflict": null,
+      "unknown_reason": null
+    },
+    "max_mfi": {
+      "state": "inferred",
+      "admitted": true,
+      "value": 0.7,
+      "unit_status": "stated",
+      "unit": "g/10min",
+      "confidence": 0.8,
+      "sources": [],
+      "derivation": {
+        "method": "mfi_band",
+        "rule_or_model_version": "synthetic-1.0.0",
+        "inputs": [
+          "min_mfi"
+        ],
+        "kb_fragment_ids": []
+      },
+      "identity": {
+        "subject_ref": "res.partner:56",
+        "subject_type": "material",
+        "role": "supplier"
+      },
+      "declaration": {
+        "type": "float",
+        "required": false
+      },
+      "conflict": null,
+      "unknown_reason": null
+    },
+    "contamination_tolerance": {
+      "state": "unknown",
+      "admitted": false,
+      "confidence": null,
+      "sources": [],
+      "derivation": null,
+      "identity": {
+        "subject_ref": "res.partner:56",
+        "subject_type": "material",
+        "role": "supplier"
+      },
+      "declaration": {
+        "type": "float",
+        "required": false
+      },
+      "conflict": null,
+      "unknown_reason": "no_evidence"
+    },
+    "processed_polymers": {
+      "state": "unknown",
+      "admitted": false,
+      "confidence": null,
+      "sources": [],
+      "derivation": null,
+      "identity": {
+        "subject_ref": "res.partner:56",
+        "subject_type": "material",
+        "role": "supplier"
+      },
+      "declaration": {
+        "type": "list",
+        "required": false,
+        "items": {
+          "type": "map",
+          "required": false,
+          "properties": {
+            "code": {
+              "type": "string",
+              "required": true
+            }
+          }
+        }
+      },
+      "conflict": null,
+      "unknown_reason": "no_evidence"
+    }
+  },
+  "proposals": [
+    {
+      "proposal_id": "p1",
+      "proposal_type": "facility_profile",
+      "identity": {
+        "subject_ref": "res.partner:56",
+        "subject_type": "material",
+        "role": "supplier"
+      },
+      "fields": [
+        "min_density",
+        "max_density",
+        "min_mfi",
+        "max_mfi",
+        "contamination_tolerance",
+        "processed_polymers"
+      ],
+      "admitted_fields": [
+        "min_density",
+        "max_density",
+        "min_mfi",
+        "max_mfi"
+      ],
+      "review": {
+        "required": true,
+        "reasons": [
+          "contains_external_claim",
+          "contains_inferred",
+          "contains_unknown"
+        ]
+      }
+    }
+  ]
+}

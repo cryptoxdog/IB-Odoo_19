@@ -67,7 +67,6 @@ class TestDocumentQueryBatch(TransactionCase):
                 ("res_model", "=", "plasticos.transaction"),
                 ("res_id", "=", transaction.id),
                 ("summary", "=", summary),
-                ("date_deadline", "=", date.today()),
             ]
         )
 
@@ -125,14 +124,11 @@ class TestDocumentQueryBatch(TransactionCase):
         )
         already = self._transaction("TX-QBATCH-ALREADY", self.env["sale.order"].create({"partner_id": self.buyer.id}))
         sibling = self._transaction("TX-QBATCH-SIBLING", self.env["sale.order"].create({"partner_id": self.buyer.id}))
-        self.assertEqual(
-            date.today(),
-            fields.Date.context_today(already),
-            "date.today() differs from fields.Date.context_today; the deadline filter stays",
-        )
+        # An escalation opened on an earlier day is still the transaction's one open Activity
+        # (BRS-POS-09-R003): the page must not add a second one today.
         already.activity_schedule(
             "mail.mail_activity_data_todo",
-            date_deadline=date.today(),
+            date_deadline=date.today() - timedelta(days=3),
             summary=f"ESCALATION: Missing documents on {already.name}",
             user_id=self.env.user.id,
         )

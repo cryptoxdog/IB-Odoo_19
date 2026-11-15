@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Start a converge v2 enrichment run from a facility profile (ADR-012 amendment 2026-11-13 (d)). -->
+    <record id="view_facility_profile_form_enrichment" model="ir.ui.view">
+        <field name="name">plasticos.facility.profile.form.enrichment</field>
+        <field name="model">plasticos.facility.profile</field>
+        <field name="inherit_id" ref="plasticos_facility_profile.facility_profile_form_ux"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_start_enrichment_run"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-magic"
+                        title="Start a Gate enrichment run for this facility profile"
+                        invisible="not partner_id"
+                        groups="plasticos_enrichment.group_enrichment_user">
+                    <span class="o_stat_text">Enrich</span>
+                </button>
+            </xpath>
+        </field>
+    </record>
+</odoo>

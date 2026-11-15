@@ -8,15 +8,24 @@ from .gate_allowlists import (
     INTAKE_SNAPSHOT_FIELD_MAP,
     PARTNER_SNAPSHOT_FIELD_MAP,
     PARTNER_WRITEBACK_FIELD_ALLOWLIST,
+    V2_KIND_BOOLEAN,
+    V2_KIND_MANY2MANY_CODE,
+    V2_KIND_MANY2ONE_CODE,
+    V2_NUMERIC_KINDS,
     WEB_LEAD_SEED_FIELD_MAP,
+    ConvergeV2FieldRow,
+    resolve_v2_target,
 )
 from .gate_config import gate_consensus_threshold
 from .gate_contracts import (
+    CartridgePin,
     ConvergeRequest,
+    ConvergeRequestV2,
     MatchRequest,
     OdooContext,
     ProcessIntakeRequest,
     ProcessWebLeadRequest,
+    freeze,
 )
 
 
@@ -179,6 +188,156 @@ def build_converge_request(
         # The run's attempt counter makes an operator retry a new operation.
         idempotency_key=build_operation_id(odoo, attempt=_run_attempt(run_rec)),
         odoo=odoo,
+    )
+
+
+# ── Converge request v2 ────────────────────────────────────────────────────
+
+# Partner role-tag codes that name a commercial role the cartridge declares.
+V2_ROLE_TAG_CODES = ("supplier", "buyer")
+V2_OBSERVATION_SOURCE_KIND = "odoo_record"
+
+
+class ConvergeV2NothingToRequest(ValueError):
+    """Every mapped Odoo field of the target already holds a value."""
+
+
+def derive_subject_role(partner) -> str | None:
+    """The partner's own commercial role, only when its role tags make it unambiguous.
+
+    Reads the partner's own ``company_role_tag_ids`` codes. Exactly one of
+    ``supplier`` / ``buyer`` gives that role; none or both gives None, and the
+    request then carries no role rather than a guessed one.
+    """
+    if "company_role_tag_ids" not in getattr(partner, "_fields", {}):
+        return None
+    codes = {getattr(tag, "code", None) for tag in partner.company_role_tag_ids}
+    roles = [code for code in V2_ROLE_TAG_CODES if code in codes]
+    return roles[0] if len(roles) == 1 else None
+
+
+def odoo_value_for_row(record, row: ConvergeV2FieldRow) -> Any:
+    """The record's current value for a mapped field, as the cartridge would state it.
+
+    None means empty. For numeric fields 0 is empty (Odoo cannot tell an unset
+    float from 0.0), the same rule merge-not-overwrite applies at write time.
+    """
+    if row.odoo_field not in getattr(record, "_fields", {}):
+        return None
+    value = record[row.odoo_field]
+    if row.kind == V2_KIND_MANY2ONE_CODE:
+        code = getattr(value, row.code_field, None) if value else None
+        return code or None
+    if row.kind == V2_KIND_MANY2MANY_CODE:
+        codes = [getattr(rec, row.code_field, None) for rec in value] if value else []
+        codes = [code for code in codes if code]
+        if not codes:
+            return None
+        if row.code_item_key:
+            return [{row.code_item_key: code} for code in codes]
+        return codes
+    if row.kind == V2_KIND_BOOLEAN:
+        return bool(value)
+    if value in (None, False, ""):
+        return None
+    if row.kind in V2_NUMERIC_KINDS and not value:
+        return None
+    return value
+
+
+def _row_canonical_unit(row: ConvergeV2FieldRow) -> str | None:
+    """The unit an Odoo numeric value is stored in: the row's factor-1 unit."""
+    return next((unit for unit, factor in row.units.items() if factor == 1.0), None)
+
+
+def build_converge_request_v2(
+    env,
+    run_rec,
+    *,
+    target: str,
+    record,
+    cartridge: CartridgePin,
+    max_passes: int | None = None,
+    field_defs=None,
+    subject: str | None = None,
+) -> ConvergeRequestV2:
+    """Build a converge request v2 for one partner, material profile or facility profile.
+
+    ``targets`` are the mapping-table rows whose Odoo field is empty on
+    ``record``; ``observations`` are the rows whose Odoo field already holds a
+    value, offered as evidence only. The entity stays ``res.partner:<id>`` of
+    the run's partner (gate-integration ADR-005); the engine never mints one.
+
+    The facility profile has no fixed table: pass the model's field
+    definitions (``field_defs``, a sequence of ``OdooFieldDef``) and the target
+    is derived from them (operator decision 2026-11-13), one subject per
+    request: ``subject`` defaults to ``material``; ``facility`` asks the
+    same-named contact/capacity fields.
+
+    Raises ConvergeV2NothingToRequest when no mapped field is empty, and
+    KeyError for a target the table does not declare.
+    """
+    spec = resolve_v2_target(target, field_defs, subject=subject, version=cartridge.version)
+    if getattr(record, "_name", None) != spec.odoo_model:
+        raise ValueError(f"target {target!r} enriches {spec.odoo_model}, not {getattr(record, '_name', None)}")
+    partner = run_rec.partner_id
+    if spec.odoo_model == "res.partner":
+        owner = record
+    else:
+        owner = getattr(record, "partner_id", None)
+        if not owner:
+            raise ValueError(f"{spec.odoo_model}:{record.id} has no partner (lead-owned) and cannot be enriched")
+    if not partner or getattr(owner, "id", None) != partner.id:
+        raise ValueError(
+            f"{spec.odoo_model}:{record.id} does not belong to the run partner res.partner:{getattr(partner, 'id', None)}"
+        )
+    record_ref = f"{spec.odoo_model}:{record.id}"
+    targets = []
+    observations = []
+    for row in spec.rows:
+        current = odoo_value_for_row(record, row)
+        if current is None:
+            targets.append({"field": row.cartridge_field, "type": row.request_type()})
+            continue
+        observation = {
+            "field": row.cartridge_field,
+            "value": current,
+            "source_kind": V2_OBSERVATION_SOURCE_KIND,
+            "source_ref": f"{record_ref}#{row.odoo_field}",
+        }
+        if row.kind in V2_NUMERIC_KINDS:
+            unit = _row_canonical_unit(row)
+            if unit:
+                observation["unit"] = unit
+        observations.append(observation)
+    if not targets:
+        raise ConvergeV2NothingToRequest(f"{record_ref}: every mapped field already holds a value")
+
+    entity: dict[str, Any] = {}
+    for src_field, payload_field in PARTNER_SNAPSHOT_FIELD_MAP.items():
+        value = _get_relation_value(partner, src_field)
+        if value not in (None, False, ""):
+            entity[payload_field] = value
+    entity_id = f"res.partner:{partner.id}"
+    entity["id"] = entity_id
+    entity["_odoo_entity_id"] = entity_id
+    odoo = build_odoo_context(env, model=run_rec._name, record_id=run_rec.id).to_dict()
+    odoo["target_model"] = spec.odoo_model
+    odoo["target_res_id"] = record.id
+    return ConvergeRequestV2(
+        cartridge=cartridge,
+        node=spec.node,
+        subject_type=spec.subject_type,
+        subject_role=derive_subject_role(partner),
+        targets=freeze(targets),
+        observations=freeze(observations),
+        entity=freeze(entity),
+        object_type="res.partner",
+        objective=_DEFAULT_OBJECTIVE,
+        max_variations=_clamp_variations(max_passes),
+        consensus_threshold=gate_consensus_threshold(env),
+        idempotency_key=build_operation_id(odoo, attempt=_run_attempt(run_rec)),
+        odoo=freeze(odoo),
     )
 
 

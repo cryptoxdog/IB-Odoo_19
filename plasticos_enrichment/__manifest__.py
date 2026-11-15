@@ -1,6 +1,6 @@
 {
     "name": "PlastOS Buyer CRM Enrichment Engine",
-    "version": "19.0.2.5.10",
+    "version": "19.0.2.6.0",
     "summary": "Gate-mediated partner enrichment (local crawl/inference retired — mothball M4)",
     "category": "CRM",
     "author": "PlastOS",
@@ -13,6 +13,7 @@
         "mail",
         "contacts",
         "plasticos_material_profile",
+        "plasticos_facility_profile",
     ],
     "data": [
         "security/security.xml",
@@ -22,6 +23,7 @@
         "views/enrichment_run_views.xml",
         "views/enrichment_source_views.xml",
         "views/res_partner_enrichment.xml",
+        "views/profile_enrichment_views.xml",
     ],
     "installable": True,
     "application": False,

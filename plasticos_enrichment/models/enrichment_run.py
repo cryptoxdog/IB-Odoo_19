@@ -1,13 +1,63 @@
+import dataclasses
 import logging
 
-from odoo import _, api, fields, models
-from odoo.exceptions import UserError
+from odoo import Command, _, api, fields, models
+from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
 
 PROVENANCE_MODEL = "plasticos.enrichment.provenance"
 SUBTYPE_NOTE = "mail.mt_note"
 NO_INJECTABLE_FIELDS_REASON = "Gate converge produced no injectable allowlisted fields."
+FACILITY_PROFILE = "plasticos.facility.profile"
+PROFILE_NEEDS_V2_REASON = (
+    "Profile enrichment needs converge contract v2 (plasticos.gate.converge_contract=v2); "
+    "a v1 run never writes a profile."
+)
+FACILITY_WITHOUT_PARTNER_REASON = "A facility profile with no partner (lead-owned) cannot be enriched."
+V2_REVIEW_ISSUE = "Gate converge v2 proposal awaiting human review."
+
+
+# Run fields that hold a Gate reply's audit ids (the TransportPacket header).
+_AUDIT_FIELDS = ("gate_packet_id", "gate_correlation_id")
+
+
+class GateUnusableReason(str):
+    """Why a Gate reply is not usable, carrying the reply's audit ids.
+
+    The run fails closed on a rollback, so the ids ride on the reason and are
+    written with the durable failure state rather than lost with the rollback.
+    """
+
+    def __new__(cls, reason, audit=None):
+        obj = super().__new__(cls, reason)
+        audit = audit or {}
+        obj.audit_vals = {}
+        for key in _AUDIT_FIELDS:
+            if audit.get(key):
+                obj.audit_vals[key] = audit[key]
+        return obj
+
+
+def _v2_skip_status(skip_reason):
+    """Plan skip reason -> provenance status (ADR-012 amendment 2026-11-13)."""
+    from odoo.addons.plasticos_gate.services import gate_mappers as gm
+
+    pairs = (
+        (gm.V2_SKIP_UNKNOWN, "skipped_unknown"),
+        (gm.V2_SKIP_CONFLICTING, "skipped_conflicting"),
+        (gm.V2_SKIP_UNIT, "skipped_unit"),
+        (gm.V2_SKIP_NOT_ADMITTED, "skipped_not_admitted"),
+    )
+    return dict(pairs).get(skip_reason, "unmapped")
+
+
+def _v2_inference_type(evidence_state):
+    """Evidence state -> the existing provenance inference type, or False."""
+    from odoo.addons.plasticos_gate.services import gate_mappers as gm
+
+    pairs = ((gm.V2_STATE_INFERRED, "implicit"), (gm.V2_STATE_EXTERNAL_CLAIM, "explicit"))
+    return dict(pairs).get(evidence_state, False)
 
 
 class EnrichmentRun(models.Model):
@@ -30,6 +80,18 @@ class EnrichmentRun(models.Model):
         index=True,
         tracking=True,
         ondelete="restrict",
+    )
+    # Converge v2 target (operator-approved stored field, ADR-012 amendment
+    # 2026-11-13 (d)). Empty means the run targets the partner. A material
+    # profile is never a target: the cartridge's `material` subject describes a
+    # facility's capability, not one material.
+    facility_profile_id = fields.Many2one(
+        FACILITY_PROFILE,
+        string="Facility Profile",
+        index=True,
+        ondelete="restrict",
+        tracking=True,
+        help="Facility profile this run enriches (converge v2). Its partner is the run partner.",
     )
     source_ids = fields.Many2many("plasticos.enrichment.source")
     extraction_ids = fields.One2many(
@@ -99,6 +161,19 @@ class EnrichmentRun(models.Model):
         ),
     )
 
+    @api.constrains("partner_id", "facility_profile_id")
+    def _check_profile_target_partner(self):
+        for run in self:
+            profile = run.facility_profile_id
+            if not profile:
+                continue
+            if not profile.partner_id:
+                raise ValidationError(FACILITY_WITHOUT_PARTNER_REASON)
+            if profile.partner_id != run.partner_id:
+                raise ValidationError(
+                    _("The run partner must be the partner of the profile it enriches (%s).") % profile.display_name
+                )
+
     @api.depends(
         "extraction_ids.confidence",
         "extraction_ids.is_injectable",
@@ -155,6 +230,14 @@ class EnrichmentRun(models.Model):
         The caller fails closed on either; nothing falls back to local (M4).
         """
         self.ensure_one()
+        from odoo.addons.plasticos_gate.services.gate_config import resolve_converge_contract
+
+        selection = resolve_converge_contract(self.env)
+        if selection.is_v2:
+            return self._run_gate_converge_v2(selection)
+        if self.facility_profile_id:
+            return PROFILE_NEEDS_V2_REASON
+
         from odoo.addons.plasticos_gate.services.gate_builders import build_converge_request
         from odoo.addons.plasticos_gate.services.gate_client import send_converge_action
         from odoo.addons.plasticos_gate.services.gate_config import gate_auto_writeback_enabled
@@ -322,6 +405,359 @@ class EnrichmentRun(models.Model):
         )
         return len(to_write)
 
+    # ── Converge v2 (ADR-012 amendment 2026-11-13) ─────────────────────────
+
+    def _v2_target(self):
+        """Return (target key, record) this run enriches, or raise UserError."""
+        self.ensure_one()
+        if self.facility_profile_id:
+            if not self.facility_profile_id.partner_id:
+                raise UserError(FACILITY_WITHOUT_PARTNER_REASON)
+            return "facility_profile", self.facility_profile_id
+        return "partner", self.partner_id
+
+    def _run_gate_converge_v2(self, selection):
+        """Converge v2: request the empty mapped fields, validate the reply, send to review.
+
+        Always review-only: the approved write policy writes nothing before a
+        human approves the whole run. Returns None for a reviewable proposal,
+        otherwise the reason it is not one (the caller fails closed).
+        """
+        self.ensure_one()
+        from odoo.addons.plasticos_gate.services.gate_builders import (
+            ConvergeV2NothingToRequest,
+            build_converge_request_v2,
+        )
+        from odoo.addons.plasticos_gate.services.gate_client import send_converge_action
+        from odoo.addons.plasticos_gate.services.gate_contracts import CartridgePin
+        from odoo.addons.plasticos_gate.services.gate_mappers import (
+            extract_audit_metadata,
+            parse_converge_response_v2,
+            plan_converge_v2_writeback,
+        )
+
+        target, record = self._v2_target()
+        field_defs = self._v2_field_defs(target, record)
+        pin = CartridgePin(selection.cartridge_id, selection.cartridge_version, selection.cartridge_sha256)
+        try:
+            request = build_converge_request_v2(
+                self.env, self, target=target, record=record, cartridge=pin, field_defs=field_defs
+            )
+        except ConvergeV2NothingToRequest as exc:
+            return f"Gate converge v2 not sent: {exc}"
+        body = request.to_dict()
+        result = send_converge_action(
+            self.env,
+            payload=body,
+            correlation_id=request.odoo.get("correlation_id"),
+            idempotency_key=request.idempotency_key,
+        )
+        audit = extract_audit_metadata(result["packet"])
+        reply = result["payload"]
+        parsed = parse_converge_response_v2(reply, request=request)
+        plan = plan_converge_v2_writeback(target, parsed, request, field_defs)
+        if plan.rejection:
+            _logger.warning(
+                "Gate converge v2 evidence rejected (packet %s): %s", audit.get("gate_packet_id"), plan.rejection
+            )
+            return GateUnusableReason(f"Gate converge v2 evidence rejected: {plan.rejection}", audit)
+        if not plan.writes:
+            skipped = ", ".join(f"{d.cartridge_field}={d.skip_reason}" for d in plan.decisions)
+            return GateUnusableReason(f"Gate converge v2 proposed no writable field ({skipped or 'none'}).", audit)
+        self.write(
+            {
+                "engine_used": "gate",
+                "state": "review",
+                "gate_packet_id": audit.get("gate_packet_id"),
+                "gate_correlation_id": audit.get("gate_correlation_id"),
+                "validation_issues": [V2_REVIEW_ISSUE],
+                "gate_proposal": self._v2_proposal_record(
+                    target, record, body, reply, dataclasses.asdict(parsed.resolution), plan
+                ),
+            }
+        )
+        self.message_post(
+            body=(
+                f"Gate converge v2 proposed {len(plan.writes)} field(s) for {record.display_name} "
+                f"for review (packet {audit.get('gate_packet_id')})."
+            ),
+            subtype_xmlid=SUBTYPE_NOTE,
+        )
+        return None
+
+    @staticmethod
+    def _v2_proposal_record(target, record, body, reply, resolution, plan):
+        """The JSON kept on ``gate_proposal`` for review and re-validation at approval."""
+        from odoo.addons.plasticos_gate.services.gate_config import CONVERGE_CONTRACT_V2
+        from odoo.addons.plasticos_gate.services.gate_contracts import thaw
+
+        # Built from pairs: these are JSON member names, not enum values.
+        members = (
+            ("contract", CONVERGE_CONTRACT_V2),
+            ("target", target),
+            ("target_model", record._name),
+            ("target_res_id", record.id),
+            ("request", body),
+            ("reply", reply),
+            ("resolution", resolution),
+            (
+                "plan",
+                [
+                    {
+                        "cartridge_field": d.cartridge_field,
+                        "odoo_field": d.odoo_field,
+                        "action": d.action,
+                        "value": thaw(d.value),
+                        "skip_reason": d.skip_reason,
+                        "evidence_state": d.evidence_state,
+                        "confidence": d.confidence,
+                    }
+                    for d in plan.decisions
+                ],
+            ),
+        )
+        return dict(members)
+
+    @staticmethod
+    def _v2_request_from_body(body):
+        """Rebuild the frozen request a stored proposal was sent with."""
+        from odoo.addons.plasticos_gate.services.gate_contracts import (
+            CartridgePin,
+            ConvergeRequestV2,
+            freeze,
+        )
+
+        cartridge = body["cartridge"]
+        subject = body["subject"]
+        return ConvergeRequestV2(
+            cartridge=CartridgePin(cartridge["id"], cartridge["version"], cartridge.get("sha256")),
+            node=body["node"],
+            subject_type=subject["type"],
+            subject_role=subject.get("role"),
+            targets=freeze(body["targets"]),
+            observations=freeze(body.get("observations") or []),
+            entity=freeze(body["entity"]),
+            object_type=body["object_type"],
+            objective=body["objective"],
+            max_variations=body["max_variations"],
+            consensus_threshold=body["consensus_threshold"],
+            idempotency_key=body.get("idempotency_key"),
+            odoo=freeze(body.get("odoo") or {}),
+        )
+
+    def _inject_gate_proposal_v2(self, proposal):
+        """Approve a stored v2 proposal: re-validate the reply, then write the plan."""
+        self.ensure_one()
+        from odoo.addons.plasticos_gate.services.gate_mappers import (
+            parse_converge_response_v2,
+            plan_converge_v2_writeback,
+        )
+
+        target, record = self._v2_target()
+        if (proposal.get("target"), proposal.get("target_model"), proposal.get("target_res_id")) != (
+            target,
+            record._name,
+            record.id,
+        ):
+            raise UserError(_("The stored Gate proposal is for another record than this run targets."))
+        try:
+            request = self._v2_request_from_body(proposal["request"])
+        except (KeyError, TypeError) as exc:
+            raise UserError(_("The stored Gate converge v2 request is malformed: %s") % exc) from exc
+        field_defs = self._v2_field_defs(target, record)
+        parsed = parse_converge_response_v2(proposal.get("reply"), request=request)
+        plan = plan_converge_v2_writeback(target, parsed, request, field_defs)
+        if plan.rejection:
+            raise UserError(_("Gate converge v2 evidence rejected: %s") % plan.rejection)
+        written = self._apply_converge_v2_plan(plan, record, field_defs, request)
+        if not written:
+            skipped = ", ".join(f"{d.odoo_field}={d.skip_reason or 'filled or unresolved'}" for d in plan.decisions)
+            raise UserError(
+                _("Gate converge v2 proposal has nothing left to write after approval checks (%s).") % skipped
+            )
+        self.write(
+            {
+                "state": "injected",
+                "injected_at": fields.Datetime.now(),
+                "fields_written": written,
+                "profiles_updated": 1 if written and target != "partner" else 0,
+                "validation_issues": False,
+            }
+        )
+        self.message_post(
+            body=(
+                f"Gate converge v2 proposal approved: {written} field(s) applied to {record.display_name} "
+                f"(packet {self.gate_packet_id})."
+            ),
+            subtype_xmlid=SUBTYPE_NOTE,
+        )
+        return True
+
+    def _v2_field_defs(self, target, record):
+        """The target model's field definitions as plain data, for the facility profile.
+
+        The facility profile is open by model definition (ADR-012 amendment
+        2026-11-13 (b)): plasticos_gate derives its rows from these definitions,
+        ``_inherit`` extensions included. Other targets use fixed tables.
+        """
+        from odoo.addons.plasticos_gate.services.gate_allowlists import (
+            V2_TARGET_FACILITY_PROFILE,
+            OdooFieldDef,
+        )
+
+        if target != V2_TARGET_FACILITY_PROFILE:
+            return None
+        defs = []
+        for name, field in record._fields.items():
+            relation = getattr(field, "comodel_name", None) or None
+            has_code = bool(relation) and relation in self.env and "code" in self.env[relation]._fields
+            keys = ()
+            if field.type == "selection":
+                keys = tuple(str(key) for key, _label in field._description_selection(self.env))
+            defs.append(
+                OdooFieldDef(
+                    name=name,
+                    ftype=field.type,
+                    relation=relation,
+                    relation_has_code=has_code,
+                    stored=bool(field.store),
+                    computed=bool(field.compute),
+                    related=bool(field.related),
+                    readonly=bool(field.readonly),
+                    selection_keys=keys,
+                )
+            )
+        return tuple(defs)
+
+    @staticmethod
+    def _v2_field_refusal(record, field_name):
+        """Why a field may never be written by converge, or None (CTO decision 5)."""
+        from odoo.addons.plasticos_gate.services.gate_allowlists import is_never_target
+
+        field = record._fields.get(field_name)
+        if field is None:
+            return f"{record._name} has no field {field_name}"
+        if is_never_target(field_name):
+            return f"{field_name} is never a converge target"
+        if field.compute or field.related or field.readonly or field.type == "one2many":
+            return f"{field_name} is computed, related, readonly or one2many"
+        return None
+
+    def _v2_resolve_codes(self, record, row, value):
+        """Resolve code(s) to existing master records. Returns (write value or None, note).
+
+        Codes compare case-insensitively and exactly (cartridge ``HDPE`` names
+        ``plasticos.polymer`` code ``hdpe``). No master record is ever created.
+        """
+        from odoo.addons.plasticos_gate.services.gate_allowlists import V2_KIND_MANY2ONE_CODE
+
+        def escape(code):
+            return code.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+        model = self.env[row.code_model]
+        scope_domain = []
+        if row.code_scope_field:
+            scope = record[row.code_scope_field]
+            if not scope:
+                return None, f"no {row.code_scope_field} on the record to resolve {value!r} within"
+            scope_domain = [(row.code_scope_field, "=", scope.id)]
+
+        def find(code):
+            found = model.search([(row.code_field, "=ilike", escape(code)), *scope_domain], limit=2)
+            return found if len(found) == 1 else None
+
+        if row.kind == V2_KIND_MANY2ONE_CODE:
+            found = find(value)
+            if not found:
+                return None, f"code {value!r} resolves to no single {row.code_model}"
+            return found.id, ""
+        ids, missing = [], []
+        for code in value:
+            found = find(code)
+            if found:
+                ids.append(found.id)
+            else:
+                missing.append(code)
+        if not ids:
+            return None, f"codes {list(value)} resolve to no {row.code_model}"
+        note = f"; unresolved codes skipped: {missing}" if missing else ""
+        return [Command.set(ids)], note
+
+    def _apply_converge_v2_plan(self, plan, record, field_defs=None, request=None):
+        """Write a validated v2 plan merge-not-overwrite, one provenance row per considered field."""
+        self.ensure_one()
+        from odoo.addons.plasticos_gate.services.gate_allowlists import (
+            V2_KIND_MANY2MANY_CODE,
+            V2_KIND_MANY2ONE_CODE,
+            V2_KIND_SELECTION,
+            resolve_v2_target,
+        )
+
+        spec = resolve_v2_target(
+            plan.target,
+            field_defs,
+            subject=request.subject_type if request else None,
+            version=request.cartridge.version if request else "0.5.0",
+        )
+        packet_id = self.gate_packet_id or ""
+        vals = {}
+        provenance = []
+        for decision in plan.decisions:
+            row = spec.row(decision.cartridge_field)
+            shown = ""
+            previous = ""
+            if decision.action != "write":
+                status = _v2_skip_status(decision.skip_reason)
+                shown = decision.detail or decision.skip_reason or ""
+            else:
+                refusal = self._v2_field_refusal(record, decision.odoo_field)
+                current = record[decision.odoo_field] if refusal is None else None
+                if refusal:
+                    status, shown = "unmapped", refusal
+                elif current:
+                    status = "skipped_immutable"
+                    shown = str(decision.value)
+                    previous = str(current.ids if isinstance(current, models.BaseModel) else current)
+                elif row.kind in (V2_KIND_MANY2ONE_CODE, V2_KIND_MANY2MANY_CODE):
+                    resolved, note = self._v2_resolve_codes(record, row, decision.value)
+                    if resolved is None:
+                        status, shown = "skipped_unresolved_code", note
+                    else:
+                        vals[decision.odoo_field] = resolved
+                        status, shown = "written", f"{decision.value}{note}"
+                elif row.kind == V2_KIND_SELECTION and decision.value not in {
+                    str(key) for key, _label in record._fields[decision.odoo_field]._description_selection(self.env)
+                }:
+                    status = "skipped_unresolved_code"
+                    shown = f"{decision.value!r} is not a value of {decision.odoo_field}"
+                else:
+                    vals[decision.odoo_field] = decision.value
+                    status, shown = "written", str(decision.value)
+                    if decision.source_unit:
+                        # The value as the reply stated it, before any unit conversion or rounding.
+                        shown = f"{decision.value} (from {decision.source_value} {decision.source_unit})"
+            provenance.append(
+                {
+                    "run_id": self.id,
+                    "partner_id": self.partner_id.id,
+                    "target_model": record._name,
+                    "target_res_id": record.id,
+                    "target_field": decision.odoo_field,
+                    "value_written": shown,
+                    "previous_value": previous,
+                    "source_sentence": (
+                        f"gate_converge_v2:{packet_id}:{decision.cartridge_field}:{decision.evidence_state}"
+                    ),
+                    "confidence": decision.confidence or 0.0,
+                    "inference_type": _v2_inference_type(decision.evidence_state),
+                    "status": status,
+                }
+            )
+        if vals:
+            record.write(vals)
+        self.env[PROVENANCE_MODEL].create(provenance)
+        return len(vals)
+
     def _rollback_then_persist_operator_state(self, run_id, vals):
         """Roll the failed transaction back, then persist run state durably.
 
@@ -406,8 +842,9 @@ class EnrichmentRun(models.Model):
                     "engine_used": "gate",
                     "state": "degraded",
                     "failure_class": "unknown",
-                    "validation_issues": [unusable_reason],
+                    "validation_issues": [str(unusable_reason)],
                     "availability_status": availability.status,
+                    **getattr(unusable_reason, "audit_vals", {}),
                 },
             )
             raise UserError(_("Gate enrichment degraded: %s") % unusable_reason)
@@ -480,6 +917,10 @@ class EnrichmentRun(models.Model):
         if self.state != "review":
             raise UserError(_("Gate runs can only be manually injected from review (current state: %s).") % self.state)
         proposal = self.gate_proposal if isinstance(self.gate_proposal, dict) else {}
+        from odoo.addons.plasticos_gate.services.gate_config import CONVERGE_CONTRACT_V2
+
+        if proposal.get("contract") == CONVERGE_CONTRACT_V2:
+            return self._inject_gate_proposal_v2(proposal)
         proposed = proposal.get("proposed_partner_fields") or {}
         # Revalidate the stored proposal: keep only named, scalar, non-empty
         # values before the write boundary applies the allowlist.

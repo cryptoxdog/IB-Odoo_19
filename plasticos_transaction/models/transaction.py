@@ -11,6 +11,7 @@ ACCOUNT_MOVE = "account.move"
 RES_PARTNER = "res.partner"
 PLASTICOS_MATERIAL_PROFILE = "plasticos.material.profile"
 PLASTICOS_TRANSACTION = "plasticos.transaction"
+OPERATIONS_MANAGER_GROUP = "plasticos_security_base.group_operations_manager"
 _REFUND_TYPES = frozenset({"out_refund", "in_refund"})
 _HISTORICAL_REOPEN_ID = "plasticos_historical_reopen_id"
 _HISTORICAL_REOPEN_REASON = "plasticos_historical_reopen_reason"
@@ -1364,11 +1365,17 @@ class PlasticosTransaction(models.Model):
 
         supplier_name = self.supplier_id.name if self.supplier_id else "N/A"
         followup_count = self.supplier_confirmation_followup_count
-        self.activity_schedule(
-            "mail.mail_activity_data_todo",
-            user_id=self.user_id.id or self.env.user.id,
+        # Escalated to an Operations Manager, never to the salesperson or the acting user.
+        # The transaction has no company of its own; its orders establish it.
+        self.env["res.users"]._plasticos_escalate_to_manager(
+            self,
+            OPERATIONS_MANAGER_GROUP,
             summary=f"ESCALATION: Supplier confirmation pending on {self.name}",
             note=f"Supplier {supplier_name} has not confirmed after {followup_count} follow-ups.",
+            label="supplier confirmation escalation",
+            companies=self.sale_order_id.company_id | self.purchase_order_ids.company_id,
+            one_open=False,
+            exclude_users=self.user_id,
         )
 
     # ═════════════════════════════════════════════════════════

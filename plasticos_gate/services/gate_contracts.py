@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
+from types import MappingProxyType
 from typing import Any
 
 from .gate_config import DEFAULT_CONSENSUS_THRESHOLD
@@ -225,3 +227,188 @@ class ProcessIntakeResponse:
     match_query: dict[str, Any] = field(default_factory=dict)
     recommended_next_action: str | None = None
     raw: dict[str, Any] = field(default_factory=dict)
+
+
+# ── Converge contract v2 (EIE docs/contracts/converge/request.v2.md and
+#    response.v2.md, both FROZEN 2026-11-13 incl. Revision 1) ───────────────
+
+CONVERGE_REQUEST_V2 = "eie.converge.request/v2"
+CONVERGE_RESPONSE_V2 = "eie.converge.response/v2"
+
+
+@dataclass(frozen=True, slots=True)
+class CartridgePin:
+    id: str
+    version: str
+    sha256: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        data = {"id": self.id, "version": self.version}
+        if self.sha256:
+            data["sha256"] = self.sha256
+        return data
+
+
+@dataclass(frozen=True, slots=True)
+class ConvergeRequestV2:
+    """A converge request v2 body. ``schema`` and ``field_thresholds`` never appear."""
+
+    cartridge: CartridgePin
+    node: str
+    subject_type: str
+    subject_role: str | None
+    targets: tuple[Mapping[str, Any], ...]
+    observations: tuple[Mapping[str, Any], ...]
+    entity: Mapping[str, Any]
+    object_type: str
+    objective: str
+    max_variations: int
+    consensus_threshold: float
+    idempotency_key: str | None = None
+    odoo: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
+
+    def to_dict(self) -> dict[str, Any]:
+        subject: dict[str, Any] = {"type": self.subject_type}
+        if self.subject_role:
+            subject["role"] = self.subject_role
+        # Built pair by pair, not as one dict literal: these are wire member names,
+        # not enum values (see gate_config.GateAvailabilityVerdict.as_dict).
+        members: tuple[tuple[str, Any], ...] = (
+            ("contract", CONVERGE_REQUEST_V2),
+            ("cartridge", self.cartridge.to_dict()),
+            ("node", self.node),
+            ("subject", subject),
+            ("targets", [_plain(t) for t in self.targets]),
+            ("entity", _plain(self.entity)),
+            ("object_type", self.object_type),
+            ("objective", self.objective),
+            ("max_variations", self.max_variations),
+            ("consensus_threshold", self.consensus_threshold),
+        )
+        data: dict[str, Any] = dict(members)
+        if self.observations:
+            data["observations"] = [_plain(o) for o in self.observations]
+        if self.idempotency_key is not None:
+            data["idempotency_key"] = self.idempotency_key
+        if self.odoo:
+            data["odoo"] = _plain(self.odoo)
+        return data
+
+
+def _plain(value: Any) -> Any:
+    """Deep-copy a frozen structure back into JSON-ready dicts and lists."""
+    if isinstance(value, Mapping):
+        return {k: _plain(v) for k, v in value.items()}
+    if isinstance(value, tuple | list):
+        return [_plain(v) for v in value]
+    return value
+
+
+def freeze(value: Any) -> Any:
+    """Deep-freeze JSON data: dicts become read-only mappings, lists tuples."""
+    if isinstance(value, Mapping):
+        return MappingProxyType({k: freeze(v) for k, v in value.items()})
+    if isinstance(value, list | tuple):
+        return tuple(freeze(v) for v in value)
+    return value
+
+
+thaw = _plain
+
+
+@dataclass(frozen=True, slots=True)
+class EvidenceSource:
+    source_type: str
+    source_ref: str
+    method: str
+    independent: bool | None
+    citations: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class EvidenceDerivation:
+    method: str
+    rule_or_model_version: str
+    inputs: tuple[str, ...]
+    kb_fragment_ids: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class EvidenceIdentity:
+    subject_ref: str
+    subject_type: str | None
+    role: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class ConflictCandidate:
+    value: Any
+    unit_status: str
+    unit: str | None
+    confidence: float | None
+    sources: tuple[EvidenceSource, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class FieldEvidence:
+    """One response v2 ``field_evidence`` entry, validated and frozen.
+
+    ``has_value`` separates "no value" from a JSON ``null`` value.
+    """
+
+    field: str
+    state: str
+    admitted: bool
+    has_value: bool
+    value: Any
+    unit_status: str | None
+    unit: str | None
+    confidence: float | None
+    sources: tuple[EvidenceSource, ...]
+    derivation: EvidenceDerivation | None
+    identity: EvidenceIdentity
+    declaration: Mapping[str, Any]
+    conflict: tuple[ConflictCandidate, ...] | None
+    unknown_reason: str | None
+
+
+@dataclass(frozen=True, slots=True)
+class TypedProposal:
+    proposal_id: str
+    proposal_type: str
+    identity: EvidenceIdentity
+    fields: tuple[str, ...]
+    admitted_fields: tuple[str, ...]
+    review_reasons: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class CartridgeResolution:
+    cartridge_id: str
+    cartridge_version: str
+    cartridge_sha256: str
+    node: str
+
+
+@dataclass(frozen=True, slots=True)
+class ConvergeResponseV2:
+    """A parsed reply to a v2 request.
+
+    ``rejection`` is set whenever the reply's evidence must not be used:
+    a v1-shaped reply, an unrecognised contract or state, a requested field
+    with no entry, a malformed entry, or a run that did not complete. When it
+    is set, ``field_evidence`` and ``proposals`` are empty and nothing may be
+    written (response.v2.md section 6, consumer rules).
+    """
+
+    contract_version: str | None
+    state: str | None
+    failure_reason: str | None
+    resolution: CartridgeResolution | None
+    field_evidence: Mapping[str, FieldEvidence]
+    proposals: tuple[TypedProposal, ...]
+    rejection: str | None
+
+    @property
+    def usable(self) -> bool:
+        return self.rejection is None
