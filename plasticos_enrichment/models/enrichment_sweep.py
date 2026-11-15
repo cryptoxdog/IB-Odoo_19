@@ -165,7 +165,7 @@ class PlasticosEnrichmentSweep(models.Model):
         """Nightly: build candidates and send one ``enrichment-sweep`` through Gate."""
         # sudo: system job run as the group-less service user (plasticos_base.user_system_cron);
         # it creates only this audit record and reads facility profiles. No business write.
-        self = self.sudo()  # noqa: PLW0642  # cron-sudo-justification: group-less service user
+        self = self.sudo()  # sudo: cron-sudo-justification: group-less service user, bounded job
         from odoo.addons.plasticos_gate.services.gate_config import (
             GateIntegrationError,
             gate_enrichment_enabled,
@@ -296,7 +296,7 @@ class PlasticosEnrichmentSweep(models.Model):
         """Follow-up: page results of every open sweep into review-state runs."""
         # sudo: system job as the group-less service user; it creates review-state runs only,
         # which write nothing to a partner or profile before a human approves them.
-        self = self.sudo()  # noqa: PLW0642  # cron-sudo-justification: group-less service user
+        self = self.sudo()  # sudo: cron-sudo-justification: group-less service user, bounded job
         try:
             settings = self._sweep_settings()
         except policy.SweepSettingsError as exc:
@@ -350,6 +350,7 @@ class PlasticosEnrichmentSweep(models.Model):
         seen_skips = {(r.get("entity_id"), r.get("stage")) for r in rejections}
         page = None
         audit = {}
+        failed_vals = None
         for _page_no in range(MAX_RESULT_PAGES):
             try:
                 result = send_sweep_action(
@@ -363,12 +364,11 @@ class PlasticosEnrichmentSweep(models.Model):
             except (GateIntegrationError, SweepContractError) as exc:
                 failure = getattr(exc, "failure_class", None) or "contract"
                 # A retryable transport failure keeps the sweep open for the next pass.
-                vals = dict(error=f"{failure}: {exc}", ingested=ingested, rejections=rejections)
+                failed_vals = dict(error=f"{failure}: {exc}", ingested=ingested, rejections=rejections)
                 if failure != "retryable":
-                    vals["state"] = "failed"
-                self.write(vals)
+                    failed_vals["state"] = "failed"
                 _logger.error("Enrichment sweep %s results failed (%s): %s", self.name, failure, exc)
-                return
+                break
             for item in page.results:
                 if item.entity_id in ingested:
                     continue
@@ -385,6 +385,10 @@ class PlasticosEnrichmentSweep(models.Model):
             cursor = page.next_cursor
             if cursor is None:
                 break
+        if failed_vals is not None:
+            # Results already ingested on earlier pages stay recorded with the failure.
+            self.write(failed_vals)
+            return
         finished = page is not None and page.finished
         state = self.state
         if finished:
