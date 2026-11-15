@@ -125,7 +125,8 @@ _ADMISSION_LOCK = threading.Lock()
 
 
 def _admission_key(config: Any, tenant: str, extra_actions: tuple[str, ...] = ()) -> tuple[Any, ...]:
-    return (config.gate_url, config.local_node, config.signing_key_id, tenant, _ODOO_REQUIRED_ACTIONS, extra_actions)
+    # The last element is the full action set asked: unchanged for match + converge alone.
+    return (config.gate_url, config.local_node, config.signing_key_id, tenant, _ODOO_REQUIRED_ACTIONS + extra_actions)
 
 
 def _forget_admission(config: Any, tenant: str, extra_actions: tuple[str, ...] = ()) -> None:
