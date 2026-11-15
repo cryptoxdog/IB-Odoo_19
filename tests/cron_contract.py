@@ -120,6 +120,16 @@ CRONS: tuple[CronBinding, ...] = (
         "plasticos.enrichment.run",
         "action_cron_inference_only",
     ),
+    CronBinding(
+        "plasticos_enrichment/data/sweep_data.xml",
+        "plasticos.enrichment.sweep",
+        "_cron_send_sweep",
+    ),
+    CronBinding(
+        "plasticos_enrichment/data/sweep_data.xml",
+        "plasticos.enrichment.sweep",
+        "_cron_collect_results",
+    ),
 )
 
 CRON_TEST_FILES: tuple[str, ...] = (

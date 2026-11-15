@@ -12,6 +12,7 @@ depends:
   - plasticos_base
   - plasticos_gate
   - base
+  - base_setup
   - mail
   - contacts
   - plasticos_material_profile
@@ -22,12 +23,16 @@ models_owned:
   - plasticos.enrichment.provenance
   - plasticos.enrichment.extraction
   - plasticos.enrichment.service
+  - plasticos.enrichment.sweep
 models_extended:
   - res.partner
   - plasticos.facility.profile
+  - res.config.settings
 crons:
   - cron_enrichment_daily
   - cron_inference_standalone
+  - cron_enrichment_sweep_send
+  - cron_enrichment_sweep_results
 ---
 
 # PlastOS Buyer CRM Enrichment Engine

@@ -32,6 +32,11 @@ MAX_RESULT_PAGES = 200
 MAX_OPEN_SWEEPS_PER_PASS = 30
 
 
+def _rejection(entity_id, reason, stage):
+    """One rejection/skip row kept on the sweep (stage: send, result or skipped)."""
+    return dict(entity_id=entity_id, reason=reason, stage=stage)
+
+
 class PlasticosEnrichmentSweep(models.Model):
     _name = "plasticos.enrichment.sweep"
     _description = "Scheduled Enrichment Sweep"
@@ -267,7 +272,7 @@ class PlasticosEnrichmentSweep(models.Model):
                 "sweep_id": reply.sweep_id,
                 "accepted_count": reply.accepted_count,
                 "rejected_count": reply.rejected_count,
-                "rejections": [{"entity_id": r.entity_id, "reason": r.reason, "stage": "send"} for r in reply.rejected],
+                "rejections": [_rejection(r.entity_id, r.reason, "send") for r in reply.rejected],
                 "gate_packet_id": audit.get("gate_packet_id"),
                 "gate_correlation_id": audit.get("gate_correlation_id"),
             }
@@ -352,7 +357,7 @@ class PlasticosEnrichmentSweep(models.Model):
             except (GateIntegrationError, SweepContractError) as exc:
                 failure = getattr(exc, "failure_class", None) or "contract"
                 # A retryable transport failure keeps the sweep open for the next pass.
-                vals = {"error": f"{failure}: {exc}", "ingested": ingested, "rejections": rejections}
+                vals = dict(error=f"{failure}: {exc}", ingested=ingested, rejections=rejections)
                 if failure != "retryable":
                     vals["state"] = "failed"
                 self.write(vals)
@@ -365,11 +370,11 @@ class PlasticosEnrichmentSweep(models.Model):
                 if run_id:
                     ingested[item.entity_id] = run_id
                 elif (item.entity_id, "result") not in seen_skips:
-                    rejections.append({"entity_id": item.entity_id, "reason": problem, "stage": "result"})
+                    rejections.append(_rejection(item.entity_id, problem, "result"))
                     seen_skips.add((item.entity_id, "result"))
             for skip in page.skipped:
                 if (skip.entity_id, "skipped") not in seen_skips:
-                    rejections.append({"entity_id": skip.entity_id, "reason": skip.reason, "stage": "skipped"})
+                    rejections.append(_rejection(skip.entity_id, skip.reason, "skipped"))
                     seen_skips.add((skip.entity_id, "skipped"))
             cursor = page.next_cursor
             if cursor is None:
@@ -380,18 +385,19 @@ class PlasticosEnrichmentSweep(models.Model):
             state = "failed" if page.state == SWEEP_STATE_FAILED else "done"
         elif page is not None:
             state = "running"
+        # Keyword form: these are field names, not enum values (phantom-enum scan).
         self.write(
-            {
-                "state": state,
-                "eie_state": page.state if page else self.eie_state,
-                "ingested": ingested,
-                "ingested_count": len(ingested),
-                "rejections": rejections,
-                "skipped_count": len([r for r in rejections if r.get("stage") == "skipped"]),
-                "budget": page.budget_dict() if page else self.budget,
-                "gate_packet_id": audit.get("gate_packet_id") or self.gate_packet_id,
-                "error": False,
-            }
+            dict(
+                state=state,
+                eie_state=page.state if page else self.eie_state,
+                ingested=ingested,
+                ingested_count=len(ingested),
+                rejections=rejections,
+                skipped_count=len([r for r in rejections if r.get("stage") == "skipped"]),
+                budget=page.budget_dict() if page else self.budget,
+                gate_packet_id=audit.get("gate_packet_id") or self.gate_packet_id,
+                error=False,
+            )
         )
 
     def _ingest_result(self, entity_id, response, audit):

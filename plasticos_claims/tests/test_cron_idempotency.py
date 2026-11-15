@@ -787,3 +787,19 @@ class TestCronInDomain(PlasticosTestCase):
         text = "\n".join(again.output)
         self.assertIn("action_cron_enrich_pending skipped", text)
         self.assertIn("action_cron_inference_only skipped", text)
+
+    def test_enrichment_sweep_crons_do_nothing_while_disabled(self):
+        """Seeded off (ADR-012 amendment 2026-11-15): no sweep, no Gate call, on every pass."""
+        self._skip_unless_model("plasticos.enrichment.sweep")
+        icp = self.env["ir.config_parameter"].sudo()
+        previous = icp.get_param("plasticos.gate.sweep_enabled") or ""
+        icp.set_param("plasticos.gate.sweep_enabled", "0")
+        self.addCleanup(icp.set_param, "plasticos.gate.sweep_enabled", previous)
+        before = self.env["plasticos.enrichment.sweep"].search_count([])
+        target = "odoo.addons.plasticos_gate.services.gate_client.send_sweep_action"
+        with patch(target) as send:
+            for _pass in range(2):
+                self.assertFalse(self.env["plasticos.enrichment.sweep"]._cron_send_sweep())
+                self.assertFalse(self.env["plasticos.enrichment.sweep"]._cron_collect_results())
+        send.assert_not_called()
+        self.assertEqual(self.env["plasticos.enrichment.sweep"].search_count([]), before)
