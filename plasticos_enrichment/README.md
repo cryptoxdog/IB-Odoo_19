@@ -51,6 +51,7 @@ The Odoo shell for partner enrichment. Odoo decides when to ask, sends a converg
   - **Approval.** `action_inject()` validates the stored reply again. It then writes only admitted `inferred` and `external_claim` values, with typed coercion. A number is written only in its governing unit, and only when the field accepts that unit. The governing unit is the value's stated unit, or else the cartridge's declared unit. A converted number's provenance keeps the original value and unit. A code is resolved to an existing master record, matched case-insensitively. A field that already has a value is not overwritten.
   - **Provenance.** Every considered field gets a provenance row with `target_model`, `target_res_id` and a status. The status is `written`, `skipped_immutable`, `skipped_unknown`, `skipped_conflicting`, `skipped_unit`, `skipped_unresolved_code`, `skipped_not_admitted` or `unmapped`.
   - **Failure.** A v1-shaped, malformed, or other-revision reply writes nothing; the run is `degraded` with the reason. A profile run under v1 never reaches Gate. ([ADR-012 amendment 2026-11-13](../docs/adr/ADR-012-crm-writeback-allowlist-provenance.md))
+- **Scheduled sweep (off by default).** `plasticos.enrichment.sweep` (`models/enrichment_sweep.py`) is the Odoo side of the EIE buyer sweep (ADR-012 amendment 2026-11-15). The nightly cron `_cron_send_sweep` reads the `plasticos.gate.sweep_*` settings, validated by `services/sweep_policy.py`. It selects buyer facility profiles (`customer_rank > 0` on the site or its company), applies the operator's filters, drops profiles in review or inside the cooldown, puts the oldest enrichment first and caps the list. It sends one `enrichment-sweep` through `plasticos_gate`. The hourly cron `_cron_collect_results` reads the result pages. Each result goes through `_v2_review_from_reply`, the method interactive runs also use, and becomes one run in `review`, or `degraded` with the reason. Nothing is written before human approval. A sweep_id and entity_id never create a second run. Settings: **Settings → PlasticOS Enrichment**. Switching it on: ADR-012 amendment 2026-11-15, item 9.
 - **Bales are packaging.** For extracted materials, `normalize_material` maps `bale`, `bales` and `baled` to the Bales packaging type (`plasticos.packaging.type` code `bales`) with provenance, not to a form. Inject then gives that profile no form and never the `OTHER` fallback, the end state of `plasticos_material_profile` 19.0.5.11.14 (operator decision 2026-11-12). Merge still fills only empty fields.
 - **Retired local paths.** `action_run_inference()` raises a user error. The crawl, extract, and inference methods on `plasticos.enrichment.service` raise. `action_cron_enrich_pending()` and `action_cron_inference_only()` log and return.
 - **Install hook.** `post_init_hook` in `hooks.py` adds the enrichment manager group to `plasticos_base.user_system_cron`.
@@ -66,19 +67,22 @@ The Odoo shell for partner enrichment. Odoo decides when to ask, sends a converg
 | `plasticos.enrichment.provenance` | owned           | `models/enrichment_provenance.py` |
 | `plasticos.enrichment.extraction` | owned           | `models/enrichment_extraction.py` |
 | `plasticos.enrichment.service`    | owned, abstract | `models/enrichment_service.py`    |
+| `plasticos.enrichment.sweep`      | owned           | `models/enrichment_sweep.py`      |
+| `res.config.settings`             | extended        | `models/res_config_settings.py`   |
 | `res.partner`                     | extended        | `models/res_partner.py`           |
 | `plasticos.facility.profile`      | extended        | `models/profile_enrichment.py`    |
 
 ## Runtime
 
 - Crons in `data/cron.xml`: `cron_enrichment_daily` and `cron_inference_standalone`, both `active` false. Their methods log and return.
+- Crons in `data/sweep_data.xml`: `cron_enrichment_sweep_send` (daily) and `cron_enrichment_sweep_results` (hourly), both `active` false and also gated on `plasticos.gate.sweep_enabled` (seeded `0`). The same file seeds the sweep defaults: budget `5.0` USD, 50 buyers, 30-day cooldown.
 - `auto_install` is true. Odoo installs it once `plasticos_base`, `plasticos_gate`, `base`, `mail`, `contacts`, `plasticos_material_profile` and `plasticos_facility_profile` are installed.
 - Gate configuration lives in `plasticos_gate`. `plasticos.gate.enrichment_enabled` (seeded `1`) turns Gate enrichment off when set to `0`.
 
 ## Boundaries
 
 - No local crawl, extraction, or inference runs in this module.
-- No ranking or selection of which partners to enrich ([ADR-009](../docs/adr/ADR-009-enrichment-selection-ranking-not-in-odoo.md)).
+- No ranking of which partners to enrich ([ADR-009](../docs/adr/ADR-009-enrichment-selection-ranking-not-in-odoo.md)). The one exception is the scheduled sweep: operator filters choose which buyers are offered to EIE, ordered only by enrichment age (ADR-012 amendment 2026-11-15, item 7).
 - No direct call to an enrichment engine. Every request goes through `plasticos_gate` ([ADR-015](../docs/adr/ADR-015-persistence-shells-matching-enrichment.md)).
 - The CEG health → Gate → EIE feedback channel is defined in [ADR-017](../docs/adr/ADR-017-constellation-enrichment-feedback-channel.md), not in this module.
 
