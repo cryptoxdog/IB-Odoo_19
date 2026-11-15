@@ -129,6 +129,20 @@ class TestManualOffers(PlasticosTestCase):
         self.assertEqual(len(offers), 1, "the completed sheet drafts as before")
         self.assertEqual(offers.state, "draft")
 
+    def test_existing_draft_is_not_sent_once_the_sheet_loses_polymer_or_form(self):
+        opportunity = self._opportunity()
+        offer = self._generate(opportunity, self.alice)
+        offer.write({"price_per_lb": 0.21})
+        sheet = opportunity.opportunity_material_ids
+        sheet.form_id = False
+        with self.assertRaisesRegex(UserError, "Form not set on the opportunity material"):
+            send_offer_email(offer)
+        self.assertEqual(offer.state, "draft", "the incomplete draft stays unsent")
+        self.assertFalse(offer.sent_message_id)
+        sheet.form_id = self.form
+        send_offer_email(offer)
+        self.assertEqual(offer.state, "sent")
+
     def test_closed_opportunity_cannot_start_outreach(self):
         opportunity = self._opportunity()
         opportunity._plasticos_mark_won()
