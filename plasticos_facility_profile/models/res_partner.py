@@ -342,12 +342,12 @@ class ResPartner(models.Model):
         help="Last word of a person's name. Blank on a company, a location, or a one-word name.",
     )
     linked_person_email = fields.Char(
-        string="Email",
+        string="Linked Person Email",
         compute="_compute_linked_person_channels",
         help="A location's own email, or the email of the first linked person when the location has none.",
     )
     linked_person_mobile = fields.Char(
-        string="Mobile",
+        string="Linked Person Mobile",
         compute="_compute_linked_person_channels",
         help="A location's own mobile, or the mobile of the first linked person when the location has none.",
     )
@@ -472,6 +472,11 @@ class ResPartner(models.Model):
         if parent.parent_id.user_id:
             return parent.parent_id.user_id
         return self.env["res.users"]
+
+    # Base declares user_id with compute="_compute_user_id". The override below
+    # depends on parent_id.user_id, the field itself, so Odoo requires
+    # recursive=True; without it the registry sets the flag and logs a UserWarning.
+    user_id = fields.Many2one(recursive=True)
 
     @api.depends("parent_id", "parent_id.user_id", "parent_id.parent_id.user_id")
     def _compute_user_id(self):
