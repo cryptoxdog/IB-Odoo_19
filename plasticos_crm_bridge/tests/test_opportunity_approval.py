@@ -497,14 +497,13 @@ class TestOpportunityApproval(PlasticosTestCase):
         self.assertFalse(self.Run.search([("opportunity_id", "=", opportunity.id)]))
 
     def test_refused_match_mints_no_lot_even_when_the_caller_keeps_the_transaction(self):
-        """The refusal precedes minting: a caller that catches the error holds no incomplete lot."""
+        """The refusal precedes the lot insert: a caller that catches the error holds no incomplete lot."""
         opportunity = self._opportunity()
         opportunity.opportunity_material_ids.write({"polymer_id": False, "form_id": False})
         lots_before = self.Approval.search_count([])
-        mint = AssertionError("no lot may be minted from incomplete material")
         raised = None
         with (
-            patch.object(type(self.Approval), "mint", side_effect=mint),
+            patch.object(type(self.Lead), "_plasticos_ensure_lot_durable", side_effect=AssertionError("no lot")),
             patch(_CLASSIFY, return_value=_available_verdict()),
             patch(_ENABLED, return_value=True),
             patch(_SEND, side_effect=AssertionError("Gate must not be addressed for incomplete material")),
@@ -516,12 +515,51 @@ class TestOpportunityApproval(PlasticosTestCase):
         self.assertIsNotNone(raised)
         self.assertIn("Polymer and Form not set", str(raised))
         self.assertEqual(self.Approval.search_count([]), lots_before)
+        self.assertFalse(opportunity.approval_ids)
 
-    def test_lot_minted_by_other_means_with_an_incomplete_snapshot_is_refused_by_the_orchestrator(self):
-        """``mint`` itself does not check; the orchestrator's snapshot check is the backstop."""
+    def test_direct_mint_refuses_incomplete_material_and_leaves_no_lot(self):
         opportunity = self._opportunity()
         opportunity.opportunity_material_ids.form_id = False
+        lots_before = self.Approval.search_count([])
+        raised = None
+        try:
+            self.Approval.mint(opportunity, source="manual", partner=self.supplier, material_profile=self.profile)
+        except UserError as exc:
+            raised = exc
+        self.assertIsNotNone(raised, "mint must refuse a lot without a form")
+        self.assertIn("Form not set", str(raised))
+        self.assertEqual(self.Approval.search_count([]), lots_before)
+        with self.assertRaisesRegex(UserError, "Form not set"):
+            opportunity.action_approve_lot()
+        self.assertFalse(opportunity.approval_ids)
+
+    def test_direct_mint_with_complete_material_still_mints(self):
+        opportunity = self._opportunity()
         lot = self.Approval.mint(opportunity, source="manual", partner=self.supplier, material_profile=self.profile)
+        self.assertTrue(lot)
+        self.assertTrue(lot.snapshot["polymer_type"])
+        self.assertTrue(lot.snapshot["form"])
+
+    def test_lot_created_by_other_means_with_an_incomplete_snapshot_is_refused_by_the_orchestrator(self):
+        """A lot that bypasses ``mint`` (here the server create door) is still refused at match time."""
+        from odoo.addons.plasticos_matching.canonical_digest import _canonical_digest  # noqa: PLC0415
+
+        opportunity = self._opportunity()
+        snapshot = {
+            "supplier_partner_id": self.supplier.id,
+            "material_profile_id": self.profile.id,
+            "polymer_type": "HDPE",
+        }
+        lot = self.Approval.with_context(**{APPROVAL_MINT_CONTEXT: True}).create(
+            {
+                "opportunity_id": opportunity.id,
+                "partner_id": self.supplier.id,
+                "material_profile_id": self.profile.id,
+                "source": "manual",
+                "snapshot": snapshot,
+                "snapshot_digest": _canonical_digest(snapshot),
+            }
+        )
         self.assertNotIn("form", lot.snapshot)
         with (
             patch(_CLASSIFY, return_value=_available_verdict()),

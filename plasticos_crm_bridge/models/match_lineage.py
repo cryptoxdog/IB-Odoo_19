@@ -179,6 +179,16 @@ class PlasticosOfferMatchLineage(models.Model):
                 blockers.append(_("Opportunity %s is no longer open.") % opportunity.name)
             if not self.material_source_id or self.material_source_id.opportunity_id != opportunity:
                 blockers.append(_("The offer is not linked to its opportunity's material sheet."))
+            else:
+                # A draft made before the sheet lost a fact (or before this gate) must not be emailed.
+                from odoo.addons.plasticos_intake.match_material import missing_match_material  # noqa: PLC0415
+
+                material = self.material_source_id
+                missing = missing_match_material({"polymer_type": material.polymer_id, "form": material.form_id})
+                if missing:
+                    blockers.append(
+                        _("%s not set on the opportunity material. Fill it before sending.") % " and ".join(missing)
+                    )
         return blockers
 
     def _plasticos_freeze_on_send_vals(self):

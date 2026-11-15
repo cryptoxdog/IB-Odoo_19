@@ -252,14 +252,6 @@ class PlasticosOpportunityApproval(models.Model):
                 )
             )
 
-    @api.model
-    def _plasticos_require_source_material(self, opportunity, material_profile):
-        """Refuse before a lot is minted: read the material ``mint`` would freeze (the sheet, else the profile)."""
-        source = opportunity.opportunity_material_ids[:1] or material_profile
-        self._plasticos_refuse_incomplete_material(
-            opportunity, {"polymer_type": source.polymer_id, "form": source.form_id}
-        )
-
     def _plasticos_require_match_material(self):
         """Refuse matching and offer creation while the frozen material lacks a required fact."""
         for rec in self:
@@ -294,6 +286,8 @@ class PlasticosOpportunityApproval(models.Model):
         snapshot = self._material_snapshot(
             partner, material_profile, facility_profile, source_intake, material=material
         )
+        # No lot is minted from material a match and an offer cannot use.
+        self._plasticos_refuse_incomplete_material(opportunity, snapshot)
         vals = {
             "opportunity_id": opportunity.id,
             "partner_id": partner.id,

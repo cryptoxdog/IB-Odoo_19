@@ -33,7 +33,7 @@ class TestIntakeWriteGuards(PlasticosTestCase):
         )
 
     def _make_intake(self, status="draft"):
-        # polymer_id / form_id are required=True (plasticos_intake/models/intake.py:181-196).
+        # polymer_id / form_id are optional on the intake; a complete intake keeps these guards off the material gate.
         return self.env["plasticos.intake"].create(
             {
                 "partner_id": self.partner.id,
