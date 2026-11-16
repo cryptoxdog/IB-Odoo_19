@@ -110,6 +110,11 @@ def _ledger(ledger_id, number, source, adj_type, approved, sale="0", cost="0", c
     }
 
 
+def _origin_key(origin):
+    """Total order over Odoo Char values that may be False."""
+    return (origin is not False, origin or "")
+
+
 @tagged("post_install", "-at_install")
 class TestErpWorksheetImport(TransactionCase):
     @classmethod
@@ -220,8 +225,10 @@ class TestErpWorksheetImport(TransactionCase):
                 for tx in self.Transaction.search([])
             ),
             "moves": sorted((move.id, move.move_type, move.state, round(move.amount_total, 2)) for move in moves),
-            "sale_origins": sorted(self.env["sale.order"].search([]).mapped("origin")),
-            "purchase_origins": sorted(self.env["purchase.order"].search([]).mapped("origin")),
+            # S6: orders that already exist may have no origin (False). Sort False before text,
+            # keeping every value, so the whole-database replay comparison stays exact.
+            "sale_origins": sorted(self.env["sale.order"].search([]).mapped("origin"), key=_origin_key),
+            "purchase_origins": sorted(self.env["purchase.order"].search([]).mapped("origin"), key=_origin_key),
         }
 
     # ── F1: tax configuration is never written ──────────────────────────────
@@ -347,6 +354,52 @@ class TestErpWorksheetImport(TransactionCase):
         invoice = self._marked("account.move", "legacy_erp_outinv_54839")
         self.assertFalse(invoice.invoice_date, "never the worksheet order date")
         self.assertIn("no source invoice date; customer invoice left undated", details)
+
+    def test_domestic_fob_basis_sets_no_incoterm_and_fas_maps_to_fas(self):
+        """BRS-EXP-02-R006 (ADR-021 amendment 2026-11-12): a dock-pickup FOB is not Incoterms FOB; FAS is FAS."""
+        index = self._index()
+        self._worksheet_54839(index)  # both headers and the worksheet carry "FOB Supplier Dock"
+        report = self._run(index)
+        purchase = self._marked("purchase.order", "legacy_erp_po_7275")
+        sale = self._marked("sale.order", "legacy_erp_so_14263")
+        self.assertFalse(purchase.incoterm_id, "a domestic shipping point is not the Incoterms 2020 FOB")
+        if "incoterm" in sale._fields:
+            self.assertFalse(sale.incoterm)
+        details = [anomaly["detail"] for anomaly in report.anomalies]
+        self.assertIn(
+            "purchase.order 7275: price basis 'FOB Supplier Dock' has no supported Incoterm; none set", details
+        )
+
+        fas = self._index()
+        self._worksheet_54839(fas)
+        fas.orders["6345"]["PriceBasis"] = "FAS"
+        fas.orders["6344"]["PriceBasis"] = "FAS"
+        self._run(fas)
+        self.assertEqual(purchase.incoterm_id, self.env.ref("account.incoterm_FAS"), "FAS is the literal Incoterm")
+
+    def test_domestic_fob_basis_never_rewrites_an_already_imported_order(self):
+        """ADR-021 amendment 2026-11-12: an order imported under the old FOB crosswalk keeps its Incoterm."""
+        index = self._index()
+        self._worksheet_54839(index)
+        self._run(index)
+        purchase = self._marked("purchase.order", "legacy_erp_po_7275")
+        self.assertEqual(purchase.state, "draft", "the replay reaches an open purchase order")
+        fob = self.env.ref("account.incoterm_FOB")
+        purchase.write({"incoterm_id": fob.id})  # what the pre-amendment crosswalk wrote
+
+        replay = self._run(index)
+        self.assertEqual(purchase.incoterm_id, fob, "the stored Incoterm is not rewritten")
+        self.assertIn(
+            "purchase.order 7275: price basis 'FOB Supplier Dock' has no supported Incoterm; "
+            "stored Incoterm FOB left unchanged",
+            [anomaly["detail"] for anomaly in replay.anomalies],
+        )
+
+        delivered = self._index()
+        self._worksheet_54839(delivered)
+        delivered.orders["6344"]["PriceBasis"] = "Delivered"
+        self._run(delivered)
+        self.assertFalse(purchase.incoterm_id, "Delivered still clears, unchanged by the amendment")
 
     # ── F5: credits, freight, costs, prepay exclusion ──────────────────────
     def test_worksheet_54839_keeps_credit_freight_costs_and_excludes_prepay(self):
@@ -1270,6 +1323,56 @@ class TestErpWorksheetImport(TransactionCase):
         self.assertEqual(later.sale_order_id, sales)
         self.assertEqual(later.purchase_order_ids.mapped("name"), ["7276"])
         self.assertEqual(self.Transaction.search_count([("name", "in", ["54839", "54840"])]), 2)
+
+    def test_blank_ppo_id_links_the_purchase_order_named_on_the_worksheet(self):
+        """PPo is the purchase-order number when the line key does not resolve."""
+        index = self._index()
+        number = "60821"
+        self._add_order(index, "18980", "18979", "SO", CUSTOMER, "2024-09-01 00:00:00")
+        self._add_order(index, "18981", "7275", "PO", VENDOR, "2024-09-01 00:00:00")
+        detail = _line("160821", number, "18980", "", "1000", "500", "1000", "400")
+        detail["PPo"] = "7275"
+        index.order_lines["18980"] = {"PONumber": "18979"}
+        index.lines[detail["DetailID"]] = detail
+        index.lines_by_buysell[number] = [detail["DetailID"]]
+        index.buysells[number] = _buysell(number, "2024-09-01 00:00:00")
+        report = self._run(index)
+
+        tx = self.Transaction.search([("name", "=", number)])
+        self.assertEqual(len(tx), 1)
+        self.assertEqual(tx.sale_order_id.name, "18979")
+        self.assertEqual(tx.purchase_order_ids.mapped("name"), ["7275"])
+        self.assertEqual(tx.supplier_id, self.vendor)
+        self.assertNotIn(("WKSDetail", "160821", "purchase link: blank line key"), self._anomaly_details(report))
+
+    def test_replay_links_a_purchase_order_onto_the_existing_transaction(self):
+        """A worksheet imported before its purchase order keeps that row and gains the order."""
+        index = self._index()
+        number = "60822"
+        self._add_order(index, "18990", "18990", "SO", CUSTOMER, "2024-09-02 00:00:00")
+        detail = _line("160822", number, "18990", "", "1000", "500", "1000", "400")
+        index.order_lines["18990"] = {"PONumber": "18990"}
+        index.lines[detail["DetailID"]] = detail
+        index.lines_by_buysell[number] = [detail["DetailID"]]
+        index.buysells[number] = _buysell(number, "2024-09-02 00:00:00")
+        self._run(index)
+
+        tx = self.Transaction.search([("name", "=", number)])
+        self.assertEqual(len(tx), 1)
+        self.assertEqual(tx.state, "closed")
+        self.assertFalse(tx.purchase_order_ids)
+        sale_id = tx.sale_order_id.id
+
+        self._add_order(index, "18991", "7278", "PO", VENDOR, "2024-09-02 00:00:00")
+        detail["PPo"] = "7278"
+        self._run(index)
+
+        tx.invalidate_recordset()
+        self.assertEqual(self.Transaction.search_count([("name", "=", number)]), 1)
+        self.assertEqual(tx.state, "closed")
+        self.assertEqual(tx.sale_order_id.id, sale_id)
+        self.assertEqual(tx.purchase_order_ids.mapped("name"), ["7278"])
+        self.assertEqual(tx.supplier_id, self.vendor)
 
     def test_worksheet_with_two_sale_orders_compiles_one_transaction(self):
         index = self._index()

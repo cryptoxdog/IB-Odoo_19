@@ -86,13 +86,30 @@ class TestInvalidData(PlasticosTestCase):
     """Tests for rejection of invalid data with appropriate errors."""
 
     def test_intake_missing_required_fields(self):
+        """Polymer and form are optional on an intake (PR #492); the reference is still NOT NULL.
+
+        An intake with no material saves, is flagged incomplete, and cannot start
+        a match. The database still refuses a row with no reference.
+        """
         if "plasticos.intake" not in self.env:
             self.skipTest("plasticos.intake not installed")
+        Intake = self.env["plasticos.intake"]
+        intake = Intake.create({})
+        self.assertTrue(intake.id, "an intake with no polymer and no form can be created")
+        self.assertFalse(intake.polymer_id)
+        self.assertFalse(intake.form_id)
+        self.assertTrue(intake.material_incomplete)
+        self.assertTrue(intake.name and intake.name != "/", "the reference is server-assigned")
+        with self.assertRaisesRegex(UserError, "Polymer and Form not set"):
+            intake._plasticos_require_match_material()
+        if "plasticos.match.orchestrator" in self.env:
+            with self.assertRaisesRegex(UserError, "Polymer and Form not set"):
+                self.env["plasticos.match.orchestrator"].run_match_for_intake(intake)
         # Odoo's TransactionCase.assertRaises takes one exception class (odoo/tests/common.py:507).
-        # The missing NOT NULL polymer_id is refused by PostgreSQL at INSERT.
+        # name is NOT NULL (plasticos_intake/models/intake.py, required=True): PostgreSQL refuses the INSERT.
         with self.assertRaises(IntegrityError), mute_logger("odoo.sql_db"):
             with self.env.cr.savepoint():
-                self.env["plasticos.intake"].create({})
+                Intake.create({"name": False})
 
     def test_web_lead_duplicate_lead_id(self):
         if "plasticos.web.lead" not in self.env:
@@ -242,17 +259,16 @@ class TestRollbackScenarios(PlasticosTestCase):
         """Failed intake creation does not leave partial records."""
         if "plasticos.intake" not in self.env:
             self.skipTest("plasticos.intake not installed")
-        count_before = self.env["plasticos.intake"].search_count([])
+        Intake = self.env["plasticos.intake"]
+        count_before = Intake.search_count([])
+        # One batch: a valid row and a row the database refuses (name is NOT NULL).
         # The failing INSERT aborts the transaction, so it must run inside a savepoint
         # (assertRaises opens one); swallowing it left the cursor unusable.
         with self.assertRaises(IntegrityError), mute_logger("odoo.sql_db"):
-            self.env["plasticos.intake"].create(
-                {
-                    "partner_id": False,  # polymer_id (NOT NULL) is missing too
-                }
-            )
-        count_after = self.env["plasticos.intake"].search_count([])
+            Intake.create([{"pending_company_name": "Atomic Co"}, {"name": False}])
+        count_after = Intake.search_count([])
         self.assertEqual(count_before, count_after, "Failed create should not leave partial records")
+        self.assertFalse(Intake.search([("pending_company_name", "=", "Atomic Co")]), "the valid row rolled back too")
 
     def test_web_lead_triage_error_state(self):
         """Pipeline error sets state=error, does not leave inconsistent data."""

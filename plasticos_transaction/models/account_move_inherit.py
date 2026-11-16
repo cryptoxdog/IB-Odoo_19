@@ -2,13 +2,16 @@ from odoo import api, models
 from odoo.exceptions import UserError
 
 HISTORICAL_ERP_MOVE_PREFIXES = ("legacy_erp_outinv_", "legacy_erp_ininv_", "legacy_erp_ledger_")
+# Moves whose origin is resolved to a transaction before posting.
+_ORIGIN_MOVE_TYPES = ("out_invoice", "in_invoice", "in_refund")
 
 
 class AccountMove(models.Model):
     _inherit = "account.move"
 
-    # action_post: on posting, link move to transaction (SO -> tx) and enforce compliance
-    #   before setting customer_invoice_id. Prevents posting customer invoice if tx missing docs.
+    # action_post: resolve each customer invoice / vendor bill / vendor credit to at most one
+    #   transaction (company-scoped SO or PO name, transaction number, delivery order number),
+    #   refuse before the native post (ambiguous origin, documents, closed trade), then link.
     # button_cancel: prevent cancelling a move that is linked to a closed transaction
     #   (audit integrity: closed tx must not have its invoices/bills undone).
 
@@ -84,43 +87,220 @@ class AccountMove(models.Model):
         """Documents addon blocks posting when required files are missing."""
         return False
 
-    def action_post(self):
-        """Post invoice/bill with compliance check BEFORE posting.
+    def _origin_orders(self, model, moves):
+        """Orders named by a move origin, per ``(company id, name)``. Every match is kept."""
+        orders_by_key = {}
+        names = list({move.invoice_origin for move in moves})
+        if not names:
+            return orders_by_key
+        orders = self.env[model].search([("name", "in", names), ("company_id", "in", moves.company_id.ids)])
+        for order in orders:
+            orders_by_key.setdefault((order.company_id.id, order.name), []).append(order)
+        return orders_by_key
 
-        Compliance check runs before super().action_post() to prevent side effects
-        (webhooks, email notifications) from firing before potential rollback.
+    def _origin_numbered_transactions(self, moves, payables):
+        """Transactions named by a move origin: by transaction number, or by delivery order number.
+
+        The transaction number is unique. A delivery order number is read from
+        the transaction's own stored ``do_number`` and is accepted on payables only.
+        """
+        Transaction = self.env["plasticos.transaction"]
+        by_number = {}
+        for transaction in Transaction.search([("name", "in", list({move.invoice_origin for move in moves}))]):
+            by_number.setdefault(transaction.name, []).append(transaction)
+        by_delivery = {}
+        delivery_numbers = list({move.invoice_origin for move in payables})
+        if delivery_numbers:
+            for transaction in Transaction.search([("do_number", "in", delivery_numbers)]):
+                by_delivery.setdefault(transaction.do_number, []).append(transaction)
+        return by_number, by_delivery
+
+    def _resolve_origin_transactions(self):
+        """Resolve each customer invoice, vendor bill and vendor credit to at most one transaction.
+
+        Returns ``(transaction_by_move, ambiguous_by_move)``. The origin must be
+        exactly one reference in the move's company: a sale order name or a
+        transaction number, and for payables also a purchase order name or a
+        delivery order number. A name that matches more than one order, a
+        purchase order held by more than one transaction, or references that
+        lead to different transactions are ambiguous: no transaction is
+        resolved and the reason is returned. An origin that matches nothing
+        resolves nothing.
+        """
+        transaction_by_move = {}
+        ambiguous_by_move = {}
+        moves = self.filtered(lambda move: move.move_type in _ORIGIN_MOVE_TYPES and move.invoice_origin)
+        if not moves:
+            return transaction_by_move, ambiguous_by_move
+        payables = moves.filtered(lambda move: move.move_type != "out_invoice")
+        sales = self._origin_orders("sale.order", moves)
+        purchases = self._origin_orders("purchase.order", payables)
+        transactions_by_purchase = {}
+        purchase_ids = [order.id for orders in purchases.values() for order in orders]
+        if purchase_ids:
+            holders = self.env["plasticos.transaction"].search([("purchase_order_ids", "in", purchase_ids)])
+            for holder in holders:
+                for purchase in holder.purchase_order_ids:
+                    transactions_by_purchase.setdefault(purchase.id, []).append(holder)
+        by_number, by_delivery = self._origin_numbered_transactions(moves, payables)
+        for move in moves:
+            origin = move.invoice_origin
+            key = (move.company_id.id, origin)
+            payable = move.move_type != "out_invoice"
+            found = self.env["plasticos.transaction"]
+            sale_orders = sales.get(key, [])
+            purchase_orders = purchases.get(key, []) if payable else []
+            if len(sale_orders) > 1:
+                ambiguous_by_move[move.id] = f"more than one sale order is named {origin}"
+                continue
+            if len(purchase_orders) > 1:
+                ambiguous_by_move[move.id] = f"more than one purchase order is named {origin}"
+                continue
+            if sale_orders:
+                found |= sale_orders[0].transaction_id
+            if purchase_orders:
+                holders = transactions_by_purchase.get(purchase_orders[0].id, [])
+                if len(holders) > 1:
+                    ambiguous_by_move[move.id] = f"purchase order {origin} belongs to more than one transaction"
+                    continue
+                found = found.union(*holders)
+            numbered = by_number.get(origin, []) + (by_delivery.get(origin, []) if payable else [])
+            for transaction in numbered:
+                sale_company = transaction.sale_order_id.company_id
+                if not sale_company or sale_company == move.company_id:
+                    found |= transaction
+            if len(found) > 1:
+                ambiguous_by_move[move.id] = f"{origin} leads to more than one transaction"
+            elif found:
+                transaction_by_move[move.id] = found
+        return transaction_by_move, ambiguous_by_move
+
+    def _transaction_link_field(self, transaction):
+        """The transaction field that holds this move.
+
+        A payable from the transaction's carrier is a freight bill. Any other
+        payable is a vendor bill. When the carrier is also the supplier the
+        role cannot be told apart and the payable stays a vendor bill.
+        """
+        self.ensure_one()
+        if self.move_type == "out_invoice":
+            return "customer_invoice_id"
+        carrier = transaction.carrier_id.commercial_partner_id
+        supplier = transaction.supplier_id.commercial_partner_id
+        if carrier and carrier != supplier and self.commercial_partner_id == carrier:
+            return "freight_bill_ids"
+        return "vendor_bill_ids"
+
+    def _lock_resolved_transactions(self, transaction_by_move):
+        """Serialize this post with a concurrent close or link of the same transactions.
+
+        The row lock is held until commit. A transaction changed by another
+        request since this one began fails here with a serialization error,
+        which Odoo retries against fresh state, so the checks and the link
+        below never act on a stale closed state or invoice pointer.
+        """
+        transaction_ids = sorted({transaction.id for transaction in transaction_by_move.values()})
+        if transaction_ids:
+            # Justification: atomic row lock; the checks below must not read a stale transaction.
+            self.env.cr.execute(
+                "SELECT id FROM plasticos_transaction WHERE id IN %s ORDER BY id FOR NO KEY UPDATE",
+                [tuple(transaction_ids)],
+            )
+
+    def _existing_transaction_links(self):
+        """Transactions that already hold each move as invoice, vendor bill or freight bill."""
+        linked_by_move = {}
+        if not self.ids:
+            return linked_by_move
+        holders = self.env["plasticos.transaction"].search(
+            [
+                "|",
+                "|",
+                ("customer_invoice_id", "in", self.ids),
+                ("vendor_bill_ids", "in", self.ids),
+                ("freight_bill_ids", "in", self.ids),
+            ]
+        )
+        wanted = set(self.ids)
+        for holder in holders:
+            held = set((holder.customer_invoice_id | holder.vendor_bill_ids | holder.freight_bill_ids).ids)
+            for move_id in held & wanted:
+                linked_by_move.setdefault(move_id, []).append(holder)
+        return linked_by_move
+
+    def _plan_transaction_links(self, transaction_by_move):
+        """Decide every link before the native post. Nothing is written here.
+
+        Returns ``(links, skipped)``: ``links`` maps a move id to the
+        ``(transaction, field)`` it will be attached to after posting;
+        ``skipped`` maps a move id to the reason no link is made. A
+        transaction's customer invoice is never replaced, and a bill another
+        transaction holds is never moved.
+        """
+        links = {}
+        skipped = {}
+        linked_by_move = self._existing_transaction_links()
+        invoice_claims = {}
+        for move in self:
+            transaction = transaction_by_move.get(move.id)
+            if not transaction:
+                continue
+            holders = linked_by_move.get(move.id, [])
+            if any(holder != transaction for holder in holders):
+                skipped[move.id] = "it is already linked to another transaction"
+                continue
+            if holders:
+                continue
+            field = move._transaction_link_field(transaction)
+            if move.move_type == "out_invoice":
+                current = transaction.customer_invoice_id
+                claimed = invoice_claims.get(transaction.id)
+                if current or claimed:
+                    holder_name = (current or claimed).display_name
+                    skipped[move.id] = (
+                        f"transaction {transaction.display_name} already has customer invoice {holder_name}"
+                    )
+                    continue
+                invoice_claims[transaction.id] = move
+            links[move.id] = (transaction, field)
+        return links, skipped
+
+    def action_post(self):
+        """Post invoice/bill. Every refusal is raised BEFORE the native post.
+
+        Customer invoices, vendor bills and vendor credits whose origin
+        resolves to exactly one transaction pass the document check and the
+        closed-trade check first. An origin that names more than one order or
+        transaction is refused. An origin that names nothing posts natively
+        with no link. The link itself is bookkeeping written after the post;
+        only writes proven acceptable beforehand are made, so it cannot roll a
+        posted move back.
         """
         if self._historical_source_ids():
             raise UserError("Archived ERP invoices, vendor bills and credits cannot be posted.")
-        # Batch query: collect all invoice_origins for SO lookup
-        out_invoice_origins = [
-            rec.invoice_origin for rec in self if rec.move_type == "out_invoice" and rec.invoice_origin
-        ]
-        in_invoice_origins = [
-            rec.invoice_origin for rec in self if rec.move_type == "in_invoice" and rec.invoice_origin
-        ]
-        all_origins = list(set(out_invoice_origins + in_invoice_origins))
-
-        # Batch fetch SOs and POs
-        so_by_name = {}
-        po_by_name = {}
-        if all_origins:
-            sale_orders = self.env["sale.order"].search([("name", "in", all_origins)])
-            so_by_name = {so.name: so for so in sale_orders}
-            # For origins not found as SOs, try POs
-            missing_origins = [o for o in in_invoice_origins if o not in so_by_name]
-            if missing_origins:
-                purchase_orders = self.env["purchase.order"].search([("name", "in", missing_origins)])
-                po_by_name = {po.name: po for po in purchase_orders}
+        transaction_by_move, ambiguous_by_move = self._resolve_origin_transactions()
+        for rec in self:
+            reason = ambiguous_by_move.get(rec.id)
+            if reason:
+                raise UserError(
+                    f"Cannot post {rec.display_name or 'this document'}: origin {rec.invoice_origin} is ambiguous "
+                    f"({reason}). Correct the origin so it names exactly one order or transaction."
+                )
+        self._lock_resolved_transactions(transaction_by_move)
 
         # Pre-check compliance BEFORE posting (prevents side effects on rollback)
         for rec in self:
-            if rec.move_type == "out_invoice" and rec.invoice_origin:
-                so = so_by_name.get(rec.invoice_origin)
-                if so and so.transaction_id and so.transaction_id.state == "closed":
+            transaction = transaction_by_move.get(rec.id)
+            if transaction and rec.move_type == "out_invoice":
+                if transaction.state == "closed":
                     raise UserError("A new invoice cannot be attached to a historically closed trade.")
-                if so and so.transaction_id and self._missing_invoice_documents(so.transaction_id):
+                if self._missing_invoice_documents(transaction):
                     raise UserError("Missing required documents for invoice posting.")
+            elif transaction:
+                if transaction.state == "closed":
+                    raise UserError("A new vendor bill cannot be attached to a closed trade.")
+                if self._missing_invoice_documents(transaction):
+                    raise UserError("Missing required documents for vendor bill posting.")
 
             # Block credit note post when reversed move is linked to closed transaction
             if rec.move_type in ("out_refund", "in_refund") and rec.reversed_entry_id:
@@ -133,35 +313,26 @@ class AccountMove(models.Model):
         if "plasticos_cutover_opening" in self._fields:
             if self.filtered(lambda move: move.plasticos_cutover_opening and move.invoice_origin):
                 raise UserError("Cutover opening items must not carry a commercial invoice origin.")
+
+        links, skipped = self._plan_transaction_links(transaction_by_move)
+
         # Now safe to post
         res = super().action_post()
 
-        # Batch fetch transactions for POs (for vendor bill linking)
-        po_ids = [po.id for po in po_by_name.values()]
-        tx_by_po = {}
-        if po_ids:
-            transactions = self.env["plasticos.transaction"].search([("purchase_order_ids", "in", po_ids)])
-            for tx in transactions:
-                for po in tx.purchase_order_ids:
-                    tx_by_po[po.id] = tx
-
         # Link moves to transactions AFTER successful post
         for rec in self:
-            if rec.move_type == "out_invoice" and rec.invoice_origin:
-                so = so_by_name.get(rec.invoice_origin)
-                if so and so.transaction_id:
-                    so.transaction_id.customer_invoice_id = rec.id
-
-            if rec.move_type == "in_invoice" and rec.invoice_origin:
-                # Try linking via Sale Order (if origin is SO name)
-                so = so_by_name.get(rec.invoice_origin)
-                if so and so.transaction_id:
-                    so.transaction_id.vendor_bill_ids = [(4, rec.id)]
-                else:
-                    # Try linking via Purchase Order (if origin is PO name)
-                    po = po_by_name.get(rec.invoice_origin)
-                    if po and po.id in tx_by_po:
-                        tx_by_po[po.id].vendor_bill_ids = [(4, rec.id)]
+            if rec.id in links:
+                transaction, field = links[rec.id]
+                value = rec.id if rec.move_type == "out_invoice" else [(4, rec.id)]
+                # The link is bookkeeping derived from the posted document; every gate above ran as the user.
+                transaction.sudo().write({field: value})  # sudo: system link write after user-evaluated gates
+            reason = skipped.get(rec.id)
+            if reason:
+                rec.message_post(
+                    body=f"Posted without a transaction link: {reason}.",
+                    message_type="comment",
+                    subtype_xmlid="mail.mt_note",
+                )
 
         return res
 

@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_broker_consultation_user,broker.consultation.user,model_plasticos_broker_consultation,base.group_user,1,0,1,0
+access_broker_consultation_wizard,broker.consultation.wizard,model_plasticos_broker_consultation_wizard,base.group_user,1,1,1,1

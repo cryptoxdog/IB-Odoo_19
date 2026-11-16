@@ -21,6 +21,23 @@ class TestLindaFreightModels(PlasticosTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        # The acknowledgment escalation is owned by an Operations Manager in the load's company.
+        cls.ops_manager = cls.env["res.users"].create(
+            {
+                "name": "linda.freight.ops.manager",
+                "login": "linda.freight.ops.manager",
+                "group_ids": [
+                    (
+                        6,
+                        0,
+                        [
+                            cls.env.ref("base.group_user").id,
+                            cls.env.ref("plasticos_security_base.group_operations_manager").id,
+                        ],
+                    )
+                ],
+            }
+        )
         # These models are the contract under test. A runtime that lacks one has
         # not installed plasticos_logistics correctly, so fail instead of skipping:
         # a skipped suite would let a broken install or upgrade look green.
@@ -1131,8 +1148,10 @@ class TestLindaFreightModels(PlasticosTestCase):
             load.action_schedule(pickup, pickup)
             load.action_dispatch()
             load.write({"dispatch_sent": sent_at})
-        self.env["plasticos.load"]._cron_check_dispatch_acknowledgments()
-        self.env["plasticos.load"]._cron_check_dispatch_acknowledgments()
+        # S6: scoped to this test's loads; other dispatched loads in the database are not its subject.
+        cron = self.env["plasticos.load"].with_context(linda_load_sweep_ids=[aged.id, fresh.id])
+        cron._cron_check_dispatch_acknowledgments()
+        cron._cron_check_dispatch_acknowledgments()
         activities = self.env["mail.activity"].search(
             [
                 ("res_model", "=", "plasticos.load"),
@@ -1176,3 +1195,221 @@ class TestLindaFreightModels(PlasticosTestCase):
         self.assertEqual(len(rows), 2)
         self.assertEqual(rows[0].supersedes_observation_id, rows[1])
         self.assertFalse(rows[1].supersedes_observation_id)
+
+
+@tagged("post_install", "-at_install", "plasticos", "integration", "logistics", "linda")
+class TestLindaLoadAcknowledgementObligations(PlasticosTestCase):
+    """S4 V10/V19/D3/D4: load ACK reminder (+2h), escalation (+4h) and document chase.
+
+    The clock is the actual confirmed send (``dispatch_sent``). Each obligation is
+    one Linda request per purpose, sent time and audience however often the
+    five-minute job polls; none carries the dispatch packet; an acknowledged load
+    withholds a queued reminder before any claim; an unknown send is never repeated.
+    BRS-EXP-10-R004, BRS-EXP-03-R005/R006.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.Request = cls.env["plasticos.logistics.request"]
+        cls.company = cls.env.company
+        cls.company.partner_id.email = "ops@s4-linda-company.example"
+        cls.supplier = cls.env["res.partner"].create(
+            {"name": "S4 ACK Mill", "is_company": True, "supplier_rank": 1, "street": "1 Ack Rd", "city": "Houston"}
+        )
+        cls.terminal = cls.env["res.partner"].create(
+            {"name": "S4 ACK Ramp", "is_company": True, "street": "2 Ack Way", "city": "Dallas"}
+        )
+        cls.carrier = cls.env["res.partner"].create(
+            {"name": "S4 ACK Carrier", "is_company": True, "email": "dispatch@s4-ack-carrier.example"}
+        )
+
+    def setUp(self):
+        super().setUp()
+        self.env["ir.config_parameter"].sudo().set_param("plasticos_logistics.linda_mode", "live")
+        self.sent_at = fields.Datetime.now().replace(microsecond=0) - timedelta(days=1)
+        # S6: the sweeps see only this test's loads, whatever dispatched loads the database holds.
+        self.own_loads = self.env["plasticos.load"]
+
+    def _dispatched(self):
+        load = self.env["plasticos.load"].create(
+            {
+                "company_id": self.company.id,
+                "pickup_partner_id": self.supplier.id,
+                "delivery_partner_id": self.terminal.id,
+                "reference_weight": 42000,
+                "carrier_id": self.carrier.id,
+                "rate_currency_id": self.company.currency_id.id,
+            }
+        )
+        load._transition("awaiting_ready")
+        load.action_confirm_ready()
+        load.action_confirm_rate(950.0)
+        load.action_schedule(self.sent_at, self.sent_at)
+        load.action_dispatch()
+        load.write({"dispatch_sent": self.sent_at})
+        self.own_loads |= load
+        return load
+
+    def _run_at(self, offset):
+        moment = self.sent_at + offset
+        cron = self.env["plasticos.load"].with_context(linda_load_sweep_ids=self.own_loads.ids)
+        with patch.object(fields.Datetime, "now", lambda *args, **kwargs: moment):
+            cron._cron_check_dispatch_acknowledgments()
+
+    def _obligations(self, load, purpose=None):
+        domain = [("source_kind", "=", "load"), ("source_res_id", "=", load.id)]
+        if purpose:
+            domain.append(("purpose", "=", purpose))
+        return self.Request.search(domain, order="id")
+
+    def _sink(self):
+        sent = []
+        server_class = type(self.env["ir.mail_server"])
+
+        def send_email(server, message, *args, **kwargs):
+            sent.append(message)
+            return message["Message-Id"]
+
+        return sent, (
+            patch.object(server_class, "_disable_send", lambda *args: False),
+            patch.object(server_class, "_connect__", lambda *args, **kwargs: None),
+            patch.object(server_class, "send_email", send_email),
+        )
+
+    def test_reminder_and_escalation_follow_the_actual_send_clock_once_each(self):
+        load = self._dispatched()
+        self._run_at(timedelta(hours=1, minutes=55))
+        self.assertFalse(self._obligations(load), "no early reminder")
+        self._run_at(timedelta(hours=2, minutes=5))
+        notice = self._obligations(load, "load_ack_notice")
+        self.assertEqual(len(notice), 1)
+        self.assertFalse(self._obligations(load, "load_ack_escalation"), "no early escalation")
+        self.assertEqual((notice.partner_id, notice.recipient_email), (self.carrier, self.carrier.email))
+        self.assertEqual(notice.source_revision_key, f"dispatch_sent:{fields.Datetime.to_string(self.sent_at)}")
+        self.assertFalse(notice.mail_id.attachment_ids, "a reminder never carries the dispatch packet")
+        self.assertEqual(notice.mail_id.model, "plasticos.load")
+        for minutes in (10, 15, 20):
+            self._run_at(timedelta(hours=2, minutes=minutes))
+        self.assertEqual(len(self._obligations(load, "load_ack_notice")), 1, "one reminder despite repeated polls")
+        self._run_at(timedelta(hours=4, minutes=5))
+        self._run_at(timedelta(hours=4, minutes=10))
+        escalation = self._obligations(load, "load_ack_escalation")
+        self.assertEqual(escalation.partner_id, self.carrier | self.company.partner_id, "carrier and ops, once each")
+        self.assertFalse(escalation.mail_id.attachment_ids)
+        self.assertEqual(load.dispatch_sent, self.sent_at, "the job never restamps the send clock")
+
+    def test_sweep_rotates_so_no_due_load_is_starved(self):
+        """Codex 4545894607: a bounded page must not revisit the same oldest loads forever."""
+        loads = [self._dispatched() for _index in range(3)]
+        moment = self.sent_at + timedelta(hours=2, minutes=5)
+        cron = self.env["plasticos.load"].with_context(
+            linda_load_sweep_batch=2, linda_load_sweep_ids=self.own_loads.ids
+        )
+        with patch.object(fields.Datetime, "now", lambda *args, **kwargs: moment):
+            cron._cron_check_dispatch_acknowledgments()
+            first = [bool(self._obligations(load, "load_ack_notice")) for load in loads]
+            cron._cron_check_dispatch_acknowledgments()
+        self.assertEqual(sum(first), 2, "one page of two loads per run")
+        for load in loads:
+            self.assertEqual(len(self._obligations(load, "load_ack_notice")), 1, "every due load is reached, once")
+
+    def test_acknowledgement_withholds_a_queued_reminder_before_claim(self):
+        load = self._dispatched()
+        self._run_at(timedelta(hours=2, minutes=5))
+        notice = self._obligations(load, "load_ack_notice")
+        self.assertEqual(notice.state, "queued")
+        load.write({"dispatch_acknowledged": self.sent_at + timedelta(hours=2, minutes=30)})
+        sent, patches = self._sink()
+        with patches[0], patches[1], patches[2]:
+            self.env["mail.mail"].process_email_queue(email_ids=notice.mail_id.ids)
+        notice.invalidate_recordset()
+        self.assertFalse(sent)
+        self.assertEqual((notice.state, notice.state_reason), ("canceled", "dispatch_acknowledged"))
+        self._run_at(timedelta(hours=4, minutes=5))
+        self.assertFalse(self._obligations(load, "load_ack_escalation"), "an acknowledged load is not escalated")
+
+    def test_unknown_reminder_outcome_is_never_sent_again(self):
+        load = self._dispatched()
+        self._run_at(timedelta(hours=2, minutes=5))
+        notice = self._obligations(load, "load_ack_notice")
+        mail = notice.mail_id
+        self.assertEqual(mail._linda_claim_outgoing(mail), "claimed")
+        sent, patches = self._sink()
+        with patches[0], patches[1], patches[2]:
+            self.env["mail.mail"].process_email_queue(email_ids=mail.ids)
+            self._run_at(timedelta(hours=2, minutes=30))
+        notice.invalidate_recordset()
+        self.assertFalse(sent)
+        self.assertEqual(notice.state, "unknown")
+        self.assertEqual(len(self._obligations(load, "load_ack_notice")), 1)
+
+    def test_off_mode_records_no_obligation(self):
+        self.env["ir.config_parameter"].sudo().set_param("plasticos_logistics.linda_mode", "off")
+        load = self._dispatched()
+        self._run_at(timedelta(hours=5))
+        self.assertFalse(self._obligations(load))
+
+    def test_job_polls_every_five_minutes_and_data_never_forces_it_active(self):
+        cron = self.env.ref("plasticos_logistics.cron_dispatch_acknowledgment")
+        self.assertEqual((cron.interval_number, cron.interval_type), (5, "minutes"))
+        from lxml import etree
+
+        from odoo.tools.misc import file_path
+
+        tree = etree.parse(file_path("plasticos_logistics/data/cron.xml"))
+        record = tree.xpath("//record[@id='cron_dispatch_acknowledgment']")[0]
+        self.assertFalse(record.xpath("field[@name='active']"), "an upgrade must not re-enable a disabled job")
+
+    def test_document_chase_reads_documents_status_once_and_stops_on_evidence(self):
+        """D4: Documents owns the scale-ticket status and its timing; Linda only sends the chase."""
+        load = self._dispatched()
+        Attachment = self.env["ir.attachment"]
+        pickup = Attachment.create(
+            {"name": "bol.pdf", "raw": b"%PDF-1.4 bol", "res_model": "plasticos.load", "res_id": load.id}
+        )
+        delivery = Attachment.create(
+            {"name": "pod.pdf", "raw": b"%PDF-1.4 pod", "res_model": "plasticos.load", "res_id": load.id}
+        )
+        load.action_record_actual_event("pickup", self.sent_at + timedelta(hours=1), pickup)
+        load._transition("picked_up")
+        load.action_record_actual_event("delivery", self.sent_at + timedelta(hours=8), delivery)
+        load._transition("delivered")
+        Request = self.Request.sudo()
+        if "scale_ticket_reminder_sent" not in load._fields:
+            self.assertEqual(Request._scale_ticket_chase_reason(load), "document_chase_not_approved")
+            self.env["ir.config_parameter"].sudo().set_param("plasticos_logistics.linda_document_chase", "1")
+            self.assertEqual(Request._scale_ticket_chase_reason(load), "documents_status_not_available")
+            return
+        rule = self.env.ref("plasticos_documents.rule_scale_ticket_carrier")
+        self.assertEqual((rule.overdue_business_days, rule.escalation_business_days), (2, 7), "rule not re-timed")
+        # Not approved: Documents may still remind internally, Linda sends nothing external.
+        load._write_scale_ticket_status({"scale_ticket_reminder_sent": True})
+        Request._run_load_obligations(load)
+        self.assertFalse(self._obligations(load, "document_chase"))
+        self.env["ir.config_parameter"].sudo().set_param("plasticos_logistics.linda_document_chase", "1")
+        transaction_class = type(self.env["plasticos.transaction"])
+        with patch.object(transaction_class, "_load_has_current_scale_ticket", lambda *args: False):
+            Request._run_load_obligations(load)
+            Request._run_load_obligations(load)
+        chase = self._obligations(load, "document_chase")
+        self.assertEqual(len(chase), 1, "at most one chase per delivered load and delivery time")
+        self.assertEqual((chase.partner_id, chase.state), (self.carrier, "queued"))
+        self.assertFalse(chase.mail_id.attachment_ids)
+        reminder_flags = (load.scale_ticket_reminder_sent, load.scale_ticket_escalated)
+        with patch.object(transaction_class, "_load_has_current_scale_ticket", lambda *args: True):
+            Request._run_load_obligations(load)
+        chase.invalidate_recordset()
+        self.assertEqual((chase.state, chase.state_reason), ("canceled", "evidence_received"))
+        self.assertEqual((load.scale_ticket_reminder_sent, load.scale_ticket_escalated), reminder_flags)
+
+    def test_claim_of_no_mail_is_a_skip_not_a_sql_error(self):
+        """S6 (C06-SCOPE-3 a): an empty mail record claims nothing and sends nothing."""
+        Mail = self.env["mail.mail"]
+        with self.env.cr.savepoint():
+            self.assertEqual(Mail._linda_claim_outgoing(Mail.browse()), "skip")
+        pair = Mail.create(
+            [{"subject": "S6 one", "body_html": "<p>1</p>"}, {"subject": "S6 two", "body_html": "<p>2</p>"}]
+        )
+        with self.assertRaises(ValueError):
+            Mail._linda_claim_outgoing(pair)

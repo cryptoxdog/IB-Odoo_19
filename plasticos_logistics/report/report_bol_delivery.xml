@@ -63,12 +63,12 @@
                                 </td>
                                 <td style="width: 50%;">
                                     <strong>SHIPPER:</strong><br/>
-                                    <t t-if="doc.sale_order_id.company_id">
-                                        <strong><t t-out="doc.sale_order_id.company_id.name"/></strong><br/>
-                                        <t t-out="doc.sale_order_id.company_id.street or ''"/><br/>
-                                        <t t-out="doc.sale_order_id.company_id.city or ''"/>,
-                                        <t t-out="doc.sale_order_id.company_id.state_id.code or ''"/>
-                                        <t t-out="doc.sale_order_id.company_id.zip or ''"/>
+                                    <t t-if="doc.company_id">
+                                        <strong><t t-out="doc.company_id.name"/></strong><br/>
+                                        <t t-out="doc.company_id.street or ''"/><br/>
+                                        <t t-out="doc.company_id.city or ''"/>,
+                                        <t t-out="doc.company_id.state_id.code or ''"/>
+                                        <t t-out="doc.company_id.zip or ''"/>
                                     </t>
                                 </td>
                             </tr>
@@ -84,7 +84,9 @@
                                 <td style="width: 40%;">
                                     <strong>DATE</strong><br/>
                                     <t t-out="doc.delivery_datetime" t-options='{"widget": "date"}'/><br/><br/>
-                                    <strong>Order No.</strong> <t t-out="doc.sale_order_id.name or ''"/><br/>
+                                    <t t-if="doc.sale_order_id">
+                                        <strong>Order No.</strong> <t t-out="doc.sale_order_id.name"/><br/>
+                                    </t>
                                     <strong>REFERENCE NO</strong><br/>
                                     <t t-out="doc.delivery_reference or ''"/>
                                 </td>

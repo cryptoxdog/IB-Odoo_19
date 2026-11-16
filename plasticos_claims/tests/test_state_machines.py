@@ -9,9 +9,12 @@ Covers:
 """
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+from odoo.addons.plasticos_offer.tests.test_manual_send import send_offer_email
 from odoo.exceptions import UserError
 from odoo.fields import Datetime
 from odoo.tests.common import tagged
+
+from .common import create_claims_manager
 
 LOAD_VALID_TRANSITIONS = {
     "draft": ["awaiting_ready"],
@@ -387,6 +390,8 @@ class TestClaimStateMachineConsolidated(PlasticosTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        # Escalation routes to a claims manager.
+        create_claims_manager(cls.env, login="claims_state_machine_manager")
         cls.supplier = cls.env["res.partner"].create(
             {
                 "name": "Claim SM Supplier",
@@ -512,36 +517,37 @@ class TestOfferStateMachineConsolidated(PlasticosTestCase):
                 "supplier_id": self.supplier.id,
                 "buyer_id": self.buyer.id,
                 "price_per_lb": 0.15,
+                "quantity_lbs": 40000,
             }
         )
 
     def test_draft_to_sent(self):
         offer = self._create_offer()
-        offer.action_send()
+        send_offer_email(offer)
         self.assertEqual(offer.state, "sent")
 
     def test_sent_to_responded(self):
         offer = self._create_offer()
-        offer.action_send()
+        send_offer_email(offer)
         offer.action_mark_responded()
         self.assertEqual(offer.state, "responded")
 
     def test_sent_to_accepted(self):
         offer = self._create_offer()
-        offer.action_send()
+        send_offer_email(offer)
         offer.action_accept()
         self.assertEqual(offer.state, "accepted")
 
     def test_responded_to_accepted(self):
         offer = self._create_offer()
-        offer.action_send()
+        send_offer_email(offer)
         offer.action_mark_responded()
         offer.action_accept()
         self.assertEqual(offer.state, "accepted")
 
     def test_sent_to_rejected(self):
         offer = self._create_offer()
-        offer.action_send()
+        send_offer_email(offer)
         offer.action_reject()
         self.assertEqual(offer.state, "rejected")
 
@@ -552,14 +558,14 @@ class TestOfferStateMachineConsolidated(PlasticosTestCase):
 
     def test_reset_to_draft_from_rejected(self):
         offer = self._create_offer()
-        offer.action_send()
+        send_offer_email(offer)
         offer.action_reject()
         offer.action_reset_to_draft()
         self.assertEqual(offer.state, "draft")
 
     def test_send_non_draft_raises(self):
         offer = self._create_offer()
-        offer.action_send()
+        send_offer_email(offer)
         with self.assertRaises(UserError):
             offer.action_send()
 
@@ -575,14 +581,14 @@ class TestOfferStateMachineConsolidated(PlasticosTestCase):
 
     def test_cancel_accepted_raises(self):
         offer = self._create_offer()
-        offer.action_send()
+        send_offer_email(offer)
         offer.action_accept()
         with self.assertRaises(UserError):
             offer.action_cancel()
 
     def test_reject_accepted_raises(self):
         offer = self._create_offer()
-        offer.action_send()
+        send_offer_email(offer)
         offer.action_accept()
         with self.assertRaises(UserError):
             offer.action_reject()
@@ -590,7 +596,7 @@ class TestOfferStateMachineConsolidated(PlasticosTestCase):
     def test_accept_records_metadata(self):
         """Acceptance records user and timestamp."""
         offer = self._create_offer()
-        offer.action_send()
+        send_offer_email(offer)
         offer.action_accept()
         self.assertTrue(offer.accepted_by)
         self.assertTrue(offer.accepted_date)

@@ -25,53 +25,39 @@
                         data-hotkey="i"
                         title="PlasticOS: Creates a material intake record from this lead, starting the plastics brokerage pipeline (Intake &#8594; Matching &#8594; Offer &#8594; Transaction)."
                         invisible="not active or (type == 'opportunity' and not source_intake_id)"/>
+                <!-- Manual buyer selection: draft offers without Gate matching. -->
+                <button name="action_select_offer_buyers"
+                        type="object"
+                        string="Select Buyers"
+                        class="btn btn-primary"
+                        title="PlasticOS: Pick existing buyer contacts and prepare one draft offer per buyer company. Nothing is sent and Gate is not used."
+                        invisible="not active or type != 'opportunity' or stage_is_won"/>
                 <!-- The one Opportunity matching command: approve a frozen lot, match it through Gate. -->
                 <button name="action_match_opportunity"
                         type="object"
                         string="Match via Gate"
                         class="btn btn-primary"
-                        title="PlasticOS: Approves an immutable lot from the linked Partner and Material Profile (Facility optional) and runs the Gate match. HOT, manual and VanillaSoft opportunities all use this command."
+                        title="PlasticOS: Matches the linked Partner and Material Profile (Facility optional) to eligible buyers through Gate. HOT, manual and VanillaSoft opportunities all use this command."
                         invisible="not active or type != 'opportunity' or not partner_id or not material_profile_id"/>
                 <button name="action_create_offers_from_results"
                         type="object"
                         string="Create Offers"
                         class="btn btn-secondary"
-                        title="PlasticOS: Creates one unsent draft offer per reviewed (accepted) Gate result of the current lot. Re-running creates nothing new."
+                        title="PlasticOS: Creates one unsent draft offer per reviewed (accepted) result of the latest Gate match. Re-running creates nothing new."
                         invisible="not active or type != 'opportunity' or not match_run_ids"/>
                 <button name="action_submit_release"
                         type="object"
                         string="Submit"
                         class="btn btn-primary"
-                        title="PlasticOS: Creates one draft purchase order at the accepted offer price, one draft sale order at the buyer price, and one draft transaction."
-                        invisible="type != 'opportunity' or not stage_id.is_won or release_sale_order_id"
+                        title="PlasticOS: Creates one draft purchase order at the opportunity's supplier Offer Price, one draft sale order at the buyer price, and one draft transaction."
+                        invisible="type != 'opportunity' or not stage_is_won or release_sale_order_id"
                         groups="plasticos_security_base.group_operations_manager"/>
             </xpath>
 
             <xpath expr="//div[@name='button_box']" position="after">
-                <group string="Opportunity Material" invisible="type != 'opportunity' or not opportunity_material_ids">
-                    <field name="opportunity_material_ids" nolabel="1" colspan="2">
-                        <list create="false" delete="false" editable="bottom">
-                            <field name="polymer_id"/>
-                            <field name="material_grade_id"/>
-                            <field name="form_id"/>
-                            <field name="color_id"/>
-                            <field name="packaging_type_id"/>
-                            <field name="source_type_id"/>
-                            <field name="filler_type_id"/>
-                            <field name="material_attribute_ids" widget="many2many_tags"/>
-                            <field name="melt_flow_index"/>
-                            <field name="density"/>
-                            <field name="moisture_percent"/>
-                            <field name="contamination_percent"/>
-                            <field name="filler_pct"/>
-                            <field name="quantity_per_load_lbs"/>
-                            <field name="loads_per_month"/>
-                            <field name="freeform_notes"/>
-                            <field name="image_attachment_ids" widget="many2many_binary"/>
-                        </list>
-                    </field>
-                </group>
-                <group string="Admin Release" invisible="type != 'opportunity' or not stage_id.is_won" groups="plasticos_security_base.group_operations_manager">
+                <!-- Modifiers cannot read through a many2one: header buttons and Admin Release use this flag. -->
+                <field name="stage_is_won" invisible="1"/>
+                <group string="Admin Release" invisible="type != 'opportunity' or not stage_is_won" groups="plasticos_security_base.group_operations_manager">
                     <field name="release_buyer_company_id"/>
                     <field name="release_buyer_facility_id"/>
                     <field name="release_buyer_price"/>
@@ -119,7 +105,7 @@
                         class="oe_stat_button"
                         icon="fa-random"
                         invisible="not match_run_ids"
-                        title="Gate match runs on this opportunity's approved lots.">
+                        title="Gate match runs on this opportunity.">
                     <span class="o_stat_text">Gate Runs</span>
                 </button>
 
@@ -127,9 +113,11 @@
                         type="object"
                         class="oe_stat_button"
                         icon="fa-tags"
-                        invisible="not match_run_ids"
-                        title="Offers created from this opportunity's reviewed Gate results.">
-                    <span class="o_stat_text">Offers</span>
+                        invisible="offer_count == 0"
+                        title="Offers on this opportunity, from Gate results or manually selected buyers.">
+                    <field name="offer_count"
+                           string="Offers"
+                           widget="statinfo"/>
                 </button>
 
                 <button name="action_view_transactions"
@@ -172,9 +160,60 @@
                 <field name="source_id"/>
             </xpath>
 
-            <!-- ═══ OPPORTUNITY VIEW: Add mobile below phone ═══ -->
-            <xpath expr="//group[@name='opportunity_partner']//field[@name='phone']/.." position="after">
+            <!-- Contact stays on the Contacts tab. The header column is the material being offered. -->
+            <xpath expr="//page[@name='lead']//field[@name='contact_name']" position="before">
+                <xpath expr="//group[@name='opportunity_partner']/field[@name='partner_id']" position="move"/>
+                <xpath expr="//group[@name='opportunity_partner']/label[@for='email_from']" position="move"/>
+                <xpath expr="//group[@name='opportunity_partner']/div[field[@name='email_from']]" position="move"/>
+                <xpath expr="//group[@name='opportunity_partner']/label[@for='phone']" position="move"/>
+                <xpath expr="//group[@name='opportunity_partner']/div[field[@name='phone']]" position="move"/>
                 <field name="mobile" widget="phone"/>
+            </xpath>
+            <xpath expr="//group[@name='opportunity_partner']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//group[@name='opportunity_partner']" position="before">
+                <group string="Material" invisible="type != 'opportunity'">
+                    <field name="opportunity_material_ids" nolabel="1" colspan="2">
+                        <list create="false" delete="false" editable="bottom">
+                            <field name="polymer_id"/>
+                            <field name="material_grade_id"/>
+                            <field name="form_id"/>
+                            <field name="color_ids" widget="many2many_tags"/>
+                            <field name="packaging_type_id"/>
+                            <field name="source_type_id"/>
+                            <field name="filler_type_id"/>
+                            <field name="quantity_per_load_lbs"/>
+                            <field name="loads_per_month"/>
+                            <field name="melt_flow_index"/>
+                            <field name="density"/>
+                            <field name="moisture_percent"/>
+                            <field name="contamination_percent"/>
+                            <field name="filler_pct"/>
+                            <field name="material_attribute_ids" widget="many2many_tags"/>
+                            <field name="freeform_notes"/>
+                            <field name="image_attachment_ids" widget="many2many_binary"/>
+                            <field name="buy_price_per_lb" column_invisible="1"/>
+                        </list>
+                    </field>
+                </group>
+            </xpath>
+
+            <xpath expr="//field[@name='expected_revenue']" position="before">
+                <field name="offer_weight_lbs" readonly="1" nolabel="1"/>
+                <span class="opacity-50 p-2">lbs at</span>
+                <field name="offer_buy_price" nolabel="1" class="o_input_8ch" required="material_profile_id"/>
+                <span class="opacity-50 p-2">$ /lb =</span>
+            </xpath>
+            <xpath expr="//field[@name='expected_revenue']" position="attributes">
+                <attribute name="readonly">opportunity_material_ids</attribute>
+            </xpath>
+            <xpath expr="//span[@groups='!crm.group_use_recurring_revenues']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='date_deadline']" position="attributes">
+                <attribute name="widget">date</attribute>
+                <attribute name="placeholder"/>
             </xpath>
 
             <!-- ═══ Probability widget — hide from top, show at bottom ═══ -->
@@ -260,28 +299,12 @@
                                placeholder="Optional — no facility evidence is sent when empty"/>
                     </group>
 
-                    <group string="Approved Lots" name="opportunity_lots" invisible="not approval_ids">
-                        <field name="approval_ids" nolabel="1" readonly="1">
-                            <list>
-                                <field name="create_date" string="Approved"/>
-                                <field name="source" widget="badge"/>
-                                <field name="partner_id"/>
-                                <field name="material_profile_id"/>
-                                <field name="facility_profile_id" optional="show"/>
-                                <field name="source_intake_id" optional="hide"/>
-                                <field name="snapshot_digest" optional="hide"/>
-                                <field name="approved_by" optional="hide"/>
-                            </list>
-                        </field>
-                    </group>
-
                     <group string="Gate Match Runs" name="opportunity_runs" invisible="not match_run_ids">
                         <field name="match_run_ids" nolabel="1" readonly="1">
                             <list decoration-danger="state in ('failed', 'degraded')"
                                   decoration-warning="state == 'retryable'"
                                   decoration-success="state == 'ok'">
                                 <field name="create_date"/>
-                                <field name="approval_id"/>
                                 <field name="state" widget="badge"/>
                                 <field name="match_count"/>
                                 <field name="request_attempt" optional="hide"/>
@@ -312,7 +335,8 @@
 
                 <page string="Personal Intel"
                       name="personal_intel_tab"
-                      invisible="not partner_id or partner_id.is_company">
+                      invisible="not partner_id or partner_is_company">
+                    <field name="partner_is_company" invisible="1"/>
                     <group>
                         <field name="partner_personal_intel"
                                nolabel="1" colspan="2"
@@ -428,6 +452,12 @@
             <xpath expr="//group[@name='links']" position="inside">
                 <field name="crm_lead_id"/>
             </xpath>
+            <xpath expr="//div[hasclass('oe_title')]/field[@name='assigned_user_id']" position="attributes">
+                <attribute name="invisible">crm_lead_id</attribute>
+            </xpath>
+            <xpath expr="//div[hasclass('oe_title')]/field[@name='assigned_user_id']" position="after">
+                <field name="opportunity_user_id" widget="many2one_avatar_user" invisible="not crm_lead_id"/>
+            </xpath>
         </field>
     </record>
 
@@ -447,7 +477,7 @@
     </record>
 
     <!-- ═══════════════════════════════════════════════════════════════
-         Match Run — Opportunity / Lot lineage (fields owned by CRM Bridge)
+         Match Run — Opportunity lineage (field owned by CRM Bridge)
          ═══════════════════════════════════════════════════════════════ -->
 
     <record id="match_run_opportunity_lineage_list" model="ir.ui.view">
@@ -457,7 +487,6 @@
         <field name="arch" type="xml">
             <xpath expr="//list/field[@name='intake_id']" position="after">
                 <field name="opportunity_id" optional="show"/>
-                <field name="approval_id" optional="show"/>
             </xpath>
         </field>
     </record>
@@ -469,7 +498,6 @@
         <field name="arch" type="xml">
             <xpath expr="//form//field[@name='intake_id']" position="before">
                 <field name="opportunity_id" readonly="1"/>
-                <field name="approval_id" readonly="1"/>
             </xpath>
         </field>
     </record>
@@ -484,7 +512,9 @@
         <field name="inherit_id" ref="plasticos_offer.view_offer_form"/>
         <field name="arch" type="xml">
             <xpath expr="//group[@name='origin']/field[@name='intake_id']" position="before">
-                <field name="match_result_id" readonly="1"/>
+                <field name="opportunity_id" readonly="1"/>
+                <field name="material_source_id" readonly="1" invisible="not material_source_id"/>
+                <field name="match_result_id" readonly="1" invisible="not match_result_id"/>
             </xpath>
         </field>
     </record>
@@ -495,6 +525,7 @@
         <field name="inherit_id" ref="plasticos_offer.view_offer_list"/>
         <field name="arch" type="xml">
             <xpath expr="//list/field[@name='intake_id']" position="after">
+                <field name="opportunity_id" optional="show"/>
                 <field name="match_result_id" optional="hide"/>
             </xpath>
         </field>

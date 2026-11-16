@@ -6,6 +6,8 @@ from unittest.mock import patch
 
 from odoo import fields
 from odoo.addons.plasticos_logistics.models.load import (
+    _ACTUAL_EVENT_INTERNAL_WRITE,
+    _ACTUAL_EVENT_INTERNAL_WRITE_TOKEN,
     _FREIGHT_INTERNAL_WRITE,
     _FREIGHT_INTERNAL_WRITE_TOKEN,
 )
@@ -65,7 +67,6 @@ class TestDocumentQueryBatch(TransactionCase):
                 ("res_model", "=", "plasticos.transaction"),
                 ("res_id", "=", transaction.id),
                 ("summary", "=", summary),
-                ("date_deadline", "=", date.today()),
             ]
         )
 
@@ -99,7 +100,15 @@ class TestDocumentQueryBatch(TransactionCase):
         self.assertFalse(conflict._get_related_transactions(conflict))
         self.assertIn(CONFLICT_MARKER, " ".join(conflict.message_ids.mapped("body")))
 
+    def _operations_manager(self, login):
+        """Escalations are owned by an Operations Manager; the page needs one to exist."""
+        group = self.env.ref("plasticos_security_base.group_operations_manager")
+        return self.env["res.users"].create(
+            {"name": login, "login": login, "group_ids": [fields.Command.link(group.id)]}
+        )
+
     def test_missing_doc_page_schedules_one_escalation_each(self):
+        self._operations_manager("query.batch.ops.missing")
         tag = self.env["plasticos.document.tag"].create({"name": "Query Batch Missing", "code": "QBATCHMISS"})
         self.env["plasticos.document.validation.matrix"].create(
             {"name": "Query Batch Supplier", "doc_category": "supplier", "tag_id": tag.id}
@@ -115,14 +124,11 @@ class TestDocumentQueryBatch(TransactionCase):
         )
         already = self._transaction("TX-QBATCH-ALREADY", self.env["sale.order"].create({"partner_id": self.buyer.id}))
         sibling = self._transaction("TX-QBATCH-SIBLING", self.env["sale.order"].create({"partner_id": self.buyer.id}))
-        self.assertEqual(
-            date.today(),
-            fields.Date.context_today(already),
-            "date.today() differs from fields.Date.context_today; the deadline filter stays",
-        )
+        # An escalation opened on an earlier day is still the transaction's one open Activity
+        # (BRS-POS-09-R003): the page must not add a second one today.
         already.activity_schedule(
             "mail.mail_activity_data_todo",
-            date_deadline=date.today(),
+            date_deadline=date.today() - timedelta(days=3),
             summary=f"ESCALATION: Missing documents on {already.name}",
             user_id=self.env.user.id,
         )
@@ -170,6 +176,10 @@ class TestDocumentQueryBatch(TransactionCase):
         load.with_context(**{_FREIGHT_INTERNAL_WRITE: _FREIGHT_INTERNAL_WRITE_TOKEN}).write(
             {"state": "delivered", "delivered_at": when, "dispatched_at": when}
         )
+        # The scale-ticket clocks read the Logistics actual events (BRS-07-R051, 2026-11-11).
+        load.with_context(**{_ACTUAL_EVENT_INTERNAL_WRITE: _ACTUAL_EVENT_INTERNAL_WRITE_TOKEN}).write(
+            {"actual_pickup_at": when, "actual_delivery_at": when}
+        )
         return load
 
     def _scale_escalation_count(self, load):
@@ -184,19 +194,7 @@ class TestDocumentQueryBatch(TransactionCase):
         parameter.set_param("plasticos_documents.scale_ticket_scan_cursor", str(first_load.id - 1))
 
     def test_scale_ticket_page_keeps_one_escalation_each(self):
-        group = self.env.ref("plasticos_security_base.group_logistics", raise_if_not_found=False)
-        self.assertTrue(group)
-        if not self.env["res.users"].search([("group_ids", "in", group.id), ("active", "=", True)], limit=1):
-            self.env.user.write({"group_ids": [fields.Command.link(group.id)]})
-        if not self.env["res.users"].search([("group_ids", "in", group.id), ("active", "=", True)], limit=1):
-            # The test user's own group write is not visible to this search.
-            self.env["res.users"].create(
-                {
-                    "name": "Query Batch Logistics",
-                    "login": "query.batch.logistics",
-                    "group_ids": [fields.Command.link(group.id)],
-                }
-            )
+        self._operations_manager("query.batch.ops.scale")
         if not self.env["plasticos.document.tag"].search([("code", "=", "SCALE")], limit=1):
             self.env["plasticos.document.tag"].create({"name": "Scale Ticket", "code": "SCALE"})
         held = self._delivered_load("TX-QBATCH-SCALE-HELD")

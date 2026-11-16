@@ -5,3 +5,5 @@ from . import test_intake_partner_sync_access
 from . import test_intake_grade_migration
 from . import test_intake_image_count
 from . import test_intake_count_batch
+from . import test_intake_reach_contact
+from . import test_intake_material_incomplete

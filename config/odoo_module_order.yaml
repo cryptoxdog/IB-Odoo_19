@@ -10,8 +10,9 @@
 #     plasticos_enrichment_bridge (external Cognitive.Engine.Graphs + Gate).
 #
 # Optional modules (excluded from default install):
-#   - plasticos_documents_native: needs Odoo Enterprise `documents`
 #   - plasticos_dev_tools / plasticos_website: installable=False
+# plasticos_documents_native is in default_install_order. It needs Odoo Enterprise
+# `documents`, `documents_account` and `account_invoice_extract`.
 #
 # ─────────────────────────────────────────────────────────────────────────────
 # DOCKER TESTING ONLY — Enterprise modules that mirror production (Odoo.sh).
@@ -121,16 +122,17 @@ default_install_order:
   - plasticos_partner_import      # after crm_bridge
   - plasticos_crm_sync            # after crm_bridge + security_base
   - plasticos_admin_dashboard
+  - plasticos_documents_native    # Enterprise documents + account_invoice_extract; after transaction/logistics/security_base
+  - plasticos_export             # Export campaign; after plasticos_documents_native (its dependency)
 
 # Web leads kept as named section for scoped test scripts:
 web_leads_module:
   - plasticos_web_leads   # needs: pip install openai requests
 
-# Never install locally / Docker smoke (deleted, False, or Enterprise-gated):
+# Never install locally / Docker smoke (deleted, installable False, or optional):
 excluded_modules:
   - plasticos_dev_tools         # installable: False
   - plasticos_website           # installable: False
-  - plasticos_documents_native  # needs Enterprise documents (install on Odoo.sh only)
   - plasticos_inference_engine  # DELETED — external CEG microservice
   - plasticos_buyer_match_engine # DELETED — external CEG microservice
   - plasticos_enrichment_bridge # DELETED / retired

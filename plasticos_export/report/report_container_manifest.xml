@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Container manifest (RP-07-E056, BRS-EXP-14-R002). One section per live slot:
+    the physical container as Logistics attests it (J1) and each planned cargo
+    source (E4) with its provenance. Quantities are planned, never shipped or
+    weighed; no gate-in or sailing is printed unless an owner proves it.
+    Source names come from the cargo link's name fields, never from the source
+    records in the reader's environment: a same-company Sales Rep prints every
+    allocation of the booking without reading another rep's load or order
+    (operator decision 2026-11-12).
+-->
+<odoo>
+    <template id="report_container_manifest">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="booking">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <h2>Container Manifest <span t-out="booking.carrier_booking_no or 'unconfirmed'"/></h2>
+                        <p class="text-muted">
+                            Revision <span t-out="booking.current_revision_id.source_revision_key or 'none accepted'"/>.
+                            Planned cargo only: quantities are not shipped, scaled or stock quantities.
+                            As of <span t-out="context_timestamp(datetime.datetime.now()).strftime('%Y-%m-%d %H:%M %Z')"/>.
+                        </p>
+                        <t t-foreach="booking.slot_ids" t-as="slot">
+                            <div class="o_manifest_slot">
+                                <h4>
+                                    Slot <span t-out="slot.slot_key"/> (<span t-out="slot.equipment_class"/>)
+                                    <t t-if="slot.journey_id">
+                                        · Container <span class="o_container_no" t-out="slot.iso_number or 'number not attested'"/>
+                                        · Seal <span t-out="slot.seal_number or 'not attested'"/>
+                                        · Actual <span t-out="slot.journey_equipment_class or ''"/>
+                                    </t>
+                                    <t t-else=""> · No container attested</t>
+                                </h4>
+                                <p t-if="slot.hold_reason">Held: <span t-out="slot.hold_reason"/></p>
+                                <table class="table table-sm">
+                                    <thead><tr><th>Supplier PO</th><th>Customer SO</th><th>Source load</th><th>Physical source</th><th>Planned</th><th>Provenance</th></tr></thead>
+                                    <tbody>
+                                        <tr t-foreach="slot.cargo_link_ids.filtered(lambda link: link.state in ('committed', 'held'))" t-as="link" class="o_manifest_link">
+                                            <td t-out="link.purchase_order_ref or ''"/>
+                                            <td t-out="link.sale_order_ref or ''"/>
+                                            <td t-out="link.source_load_ref or ''"/>
+                                            <td t-out="link.physical_source_kind"/>
+                                            <td>
+                                                <t t-if="link.planned_quantity_known"><span t-out="link.planned_quantity"/> <span t-out="link.uom_id.name"/></t>
+                                                <t t-else="">unknown</t>
+                                            </td>
+                                            <td t-out="link.physical_source_ref or link.original_ref or link.source_revision_key or ''"/>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </t>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>

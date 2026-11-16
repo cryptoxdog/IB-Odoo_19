@@ -64,11 +64,6 @@ CRONS: tuple[CronBinding, ...] = (
         "cron_stock_reorder_alert",
     ),
     CronBinding(
-        "plasticos_base/data/attachment_maintenance_cron.xml",
-        "ir.attachment",
-        "_cron_cleanup_missing_filestore_orphans",
-    ),
-    CronBinding(
         "plasticos_base/data/midnight_recompute_cron.xml",
         "plasticos.midnight.recompute",
         "_cron_midnight_recompute",
@@ -124,6 +119,16 @@ CRONS: tuple[CronBinding, ...] = (
         "plasticos_enrichment/data/cron.xml",
         "plasticos.enrichment.run",
         "action_cron_inference_only",
+    ),
+    CronBinding(
+        "plasticos_enrichment/data/sweep_data.xml",
+        "plasticos.enrichment.sweep",
+        "_cron_send_sweep",
+    ),
+    CronBinding(
+        "plasticos_enrichment/data/sweep_data.xml",
+        "plasticos.enrichment.sweep",
+        "_cron_collect_results",
     ),
 )
 

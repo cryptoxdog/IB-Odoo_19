@@ -38,6 +38,9 @@
                 <filter name="filter_lost"
                         string="Lost"
                         domain="[('status', '=', 'lost')]"/>
+                <filter name="filter_material_incomplete"
+                        string="Material Incomplete"
+                        domain="[('material_incomplete', '=', True)]"/>
                 <filter name="filter_unassigned"
                         string="Unassigned"
                         domain="[('assigned_user_id', '=', False)]"/>
@@ -78,7 +81,9 @@
             <list decoration-info="status == 'draft'"
                   decoration-success="status in ('matched', 'won')"
                   decoration-warning="not partner_id"
+                  decoration-danger="material_incomplete"
                   decoration-muted="status in ('lost', 'expired')">
+                <field name="material_incomplete" column_invisible="1"/>
                 <field name="company_display" string="Company"/>
                 <field name="facility_id" optional="show"/>
                 <field name="contact_id" optional="hide"/>
@@ -229,6 +234,10 @@
                            statusbar_visible="draft,matched,offer_sent,processing,won,lost"/>
                 </header>
                 <sheet>
+                    <field name="material_incomplete" invisible="1"/>
+                    <div class="alert alert-warning" role="alert" invisible="not material_incomplete">
+                        Polymer and Form are both needed before this intake can be matched to buyers.
+                    </div>
                     <!-- ═══ Smart Buttons (Jump To) ═══ -->
                     <div class="oe_button_box" name="button_box">
                         <button name="action_view_material_profile"
@@ -282,8 +291,9 @@
                             <field name="polymer_id"/>
                             <field name="material_grade_id"/>
                             <field name="form_id"/>
-                            <field name="color_id"/>
+                            <field name="color_ids" widget="many2many_tags"/>
                             <field name="packaging_type_id"/>
+                            <field name="quality_tier_id"/>
                             <field name="material_attribute_ids" widget="many2many_tags"/>
                         </group>
                         <group string="Classification">
@@ -345,6 +355,9 @@
                                     <field name="facility_state"/>
                                 </group>
                                 <group string="Coordinates">
+                                    <field name="source_street"/>
+                                    <field name="source_city"/>
+                                    <field name="source_zip"/>
                                     <field name="lat"/>
                                     <field name="lon"/>
                                 </group>

@@ -20,6 +20,7 @@ from unittest.mock import patch
 
 from odoo import fields
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+from odoo.addons.plasticos_offer.tests.test_manual_send import send_offer_email
 from odoo.exceptions import UserError
 from odoo.tests.common import tagged
 
@@ -314,25 +315,28 @@ class TestOfferActions(PlasticosTestCase):
             "intake_id": self.intake.id,
             "supplier_id": self.supplier.id,
             "buyer_id": self.partner.id,
+            "price_per_lb": 0.12,
+            "quantity_lbs": 40000,
         }
         vals.update(kw)
         return self.Offer.create(vals)
 
     def test_action_send_sets_sent(self):
+        """Send Offer opens the native composer; only the submitted email marks the offer Sent."""
         offer = self._make_offer()
-        if hasattr(offer, "action_send"):
-            offer.action_send()
-            self.assertEqual(offer.state, "sent")
+        send_offer_email(offer)
+        self.assertEqual(offer.state, "sent")
+        self.assertTrue(offer.sent_message_id)
 
     def test_action_accept(self):
-        offer = self._make_offer(state="sent")
+        offer = send_offer_email(self._make_offer())
         if hasattr(offer, "action_accept"):
             offer.action_accept()
             self.assertEqual(offer.state, "accepted")
             self.assertEqual(offer.accepted_by, self.env.user)
 
     def test_action_reject(self):
-        offer = self._make_offer(state="sent")
+        offer = send_offer_email(self._make_offer())
         if hasattr(offer, "action_reject"):
             offer.action_reject()
             self.assertEqual(offer.state, "rejected")
@@ -343,7 +347,7 @@ class TestOfferActions(PlasticosTestCase):
         Replaces test_action_accept_creates_transaction. Sale-order confirmation
         is what creates a transaction.
         """
-        offer = self._make_offer(state="sent")
+        offer = send_offer_email(self._make_offer())
         tx_before = self.env["plasticos.transaction"].search_count([])
         so_before = self.env["sale.order"].search_count([])
         offer.action_accept()
@@ -355,8 +359,11 @@ class TestOfferActions(PlasticosTestCase):
 
     def test_cron_expire_offers_expires_sent_offer(self):
         # Expiry is the daily cron over valid_until, not a button (offer.py:483-504).
-        offer = self._make_offer(state="sent", valid_until=fields.Date.today() - timedelta(days=1))
-        self.Offer.cron_expire_offers()
+        # An offer is Sent only by emailing it, and an expired offer cannot be emailed: send it
+        # while valid today, then run the cron as if today were tomorrow.
+        offer = send_offer_email(self._make_offer(valid_until=fields.Date.today()))
+        with patch.object(fields.Date, "today", return_value=fields.Date.today() + timedelta(days=1)):
+            self.Offer.cron_expire_offers()
         offer.invalidate_recordset(["state"])
         self.assertEqual(offer.state, "expired")
 
@@ -374,7 +381,7 @@ class TestOfferActions(PlasticosTestCase):
             expired.action_reset_to_draft()
         offer = self._make_offer(state="rejected")
         offer.action_reset_to_draft()
-        offer.action_send()
+        send_offer_email(offer)
         self.assertEqual(offer.state, "sent")
 
     def test_action_view_intake(self):
@@ -446,6 +453,23 @@ class TestClaimActions(PlasticosTestCase):
 
     def test_action_escalate(self):
         claim = self._make_claim()
+        # Escalation routes to a claims manager; an empty group is a logged error.
+        self.env["res.users"].create(
+            {
+                "name": "Escalation Claims Manager",
+                "login": "action_escalate_claims_manager",
+                "group_ids": [
+                    (
+                        6,
+                        0,
+                        [
+                            self.env.ref("base.group_user").id,
+                            self.env.ref("plasticos_claims.group_claims_manager").id,
+                        ],
+                    )
+                ],
+            }
+        )
         claim.action_escalate()
         self.assertEqual(claim.state, "escalated")
         self.assertEqual(claim.escalation_level, 1)
@@ -501,14 +525,25 @@ class TestWebLeadActions(PlasticosTestCase):
         lead.action_retry_processing()
         self.assertNotEqual(lead.state, "error")
 
+    def _verified(self, **kw):
+        # Manual promotion requires a broker rationale and a verified per-load weight
+        # (ADR-016 2026-11-11): an intake is never created from an invented quantity.
+        return self._make_web_lead(review_notes="Broker verified by phone.", estimated_lbs_per_load=40000, **kw)
+
     def test_action_force_create_intake(self):
-        lead = self._make_web_lead(decision="cold")
+        lead = self._verified(decision="cold")
         lead.action_force_create_intake()
         self.assertTrue(lead.intake_id)
         self.assertEqual(lead.state, "intake_created")
 
+    def test_action_force_create_intake_without_verified_weight_raises(self):
+        lead = self._make_web_lead(decision="cold", review_notes="Broker verified by phone.")
+        with self.assertRaises(UserError):
+            lead.action_force_create_intake()
+        self.assertFalse(lead.intake_id)
+
     def test_action_force_create_intake_already_exists_raises(self):
-        lead = self._make_web_lead(decision="cold")
+        lead = self._verified(decision="cold")
         lead.action_force_create_intake()
         with self.assertRaises(UserError):
             lead.action_force_create_intake()
@@ -525,13 +560,13 @@ class TestWebLeadActions(PlasticosTestCase):
             lead.action_retry_triage()
 
     def test_action_force_hot(self):
-        lead = self._make_web_lead(decision="cold")
+        lead = self._verified(decision="cold")
         lead.action_force_hot()
         self.assertEqual(lead.decision, "hot")
         self.assertTrue(lead.intake_id)
 
     def test_action_view_intake(self):
-        lead = self._make_web_lead(decision="cold")
+        lead = self._verified(decision="cold")
         lead.action_force_create_intake()
         result = lead.action_view_intake()
         self.assertEqual(result["res_model"], "plasticos.intake")
@@ -610,13 +645,19 @@ class TestCrmLeadActions(PlasticosTestCase):
         self.assertEqual(result["res_model"], "plasticos.material.profile")
 
     def test_action_view_match_results(self):
-        # Local match-result navigation was retired: the button now returns a
-        # "Feature Disabled" notification (plasticos_crm_bridge/models/crm_lead.py:466-480).
+        # The button opens the Gate match results produced by this opportunity's
+        # runs (plasticos_crm_bridge/models/crm_lead.py action_view_match_results).
         lead = self._make_lead(partner_id=self.partner.id)
+        other = self._make_lead(partner_id=self.partner.id)
         result = lead.action_view_match_results()
-        self.assertEqual(result["type"], "ir.actions.client")
-        self.assertEqual(result["tag"], "display_notification")
-        self.assertEqual(result["params"]["type"], "warning")
+        self.assertEqual(result["type"], "ir.actions.act_window")
+        self.assertEqual(result["res_model"], "plasticos.match.result")
+        self.assertEqual(result["view_mode"], "list,form")
+        self.assertEqual(result["domain"], [("match_run_id.opportunity_id", "=", lead.id)])
+        self.assertEqual(result["target"], "current")
+        self.assertNotEqual(result["domain"], other.action_view_match_results()["domain"])
+        # The domain is a real filter on the result model: a new lead has no runs.
+        self.assertFalse(self.env["plasticos.match.result"].search(result["domain"]))
 
     def test_action_view_transactions(self):
         lead = self._make_lead(partner_id=self.partner.id)

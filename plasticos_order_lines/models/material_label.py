@@ -11,9 +11,15 @@ def projected_material(line):
     A line with no specs has nothing to project.
     """
     specs = []
+    grade = line.material_grade_id
+    grade_name = (grade.name or "").strip() if grade else ""
+    if grade_name:
+        specs.append(grade_name)
+    if line.color_ids:
+        colors = ", ".join(name for name in line.color_ids.mapped("name") if name)
+        if colors and colors not in specs:
+            specs.append(colors)
     for record in (
-        line.material_grade_id,
-        line.color_id,
         line.filler_type_id,
         line.form_id,
         line.packaging_type_id,

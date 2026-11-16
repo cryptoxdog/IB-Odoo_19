@@ -101,6 +101,17 @@
                                 </group>
                             </group>
                         </page>
+                        <page string="DeepSeek" name="deepseek_page">
+                            <group>
+                                <group string="Credentials">
+                                    <field name="deepseek_api_key" password="True"/>
+                                </group>
+                                <group string="Model">
+                                    <field name="deepseek_model"/>
+                                    <field name="deepseek_base_url"/>
+                                </group>
+                            </group>
+                        </page>
                         <page string="Mistral" name="mistral_page">
                             <group>
                                 <group string="Credentials">
@@ -116,6 +127,16 @@
                         </page>
                     </notebook>
 
+                    <group string="Commercial Qualification">
+                        <group>
+                            <field name="qualification_mode"/>
+                        </group>
+                        <div class="text-muted" colspan="2">
+                            Live routes on the validated HOT / REVIEW / COLD qualification. Shadow records it
+                            beside the HOT/COLD classifier without changing any lead. Under Live, the thresholds
+                            below are advisory signals, not COLD decisions.
+                        </div>
+                    </group>
                     <group string="Classification Thresholds">
                         <group>
                             <field name="hot_min_lbs"/>

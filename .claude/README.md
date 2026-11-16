@@ -64,6 +64,7 @@ Repo SSOT under `skills/` (not an Odoo addon — like `scripts/` / `tools/`). Di
 | **plasticos-odoo-version-bump** | `skills/plasticos-odoo-version-bump/` | Manifest version bumps + scoped `make update m=` (mandatory; never ask) |
 | **plasticos-odoo-sh-deploy** | `skills/plasticos-odoo-sh-deploy/` | Odoo.sh production errors, SSH log diagnosis, deploy fixes |
 | **plasticos-odoo-docker-testing** | `skills/plasticos-odoo-docker-testing/` | Docker install-smoke / runtime tests before Odoo.sh |
+| **plasticos-pr-integration** | `skills/plasticos-pr-integration/` | Combine open pull requests in a disposable worktree and run full Enterprise install-smoke |
 | **plasticos-static-audit-kernel** | `skills/plasticos-static-audit-kernel/` | Static audit command map and evidence contract |
 | **plasticos-pr-review-kernel** | `skills/plasticos-pr-review-kernel/` | `PR_REVIEW_MODE`, `REVIEW PR #N` — preloaded on code-reviewer |
 | **plasticos-repo-review-kernel** | `skills/plasticos-repo-review-kernel/` | Repo-wide readiness, go-live / pack review |

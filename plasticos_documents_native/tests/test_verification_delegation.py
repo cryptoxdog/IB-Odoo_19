@@ -191,3 +191,74 @@ class TestNativeVerificationDelegation(PlasticosTestCase):
         self.assertFalse(first.verified)
         self.assertFalse(second.verified)
         self.assertEqual(first.attachment_id, second.attachment_id)
+
+    # ── Export campaign S3: operation scope (RP-05-E030) ──────────────
+
+    def _declare_operation_obligation(self):
+        self.patch(
+            type(self.env["plasticos.document"]),
+            "_scoped_obligation_kinds",
+            lambda model: frozenset({"export_gate_receipt"}),
+        )
+
+    def _company_load(self):
+        order = self.env["sale.order"].create({"partner_id": self.partner.id})
+        load = self.env["plasticos.load"].create({"sale_order_id": order.id})
+        self.assertTrue(load.company_id)
+        return load
+
+    def test_sole_operation_row_is_not_global_native_verification(self):
+        """BRS-EXP-03-R003: the business row decides; the native Boolean stays legacy-only."""
+        self._declare_operation_obligation()
+        native = self._native("operation-only.pdf")
+        shell = self.env["plasticos.document.sync"].sync_native_to_legacy(native)
+        load = self._company_load()
+        row = shell.with_user(self.manager)._associate_scope(
+            "plasticos.load",
+            load.id,
+            "booking mail",
+            obligation_kind="export_gate_receipt",
+            operation_revision_key="BKG-1/r1",
+            coverage_key="container-1",
+        )
+        self.assertEqual(row, shell)
+        self.assertEqual(native.plasticos_doc_id, row)
+        row.with_user(self.manager).action_verify()
+        native.invalidate_recordset()
+        self.assertTrue(row.verified)
+        self.assertFalse(native.verified)
+        self.assertFalse(native.verified_by)
+        self.assertEqual(
+            self.env["plasticos.document"].get_scoped_evidence_verdict(
+                load.company_id.id, "plasticos.load", load.id, "export_gate_receipt", "BKG-1/r1"
+            ),
+            {"status": "applied", "record_id": row.id},
+        )
+
+    def test_mixed_legacy_and_operation_original_stays_ambiguous(self):
+        """V08/V09: an original with a legacy and an operation row is ambiguous at the native Boolean."""
+        self._declare_operation_obligation()
+        native = self._native("mixed.pdf")
+        self.env["plasticos.document.sync"].sync_native_to_legacy(native)
+        legacy = native.with_user(self.manager).action_associate_exact(
+            "plasticos.transaction", self.tx.id, source_reference="desk request"
+        )
+        native.with_user(self.manager).action_verify()
+        native.invalidate_recordset()
+        self.assertTrue(native.verified)
+        operation = legacy.with_user(self.manager)._associate_scope(
+            "plasticos.load",
+            self._company_load().id,
+            "booking mail",
+            obligation_kind="export_gate_receipt",
+            operation_revision_key="BKG-2/r1",
+            coverage_key="container-1",
+        )
+        self.assertNotEqual(operation, legacy)
+        native.invalidate_recordset()
+        self.assertEqual(native.verification_binding(), "ambiguous")
+        self.assertFalse(native.verified)
+        with self.assertRaisesRegex(UserError, "UNRESOLVED"):
+            native.with_user(self.manager).action_verify()
+        self.assertTrue(legacy.verified)
+        self.assertFalse(operation.verified)

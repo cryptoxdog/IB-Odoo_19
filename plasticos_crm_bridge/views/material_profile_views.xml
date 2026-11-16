@@ -145,7 +145,7 @@
         <field name="priority">20</field>
         <field name="arch" type="xml">
             <!-- Add pipeline columns to the embedded material profiles list -->
-            <xpath expr="//field[@name='material_profile_ids']//list/field[@name='contamination_percent']"
+            <xpath expr="//field[@name='material_profile_ids']//list/field[@name='packaging_type_id']"
                    position="after">
                 <field name="match_count" string="Matches"/>
                 <field name="best_match_score" string="Best %"/>

@@ -13,6 +13,7 @@ import os
 from unittest.mock import patch
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+from odoo.addons.plasticos_offer.tests.test_manual_send import send_offer_email
 from odoo.exceptions import UserError
 from odoo.tests.common import tagged
 
@@ -32,7 +33,7 @@ class TestIntakeWriteGuards(PlasticosTestCase):
         )
 
     def _make_intake(self, status="draft"):
-        # polymer_id / form_id are required=True (plasticos_intake/models/intake.py:181-196).
+        # polymer_id / form_id are optional on the intake; a complete intake keeps these guards off the material gate.
         return self.env["plasticos.intake"].create(
             {
                 "partner_id": self.partner.id,
@@ -130,6 +131,8 @@ class TestOfferWriteGuards(PlasticosTestCase):
                 "intake_id": self.intake.id,
                 "supplier_id": self.partner.id,
                 "buyer_id": self.partner.id,
+                "price_per_lb": 0.12,
+                "quantity_lbs": 40000,
                 "state": state,
             }
         )
@@ -137,7 +140,7 @@ class TestOfferWriteGuards(PlasticosTestCase):
     def test_cancel_blocked_on_accepted_offer(self):
         self._skip_check()
         offer = self._make_offer()
-        offer.action_send()
+        send_offer_email(offer)
         offer.action_accept()
         with self.assertRaises(UserError):
             offer.action_cancel()
@@ -145,6 +148,6 @@ class TestOfferWriteGuards(PlasticosTestCase):
     def test_send_blocked_on_non_draft(self):
         self._skip_check()
         offer = self._make_offer()
-        offer.action_send()
+        send_offer_email(offer)
         with self.assertRaises(UserError):
             offer.action_send()

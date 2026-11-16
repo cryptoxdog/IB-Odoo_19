@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_material_profile
 component_name: PlasticOS Material Profile
-module_version: 19.0.5.11.13
+module_version: 19.0.5.13.5
 layer: 1
 installable: true
 auto_install: true
@@ -20,6 +20,7 @@ models_owned:
   - plasticos.material.profile
   - plasticos.polymer
   - plasticos.material.grade
+  - plasticos.material.quality.tier
   - plasticos.material.form
   - plasticos.material.color
   - plasticos.source.type
@@ -45,10 +46,11 @@ The material master. It holds the canonical registries (polymer, grade, form, co
 
 - **Profile.** `plasticos.material.profile` (`models/material_profile.py`) belongs to a partner (`partner_id`, required, `ondelete="cascade"`) and names a required `polymer_id`, plus form, grade, color, source type, attributes, quality (melt flow, density, moisture, contamination), volume, filler, and condition flags. A facility profile is not required.
 - **Identity.** A unique index on `(partner_id, polymer_id, form_id, material_grade_id)` with `NULLS NOT DISTINCT` allows one profile per partner for each combination. `_check_unique_triple_before_save` gives a readable error before the insert. The profile has no `name` field; its label is `display_name`.
-- **Registries.** Each registry is its own model, seeded from XML under `data/` (`polymer_data.xml`, `material_form_data.xml`, `material_grade_data.xml`, and the others).
-- **Code registries in Python.** `process_codes.py` is the import site for `PROCESS_SELECTION`; other modules import it from here. `form_codes.py` and `grade_codes.py` hold the form and grade codes. A grade is what the items were before processing (drums, totes, pallets); a form is the physical form. Tests keep these tuples equal to the seed files.
+- **Registries.** Each registry is its own model, seeded from XML under `data/` (`polymer_data.xml`, `material_form_data.xml`, `material_grade_data.xml`, `material_quality_tier_data.xml`, and the others). Quality tier is Grade A, Grade B, Grade C, Reusable, and Standard.
+- **Code registries in Python.** `process_codes.py` is the import site for `PROCESS_SELECTION`; other modules import it from here. `form_codes.py`, `grade_codes.py`, and `quality_tier_codes.py` hold the form, grade, and quality-tier codes. A grade is what the items were before processing (drums, totes, pallets); a form is the physical form. Quality tier is the A/B/C/Reusable/Standard master. Tests keep these tuples equal to the seed files.
 - **Grade templates.** `plasticos.grade.template` holds preset specifications that fill a profile's fields when chosen.
 - **Helpers.** `intake_delta_bridge.py` maps intake fields onto profile fields (used by `plasticos_intake`). `profile_features.py` derives features such as residue without the Odoo registry. `grade_migration.py` moves former forms onto grades during the grade upgrade.
+- **ERP product catalog.** `data/ERP-Products.csv` maps an ERP product name to masters. `models/material_normalizer.py` reads it by its own columns: `erp_product_catalog()` keys each row by `source_value` (whitespace-collapsed, case-folded) and `normalize_erp_product(env, product)` resolves one name to existing masters, including the quality tier. Every status cell is blank, so a row counts when it names a polymer. An unknown product, a row without a polymer, and a code whose master is not in the database stay unresolved; nothing is created. The phrase sheet (`data/material_mapping.csv`, `phrase_table()`, `normalize_material()`) does not read this file and is unchanged.
 - **Partner.** The `res.partner` extension adds `material_profile_ids`, a profile count, and a non-stored `is_facility` (true for a child partner or a partner with no children). `plasticos_facility_profile` overrides `is_facility` with a stored version.
 - **Orders.** `action_create_purchase_order` opens a purchase order with a line from the profile; it needs `plasticos_order_lines` for the line's `material_profile_id`. `action_view_po_lines` and `action_view_so_lines` list order lines.
 - **Packet stub.** Create and write call `_emit_material_packet()`, which builds a packet dictionary and discards it. Nothing is sent.
@@ -60,6 +62,7 @@ The material master. It holds the canonical registries (polymer, grade, form, co
 | `plasticos.material.profile`   | owned    | `models/material_profile.py`   |
 | `plasticos.polymer`            | owned    | `models/polymer.py`            |
 | `plasticos.material.grade`     | owned    | `models/material_grade.py`     |
+| `plasticos.material.quality.tier` | owned    | `models/material_quality_tier.py` |
 | `plasticos.material.form`      | owned    | `models/material_form.py`      |
 | `plasticos.material.color`     | owned    | `models/material_color.py`     |
 | `plasticos.source.type`        | owned    | `models/source_type.py`        |
@@ -87,3 +90,13 @@ The material master. It holds the canonical registries (polymer, grade, form, co
 - [`models/material_profile.py`](models/material_profile.py)
 - [`process_codes.py`](process_codes.py)
 - [`../docs/adr/ADR-004-intake-vs-material-profile-domain-split.md`](../docs/adr/ADR-004-intake-vs-material-profile-domain-split.md)
+
+## Bales are packaging, not a form
+
+The Bales form (`plasticos_material_profile.form_bale`, code `BALES`) is archived and is not a form code
+(`form_codes.py`). The 19.0.5.11.14 and 19.0.5.13.5 post-migrations call `bales_retirement.retire_bales_form`:
+a Bales-form profile whose form-less identity key is free loses the form and gains packaging Bales when it has
+none; a duplicate is merged into the existing form-less profile (empty fields filled, every reference repointed,
+the duplicate deleted); a pair it cannot resolve (packaging conflict, constraint failure) is logged with both ids
+and left unchanged. The upgrade never aborts. `tests/test_bales_never_a_form.py` fails if a mapping file or code
+table sends a bale word to a form again.

@@ -20,6 +20,13 @@ requests>=2.28.0
 MarkupSafe==2.1.5
 # XML parse in tests/test_phantom_enum_values.py. Pin matches ci.yml pure-python-tests.
 defusedxml==0.7.1
+# Imported at module level by tests/test_ci_event_triggers.py, test_module_readme_index.py and
+# test_readme_module_version_sync.py. Pin matches ci.yml pure-python-tests and static-checks.
+pyyaml==6.0.3
+# Pin matches ci.yml pure-python-tests (tests that drive the pre-commit config).
+pre-commit==4.7.0
+# XML checkers run by ci.yml static-checks (ci/check_odoo19_xml.py and siblings). Pin matches ci.yml.
+lxml==6.0.2
 # Direct read of the restored ERP SQL Server database (plasticos_partner_import/erp/reader.py,
 # ADR-021). Imported lazily, only when ERP_SQL_SERVER / ERP_SQL_DATABASE select a direct read;
 # the grid and statement forms never need it. pyodbc (ERP_SQL_DRIVER=pyodbc) is the alternative

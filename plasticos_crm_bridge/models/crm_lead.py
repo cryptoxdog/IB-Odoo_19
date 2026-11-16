@@ -2,6 +2,47 @@ import re
 
 from odoo import Command, _, api, fields, models
 from odoo.exceptions import AccessError, UserError, ValidationError
+from odoo.tools import float_compare
+
+# Fields the location reach-person reads. A later People-list change refreshes
+# an open opportunity's contact, email, job, and phone.
+_REACH_PERSON_DEPENDS = (
+    "partner_id",
+    "partner_id.is_company",
+    "partner_id.parent_id",
+    "partner_id.email",
+    "partner_id.phone",
+    "partner_id.function",
+    "partner_id.mobile",
+    "partner_id.preferred_contact_id",
+    "partner_id.preferred_contact_id.name",
+    "partner_id.preferred_contact_id.email",
+    "partner_id.preferred_contact_id.phone",
+    "partner_id.preferred_contact_id.function",
+    "partner_id.preferred_contact_id.mobile",
+    "partner_id.site_person_ids",
+    "partner_id.site_person_ids.name",
+    "partner_id.site_person_ids.email",
+    "partner_id.site_person_ids.phone",
+    "partner_id.site_person_ids.function",
+    "partner_id.site_person_ids.mobile",
+    "partner_id.child_ids",
+    "partner_id.child_ids.is_company",
+    "partner_id.child_ids.type",
+    "partner_id.child_ids.name",
+    "partner_id.child_ids.email",
+    "partner_id.child_ids.phone",
+    "partner_id.child_ids.function",
+    "partner_id.child_ids.mobile",
+    "partner_id.parent_id.child_ids",
+    "partner_id.parent_id.child_ids.is_company",
+    "partner_id.parent_id.child_ids.type",
+    "partner_id.parent_id.child_ids.name",
+    "partner_id.parent_id.child_ids.email",
+    "partner_id.parent_id.child_ids.phone",
+    "partner_id.parent_id.child_ids.function",
+    "partner_id.parent_id.child_ids.mobile",
+)
 
 
 class CrmLeadPlastOS(models.Model):
@@ -24,6 +65,18 @@ class CrmLeadPlastOS(models.Model):
         related="partner_id.personal_intel",
         string="Personal Intel",
         readonly=True,
+    )
+    # Form modifiers cannot read through a many2one (``partner_id.is_company``):
+    # the Personal Intel page reads this related flag instead.
+    partner_is_company = fields.Boolean(
+        related="partner_id.is_company",
+        string="Partner Is a Company",
+        help="Whether the opportunity partner is a company. The Personal Intel page is shown for individuals only.",
+    )
+    stage_is_won = fields.Boolean(
+        related="stage_id.is_won",
+        string="Stage Is Won",
+        help="Whether the opportunity sits in a won stage. Form modifiers read this flag instead of stage_id.is_won.",
     )
 
     # ── Delivery Term (captured during qualification) ──────
@@ -77,7 +130,23 @@ class CrmLeadPlastOS(models.Model):
         "plasticos.opportunity.material",
         "opportunity_id",
         string="Material Copy",
-        help="The opportunity's own material sheet. Editing it does not write the live profile.",
+        help=(
+            "The opportunity's own material sheet. Editing it does not write the live profile. "
+            "Match via Gate freezes this sheet as it stands when matching starts."
+        ),
+    )
+    offer_weight_lbs = fields.Float(
+        string="Weight",
+        compute="_compute_offer_sheet",
+        digits=(16, 2),
+        help="Pounds in one load, from the material sheet.",
+    )
+    offer_buy_price = fields.Float(
+        string="Offer Price",
+        compute="_compute_offer_sheet",
+        inverse="_inverse_offer_buy_price",
+        digits=(10, 4),
+        help="Supplier price per pound for this pursuit. Stored on the material line, not on the opportunity.",
     )
     release_buyer_company_id = fields.Many2one(
         "res.partner",
@@ -102,7 +171,7 @@ class CrmLeadPlastOS(models.Model):
         string="Release Purchase Order",
         copy=False,
         ondelete="set null",
-        help="Draft purchase order created by submit, at the accepted offer price.",
+        help="Draft purchase order created by submit, at the opportunity's supplier Offer Price.",
     )
     release_sale_order_id = fields.Many2one(
         "sale.order",
@@ -134,6 +203,11 @@ class CrmLeadPlastOS(models.Model):
         "plasticos.match.run",
         "opportunity_id",
         string="Gate Match Runs",
+    )
+    offer_count = fields.Integer(
+        string="Offers",
+        compute="_compute_offer_count",
+        help="Offers on this opportunity, from Gate results or from manually selected buyers.",
     )
     # One native opportunity per originating intake. Partial: manual lots and
     # historical leads without a source intake are never collapsed.
@@ -172,6 +246,17 @@ class CrmLeadPlastOS(models.Model):
         from .crm_tag_adoption import adopt_role_tag  # noqa: PLC0415
 
         return adopt_role_tag(self.env, name, xmlid)
+
+    def _compute_offer_count(self):
+        stored_ids = [record_id for record_id in self.ids if isinstance(record_id, int) and record_id > 0]
+        counts = {}
+        if stored_ids:
+            rows = self.env["plasticos.offer"]._read_group(
+                [("opportunity_id", "in", stored_ids)], ["opportunity_id"], ["__count"]
+            )
+            counts = {opportunity.id: count for opportunity, count in rows}
+        for rec in self:
+            rec.offer_count = counts.get(rec.id, 0) if isinstance(rec.id, int) else 0
 
     @api.depends("web_lead_ids")
     def _compute_web_lead_count(self):
@@ -339,6 +424,102 @@ class CrmLeadPlastOS(models.Model):
             if len(digits) != 10:
                 raise ValidationError("Mobile must be a 10-digit US number (e.g., 555-100-0001).")
 
+    @api.depends(*_REACH_PERSON_DEPENDS)
+    def _compute_contact_name(self):
+        """Keep a stored contact name. Fill an empty one from the location's person."""
+        kept = {lead.id: lead.contact_name for lead in self if lead.contact_name}
+        super()._compute_contact_name()
+        for lead in self:
+            if kept.get(lead.id):
+                lead.contact_name = kept[lead.id]
+                continue
+            partner = lead.partner_id
+            if not partner or not partner.is_company:
+                continue
+            person = partner._plasticos_reach_person()
+            if person.name:
+                lead.contact_name = person.name
+
+    @api.depends(*_REACH_PERSON_DEPENDS)
+    def _compute_email_from(self):
+        """Keep a stored or location email. Fill an empty one from the reached person."""
+        super()._compute_email_from()
+        for lead in self:
+            if lead.email_from or not lead.partner_id or not lead.partner_id.is_company:
+                continue
+            person = lead.partner_id._plasticos_reach_person()
+            if person.email:
+                lead.email_from = person.email
+
+    @api.depends(*_REACH_PERSON_DEPENDS)
+    def _compute_function(self):
+        """Keep a stored job title. Fill an empty one from the reached person."""
+        super()._compute_function()
+        for lead in self:
+            if lead.function or not lead.partner_id or not lead.partner_id.is_company:
+                continue
+            person = lead.partner_id._plasticos_reach_person()
+            if person.function:
+                lead.function = person.function
+
+    @api.depends(*_REACH_PERSON_DEPENDS)
+    def _compute_phone(self):
+        """Keep a location or stored phone. Copy the person's phone only when both are empty."""
+        super()._compute_phone()
+        for lead in self:
+            if lead.phone or not lead.partner_id or not lead.partner_id.is_company:
+                continue
+            person = lead.partner_id._plasticos_reach_person()
+            if person.phone:
+                lead.phone = person.phone
+
+    def _get_partner_email_update(self, force_void=True):
+        """Do not write a mirrored person email back onto a location that has none."""
+        self.ensure_one()
+        mirrored = self._plasticos_mirrored_person_value("email")
+        if mirrored and self.email_from == mirrored:
+            return False
+        return super()._get_partner_email_update(force_void=force_void)
+
+    def _get_partner_phone_update(self, force_void=True):
+        """Do not write a mirrored person phone back onto a location that has none."""
+        self.ensure_one()
+        mirrored = self._plasticos_mirrored_person_value("phone")
+        if mirrored and self.phone == mirrored:
+            return False
+        return super()._get_partner_phone_update(force_void=force_void)
+
+    def _plasticos_mirrored_person_value(self, field_name):
+        """The reached person's value when the location's own field is empty."""
+        self.ensure_one()
+        partner = self.partner_id
+        if not partner or not partner.is_company or partner[field_name]:
+            return False
+        person = partner._plasticos_reach_person()
+        return person[field_name] if person else False
+
+    def _plasticos_mobile_is_us10(self, number):
+        digits = re.sub(r"\D", "", number or "")
+        if digits.startswith("1") and len(digits) == 11:
+            digits = digits[1:]
+        return len(digits) == 10
+
+    def _plasticos_fill_mobile_from_person(self):
+        """Copy a valid US mobile from the reached person when the lead has none."""
+        for lead in self:
+            if lead.mobile or not lead.partner_id or not lead.partner_id.is_company:
+                continue
+            person = lead.partner_id._plasticos_reach_person()
+            number = person.mobile if person else False
+            if number and lead._plasticos_mobile_is_us10(number):
+                lead.mobile = number
+
+    @api.onchange("partner_id")
+    def _onchange_partner_reach_mobile(self):
+        if self.mobile or not self.partner_id:
+            return
+        self._plasticos_fill_mobile_from_person()
+
     def _find_matching_partner(self):
         """Extend Odoo's email-only matching to also try company name."""
         partner = super()._find_matching_partner()
@@ -378,15 +559,17 @@ class CrmLeadPlastOS(models.Model):
         for source_name, target_name in (
             ("polymer_id", "polymer_id"),
             ("form_id", "form_id"),
-            ("color_id", "color_id"),
             ("source_type_id", "source_type_id"),
             ("material_grade_id", "material_grade_id"),
             ("packaging_type_id", "packaging_type_id"),
+            ("quality_tier_id", "quality_tier_id"),
             ("filler_type_id", "filler_type_id"),
         ):
             related = profile[source_name]
             if related:
                 vals[target_name] = related.id
+        if profile.color_ids:
+            vals["color_ids"] = [(6, 0, profile.color_ids.ids)]
         for source_name, target_name in (
             ("melt_flow_index", "mfi_value"),
             ("density", "density_value"),
@@ -485,6 +668,16 @@ class CrmLeadPlastOS(models.Model):
         self._reject_foreign_material_profile(partner)
         if self.material_profile_id:
             intake_vals.update(self._intake_snapshot_from_material_profile(self.material_profile_id))
+        from odoo.addons.plasticos_intake.source_origin import crm_lead_source_address
+
+        for key, value in crm_lead_source_address(self.street, self.city, self.zip).items():
+            intake_vals.setdefault(key, value)
+        if partner and partner.is_company and partner.parent_id:
+            intake_vals["facility_id"] = partner.id
+        if partner:
+            person = partner._plasticos_reach_person()
+            if person:
+                intake_vals["contact_id"] = person.id
         intake = self.env["plasticos.intake"].create(intake_vals)
         self.source_intake_id = intake
         self._propagate_available_commercial_images(material_profile=intake.material_profile_id or False)
@@ -624,6 +817,45 @@ class CrmLeadPlastOS(models.Model):
             "target": "current",
         }
 
+    # ── Manual buyer selection (no Gate) ─────────────────────
+
+    def _plasticos_manual_offer_material(self):
+        """The opportunity-owned material row a manual offer is drafted from, after validating the source."""
+        self.ensure_one()
+        if self.type != "opportunity":
+            raise UserError(_("Buyers are selected on an opportunity. Convert the lead to an opportunity first."))
+        if not self.active or self.stage_id.is_won:
+            raise UserError(
+                _("Opportunity %s is closed. Buyers can only be selected on an open opportunity.") % self.name
+            )
+        if not self.partner_id:
+            raise UserError(_("Link the supplier on opportunity %s before selecting buyers.") % self.name)
+        material = self.opportunity_material_ids[:1]
+        if not material or material.opportunity_id != self:
+            raise UserError(
+                _(
+                    "Opportunity %s has no material sheet. Select its Material Profile so the material is copied "
+                    "onto the opportunity, then select buyers.",
+                    self.name,
+                )
+            )
+        return material
+
+    def action_select_offer_buyers(self):
+        """Open the buyer selection dialog. Nothing is created until the broker generates drafts."""
+        self.ensure_one()
+        self.check_access("write")
+        self._plasticos_manual_offer_material()
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Select Buyers"),
+            "res_model": "plasticos.offer.buyer.selection.wizard",
+            "view_mode": "form",
+            "views": [(False, "form")],
+            "target": "new",
+            "context": {"default_opportunity_id": self.id},
+        }
+
     # ── Partners-first native Opportunity matching command ──────
 
     @api.model
@@ -661,16 +893,87 @@ class CrmLeadPlastOS(models.Model):
             return "vanillasoft"
         return "manual"
 
+    @api.depends("opportunity_material_ids.quantity_per_load_lbs", "opportunity_material_ids.buy_price_per_lb")
+    def _compute_offer_sheet(self):
+        for lead in self:
+            material = lead.opportunity_material_ids[:1]
+            lead.offer_weight_lbs = material.quantity_per_load_lbs if material else 0.0
+            lead.offer_buy_price = material.buy_price_per_lb if material else 0.0
+
+    def _inverse_offer_buy_price(self):
+        for lead in self:
+            material = lead.opportunity_material_ids[:1]
+            if material and material.buy_price_per_lb != lead.offer_buy_price:
+                material.buy_price_per_lb = lead.offer_buy_price
+
+    @api.onchange("material_profile_id")
+    def _onchange_material_profile_prefill(self):
+        material_model = self.env["plasticos.opportunity.material"]
+        for lead in self:
+            if lead.type != "opportunity" or lead.opportunity_material_ids or not lead.material_profile_id:
+                continue
+            lead.opportunity_material_ids = [
+                Command.create(material_model._vals_from_profile(lead.material_profile_id, lead))
+            ]
+
+    @api.onchange("offer_buy_price", "opportunity_material_ids")
+    def _onchange_supplier_offer_revenue(self):
+        for lead in self:
+            material = lead.opportunity_material_ids[:1]
+            if not material:
+                continue
+            price = lead.offer_buy_price or 0.0
+            if material.buy_price_per_lb != price:
+                material.buy_price_per_lb = price
+            lead.expected_revenue = (material.quantity_per_load_lbs or 0.0) * (material.buy_price_per_lb or 0.0)
+
+    @api.model
+    def default_get(self, fields_list):
+        vals = super().default_get(fields_list)
+        profile_id = vals.get("material_profile_id") or self.env.context.get("default_material_profile_id")
+        lead_type = vals.get("type") or self.env.context.get("default_type")
+        if (
+            profile_id
+            and lead_type == "opportunity"
+            and "opportunity_material_ids" in fields_list
+            and not vals.get("opportunity_material_ids")
+        ):
+            profile = self.env["plasticos.material.profile"].browse(profile_id).exists()
+            if profile:
+                vals["opportunity_material_ids"] = [
+                    Command.create(self.env["plasticos.opportunity.material"]._vals_from_profile(profile, self))
+                ]
+        return vals
+
+    def _plasticos_require_offer_price(self):
+        """Refuse a profile-backed sheet that arrived without a supplier price.
+
+        Code that copies the profile before a broker has priced it sets
+        ``plasticos_supplier_offer_optional`` and is not checked here.
+        """
+        if self.env.context.get("plasticos_supplier_offer_optional"):
+            return
+        for lead in self:
+            material = lead.opportunity_material_ids[:1]
+            if lead.material_profile_id and material and material.buy_price_per_lb <= 0:
+                raise ValidationError(_("Enter the supplier offer price before saving this opportunity."))
+
     @api.model_create_multi
     def create(self, vals_list):
         leads = super().create(vals_list)
+        leads._plasticos_require_offer_price()
         leads._plasticos_ensure_opportunity_material()
+        for lead, vals in zip(leads, vals_list, strict=True):
+            if not vals.get("mobile"):
+                lead._plasticos_fill_mobile_from_person()
         return leads
 
     def write(self, vals):
         res = super().write(vals)
         if "material_profile_id" in vals:
             self._plasticos_ensure_opportunity_material()
+        if "partner_id" in vals and "mobile" not in vals:
+            self.filtered(lambda lead: not lead.mobile)._plasticos_fill_mobile_from_person()
         return res
 
     def _plasticos_ensure_opportunity_material(self):
@@ -693,6 +996,52 @@ class CrmLeadPlastOS(models.Model):
             [("state", "=", "accepted"), ("opportunity_id", "=", self.id)],
             limit=1,
         )
+
+    def _plasticos_check_manual_release_terms(self, offer):
+        """The release of a manual offer sells exactly what the buyer accepted, or nothing is created.
+
+        Buyer company is the offer's buyer, the facility belongs to that company,
+        and the sale price is the accepted buyer price. A Gate offer is not checked here.
+        """
+        self.ensure_one()
+        buyer = offer.buyer_id
+        if self.release_buyer_company_id != buyer:
+            raise UserError(
+                _(
+                    "Offer %(offer)s was accepted by %(buyer)s; the release buyer company is %(company)s.",
+                    offer=offer.name,
+                    buyer=buyer.display_name,
+                    company=self.release_buyer_company_id.display_name,
+                )
+            )
+        facility = self.release_buyer_facility_id
+        node = facility
+        while node and node != buyer:
+            node = node.parent_id
+        if not node:
+            raise UserError(
+                _(
+                    "Buyer facility %(facility)s does not belong to %(buyer)s, who accepted offer %(offer)s.",
+                    facility=facility.display_name,
+                    buyer=buyer.display_name,
+                    offer=offer.name,
+                )
+            )
+        # Compared at the finer of the currency's decimals and the stored per-lb precision:
+        # cent rounding alone would accept a different per-lb price.
+        currency = offer.currency_id or self.env.company.currency_id
+        stored_digits = self._fields["release_buyer_price"].get_digits(self.env)
+        digits = max(currency.decimal_places, stored_digits[1] if stored_digits else 0)
+        if float_compare(self.release_buyer_price, offer.price_per_lb, precision_digits=digits) != 0:
+            raise UserError(
+                _(
+                    "The buyer price %(price)s/lb differs from %(accepted)s/lb accepted in offer %(offer)s. "
+                    "A changed price is a new offer.",
+                    price=self.release_buyer_price,
+                    accepted=offer.price_per_lb,
+                    offer=offer.name,
+                )
+            )
 
     def action_submit_release(self):
         """Create one draft purchase order, one draft sale order, and one draft transaction.
@@ -728,6 +1077,15 @@ class CrmLeadPlastOS(models.Model):
         material = self.opportunity_material_ids[:1]
         if not material:
             raise UserError(_("The opportunity has no material copy to sell."))
+        offer._plasticos_check_release_material(material)
+        if not offer.match_result_id:
+            self._plasticos_check_manual_release_terms(offer)
+        # The purchase price is the opportunity's supplier price (Offer Price on the
+        # material sheet), read at submit: it stays editable until the final agreement.
+        # The accepted offer's price_per_lb is the buyer-facing price, not the cost.
+        supplier_price = material.buy_price_per_lb or 0.0
+        if supplier_price <= 0:
+            raise UserError(_("Enter the supplier Offer Price on the opportunity before submit."))
         if self.env["sale.order"].search_count(
             [
                 ("opportunity_id", "=", self.id),
@@ -751,7 +1109,7 @@ class CrmLeadPlastOS(models.Model):
                             "product_id": product.id,
                             "name": label,
                             "product_qty": qty,
-                            "price_unit": offer.price_per_lb or 0.0,
+                            "price_unit": supplier_price,
                             **purchase_spec,
                         }
                     )
@@ -796,10 +1154,11 @@ class CrmLeadPlastOS(models.Model):
         )
         self.message_post(
             body=_(
-                "Submitted %(offer)s. Draft purchase %(po)s at the offer price, draft sale %(so)s at %(price)s/lb, "
+                "Submitted %(offer)s. Draft purchase %(po)s at the supplier price %(cost)s/lb, draft sale %(so)s at %(price)s/lb, "
                 "and draft transaction %(tx)s. Nothing is confirmed.",
                 offer=offer.name,
                 po=purchase.name,
+                cost=supplier_price,
                 so=sale.name,
                 price=self.release_buyer_price,
                 tx=transaction.name,
@@ -831,17 +1190,25 @@ class CrmLeadPlastOS(models.Model):
     def _plasticos_require_lot_inputs(self):
         self.ensure_one()
         if self.type != "opportunity":
-            raise UserError(_("Only a native CRM opportunity can approve a lot. Convert the lead first."))
+            raise UserError(_("Only a native CRM opportunity can be matched. Convert the lead first."))
         if not self.partner_id:
-            raise UserError(_("Link the verified Partner before approving a lot. No partner is created here."))
+            raise UserError(_("Link the verified Partner before matching. No partner is created here."))
         if not self.material_profile_id:
-            raise UserError(_("Select the approved Material Profile before approving a lot."))
+            raise UserError(_("Select the approved Material Profile before matching."))
         self._reject_foreign_material_profile(self.partner_id)
 
     def action_approve_lot(self):
-        """Mint one immutable approved lot from the current Partner, Material Profile and optional Facility."""
+        """Mint one immutable approved lot from the current Partner, Material Profile and optional Facility.
+
+        The lot freezes the opportunity's material sheet as it stands now, so
+        Gate matches the material manual offers and the release sell. An
+        opportunity without a sheet gets one copied from its profile first.
+        The lot is backend evidence only: it posts nothing to the chatter. Its
+        provenance lives on the ``plasticos.opportunity.approval`` record.
+        """
         self._plasticos_require_lot_inputs()
-        approval = self.env["plasticos.opportunity.approval"].mint(
+        self._plasticos_ensure_opportunity_material()
+        return self.env["plasticos.opportunity.approval"].mint(
             self,
             source=self._plasticos_opportunity_source(),
             partner=self.partner_id,
@@ -849,20 +1216,6 @@ class CrmLeadPlastOS(models.Model):
             facility_profile=self.facility_profile_id or None,
             source_intake=self.source_intake_id or None,
         )
-        self.message_post(
-            body=_(
-                "Approved lot %(lot)s (%(lot_source)s): %(partner)s / %(profile)s%(facility)s. Snapshot %(digest)s.",
-                lot=approval.id,
-                lot_source=approval.source,
-                partner=approval.partner_id.name,
-                profile=approval.material_profile_id.display_name,
-                facility=(" / " + approval.facility_profile_id.display_name) if approval.facility_profile_id else "",
-                digest=(approval.snapshot_digest or "")[:12],
-            ),
-            message_type="notification",
-            subtype_xmlid="mail.mt_note",
-        )
-        return approval
 
     def _plasticos_ensure_lot_durable(self):
         """Commit the approved lot before the orchestrator may roll the request back.
@@ -899,7 +1252,10 @@ class CrmLeadPlastOS(models.Model):
                 raise UserError(
                     _("Gate matching is unavailable (%s).") % ("; ".join(verdict.reasons) or verdict.status)
                 )
+            # ``mint`` refuses incomplete material before any lot exists.
             approval = rec.action_approve_lot()
+            # Backstop on the frozen values themselves, still before the lot is made durable.
+            approval._plasticos_require_match_material()
             rec._plasticos_ensure_lot_durable()
             run, matches = orchestrator.run_match_for_lot(
                 supplier_partner_id=approval.partner_id.id,
@@ -913,10 +1269,7 @@ class CrmLeadPlastOS(models.Model):
             runs |= run
             rec.message_post(
                 body=_(
-                    "Gate match run %(run)s on lot %(lot)s returned %(count)s eligible buyer(s). "
-                    "Review the results, then create offers.",
-                    run=run.id,
-                    lot=approval.id,
+                    "Matching completed: %(count)s eligible buyer(s) found. Review the results, then create offers.",
                     count=len(matches),
                 ),
                 message_type="notification",
@@ -963,7 +1316,10 @@ class CrmLeadPlastOS(models.Model):
         for rec in self:
             run = rec._plasticos_current_run()
             if not run:
-                raise UserError(_("Opportunity %s has no successful Gate match run on its current lot.") % rec.name)
+                raise UserError(
+                    _("Opportunity %s has no successful Gate match yet. Run Match via Gate first.") % rec.name
+                )
+            run.approval_id._plasticos_require_match_material()
             reviewed = run.result_ids.filtered(lambda result: result.state == "accepted")
             if not reviewed:
                 raise UserError(_("No reviewed (accepted) match result on run %s. Review the results first.") % run.id)

@@ -99,3 +99,115 @@ def test_location_fingerprints_are_sha256_digests():
     assert len(context.location_fingerprint_origin) == 64
     assert len(context.location_fingerprint_destination) == 64
     assert len(context.fingerprint) == 64
+
+
+# ── Manual / buyerless context (RP-01-E004, RP-01-E005, BRS-EXP-10-R006) ──
+
+# freight_context_v3 digest of _load() at base 08504e12. Unchanged legacy contexts
+# must keep these exact bytes so accepted fingerprints are never rehashed.
+V3_GOLDEN_FINGERPRINT = "8679ff6d1be7a0ae5850190acf9cd77a49ce4e990631b22ad1d1092a1d3a1dc3"
+
+
+def _buyerless_load(**overrides):
+    load = _load()
+    load.transaction_id = None
+    for name, value in overrides.items():
+        setattr(load, name, value)
+    return load
+
+
+def test_legacy_v3_context_bytes_are_unchanged():
+    context = freight_context.build_freight_context(_load())
+    assert context.fingerprint == V3_GOLDEN_FINGERPRINT
+    assert context.version == freight_context.FREIGHT_CONTEXT_VERSION
+    assert '"repeat_stream":{"id":73,"kind":"intake"}' in context.serialized
+
+
+def test_manual_context_needs_no_intake_and_has_no_repeat_stream():
+    context = freight_context.build_manual_freight_context(_buyerless_load())
+    assert context is not None
+    assert context.version == freight_context.FREIGHT_CONTEXT_MANUAL_VERSION
+    assert context.repeat_stream_id is None
+    assert "repeat_stream" not in context.serialized
+    assert context.fingerprint != V3_GOLDEN_FINGERPRINT
+
+
+def test_manual_context_records_unknown_equipment_explicitly():
+    context = freight_context.build_manual_freight_context(_buyerless_load())
+    assert '"equipment_class":"unknown"' in context.serialized
+    assert '"equipment_class":null' not in context.serialized
+
+
+def test_manual_context_still_requires_company_lane_and_weight():
+    assert freight_context.build_manual_freight_context(_buyerless_load(company_id=None)) is None
+    assert freight_context.build_manual_freight_context(_buyerless_load(reference_weight=0.0)) is None
+    assert freight_context.build_manual_freight_context(_buyerless_load(pickup_partner_id=None)) is None
+
+
+def test_manual_context_changes_with_the_physical_lane():
+    baseline = freight_context.build_manual_freight_context(_buyerless_load())
+    moved = freight_context.build_manual_freight_context(
+        _buyerless_load(delivery_partner_id=_partner(22, "201 Destination Lane"))
+    )
+    assert baseline.fingerprint != moved.fingerprint
+
+
+def test_manual_rate_selection_keeps_v3_for_an_intake_backed_load():
+    assert freight_context.select_manual_rate_context(_load()).fingerprint == V3_GOLDEN_FINGERPRINT
+    manual = freight_context.select_manual_rate_context(_buyerless_load())
+    assert manual.version == freight_context.FREIGHT_CONTEXT_MANUAL_VERSION
+
+
+def test_recorded_version_selects_its_own_validator():
+    load = _load()
+    v3 = freight_context.build_freight_context_for_version(load, freight_context.FREIGHT_CONTEXT_VERSION)
+    manual = freight_context.build_freight_context_for_version(load, freight_context.FREIGHT_CONTEXT_MANUAL_VERSION)
+    assert v3.fingerprint == V3_GOLDEN_FINGERPRINT
+    assert manual.fingerprint != v3.fingerprint
+    assert freight_context.build_freight_context_for_version(load, "freight_context_v2") is None
+
+
+def _sal_resolver():
+    """Load sal_resolver beside this freight_context, with a minimal odoo.fields stub when needed."""
+    import types
+    from datetime import UTC, datetime
+
+    if "odoo" not in sys.modules and importlib.util.find_spec("odoo") is None:
+        odoo_mod = types.ModuleType("odoo")
+        fields_mod = types.ModuleType("odoo.fields")
+        fields_mod.Datetime = type("Datetime", (), {"now": staticmethod(lambda: datetime.now(UTC))})
+        odoo_mod.fields = fields_mod
+        sys.modules["odoo"] = odoo_mod
+        sys.modules["odoo.fields"] = fields_mod
+    package = types.ModuleType("plasticos_logistics_fc_tests")
+    services = types.ModuleType("plasticos_logistics_fc_tests.services")
+    services.__path__ = [str(SERVICE_PATH.parent)]
+    sys.modules["plasticos_logistics_fc_tests"] = package
+    sys.modules["plasticos_logistics_fc_tests.services"] = services
+    for name in ("freight_context", "sal_resolver"):
+        spec = importlib.util.spec_from_file_location(
+            f"plasticos_logistics_fc_tests.services.{name}", SERVICE_PATH.parent / f"{name}.py"
+        )
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module
+        spec.loader.exec_module(module)
+    return sys.modules["plasticos_logistics_fc_tests.services.sal_resolver"]
+
+
+class _NoSearch:
+    def search(self, *args, **kwargs):
+        raise AssertionError("SAL must abstain before any history lookup")
+
+
+def test_sal_abstains_before_searching_for_a_load_without_intake():
+    sal_resolver = _sal_resolver()
+    load = _buyerless_load(
+        state="ready_confirmed",
+        rate_amount=0.0,
+        carrier_id=None,
+        sale_order_id=None,
+        env={"plasticos.load": _NoSearch()},
+    )
+    decision = sal_resolver.resolve_sal(load)
+    assert (decision.decision, decision.reason) == ("not_eligible", "missing_lane_identity")
+    assert decision.source_load_id is None

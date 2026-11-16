@@ -2,16 +2,45 @@
 
 from __future__ import annotations
 
+import math
 import re
+from collections.abc import Mapping
+from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Any
 
-from .gate_allowlists import PARTNER_WRITEBACK_FIELD_ALLOWLIST, WEB_LEAD_WRITEBACK_FIELD_MAP
+from .gate_allowlists import (
+    PARTNER_WRITEBACK_FIELD_ALLOWLIST,
+    V2_CARTRIDGE_NODE,
+    V2_KIND_BOOLEAN,
+    V2_KIND_CHAR,
+    V2_KIND_INTEGER,
+    V2_KIND_MANY2MANY_CODE,
+    V2_KIND_MANY2ONE_CODE,
+    V2_KIND_SELECTION,
+    V2_NUMERIC_KINDS,
+    WEB_LEAD_WRITEBACK_FIELD_MAP,
+    is_never_target,
+    resolve_v2_target,
+)
 from .gate_contracts import (
+    CONVERGE_RESPONSE_V2,
+    CartridgePin,
+    CartridgeResolution,
+    ConflictCandidate,
+    ConvergeRequestV2,
     ConvergeResponse,
+    ConvergeResponseV2,
+    EvidenceDerivation,
+    EvidenceIdentity,
+    EvidenceSource,
+    FieldEvidence,
     MatchCandidate,
     MatchResponse,
     ProcessIntakeResponse,
     ProcessWebLeadResponse,
+    TypedProposal,
+    freeze,
 )
 
 
@@ -309,3 +338,573 @@ def map_intake_response(payload: dict[str, Any]) -> ProcessIntakeResponse:
         recommended_next_action=payload.get("recommended_next_action"),
         raw=payload,
     )
+
+
+# ── Converge response v2 (EIE docs/contracts/converge/response.v2.md, FROZEN
+#    2026-11-13 incl. Revision 1) ─────────────────────────────────────────────
+#
+# The parser is a validator, not a repairer: any reply it cannot fully account
+# for is rejected as a whole, its evidence unused, and the reason recorded
+# (consumer rule, section 6). Nothing is defaulted, coerced or read from
+# ``fields`` alone as if it were evidenced (L9-UNKNOWN-001).
+
+V2_STATE_OBSERVED = "observed"
+V2_STATE_INFERRED = "inferred"
+V2_STATE_EXTERNAL_CLAIM = "external_claim"
+V2_STATE_CONFLICTING = "conflicting"
+V2_STATE_UNKNOWN = "unknown"
+V2_EVIDENCE_STATES = frozenset(
+    {V2_STATE_OBSERVED, V2_STATE_INFERRED, V2_STATE_EXTERNAL_CLAIM, V2_STATE_CONFLICTING, V2_STATE_UNKNOWN}
+)
+V2_VALUE_STATES = frozenset({V2_STATE_OBSERVED, V2_STATE_INFERRED, V2_STATE_EXTERNAL_CLAIM})
+# Approved write policy (operator decision): only these states, and only when admitted.
+V2_WRITABLE_STATES = frozenset({V2_STATE_INFERRED, V2_STATE_EXTERNAL_CLAIM})
+V2_RUN_STATES = frozenset({"completed", "degraded", "failed"})
+V2_UNIT_STATED = "stated"
+V2_UNIT_STATUSES = frozenset({V2_UNIT_STATED, "not_applicable", "unknown"})
+V2_SOURCE_TYPES = frozenset({"request_entity", "request_observation", "provider", "kb", "graph"})
+V2_UNKNOWN_REASONS = frozenset({"no_evidence", "source_unavailable", "budget_exhausted", "not_attempted"})
+V2_REVIEW_REASONS = frozenset(
+    {
+        "contains_external_claim",
+        "contains_inferred",
+        "contains_conflict",
+        "contains_unknown",
+        "contains_unadmitted",
+    }
+)
+
+V2_REJECT_V1_REPLY = "v1_reply"
+V2_REJECT_UNSUPPORTED_CONTRACT = "unsupported_contract_version"
+V2_REJECT_NOT_COMPLETED = "not_completed"
+V2_REJECT_MALFORMED = "malformed_response"
+V2_REJECT_MISSING_ENTRY = "missing_field_evidence"
+V2_REJECT_RESOLUTION = "resolution_mismatch"
+
+
+class _Malformed(ValueError):
+    def __init__(self, code: str, detail: str) -> None:
+        super().__init__(f"{code}: {detail}")
+        self.code = code
+
+
+def _need(condition: bool, detail: str, code: str = V2_REJECT_MALFORMED) -> None:
+    if not condition:
+        raise _Malformed(code, detail)
+
+
+def _is_str(value: Any) -> bool:
+    return isinstance(value, str) and bool(value.strip())
+
+
+def _is_number(value: Any) -> bool:
+    return isinstance(value, int | float) and not isinstance(value, bool) and math.isfinite(value)
+
+
+def _confidence(value: Any, where: str) -> float | None:
+    if value is None:
+        return None
+    _need(_is_number(value) and 0.0 <= float(value) <= 1.0, f"{where}.confidence is not null or a number in [0, 1]")
+    return float(value)
+
+
+def _source(raw: Any, where: str) -> EvidenceSource:
+    _need(isinstance(raw, dict), f"{where} is not an object")
+    _need(raw.get("source_type") in V2_SOURCE_TYPES, f"{where}.source_type {raw.get('source_type')!r} is unrecognised")
+    _need(_is_str(raw.get("source_ref")), f"{where}.source_ref is missing")
+    _need(_is_str(raw.get("method")), f"{where}.method is missing")
+    _need("independent" in raw, f"{where}.independent is missing")
+    _need(raw["independent"] is None or isinstance(raw["independent"], bool), f"{where}.independent is not bool/null")
+    citations = raw.get("citations", [])
+    _need(isinstance(citations, list) and all(_is_str(c) for c in citations), f"{where}.citations is malformed")
+    return EvidenceSource(raw["source_type"], raw["source_ref"], raw["method"], raw["independent"], tuple(citations))
+
+
+def _sources(raw: Any, where: str) -> tuple[EvidenceSource, ...]:
+    _need(isinstance(raw, list), f"{where}.sources is not a list")
+    return tuple(_source(item, f"{where}.sources[{i}]") for i, item in enumerate(raw))
+
+
+def _identity(raw: Any, where: str, expected: EvidenceIdentity) -> EvidenceIdentity:
+    _need(isinstance(raw, dict), f"{where}.identity is not an object")
+    for key in ("subject_ref", "subject_type", "role"):
+        _need(key in raw, f"{where}.identity.{key} is missing")
+    identity = EvidenceIdentity(raw["subject_ref"], raw["subject_type"], raw["role"])
+    _need(identity == expected, f"{where}.identity {identity} is not the requested subject {expected}")
+    return identity
+
+
+def _unit_fields(raw: dict, where: str) -> tuple[str, str | None]:
+    unit_status = raw.get("unit_status")
+    _need(unit_status in V2_UNIT_STATUSES, f"{where}.unit_status {unit_status!r} is unrecognised")
+    if unit_status == V2_UNIT_STATED:
+        _need(_is_str(raw.get("unit")), f"{where}.unit must be stated")
+        return unit_status, raw["unit"]
+    _need(raw.get("unit") is None, f"{where}.unit present without unit_status 'stated'")
+    return unit_status, None
+
+
+def _entry(name: str, raw: Any, expected: EvidenceIdentity) -> FieldEvidence:
+    where = f"field_evidence.{name}"
+    _need(isinstance(raw, dict), f"{where} is not an object")
+    state = raw.get("state")
+    _need(state in V2_EVIDENCE_STATES, f"{where}.state {state!r} is unrecognised")
+    admitted = raw.get("admitted")
+    _need(isinstance(admitted, bool), f"{where}.admitted is not a boolean")
+    _need(not admitted or state in V2_WRITABLE_STATES, f"{where} is admitted in state {state!r}")
+    has_value = "value" in raw
+    unit_status = unit = None
+    if state in V2_VALUE_STATES:
+        _need(has_value, f"{where} carries no value in state {state!r}")
+        unit_status, unit = _unit_fields(raw, where)
+    else:
+        _need(not has_value, f"{where} carries a value in state {state!r}")
+        _need("unit_status" not in raw and "unit" not in raw, f"{where} carries a unit in state {state!r}")
+    _need("confidence" in raw, f"{where}.confidence is missing")
+    confidence = _confidence(raw["confidence"], where)
+    if state in (V2_STATE_UNKNOWN, V2_STATE_CONFLICTING):
+        _need(confidence is None, f"{where}.confidence must be null in state {state!r}")
+    sources = _sources(raw.get("sources"), where)
+    if state in (V2_STATE_OBSERVED, V2_STATE_EXTERNAL_CLAIM):
+        _need(bool(sources), f"{where}.sources must be non-empty in state {state!r}")
+    _need("derivation" in raw, f"{where}.derivation is missing")
+    derivation = None
+    if state == V2_STATE_INFERRED:
+        d = raw["derivation"]
+        _need(isinstance(d, dict), f"{where}.derivation must be set for an inferred value")
+        _need(
+            _is_str(d.get("method")) and _is_str(d.get("rule_or_model_version")), f"{where}.derivation is untraceable"
+        )
+        inputs = d.get("inputs")
+        kb_ids = d.get("kb_fragment_ids")
+        _need(isinstance(inputs, list) and all(_is_str(i) for i in inputs), f"{where}.derivation.inputs is malformed")
+        _need(
+            isinstance(kb_ids, list) and all(_is_str(i) for i in kb_ids),
+            f"{where}.derivation.kb_fragment_ids is malformed",
+        )
+        derivation = EvidenceDerivation(d["method"], d["rule_or_model_version"], tuple(inputs), tuple(kb_ids))
+    else:
+        _need(raw["derivation"] is None, f"{where}.derivation must be null in state {state!r}")
+    identity = _identity(raw.get("identity"), where, expected)
+    declaration = raw.get("declaration")
+    _need(isinstance(declaration, dict) and _is_str(declaration.get("type")), f"{where}.declaration is missing")
+    _need("conflict" in raw, f"{where}.conflict is missing")
+    conflict = None
+    if state == V2_STATE_CONFLICTING:
+        c = raw["conflict"]
+        _need(
+            isinstance(c, dict) and c.get("resolution", "absent") is None,
+            f"{where}.conflict must carry resolution null",
+        )
+        candidates = c.get("candidates")
+        _need(isinstance(candidates, list) and len(candidates) >= 2, f"{where}.conflict needs at least two candidates")
+        parsed = []
+        for i, cand in enumerate(candidates):
+            cw = f"{where}.conflict.candidates[{i}]"
+            _need(isinstance(cand, dict) and "value" in cand, f"{cw} carries no value")
+            c_status, c_unit = _unit_fields(cand, cw)
+            parsed.append(
+                ConflictCandidate(
+                    freeze(cand["value"]),
+                    c_status,
+                    c_unit,
+                    _confidence(cand.get("confidence"), cw),
+                    _sources(cand.get("sources"), cw),
+                )
+            )
+        conflict = tuple(parsed)
+    else:
+        _need(raw["conflict"] is None, f"{where}.conflict must be null in state {state!r}")
+    _need("unknown_reason" in raw, f"{where}.unknown_reason is missing")
+    if state == V2_STATE_UNKNOWN:
+        _need(raw["unknown_reason"] in V2_UNKNOWN_REASONS, f"{where}.unknown_reason {raw['unknown_reason']!r}")
+    else:
+        _need(raw["unknown_reason"] is None, f"{where}.unknown_reason must be null in state {state!r}")
+    return FieldEvidence(
+        field=name,
+        state=state,
+        admitted=admitted,
+        has_value=has_value,
+        value=freeze(raw.get("value")),
+        unit_status=unit_status,
+        unit=unit,
+        confidence=confidence,
+        sources=sources,
+        derivation=derivation,
+        identity=identity,
+        declaration=freeze(declaration),
+        conflict=conflict,
+        unknown_reason=raw["unknown_reason"],
+    )
+
+
+def _proposal(raw: Any, i: int, entries: dict[str, FieldEvidence], expected: EvidenceIdentity) -> TypedProposal:
+    where = f"proposals[{i}]"
+    _need(isinstance(raw, dict), f"{where} is not an object")
+    _need(_is_str(raw.get("proposal_id")) and _is_str(raw.get("proposal_type")), f"{where} has no id or type")
+    names = raw.get("fields")
+    admitted = raw.get("admitted_fields")
+    _need(isinstance(names, list) and all(n in entries for n in names), f"{where}.fields names an unknown entry")
+    _need(isinstance(admitted, list) and set(admitted) <= set(names), f"{where}.admitted_fields is not a subset")
+    _need(
+        set(admitted) == {n for n in names if entries[n].admitted},
+        f"{where}.admitted_fields disagrees with field_evidence",
+    )
+    review = raw.get("review")
+    _need(isinstance(review, dict) and review.get("required") is True, f"{where}.review.required is not true")
+    reasons = review.get("reasons")
+    _need(isinstance(reasons, list) and set(reasons) <= V2_REVIEW_REASONS, f"{where}.review.reasons is malformed")
+    return TypedProposal(
+        raw["proposal_id"],
+        raw["proposal_type"],
+        _identity(raw.get("identity"), where, expected),
+        tuple(names),
+        tuple(admitted),
+        tuple(reasons),
+    )
+
+
+def _rejected(payload: dict[str, Any], code: str, detail: str) -> ConvergeResponseV2:
+    raw_version = payload.get("contract_version")
+    raw_state = payload.get("state")
+    return ConvergeResponseV2(
+        contract_version=raw_version if isinstance(raw_version, str) else None,
+        state=raw_state if isinstance(raw_state, str) else None,
+        failure_reason=payload.get("failure_reason") if isinstance(payload.get("failure_reason"), str) else None,
+        resolution=None,
+        field_evidence=MappingProxyType({}),
+        proposals=(),
+        rejection=f"{code}: {detail}",
+    )
+
+
+def parse_converge_response_v2(payload: Any, *, request: ConvergeRequestV2) -> ConvergeResponseV2:
+    """Parse a reply to ``request`` into immutable evidence, or reject it whole.
+
+    A reply without ``contract_version`` is v1 (response.v2.md section 6;
+    EIE main answers a v2 request in v2 since 8c02aa9) and is rejected for v2 use: its ``fields``
+    are not evidence. Only a ``completed`` run is usable; ``degraded`` and
+    ``failed`` replies are rejected with their reason.
+    """
+    expected = EvidenceIdentity(request.entity.get("id"), request.subject_type, request.subject_role)
+    requested = [t["field"] for t in request.targets]
+    return _parse_v2(payload, expected=expected, pin=request.cartridge, node=request.node, requested=requested)
+
+
+def parse_sweep_converge_response_v2(
+    payload: Any, *, entity_id: str, pin: CartridgePin, node: str = V2_CARTRIDGE_NODE
+) -> ConvergeResponseV2:
+    """Parse one enrichment-sweep result's converge v2 body, with no Odoo-built request.
+
+    EIE builds the sweep's converge request itself (enrichment-sweep.md 3.4
+    step 5): targets from CEG readiness gaps, the tenant's pinned cartridge, the
+    candidate's node, no ``subject``. So the reply is validated against its own
+    resolution echo, which must equal Odoo's configured pin (id, version and
+    sha256) and ``node``, and against the candidate: every identity names
+    ``entity_id`` with no subject type or role (response.v2.md section 9.2).
+    Every other check of ``parse_converge_response_v2`` applies unchanged; only
+    "every requested field has an entry" has nothing to check against.
+    """
+    if not pin.sha256:
+        return _rejected({}, V2_REJECT_RESOLUTION, "a sweep result needs a cartridge sha256 pin to compare")
+    return _parse_v2(payload, expected=EvidenceIdentity(entity_id, None, None), pin=pin, node=node, requested=())
+
+
+def _parse_v2(
+    payload: Any, *, expected: EvidenceIdentity, pin: CartridgePin, node: str, requested
+) -> ConvergeResponseV2:
+    if not isinstance(payload, dict):
+        return _rejected({}, V2_REJECT_MALFORMED, "reply payload is not an object")
+    version = payload.get("contract_version")
+    if version is None:
+        reason = payload.get("failure_reason") or _sdk_failure_reason(payload) or payload.get("state") or "no state"
+        return _rejected(payload, V2_REJECT_V1_REPLY, f"reply carries no contract_version ({reason})")
+    if version != CONVERGE_RESPONSE_V2:
+        return _rejected(payload, V2_REJECT_UNSUPPORTED_CONTRACT, repr(version))
+    state = payload.get("state")
+    if not isinstance(state, str) or state not in V2_RUN_STATES:
+        return _rejected(payload, V2_REJECT_MALFORMED, f"run state {state!r} is unrecognised")
+    if state != EIE_STATE_COMPLETED or payload.get("failure_reason"):
+        return _rejected(payload, V2_REJECT_NOT_COMPLETED, f"{state}: {payload.get('failure_reason') or 'no reason'}")
+
+    try:
+        res = payload.get("resolution")
+        _need(isinstance(res, dict), "resolution is missing")
+        for key in ("cartridge_id", "cartridge_version", "cartridge_sha256", "node"):
+            _need(_is_str(res.get(key)), f"resolution.{key} is missing")
+        resolution = CartridgeResolution(
+            res["cartridge_id"], res["cartridge_version"], res["cartridge_sha256"], res["node"]
+        )
+        _need(
+            (resolution.cartridge_id, resolution.cartridge_version, resolution.node) == (pin.id, pin.version, node)
+            and (not pin.sha256 or pin.sha256 == resolution.cartridge_sha256),
+            f"resolved {resolution} is not the pinned {pin} / node {node}",
+            V2_REJECT_RESOLUTION,
+        )
+        raw_evidence = payload.get("field_evidence")
+        _need(isinstance(raw_evidence, dict), "field_evidence is missing")
+        for name in requested:
+            _need(
+                name in raw_evidence, f"no field_evidence entry for requested field {name!r}", V2_REJECT_MISSING_ENTRY
+            )
+        entries = {name: _entry(name, raw, expected) for name, raw in raw_evidence.items()}
+        for entry in entries.values():
+            if entry.derivation:
+                missing = [i for i in entry.derivation.inputs if i not in entries]
+                _need(not missing, f"field_evidence.{entry.field}.derivation.inputs {missing} have no entry")
+        fields_ = payload.get("fields")
+        _need(isinstance(fields_, dict), "fields is missing")
+        admitted = {name for name, entry in entries.items() if entry.admitted}
+        _need(set(fields_) == admitted, "fields keys are not exactly the admitted entries")
+        for name in admitted:
+            _need(freeze(fields_[name]) == entries[name].value, f"fields[{name!r}] differs from its evidence value")
+        raw_proposals = payload.get("proposals")
+        _need(isinstance(raw_proposals, list), "proposals is missing")
+        proposals = tuple(_proposal(p, i, entries, expected) for i, p in enumerate(raw_proposals))
+    except _Malformed as exc:
+        return _rejected(payload, exc.code, str(exc).split(": ", 1)[1])
+    except TypeError as exc:
+        # An unhashable JSON value (list or object) where a string was due
+        # fails a membership test; it is a malformed reply, never a crash.
+        return _rejected(payload, V2_REJECT_MALFORMED, f"value of the wrong JSON type: {exc}")
+    return ConvergeResponseV2(
+        contract_version=version,
+        state=state,
+        failure_reason=None,
+        resolution=resolution,
+        field_evidence=MappingProxyType(entries),
+        proposals=proposals,
+        rejection=None,
+    )
+
+
+# ── Converge v2 writeback plan (pure; the Odoo writer resolves codes,
+#    applies merge-not-overwrite and records provenance) ─────────────────────
+
+V2_PLAN_WRITE = "write"
+V2_PLAN_SKIP = "skip"
+V2_SKIP_UNKNOWN = "unknown"
+V2_SKIP_CONFLICTING = "conflicting"
+V2_SKIP_UNIT = "unit"
+V2_SKIP_NOT_ADMITTED = "not_admitted"
+
+
+@dataclass(frozen=True, slots=True)
+class V2WritebackDecision:
+    """What to do with one requested cartridge field.
+
+    For a write, ``value`` is already in the Odoo field's unit; for a code row
+    it is the code (many2one) or a tuple of codes (many2many), still to be
+    resolved against existing master records.
+    """
+
+    cartridge_field: str
+    odoo_field: str
+    kind: str
+    action: str
+    value: Any = None
+    skip_reason: str | None = None
+    detail: str | None = None
+    evidence_state: str | None = None
+    confidence: float | None = None
+    # For a converted number: the value and governing unit as the reply stated them.
+    source_value: Any = None
+    source_unit: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class V2WritebackPlan:
+    target: str
+    odoo_model: str
+    decisions: tuple[V2WritebackDecision, ...]
+    rejection: str | None
+
+    @property
+    def writes(self) -> tuple[V2WritebackDecision, ...]:
+        return tuple(d for d in self.decisions if d.action == V2_PLAN_WRITE)
+
+
+# Declaration keys that are not part of the typed shape being compared.
+_DECL_IGNORED_KEYS = frozenset({"required", "unit"})
+_DECL_PROPERTIES = "properties"
+
+
+def _declaration_shape(decl: Any) -> Any:
+    """Compare declarations as the engine does (``spec_types.shape``), ``required`` and ``unit`` aside.
+
+    The engine emits a map's ``properties`` as an object keyed by property
+    name; the cartridge spec writes them as a list of ``{name, ...}``. Both
+    normalise to the keyed form, so the same declaration compares equal.
+    """
+    if isinstance(decl, Mapping):
+        shaped = {}
+        for key, value in decl.items():
+            if key in _DECL_IGNORED_KEYS:
+                continue
+            if key == _DECL_PROPERTIES and isinstance(value, tuple | list):
+                value = {
+                    p.get("name"): {k: v for k, v in p.items() if k != "name"} for p in value if isinstance(p, Mapping)
+                }
+            shaped[key] = _declaration_shape(value)
+        return shaped
+    if isinstance(decl, tuple | list):
+        return [_declaration_shape(v) for v in decl]
+    return decl
+
+
+def governing_unit(entry: FieldEvidence) -> str | None:
+    """The unit a number is read in (decision 4 as amended 2026-11-13).
+
+    The value's own unit when ``unit_status`` is ``stated``; otherwise the unit
+    the cartridge declares for the field (response.v2.md 10.2,
+    ``declaration.unit``); otherwise none, and the number is not written.
+    """
+    if entry.unit_status == V2_UNIT_STATED and entry.unit:
+        return entry.unit
+    declared = entry.declaration.get(_DECL_UNIT) if isinstance(entry.declaration, Mapping) else None
+    return declared if isinstance(declared, str) and declared.strip() else None
+
+
+_DECL_UNIT = "unit"
+
+
+def _coerce(row, entry: FieldEvidence) -> tuple[str, Any, str | None]:
+    """Return (action, value, detail) for an admitted writable entry, or raise _Malformed."""
+    value = entry.value
+    where = f"field_evidence.{entry.field}.value"
+    if row.kind in V2_NUMERIC_KINDS:
+        _need(_is_number(value), f"{where} is not a finite number")
+        unit = governing_unit(entry)
+        if unit is None:
+            return V2_PLAN_SKIP, None, "no governing unit (value states none and the declaration declares none)"
+        if unit not in row.units:
+            return V2_PLAN_SKIP, None, f"unit {unit!r} is not one of {sorted(row.units)}"
+        converted = float(value) * row.units[unit]
+        if row.kind == V2_KIND_INTEGER:
+            if row.round_to_integer:
+                converted = math.floor(converted + 0.5)
+            elif not converted.is_integer():
+                return V2_PLAN_SKIP, None, f"{value} {unit} is not a whole number in the Odoo unit"
+            converted = int(converted)
+        return V2_PLAN_WRITE, converted, unit
+    if row.kind == V2_KIND_BOOLEAN:
+        _need(isinstance(value, bool), f"{where} is not a boolean")
+        return V2_PLAN_WRITE, value, None
+    if row.kind in (V2_KIND_CHAR, V2_KIND_SELECTION, V2_KIND_MANY2ONE_CODE):
+        _need(_is_str(value), f"{where} is not a non-empty string")
+        return V2_PLAN_WRITE, value.strip(), None
+    if row.kind == V2_KIND_MANY2MANY_CODE:
+        _need(isinstance(value, tuple) and value, f"{where} is not a non-empty list")
+        codes = []
+        for item in value:
+            code = item.get(row.code_item_key) if row.code_item_key and isinstance(item, Mapping) else item
+            _need(_is_str(code), f"{where} carries an item without a code")
+            codes.append(code.strip())
+        return V2_PLAN_WRITE, tuple(dict.fromkeys(codes)), None
+    raise _Malformed(V2_REJECT_MALFORMED, f"{row.kind} has no coercion")  # pragma: no cover - V2_KINDS is closed
+
+
+def plan_converge_v2_writeback(
+    target: str, response: ConvergeResponseV2, request: ConvergeRequestV2, field_defs=None
+) -> V2WritebackPlan:
+    """Decide, per requested field, what the approved evidence-state policy allows.
+
+    Writes only admitted ``inferred`` / ``external_claim`` values whose shape
+    matches the reviewed row and whose number carries an accepted unit.
+    ``unknown`` and ``conflicting`` are skipped and recorded; an ``observed``
+    or unadmitted value is skipped as not admitted. A rejected response, a
+    declaration that no longer matches the row, or a value of the wrong shape
+    rejects the plan: nothing is written. The facility profile target is
+    derived from ``field_defs`` exactly as the request builder derived it.
+    """
+    spec = resolve_v2_target(target, field_defs, subject=request.subject_type, version=request.cartridge.version)
+    if not response.usable:
+        return V2WritebackPlan(target, spec.odoo_model, (), response.rejection)
+    decisions = []
+    try:
+        for requested in request.targets:
+            row = spec.row(requested["field"])
+            _need(row is not None, f"requested field {requested['field']!r} has no mapping row")
+            _need(not is_never_target(row.odoo_field), f"{row.odoo_field} is never a converge target")
+            entry = response.field_evidence[row.cartridge_field]
+            decisions.append(_decide(row, entry))
+    except _Malformed as exc:
+        return V2WritebackPlan(target, spec.odoo_model, (), str(exc))
+    return V2WritebackPlan(target, spec.odoo_model, tuple(decisions), None)
+
+
+def _decide(row, entry: FieldEvidence) -> V2WritebackDecision:
+    """The evidence-state write policy for one mapped field (shared by interactive runs and the sweep)."""
+    _need(
+        _declaration_shape(entry.declaration) == _declaration_shape(row.declaration),
+        f"cartridge declaration of {row.cartridge_field!r} differs from the reviewed row",
+    )
+    base = {
+        "cartridge_field": row.cartridge_field,
+        "odoo_field": row.odoo_field,
+        "kind": row.kind,
+        "evidence_state": entry.state,
+        "confidence": entry.confidence,
+    }
+    if entry.state == V2_STATE_UNKNOWN:
+        return V2WritebackDecision(
+            **base, action=V2_PLAN_SKIP, skip_reason=V2_SKIP_UNKNOWN, detail=entry.unknown_reason
+        )
+    if entry.state == V2_STATE_CONFLICTING:
+        detail = f"{len(entry.conflict or ())} disagreeing candidates"
+        return V2WritebackDecision(**base, action=V2_PLAN_SKIP, skip_reason=V2_SKIP_CONFLICTING, detail=detail)
+    if not entry.admitted or entry.state not in V2_WRITABLE_STATES:
+        return V2WritebackDecision(
+            **base, action=V2_PLAN_SKIP, skip_reason=V2_SKIP_NOT_ADMITTED, detail=f"state {entry.state}"
+        )
+    action, value, detail = _coerce(row, entry)
+    if action == V2_PLAN_SKIP:
+        return V2WritebackDecision(**base, action=V2_PLAN_SKIP, skip_reason=V2_SKIP_UNIT, detail=detail)
+    if row.kind in V2_NUMERIC_KINDS:
+        return V2WritebackDecision(
+            **base, action=V2_PLAN_WRITE, value=value, source_value=entry.value, source_unit=detail
+        )
+    return V2WritebackDecision(**base, action=V2_PLAN_WRITE, value=value)
+
+
+V2_SKIP_UNMAPPED = "unmapped"
+
+
+def plan_sweep_converge_v2_writeback(response: ConvergeResponseV2, spec, unmapped=None) -> V2WritebackPlan:
+    """The write policy over every field a sweep result carries evidence for.
+
+    EIE chose the targets (enrichment-sweep.md 3.4 step 4), so the plan walks
+    the reply's ``field_evidence``, not an Odoo request. ``spec`` is the
+    facility-profile target derived for the union of the cartridge's subjects
+    (``derive_facility_profile_target_all_subjects``), so any field EIE
+    targeted can be reviewed. A field with no reviewed row (undeclared,
+    unmapped or a never target) is skipped and recorded as ``unmapped``; every
+    mapped field gets exactly the interactive decision (``_decide``).
+    """
+    if not response.usable:
+        return V2WritebackPlan(spec.key, spec.odoo_model, (), response.rejection)
+    unmapped = unmapped or {}
+    decisions = []
+    try:
+        for name in sorted(response.field_evidence):
+            entry = response.field_evidence[name]
+            row = spec.row(name)
+            if row is None or is_never_target(row.odoo_field):
+                detail = unmapped.get(name) or "no reviewed facility-profile mapping"
+                decisions.append(
+                    V2WritebackDecision(
+                        cartridge_field=name,
+                        odoo_field="",
+                        kind="",
+                        action=V2_PLAN_SKIP,
+                        skip_reason=V2_SKIP_UNMAPPED,
+                        detail=detail,
+                        evidence_state=entry.state,
+                        confidence=entry.confidence,
+                    )
+                )
+                continue
+            decisions.append(_decide(row, entry))
+    except _Malformed as exc:
+        return V2WritebackPlan(spec.key, spec.odoo_model, (), str(exc))
+    return V2WritebackPlan(spec.key, spec.odoo_model, tuple(decisions), None)

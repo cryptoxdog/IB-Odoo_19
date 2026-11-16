@@ -6,6 +6,8 @@ from unittest.mock import patch
 
 from odoo import fields
 from odoo.addons.plasticos_logistics.models.load import (
+    _ACTUAL_EVENT_INTERNAL_WRITE,
+    _ACTUAL_EVENT_INTERNAL_WRITE_TOKEN,
     _FREIGHT_INTERNAL_WRITE,
     _FREIGHT_INTERNAL_WRITE_TOKEN,
 )
@@ -49,6 +51,10 @@ class TestScaleTicketCardinality(TransactionCase):
         load.with_context(**{_FREIGHT_INTERNAL_WRITE: _FREIGHT_INTERNAL_WRITE_TOKEN}).write(
             {"state": "delivered", "delivered_at": when, "dispatched_at": when}
         )
+        # The scale-ticket clocks read the Logistics actual events (BRS-07-R051, 2026-11-11).
+        load.with_context(**{_ACTUAL_EVENT_INTERNAL_WRITE: _ACTUAL_EVENT_INTERNAL_WRITE_TOKEN}).write(
+            {"actual_pickup_at": when, "actual_delivery_at": when}
+        )
         return tx, load
 
     def test_locked_load_accepts_only_the_scale_ticket_status_write(self):
@@ -87,6 +93,37 @@ class TestScaleTicketCardinality(TransactionCase):
             cron.cron_check_scale_tickets()
         self.assertEqual({load.id: len(load.message_ids) for load in loads}, noted)
 
+    def test_escalation_without_a_manager_is_noted_once_on_the_load(self):
+        """A scale-ticket escalation nobody can own is visible on the load, as the missing-docs one is."""
+        _tx, load = self._delivered_load("TX-SCALE-NOOWNER")
+        cursor_key = "plasticos_documents.scale_ticket_scan_cursor"
+        empty_group = self.env["res.groups"].create({"name": "Empty Scale Note Managers"})
+        cron = self.env["plasticos.transaction"].with_context(scale_ticket_batch_size=10)
+
+        def notes():
+            load.invalidate_recordset(["message_ids"])
+            return load.message_ids.filtered(
+                lambda message: "Not routed: scale ticket escalation." in (message.body or "")
+            )
+
+        self.assertFalse(notes())
+        for _run in range(2):
+            self.env["ir.config_parameter"].set_param(cursor_key, str(load.id - 1))
+            with (
+                patch.object(type(cron), "_scale_ticket_manager_group", lambda self: empty_group),
+                self.assertLogs("odoo.addons.plasticos_base.models.res_users", level="ERROR"),
+            ):
+                result = cron.cron_check_scale_tickets()
+            self.assertGreaterEqual(result["failures"], 1)
+            self.assertEqual(len(notes()), 1)
+        self.assertFalse(load.scale_ticket_escalated)
+        summary = f"ESCALATION: Missing scale ticket on {load.name}"
+        self.assertFalse(
+            self.env["mail.activity"].search(
+                [("res_model", "=", "plasticos.load"), ("res_id", "=", load.id), ("summary", "=", summary)]
+            )
+        )
+
     def test_one_load_failure_does_not_stop_the_next_load(self):
         _tx_a, first = self._delivered_load("TX-SCALE-FAIL-A")
         _tx_b, second = self._delivered_load("TX-SCALE-FAIL-B")
@@ -110,7 +147,7 @@ class TestScaleTicketCardinality(TransactionCase):
         )
         with (
             patch.object(type(model), "_record_scale_ticket_reminder", explode),
-            patch.object(type(model), "_get_logistics_manager", lambda self, group: manager),
+            patch.object(type(model), "_get_logistics_manager", lambda self, group, company=None: manager),
         ):
             result = model.cron_check_scale_tickets()
         self.assertGreaterEqual(result["failures"], 1)
@@ -139,6 +176,10 @@ class TestScaleTicketCardinality(TransactionCase):
         when = fields.Datetime.now() - timedelta(days=30)
         loads.with_context(**{_FREIGHT_INTERNAL_WRITE: _FREIGHT_INTERNAL_WRITE_TOKEN}).write(
             {"state": "delivered", "delivered_at": when, "dispatched_at": when}
+        )
+        # The scale-ticket clocks read the Logistics actual events (BRS-07-R051, 2026-11-11).
+        loads.with_context(**{_ACTUAL_EVENT_INTERNAL_WRITE: _ACTUAL_EVENT_INTERNAL_WRITE_TOKEN}).write(
+            {"actual_pickup_at": when, "actual_delivery_at": when}
         )
         model = self.env["plasticos.transaction"]
         self.env["ir.config_parameter"].set_param(

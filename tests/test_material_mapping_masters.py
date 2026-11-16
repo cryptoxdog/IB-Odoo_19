@@ -87,7 +87,7 @@ def test_every_mapped_code_has_a_seeded_master(column: str) -> None:
     assert seeded, f"{MASTER_FILES[column]} seeds no codes"
     missing: dict[str, int] = {}
     for row in _mapped_rows():
-        values = row[column].split() if column == "attributes" else [row[column].strip()]
+        values = row[column].split() if column in {"attributes", "color"} else [row[column].strip()]
         for value in values:
             if value and value not in seeded:
                 missing[value] = missing.get(value, 0) + 1

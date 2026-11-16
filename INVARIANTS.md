@@ -280,3 +280,30 @@ To modify an invariant:
 5. Remediate the existing codebase.
 
 **No silent invariant violations.**
+
+> **2026-11-13 amendment to POS-INV-18 (additive; this file is append-only).**
+> Authorized by the operator for the cartridge-driven enrichment consumer campaign.
+> POS-INV-18 covers more than partner data. A converge result may also propose values for a partner's
+> material profiles (`plasticos.material.profile`) and facility profiles (`plasticos.facility.profile`).
+> It is still a proposal and never a write command. Only the converge v2 mapping table may write to these
+> records (ADR-012 amendment 2026-11-13), after whole-run review approval, under merge-not-overwrite,
+> with provenance. A reply is written only when its evidence state is admitted `inferred` or `external_claim`.
+> `unknown`, `conflicting` and `observed` values are never written. A number is written only in a unit the
+> row accepts. A reply whose evidence cannot be fully validated writes nothing and records why.
+> **Rejects:** a v1-shaped or malformed reply to a v2 request mutating a profile, and an unmapped
+> cartridge field reaching any Odoo record.
+
+> **2026-11-13 correction to the POS-INV-18 amendment above (additive; this file is append-only).**
+> A converge result may propose values for the partner and its facility profiles only. It never proposes values for
+> a material profile: the cartridge's `material` subject describes a facility's capability (operator decision 2026-11-13,
+> ADR-012 amendment 2026-11-13 (d)). A number is written only in its governing unit: the value's stated unit, or else
+> the cartridge's declared unit. It must be a unit the field accepts.
+
+> **2026-11-15 amendment to POS-INV-18 (additive; this file is append-only).**
+> Authorized by the operator (2026-11-14/15) for the scheduled EIE enrichment sweep (ADR-012 amendment 2026-11-15).
+> A sweep result is a proposal like any other converge v2 reply. It is never written before review: each usable result
+> becomes one `plasticos.enrichment.run` in `review` and is written only through whole-run approval (`action_inject`),
+> under the same mapping table, evidence-state policy, merge-not-overwrite rule and provenance. An unusable result
+> becomes a `degraded` run with its reason. A malformed sweep reply ingests nothing. One sweep and entity yield at most one run.
+> **Rejects:** a sweep result writing to a partner or facility profile without an approved run, and a sweep reply
+> that does not match the contract module (`plasticos_gate/services/gate_sweep.py`) creating any run.

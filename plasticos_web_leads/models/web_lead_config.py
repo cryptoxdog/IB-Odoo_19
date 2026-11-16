@@ -1,8 +1,15 @@
 import logging
+import os
 import secrets
 
 from odoo import api, fields, models
 
+from .classification_engine import (
+    QUALIFICATION_MODE_LEGACY,
+    QUALIFICATION_MODE_LIVE,
+    QUALIFICATION_MODE_SHADOW,
+    QUALIFICATION_MODES,
+)
 from .evidence_keys import (
     KEY_API_KEY,
     KEY_BASE_URL,
@@ -19,7 +26,11 @@ LLM_PROVIDER_SELECTION = [
     ("openai", "OpenAI"),
     ("anthropic", "Anthropic"),
     ("mistral", "Mistral"),
+    ("deepseek", "DeepSeek"),
 ]
+
+DEEPSEEK_TEXT_MODEL = "deepseek-flash"
+DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 
 INFERENCE_TRANSPORT_SELECTION = [
     ("openai_compatible", "OpenAI-Compatible Chat Completions"),
@@ -86,7 +97,10 @@ class PlasticosWebLeadConfig(models.Model):
             ("ocean_recovered", "Ocean Recovered"),
         ],
         default="post_consumer",
-        help="Default source type for intakes created from web leads.",
+        help=(
+            "Retained for existing configurations. Intakes created from web leads no longer use it: "
+            "an unknown seller source stays empty instead of being recorded as this default."
+        ),
     )
 
     # ═══════════════════════════════════════════════════════════
@@ -109,7 +123,9 @@ class PlasticosWebLeadConfig(models.Model):
         ondelete="set null",
         domain="[('share', '=', False), ('active', '=', True)]",
         help=(
-            "Internal Odoo user who receives the HOT web-lead review activity. "
+            "Internal Odoo user who receives the HOT web-lead review activity, the "
+            "REVIEW clarification activity, and failed-lead recovery work. The user "
+            "must be able to edit web leads; otherwise the handoff is recorded as blocked. "
             "When unset, Odoo records the handoff as blocked rather than routing "
             "it to the ingestion worker or an arbitrary user. ondelete='set null' "
             "is deliberate: deleting the reviewer must not cascade into deleting "
@@ -141,9 +157,9 @@ class PlasticosWebLeadConfig(models.Model):
     text_inference_provider = fields.Selection(
         LLM_PROVIDER_SELECTION,
         string="Text Inference Provider",
-        default="openai",
+        default="deepseek",
         required=True,
-        help="Provider used for structured text normalization. Change this setting to swap providers without code changes.",
+        help="Provider used for structured text normalization. Production text normalization uses DeepSeek Flash.",
     )
     vision_inference_provider = fields.Selection(
         LLM_PROVIDER_SELECTION,
@@ -281,6 +297,24 @@ class PlasticosWebLeadConfig(models.Model):
         help="OpenAI-compatible Mistral API endpoint.",
     )
 
+    # ── DeepSeek ──────────────────────────────────────────────
+
+    deepseek_api_key = fields.Char(
+        string="DeepSeek API Key",
+        groups="base.group_system",
+        help="API key for DeepSeek text normalization. When this field is empty, the process environment variable DEEPSEEK_API_KEY is used.",
+    )
+    deepseek_model = fields.Char(
+        string="DeepSeek Text Model",
+        default=DEEPSEEK_TEXT_MODEL,
+        help="OpenAI-compatible DeepSeek model for structured text normalization.",
+    )
+    deepseek_base_url = fields.Char(
+        string="DeepSeek API Base URL",
+        default=DEEPSEEK_BASE_URL,
+        help="OpenAI-compatible DeepSeek API endpoint.",
+    )
+
     # ═══════════════════════════════════════════════════════════
     # Classification Thresholds
     # ═══════════════════════════════════════════════════════════
@@ -304,6 +338,24 @@ class PlasticosWebLeadConfig(models.Model):
         string="Reusable Item Policy Codes",
         default="PLASTIC_PALLETS|PALLETS|TOTES|CRATES",
         help="Pipe-delimited canonical polymer, material-form, or material-grade codes allowed to use the reusable-item threshold. This is an explicit allow-list, not a polymer-grade rule.",
+    )
+
+    qualification_mode = fields.Selection(
+        [
+            (QUALIFICATION_MODE_LEGACY, "Legacy (HOT/COLD classifier routes)"),
+            (QUALIFICATION_MODE_SHADOW, "Shadow (classifier routes; qualification recorded)"),
+            (QUALIFICATION_MODE_LIVE, "Live (validated HOT/REVIEW/COLD routes)"),
+        ],
+        string="Qualification Mode",
+        default=QUALIFICATION_MODE_SHADOW,
+        required=True,
+        help=(
+            "Legacy: the HOT/COLD classifier decides and the economic model only comments. "
+            "Shadow: the classifier still decides; the commercial model's validated HOT/REVIEW/COLD "
+            "is recorded beside it for comparison and changes nothing. "
+            "Live: the validated qualification decides. REVIEW keeps the lead, assigns broker "
+            "clarification work, and creates no intake. Switching back to Legacy keeps all evidence."
+        ),
     )
 
     # ═══════════════════════════════════════════════════════════
@@ -364,6 +416,11 @@ class PlasticosWebLeadConfig(models.Model):
             config = self.create({"name": "Web Lead Configuration"})
             _logger.info("Created default web lead configuration.")
         return config
+
+    def get_qualification_mode(self):
+        """The configured routing authority; an unset or unknown value is shadow, never live."""
+        mode = self.qualification_mode or QUALIFICATION_MODE_SHADOW
+        return mode if mode in QUALIFICATION_MODES else QUALIFICATION_MODE_SHADOW
 
     def get_reject_materials(self):
         """Return a frozenset of lowercase reject-material patterns."""
@@ -486,7 +543,24 @@ class PlasticosWebLeadConfig(models.Model):
                 KEY_WORKSPACE_ID: None,
                 KEY_TEMPERATURE: self.inference_temperature,
             }
+        if provider == "deepseek" and self._deepseek_api_key():
+            return {
+                KEY_PROVIDER: "deepseek",
+                KEY_TRANSPORT: "openai_compatible",
+                KEY_API_KEY: self._deepseek_api_key(),
+                KEY_MODEL: self.deepseek_model or DEEPSEEK_TEXT_MODEL,
+                KEY_BASE_URL: self.deepseek_base_url or DEEPSEEK_BASE_URL,
+                KEY_WORKSPACE_ID: None,
+                KEY_TEMPERATURE: self.inference_temperature,
+            }
         return None
+
+    def _deepseek_api_key(self):
+        """The Settings key, or DEEPSEEK_API_KEY when Settings is empty."""
+        configured = (self.deepseek_api_key or "").strip()
+        if configured:
+            return configured
+        return (os.environ.get("DEEPSEEK_API_KEY") or "").strip()
 
     def _get_provider_info(self, provider):
         """Return dict with api_key, model, base_url for a given provider slug."""
@@ -510,6 +584,13 @@ class PlasticosWebLeadConfig(models.Model):
                 "api_key": self.mistral_api_key,
                 "model": self.mistral_model or "mistral-large-latest",
                 "base_url": "https://api.mistral.ai/v1/",
+            }
+        if provider == "deepseek" and self._deepseek_api_key():
+            return {
+                "provider": "deepseek",
+                "api_key": self._deepseek_api_key(),
+                "model": self.deepseek_model or DEEPSEEK_TEXT_MODEL,
+                "base_url": self.deepseek_base_url or DEEPSEEK_BASE_URL,
             }
         return None
 

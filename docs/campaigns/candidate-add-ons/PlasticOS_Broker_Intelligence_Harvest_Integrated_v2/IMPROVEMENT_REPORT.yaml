@@ -1,0 +1,187 @@
+kernel: recursive_improvement_kernel/3.0
+status: PartiallySucceeded
+execution_mode: full_improvement+package_delivery
+target_binding:
+  baseline_archive: PlasticOS_Broker_Intelligence_Harvest_Integrated_v2.zip
+  baseline_sha256: 649389e7b3fe163067e68beff6fa48d6518d0fed27f9482b171468eac79fe183
+  baseline_member_count: 100
+  kernel_sha256: dc6cbd25ffb3be5be681db984afeeda6e33d78929bb64854f23c6cb94a6ffab3
+  authority_repo: cryptoxdog/IB-Odoo_19
+  authority_branch: Staging
+  authority_sha: c2c72bc36d6201d4114531a8f666c411db612f64
+  open_pr_count_at_prior_inspection: 0
+  harvest_sha256: 2c0220acdc45c95ffe184da4e3b13dee58ec426a3b6d571aeae97bc02277062a
+scope:
+  inspect: All original archive members inventoried; executable addon models, security,
+    services, data references, views, tests, build tools and reports inspected for
+    relevant concerns. Source catalog verified by declared SHA-256, not semantically
+    re-admitted.
+  modify: The packaged broker addon source, tests, release tooling and their existing
+    documentation/receipts only.
+  excluded:
+  - Other branches or repositories
+  - Odoo.sh
+  - Live database
+  - Harvest source modifications
+  - Unavailable standalone v1 implementation
+baseline:
+  offline_unittest:
+    status: Passed
+    tests: 36
+  static_source:
+    status: Passed
+    member_files: 100
+issue_inventory:
+- id: I01
+  severity: High
+  status: SourceFixedRuntimeUnknown
+  cause: audit model had a public ORM create path for administrators
+  fix: make direct create fail; append only through private knowledge lifecycle owner
+  files:
+  - plasticos_broker_intelligence/models/audit.py
+  - plasticos_broker_intelligence/models/knowledge.py
+  - plasticos_broker_intelligence/security/ir.model.access.csv
+  validation: AST regression test, native Odoo gate not run
+- id: I02
+  severity: High
+  status: SourceFixedRuntimeUnknown
+  cause: feedback verification flag inherited rejected state even for unrelated correction/quality
+    text
+  fix: source-confirmed only for verbatim matching rejection observation
+  files:
+  - plasticos_broker_intelligence/models/feedback.py
+  - plasticos_broker_intelligence/services/evidence.py
+  validation: portable truth-table test passed
+- id: I03
+  severity: High
+  status: SourceFixedRuntimeUnknown
+  cause: company-wide feedback read rule could disclose other brokers source-restricted
+    narrative
+  fix: record rule requires original actor and permitted company; provenance states
+    explicit source or operator-context company
+  files:
+  - plasticos_broker_intelligence/security/record_rules.xml
+  - plasticos_broker_intelligence/models/feedback.py
+  - plasticos_broker_intelligence/views/observation_views.xml
+  validation: XML rule check passed; actual two-user ACL test not run
+- id: I04
+  severity: High
+  status: SourceFixedRuntimeUnknown
+  cause: rejection UI surfaced human-approved knowledge without checking prerequisites
+    or citation integrity
+  fix: reuse core build_response evidence gate and present deferred guidance
+  files:
+  - plasticos_broker_intelligence_rejections/wizards/rejection_wizard.py
+  - plasticos_broker_intelligence_rejections/services/rejection.py
+  validation: portable prerequisite and invalid citation checks passed; Odoo UX not
+    run
+- id: I05
+  severity: Medium
+  status: SourceFixedRuntimeUnknown
+  cause: approval existence check read entire binary attachment and did not reject
+    empty files
+  fix: search native attachment metadata and require a nonempty file
+  files:
+  - plasticos_broker_intelligence/models/knowledge.py
+  validation: source reviewed; Odoo attachment runtime not run
+- id: I06
+  severity: Medium
+  status: FixedAndVerified
+  cause: release script hard-coded prior test count and prior archive path
+  fix: derive test receipts dynamically and expose --output with path guard
+  files:
+  - tools/build_release.py
+  validation: release builder reruns tests and validates ZIP digest
+- id: I07
+  severity: High
+  status: BlockedExternalInput
+  cause: original three-addon standalone v1 implementation was never supplied
+  fix: no fabrication; preserved existing explicit unknown
+  validation: v1 behavior and original 38 seeds cannot be established
+- id: I08
+  severity: High
+  status: BlockedRuntime
+  cause: Odoo 19 Enterprise installation environment unavailable
+  fix: preserved runtime gate as NOT_RUN
+  validation: real registry/ORM/ACL/concurrency remains unknown
+recursive_passes:
+- pass: 1
+  objective: Bind and inventory 100 original ZIP entries
+  outcome: Passed
+- pass: 2
+  objective: Reproduce baseline tests and static validation
+  outcome: 36 offline tests passed, validator passed
+- pass: 3
+  objective: Audit owner boundaries and high-severity source flaws
+  outcome: Six actionable source findings confirmed
+- pass: 4
+  objective: Apply smallest source-owner fixes and regression guards
+  outcome: Six findings changed with explicit tests/validation
+- pass: 5
+  objective: Remove unnecessary binary reads, hardcoded release claims and misleading
+    ACL ability
+  outcome: Reduced known overhead and stale release mechanics
+- pass: 6
+  objective: Run new and retained offline tests plus structural validation
+  outcome: 41 offline tests passed before final packaging
+- pass: 7
+  objective: Package and verify manifest-bound source
+  outcome: Builder reruns and records final result; live Odoo remains unknown
+changes_applied: See issue_inventory I01-I06 and BUILD_MANIFEST.json for exact per-file
+  digests.
+contracts_preserved_or_changed: Four optional addons, original owner read/write boundaries,
+  106 draft knowledge seeds, no automated commerce, no v1 compatibility proof.
+validation_results:
+  portable_unit_tests:
+    status: Passed
+    count: 41
+  static_manifest_xml_compile:
+    status: Passed
+  harvest_sha256_inventory:
+    status: Passed
+  odoo_enterprise_registry:
+    status: Unknown
+    reason: Odoo not installed locally
+  odoo_two_user_acl_and_binary_attachment:
+    status: Unknown
+    reason: No Odoo DB
+  odoo_ingestion_qualification_replay:
+    status: Unknown
+    reason: No Odoo DB
+  source_v1_compatibility:
+    status: Unknown
+    reason: Unprovided v1 ZIP
+validation_gates:
+  source_structure: Passed
+  portable_behavior: Passed
+  runtime_integration: Unknown
+  overall_readiness: Unknown
+regression_assessment: No regression detected by 41 portable tests. Full Odoo regression
+  remains Unknown.
+entropy_reduction: Removed unnecessary binary read on admission, obsolete audit create
+  ACL, and hardcoded test receipts in ZIP builder.
+known_unknowns:
+- Native Odoo 19 SQL/model installation
+- Native record rules and actor isolation
+- Approval, retirement and receipt concurrency
+- Web-lead shadow context injection runtime
+- Original standalone v1 compatibility
+- Historical source read revocation handling
+residual_risks:
+- Odoo registry/ACL approval and company scope need real runtime proof
+- Historical observation receipts may remain visible to their actor after source access
+  changes; policy needs Odoo-side examination
+- Source-ownership default on Offer/Match/Intake may be operator context, never proof
+  of legal owner
+final_artifact_set: PlasticOS_Broker_Intelligence_Harvest_Integrated_v2_Revised.zip;
+  see BUILD_MANIFEST.json for all member hashes.
+handoff:
+  type: ZIP
+  github_mutated: false
+  odoo_mutated: false
+convergence:
+  state: NotConverged
+  reason: Mandatory Odoo Enterprise registry and source v1 compatibility are still
+    unverified; no further speculative source edits warranted.
+  next_move: Run Odoo 19 Enterprise disposable-db install, upgrade, cross-company
+    ACL and targeted integration tests on pinned Staging.

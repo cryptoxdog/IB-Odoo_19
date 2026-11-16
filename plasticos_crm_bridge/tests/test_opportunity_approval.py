@@ -9,7 +9,9 @@ Proves (plan V1–V4 properties, CRM Bridge owns the lineage):
     verified Partner and Material Profile, no synthetic intake, no facility;
   * two commands on one partner and profile are two independent lots;
   * the Gate request is built from the frozen lot and omits facility evidence
-    when none is linked; a later profile edit does not rewrite the lot;
+    when none is linked; the lot freezes the opportunity's material sheet (the
+    profile only when there is no sheet), and a later sheet or profile edit
+    does not rewrite the lot or its retry;
   * reviewed results create idempotent unsent drafts with typed lineage;
   * terms freeze once sent; exactly one commercial winner per opportunity;
   * acceptance marks the native Won stage and creates no purchase order,
@@ -22,6 +24,8 @@ import os
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from lxml import etree
+
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.addons.plasticos_crm_bridge.models.opportunity_approval import APPROVAL_MINT_CONTEXT
 from odoo.addons.plasticos_gate.services.gate_config import (
@@ -29,6 +33,7 @@ from odoo.addons.plasticos_gate.services.gate_config import (
     GateAvailabilityVerdict,
     GateCapability,
 )
+from odoo.addons.plasticos_offer.tests.test_manual_send import send_offer_email
 from odoo.exceptions import AccessError, UserError, ValidationError
 from odoo.tests.common import tagged
 
@@ -290,6 +295,146 @@ class TestOpportunityApproval(PlasticosTestCase):
         self.assertEqual(approval.snapshot["contamination_pct"], 2.5)
         self.assertEqual(approval.snapshot_digest, digest)
 
+    # ── Silent evidence: lots are recorded by matching, never shown or asked for ──
+
+    def test_ordinary_opportunity_edit_mints_no_lot(self):
+        opportunity = self._opportunity()
+        opportunity.write({"name": "Renamed Opportunity", "description": "Seller confirmed the weight."})
+        self.assertFalse(opportunity.approval_ids, "only a matching command records a lot")
+
+    def test_new_match_after_a_sheet_change_keeps_the_earlier_lot(self):
+        opportunity = self._opportunity()
+        first_run, _sent = self._match(opportunity)
+        first_lot = first_run.approval_id
+        first_digest = first_lot.snapshot_digest
+        opportunity.opportunity_material_ids.contamination_percent = 4.0
+        second_run, second_sent = self._match(opportunity)
+        self.env.invalidate_all()
+        self.assertNotEqual(second_run.approval_id, first_lot)
+        self.assertEqual(first_lot.snapshot_digest, first_digest, "the historical lot is unchanged")
+        self.assertEqual(first_lot.snapshot["contamination_pct"], 2.5)
+        self.assertEqual(second_run.approval_id.snapshot["contamination_pct"], 4.0)
+        self.assertEqual(second_sent["payload"]["query"]["contamination_pct"], 4.0)
+        self.assertEqual(first_run.approval_id, first_lot, "the earlier run keeps its own lot")
+
+    # ── The opportunity's material sheet is what Gate matches ──
+
+    def test_match_freezes_the_opportunity_material_sheet_not_the_profile(self):
+        opportunity = self._opportunity()
+        sheet = opportunity.opportunity_material_ids
+        self.assertEqual(len(sheet), 1, "a profile-backed opportunity carries its own material sheet")
+        sheet.write({"quantity_per_load_lbs": 1000, "contamination_percent": 4.0, "buy_price_per_lb": 0.25})
+
+        run, sent = self._match(opportunity)
+
+        lot = run.approval_id
+        self.assertEqual(lot.material_profile_id, self.profile, "the approved profile stays the lot's provenance")
+        self.assertEqual(lot.snapshot["opportunity_material_id"], sheet.id)
+        self.assertEqual(lot.snapshot["material_profile_id"], self.profile.id)
+        self.assertEqual(lot.snapshot["quantity_per_load_lbs"], 1000)
+        self.assertEqual(lot.snapshot["contamination_pct"], 4.0)
+        self.assertNotIn("buy_price_per_lb", lot.snapshot, "a Gate match carries no price authority")
+        query = sent["payload"]["query"]
+        self.assertEqual(query["quantity_per_load_lbs"], 1000, "Gate matches the broker's sheet")
+        self.assertEqual(query["contamination_pct"], 4.0)
+        self.assertNotIn("opportunity_material_id", query, "sheet lineage stays on the lot")
+        self.env.invalidate_all()
+        self.assertEqual(self.profile.quantity_per_load_lbs, 40000, "the sheet never writes the profile")
+        self.assertEqual(self.profile.contamination_percent, 2.5)
+
+    def test_lot_names_the_profile_the_sheet_was_copied_from(self):
+        """Switching the opportunity's profile does not recopy the sheet, so the lot keeps the sheet's own profile."""
+        opportunity = self._opportunity()
+        sheet = opportunity.opportunity_material_ids
+        other_polymer = self._get_or_create_polymer(code="LDPE", name="LDPE")
+        other_profile = self.env["plasticos.material.profile"].create(
+            {
+                "partner_id": self.supplier.id,
+                "polymer_id": other_polymer.id,
+                "form_id": self.form.id,
+                "quantity_per_load_lbs": 15000,
+                "contamination_percent": 7.0,
+            }
+        )
+        opportunity.material_profile_id = other_profile
+        self.assertEqual(opportunity.opportunity_material_ids, sheet, "a profile change does not recopy the sheet")
+        self.assertEqual(sheet.source_profile_id, self.profile)
+
+        run, sent = self._match(opportunity)
+
+        lot = run.approval_id
+        self.assertEqual(lot.material_profile_id, self.profile, "the lot names the sheet's source profile")
+        self.assertEqual(lot.snapshot["material_profile_id"], self.profile.id)
+        self.assertEqual(lot.snapshot["opportunity_material_id"], sheet.id)
+        self.assertEqual(
+            lot.snapshot["quantity_per_load_lbs"], 40000, "values come from the sheet, not the new profile"
+        )
+        self.assertEqual(sent["payload"]["query"]["material_profile_id"], self.profile.id)
+
+    def test_sheet_edit_after_match_does_not_rewrite_the_lot(self):
+        opportunity = self._opportunity()
+        run, _sent = self._match(opportunity)
+        lot = run.approval_id
+        digest = lot.snapshot_digest
+        opportunity.opportunity_material_ids.write({"quantity_per_load_lbs": 1000, "contamination_percent": 9.0})
+        self.env.invalidate_all()
+        self.assertEqual(lot.snapshot_digest, digest)
+        self.assertEqual(lot.snapshot["quantity_per_load_lbs"], 40000)
+        self.assertEqual(lot.snapshot["contamination_pct"], 2.5)
+
+    def test_match_copies_the_profile_onto_an_opportunity_without_a_sheet(self):
+        opportunity = self._opportunity()
+        opportunity.opportunity_material_ids.unlink()
+        self.assertFalse(opportunity.opportunity_material_ids)
+
+        run, sent = self._match(opportunity)
+
+        sheet = opportunity.opportunity_material_ids
+        self.assertEqual(len(sheet), 1, "matching copies the profile onto the opportunity first")
+        self.assertEqual(sheet.source_profile_id, self.profile)
+        self.assertEqual(run.approval_id.snapshot["opportunity_material_id"], sheet.id)
+        self.assertEqual(sent["payload"]["query"]["quantity_per_load_lbs"], 40000)
+
+    def test_mint_without_a_sheet_freezes_the_profile(self):
+        opportunity = self.Lead.create(
+            {"name": "Profile-only lot", "type": "opportunity", "partner_id": self.supplier.id}
+        )
+        self.assertFalse(opportunity.opportunity_material_ids)
+        lot = self.Approval.mint(opportunity, source="manual", partner=self.supplier, material_profile=self.profile)
+        self.assertNotIn("opportunity_material_id", lot.snapshot)
+        self.assertEqual(lot.snapshot["quantity_per_load_lbs"], 40000)
+        self.assertEqual(lot.snapshot["contamination_pct"], 2.5)
+        self.assertFalse(opportunity.opportunity_material_ids, "minting a lot creates no sheet")
+
+    def test_matching_chatter_carries_no_lot_or_snapshot_terms(self):
+        opportunity = self._opportunity()
+        messages_before = opportunity.message_ids
+        run, _sent = self._match(opportunity)
+        posted = opportunity.message_ids - messages_before
+        bodies = " ".join(message.body or "" for message in posted)
+        self.assertIn("Matching completed: 1 eligible buyer(s) found.", bodies)
+        for term in ("lot", "Lot", "snapshot", "Snapshot", run.approval_id.snapshot_digest[:12]):
+            self.assertNotIn(term, bodies, f"chatter exposes technical evidence term {term!r}")
+        self.assertTrue(run.approval_id, "the lot is still recorded as backend evidence")
+
+    def test_commercial_views_show_no_lot_interaction(self):
+        opportunity_form = self.Lead.get_views([(False, "form")])["views"]["form"]["arch"]
+        self.assertNotIn("approval_ids", opportunity_form)
+        self.assertNotIn("approval_id", opportunity_form)
+        self.assertNotIn("snapshot_digest", opportunity_form)
+        self.assertNotIn("Approved Lots", opportunity_form)
+        self.assertIn("match_run_ids", opportunity_form, "Gate match runs stay visible")
+        form = etree.fromstring(opportunity_form)
+        for name in ("action_match_opportunity", "action_create_offers_from_results", "action_view_match_runs"):
+            for button in form.xpath(f"//button[@name='{name}']"):
+                title = button.get("title") or ""
+                self.assertNotRegex(title, r"(?i)\blots?\b|snapshot", f"{name} tooltip names a lot or snapshot")
+        run_views = self.Run.get_views([(False, "list"), (False, "form")])["views"]
+        for view_type in ("list", "form"):
+            arch = run_views[view_type]["arch"]
+            self.assertNotIn("approval_id", arch, f"no technical lot reference on the match run {view_type}")
+            self.assertIn("opportunity_id", arch)
+
     # ── V3: reviewed results → idempotent unsent drafts, frozen terms, one winner ──
 
     def _reviewed_run(self):
@@ -321,12 +466,173 @@ class TestOpportunityApproval(PlasticosTestCase):
             opportunity.action_create_offers_from_results()
         self.assertFalse(self.Offer.search([("match_result_id.match_run_id.opportunity_id", "=", opportunity.id)]))
 
+    # ── Material completeness: no match and no offer without polymer and form ──
+
+    def _refused_match(self, opportunity, pattern):
+        """Run the matching command expecting a refusal before Gate is addressed and before the lot is durable."""
+        durable = AssertionError("an incomplete lot must never be made durable")
+        with (
+            patch.object(type(self.Lead), "_plasticos_ensure_lot_durable", side_effect=durable),
+            patch(_CLASSIFY, return_value=_available_verdict()),
+            patch(_ENABLED, return_value=True),
+            patch(_SEND, side_effect=AssertionError("Gate must not be addressed for incomplete material")),
+            self.assertRaisesRegex(UserError, pattern),
+        ):
+            opportunity.action_match_opportunity()
+
+    def test_match_is_refused_when_the_sheet_has_no_form(self):
+        opportunity = self._opportunity()
+        opportunity.opportunity_material_ids.form_id = False
+        self._refused_match(opportunity, r"cannot be matched or offered: Form not set")
+        self.env.invalidate_all()
+        self.assertFalse(opportunity.approval_ids, "the refused command leaves no lot")
+        self.assertFalse(self.Run.search([("opportunity_id", "=", opportunity.id)]))
+
+    def test_match_is_refused_when_the_sheet_has_no_polymer(self):
+        opportunity = self._opportunity()
+        opportunity.opportunity_material_ids.polymer_id = False
+        self._refused_match(opportunity, r"cannot be matched or offered: Polymer not set")
+        self.env.invalidate_all()
+        self.assertFalse(opportunity.approval_ids)
+        self.assertFalse(self.Run.search([("opportunity_id", "=", opportunity.id)]))
+
+    def test_refused_match_mints_no_lot_even_when_the_caller_keeps_the_transaction(self):
+        """The refusal precedes the lot insert: a caller that catches the error holds no incomplete lot."""
+        opportunity = self._opportunity()
+        opportunity.opportunity_material_ids.write({"polymer_id": False, "form_id": False})
+        lots_before = self.Approval.search_count([])
+        raised = None
+        with (
+            patch.object(type(self.Lead), "_plasticos_ensure_lot_durable", side_effect=AssertionError("no lot")),
+            patch(_CLASSIFY, return_value=_available_verdict()),
+            patch(_ENABLED, return_value=True),
+            patch(_SEND, side_effect=AssertionError("Gate must not be addressed for incomplete material")),
+        ):
+            try:
+                opportunity.action_match_opportunity()
+            except UserError as exc:
+                raised = exc
+        self.assertIsNotNone(raised)
+        self.assertIn("Polymer and Form not set", str(raised))
+        self.assertEqual(self.Approval.search_count([]), lots_before)
+        self.assertFalse(opportunity.approval_ids)
+
+    def test_direct_mint_refuses_incomplete_material_and_leaves_no_lot(self):
+        opportunity = self._opportunity()
+        opportunity.opportunity_material_ids.form_id = False
+        lots_before = self.Approval.search_count([])
+        raised = None
+        try:
+            self.Approval.mint(opportunity, source="manual", partner=self.supplier, material_profile=self.profile)
+        except UserError as exc:
+            raised = exc
+        self.assertIsNotNone(raised, "mint must refuse a lot without a form")
+        self.assertIn("Form not set", str(raised))
+        self.assertEqual(self.Approval.search_count([]), lots_before)
+        with self.assertRaisesRegex(UserError, "Form not set"):
+            opportunity.action_approve_lot()
+        self.assertFalse(opportunity.approval_ids)
+
+    def test_direct_mint_with_complete_material_still_mints(self):
+        opportunity = self._opportunity()
+        lot = self.Approval.mint(opportunity, source="manual", partner=self.supplier, material_profile=self.profile)
+        self.assertTrue(lot)
+        self.assertTrue(lot.snapshot["polymer_type"])
+        self.assertTrue(lot.snapshot["form"])
+
+    def test_lot_created_by_other_means_with_an_incomplete_snapshot_is_refused_by_the_orchestrator(self):
+        """A lot that bypasses ``mint`` (here the server create door) is still refused at match time."""
+        from odoo.addons.plasticos_matching.canonical_digest import _canonical_digest  # noqa: PLC0415
+
+        opportunity = self._opportunity()
+        snapshot = {
+            "supplier_partner_id": self.supplier.id,
+            "material_profile_id": self.profile.id,
+            "polymer_type": "HDPE",
+        }
+        lot = self.Approval.with_context(**{APPROVAL_MINT_CONTEXT: True}).create(
+            {
+                "opportunity_id": opportunity.id,
+                "partner_id": self.supplier.id,
+                "material_profile_id": self.profile.id,
+                "source": "manual",
+                "snapshot": snapshot,
+                "snapshot_digest": _canonical_digest(snapshot),
+            }
+        )
+        self.assertNotIn("form", lot.snapshot)
+        with (
+            patch(_CLASSIFY, return_value=_available_verdict()),
+            patch(_ENABLED, return_value=True),
+            patch(_SEND, side_effect=AssertionError("Gate must not be addressed for incomplete material")),
+            self.assertRaisesRegex(UserError, r"lot cannot be matched: Form not set"),
+        ):
+            self.env["plasticos.match.orchestrator"].run_match_for_lot(
+                supplier_partner_id=lot.partner_id.id,
+                snapshot=lot.snapshot,
+                run_vals={"opportunity_id": opportunity.id, "approval_id": lot.id},
+            )
+        self.assertFalse(self.Run.search([("approval_id", "=", lot.id)]), "the refused lot has no run")
+
+    def test_match_runs_again_once_the_sheet_is_completed(self):
+        opportunity = self._opportunity()
+        sheet = opportunity.opportunity_material_ids
+        sheet.form_id = False
+        self._refused_match(opportunity, r"Form not set")
+        sheet.form_id = self.form
+        run, sent = self._match(opportunity)
+        self.assertEqual(run.state, "ok")
+        self.assertTrue(sent["payload"]["query"]["polymer_type"])
+        self.assertTrue(sent["payload"]["query"]["form"])
+
+    def test_offers_are_refused_from_a_lot_frozen_without_form(self):
+        """A lot minted before this gate may lack a form; its reviewed results create no offer."""
+        opportunity, run = self._reviewed_run()
+        # The lot is immutable through the ORM; a pre-gate lot is reproduced in the table directly.
+        self.env.cr.execute(
+            "UPDATE plasticos_opportunity_approval SET snapshot = snapshot - 'form' WHERE id = %s",
+            [run.approval_id.id],
+        )
+        self.env.invalidate_all()
+        self.assertNotIn("form", run.approval_id.snapshot)
+        with self.assertRaisesRegex(UserError, r"cannot be matched or offered: Form not set"):
+            opportunity.action_create_offers_from_results()
+        self.assertFalse(self.Offer.search([("match_result_id", "in", run.result_ids.ids)]))
+
+    def test_retry_of_a_lot_frozen_without_polymer_is_refused(self):
+        opportunity, run = self._reviewed_run()
+        self.env.cr.execute(
+            "UPDATE plasticos_opportunity_approval SET snapshot = snapshot - 'polymer_type' WHERE id = %s",
+            [run.approval_id.id],
+        )
+        from odoo.addons.plasticos_matching.models.match_run import RECEIPT_WRITE_CONTEXT  # noqa: PLC0415
+
+        failed = self.Run.with_context(**{RECEIPT_WRITE_CONTEXT: True}).create(
+            {
+                "supplier_partner_id": self.supplier.id,
+                "opportunity_id": opportunity.id,
+                "approval_id": run.approval_id.id,
+                "state": "retryable",
+                "failure_class": "retryable",
+            }
+        )
+        self.env.invalidate_all()
+        runs_before = self.Run.search_count([("opportunity_id", "=", opportunity.id)])
+        with (
+            patch(_CLASSIFY, return_value=_available_verdict()),
+            patch(_ENABLED, return_value=True),
+            patch(_SEND, side_effect=AssertionError("Gate must not be addressed for incomplete material")),
+            self.assertRaisesRegex(UserError, r"lot cannot be matched: Polymer not set"),
+        ):
+            failed.action_retry_match()
+        self.assertEqual(self.Run.search_count([("opportunity_id", "=", opportunity.id)]), runs_before)
+
     def test_sent_offer_terms_are_immutable(self):
         opportunity, _run = self._reviewed_run()
         opportunity.action_create_offers_from_results()
         offer = self.Offer.search([("match_result_id.match_run_id.opportunity_id", "=", opportunity.id)])[:1]
         offer.write({"price_per_lb": 0.12, "quantity_lbs": 40000})
-        offer.action_send()
+        send_offer_email(offer)
         with self.assertRaisesRegex(UserError, "immutable"):
             offer.write({"price_per_lb": 0.20})
         offer.write({"response_notes": "buyer replied"})
@@ -371,13 +677,20 @@ class TestOpportunityApproval(PlasticosTestCase):
         self.assertEqual(len(failed), 1)
         self.assertEqual(failed.approval_id, opportunity.approval_ids.sorted("id")[-1])
         self.assertTrue(failed._plasticos_lot_retry_subject(), "the retry is built from the surviving lot")
+        # A sheet edit after the failure does not reach the retry: it is built from the frozen lot.
+        opportunity.opportunity_material_ids.write({"quantity_per_load_lbs": 1000, "contamination_percent": 9.0})
+        self.env.invalidate_all()
+        retry_snapshot = failed._plasticos_lot_retry_subject()["snapshot"]
+        self.assertEqual(retry_snapshot, dict(failed.approval_id.snapshot))
+        self.assertEqual(retry_snapshot["quantity_per_load_lbs"], 40000)
+        self.assertEqual(retry_snapshot["contamination_pct"], 2.5)
 
     def test_exactly_one_commercial_winner_per_opportunity(self):
         opportunity, _run = self._reviewed_run()
         opportunity.action_create_offers_from_results()
         offers = self.Offer.search([("match_result_id.match_run_id.opportunity_id", "=", opportunity.id)], order="id")
         offers.write({"price_per_lb": 0.12, "quantity_lbs": 40000})
-        offers.action_send()
+        send_offer_email(offers)
         first, second = offers[0], offers[1]
         first.action_accept()
         self.assertEqual(first.state, "accepted")
@@ -395,7 +708,7 @@ class TestOpportunityApproval(PlasticosTestCase):
             :1
         ]
         offer.write({"price_per_lb": 0.12, "quantity_lbs": 40000})
-        offer.action_send()
+        send_offer_email(offer)
         orders_before = SaleOrder.search_count([("opportunity_id", "=", opportunity.id)])
         purchases_before = self.env["purchase.order"].search_count([("origin", "=", offer.name)])
         transactions_before = self.env["plasticos.transaction"].search_count(

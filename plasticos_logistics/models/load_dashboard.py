@@ -23,6 +23,9 @@ class PlasticosLoadDashboard(models.Model):
     # ── Identity ──────────────────────────────────────────────────────────
     load_id = fields.Many2one(PLASTICOS_LOAD, readonly=True, ondelete="cascade")
     load_ref = fields.Char(string="Load #", readonly=True)
+    # The load's own company. A global rule in plasticos_security_base filters on
+    # it: this SQL model is not protected by the plasticos.load rule.
+    company_id = fields.Many2one("res.company", string="Company", readonly=True, ondelete="restrict")
     transaction_ref = fields.Char(string="Deal #", readonly=True)
     user_id = fields.Many2one("res.users", string="Rep", readonly=True, ondelete="restrict")
 
@@ -93,6 +96,7 @@ class PlasticosLoadDashboard(models.Model):
                     l.id                        AS id,
                     l.id                        AS load_id,
                     l.name                      AS load_ref,
+                    l.company_id                AS company_id,
                     t.name                      AS transaction_ref,
                     t.user_id                   AS user_id,
                     t.supplier_id               AS supplier_id,
@@ -129,6 +133,7 @@ class PlasticosLoadDashboard(models.Model):
                     l.id                        AS id,
                     l.id                        AS load_id,
                     l.name                      AS load_ref,
+                    l.company_id                AS company_id,
                     NULL::varchar               AS transaction_ref,
                     NULL::integer               AS user_id,
                     NULL::integer               AS supplier_id,

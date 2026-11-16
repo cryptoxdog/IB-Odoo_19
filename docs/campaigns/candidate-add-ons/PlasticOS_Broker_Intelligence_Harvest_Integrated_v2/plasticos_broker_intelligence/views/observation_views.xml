@@ -1,0 +1,33 @@
+<odoo>
+  <record id="view_broker_feedback_list" model="ir.ui.view">
+    <field name="name">plasticos.broker.feedback.list</field>
+    <field name="model">plasticos.broker.feedback</field>
+    <field name="arch" type="xml">
+      <list string="Broker Outcome Evidence" create="0" edit="0" delete="0">
+        <field name="source_model"/><field name="source_id"/><field name="observation_type"/>
+        <field name="observed_source_state"/><field name="verified_against_source"/>
+        <field name="actor_id"/><field name="company_id"/><field name="company_scope_basis"/><field name="create_date"/>
+      </list>
+    </field>
+  </record>
+  <record id="view_broker_feedback_form" model="ir.ui.view">
+    <field name="name">plasticos.broker.feedback.form</field>
+    <field name="model">plasticos.broker.feedback</field>
+    <field name="arch" type="xml">
+      <form string="Candidate Outcome Evidence" create="0" edit="0" delete="0"><sheet>
+        <group><field name="source_model"/><field name="source_id"/><field name="source_revision"/>
+          <field name="company_id"/><field name="company_scope_basis"/><field name="actor_id"/><field name="observation_type"/>
+          <field name="observed_source_state"/><field name="observed_reason"/>
+          <field name="observation"/><field name="evidence_ref"/>
+          <field name="verified_against_source"/><field name="provenance_digest"/></group>
+      </sheet></form>
+    </field>
+  </record>
+  <record id="action_broker_feedback" model="ir.actions.act_window">
+    <field name="name">Outcome Observations</field>
+    <field name="res_model">plasticos.broker.feedback</field>
+    <field name="view_mode">list,form</field>
+  </record>
+  <menuitem id="menu_broker_feedback" name="Outcome Evidence" parent="menu_broker_root"
+            action="action_broker_feedback" sequence="20"/>
+</odoo>

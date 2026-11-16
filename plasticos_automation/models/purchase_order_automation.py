@@ -4,6 +4,8 @@ from odoo import api, fields, models
 
 _logger = logging.getLogger(__name__)
 
+OPERATIONS_MANAGER_GROUP = "plasticos_security_base.group_operations_manager"
+
 
 class PurchaseOrderAutomation(models.Model):
     _inherit = "purchase.order"
@@ -63,14 +65,19 @@ class PurchaseOrderAutomation(models.Model):
                     }
                 )
                 if order.followup_count >= 3:
-                    order.activity_schedule(
-                        "mail.mail_activity_data_todo",
-                        user_id=order.user_id.id or self.env.user.id,
+                    # One open escalation per order, owned by an Operations Manager in the
+                    # order's company: never the buyer on the order, never the cron user.
+                    self.env["res.users"]._plasticos_escalate_to_manager(
+                        order,
+                        OPERATIONS_MANAGER_GROUP,
                         summary=f"ESCALATION: Supplier readiness unconfirmed on {order.name}",
                         note=(
                             f"Follow-up #{order.followup_count} sent. Supplier "
                             f"{order.partner_id.name or 'Unknown'} has not confirmed readiness."
                         ),
+                        label="supplier readiness escalation",
+                        companies=order.company_id,
+                        exclude_users=order.user_id,
                     )
             if log_vals:
                 log_model.create(log_vals)

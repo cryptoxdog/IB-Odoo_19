@@ -186,6 +186,24 @@
       </xpath>
 
       <xpath expr="//notebook[page[@name='internal_notes']]" position="before">
+        <separator string="Facility Profile" invisible="not is_facility"/>
+        <field name="partner_type_id" options="{'no_create': True}" invisible="not is_facility"/>
+        <field name="facility_profile_ids" nolabel="1" invisible="not is_facility"
+               context="{'default_partner_id': id, 'form_view_ref': 'plasticos_facility_profile.view_facility_profile_form'}">
+          <list editable="bottom">
+            <field name="process_type"/>
+            <field name="feedstock_type"/>
+            <field name="capacity_lbs_month" sum="Total Capacity"/>
+            <field name="has_horizontal_baler"/>
+            <field name="has_wash_line"/>
+            <field name="handles_bales"/>
+            <button name="action_open_profile_form"
+                    type="object"
+                    icon="fa-external-link"
+                    title="Open Full Profile"
+                    class="btn-link p-0"/>
+          </list>
+        </field>
         <separator string="Locations" invisible="not is_company or parent_id"/>
         <field name="location_child_ids" nolabel="1" invisible="not is_company or parent_id">
           <list>
@@ -199,6 +217,10 @@
             <field name="phone"/>
             <field name="linked_person_email" string="Email"/>
             <field name="user_id" string="Salesperson" widget="many2one_avatar_user"/>
+            <button name="action_remove_location" type="object" icon="fa-trash"
+                    title="Remove location"
+                    confirm="Remove this location? A location that is still in use is archived and kept."
+                    class="btn-link text-danger p-0"/>
           </list>
         </field>
         <group string="Sites" invisible="is_company">
@@ -209,15 +231,14 @@
             </list>
           </field>
         </group>
-        <group string="People" invisible="not is_company or not parent_id">
-          <field name="site_person_ids" nolabel="1">
-            <list>
-              <field name="name"/>
-              <field name="function"/>
-              <field name="phone"/>
-            </list>
-          </field>
-        </group>
+        <separator string="People" invisible="not is_company or not parent_id"/>
+        <field name="site_person_ids" nolabel="1" invisible="not is_company or not parent_id">
+          <list>
+            <field name="name"/>
+            <field name="function"/>
+            <field name="phone"/>
+          </list>
+        </field>
       </xpath>
 
       <!-- Under the address block so the label is a normal form row, not inside the tax-id cell. -->
@@ -225,49 +246,19 @@
         <field name="default_delivery_term" string="Dock Rule" invisible="not is_company"/>
       </xpath>
 
-      <!-- Company-itself card: lead source sits where Tax ID was, then payment terms, salesperson. -->
-      <xpath expr="//field[@name='vat']" position="before">
-        <field name="lead_source_id" widget="badge" invisible="not is_company or type != 'contact'"/>
-        <field name="property_supplier_payment_term_id" string="Payment Terms" invisible="not is_company or type != 'contact' or not supplier_rank"/>
-        <field name="user_id" string="Salesperson" widget="many2one_avatar_user" readonly="parent_id" invisible="not is_company or type != 'contact'"/>
+      <!-- The base Tags row stays for locations. The company card gets its own, under Lead Source. -->
+      <xpath expr="//field[@name='category_id']" position="attributes">
+        <attribute name="invisible">is_company and type == 'contact'</attribute>
       </xpath>
-
-      <!-- Other companies keep these fields after tags. The company-itself card uses the block above. -->
       <xpath expr="//field[@name='category_id']" position="after">
         <field name="lead_source_id" widget="badge" invisible="not is_company or type == 'contact'"/>
         <field name="user_id" string="Salesperson" widget="many2one_avatar_user" readonly="parent_id" invisible="not is_company or type == 'contact'"/>
         <field name="property_supplier_payment_term_id" string="Payment Terms" invisible="not is_company or type == 'contact' or not supplier_rank"/>
       </xpath>
-
-      <xpath expr="//notebook[page[@name='internal_notes']]" position="inside">
-
-        <page string="Facility Profile" name="facility_profile"
-              invisible="not is_facility"
-              sequence="2">
-
-          <group>
-            <field name="partner_type_id" options="{'no_create': True}"/>
-          </group>
-
-          <field name="facility_profile_ids"
-                 context="{'default_partner_id': id, 'form_view_ref': 'plasticos_facility_profile.view_facility_profile_form'}">
-            <list editable="bottom">
-              <field name="process_type"/>
-              <field name="feedstock_type"/>
-              <field name="capacity_lbs_month" sum="Total Capacity"/>
-              <field name="has_horizontal_baler"/>
-              <field name="has_wash_line"/>
-              <field name="handles_bales"/>
-              <button name="action_open_profile_form"
-                      type="object"
-                      icon="fa-external-link"
-                      title="Open Full Profile"
-                      class="btn-link p-0"/>
-            </list>
-          </field>
-
-        </page>
-
+      <xpath expr="//field[@name='vat']" position="before">
+        <field name="lead_source_id" widget="badge" invisible="not is_company or type != 'contact'"/>
+        <field name="category_id" widget="many2many_tags" options="{'color_field': 'color'}" placeholder="e.g. &quot;B2B&quot;, &quot;VIP&quot;, &quot;Consulting&quot;, ..." invisible="not is_company or type != 'contact'"/>
+        <field name="user_id" string="Salesperson" widget="many2one_avatar_user" readonly="parent_id" invisible="not is_company or type != 'contact'"/>
       </xpath>
 
     </field>

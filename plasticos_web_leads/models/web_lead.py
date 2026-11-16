@@ -2,10 +2,12 @@
 # Model : plasticos.web.lead
 # Purpose: Web lead ingestion with AI-powered triage pipeline:
 #          1. Receive a provider packet through the inbound adapter port
-#          2. AI normalization (1 LLM call)
-#          3. Image analysis (1 Vision call per image)
-#          4. Deterministic HOT/COLD classification
+#          2. Image analysis (1 Vision call per image)
+#          3. AI normalization of the seller text and those photo rows
+#          4. Commercial qualification: LLM recommends HOT/REVIEW/COLD,
+#             the deterministic validator decides (ADR-016 2026-11-11)
 #          5. HOT → intake (partner deferred to buyer-match)
+#             REVIEW → assigned broker clarification work, no intake
 # ═══════════════════════════════════════════════════════════
 from __future__ import annotations
 
@@ -17,9 +19,10 @@ from typing import Any
 
 import psycopg2
 import psycopg2.errorcodes
+from markupsafe import escape
 
 from odoo import api, fields, models
-from odoo.exceptions import ConcurrencyError, UserError
+from odoo.exceptions import AccessError, ConcurrencyError, UserError
 
 from ..adapters.base import (
     EVENT_SUBMITTED,
@@ -33,16 +36,31 @@ from ..adapters.registry import get_adapter
 from ..zip_place import resolve_pickup
 from . import ai_normalizer, image_analyzer
 from .attachment_processor import copy_successful_attachments_to_intake, process_attachments
-from .classification_engine import classify_lead
+from .classification_engine import (
+    DISPOSITION_COLD,
+    DISPOSITION_HOT,
+    DISPOSITION_REVIEW,
+    QUALIFICATION_MODE_LEGACY,
+    QUALIFICATION_MODE_LIVE,
+    agreed_confident_polymer,
+    build_qualification_signals,
+    classify_lead,
+    derive_final_disposition,
+    detect_hard_exclusions,
+    detect_risk_indicators,
+)
 from .economic_evaluator import evaluate_economic_opportunity
 from .economic_policy import evaluate_economic_eligibility
 from .evidence_keys import (
     ASSESSMENT_STATUS_ASSESSED,
+    ASSESSMENT_STATUS_UNAVAILABLE,
     KEY_ASSESSMENT,
     KEY_DECISION,
     KEY_ECONOMIC_ASSESSMENT,
     KEY_ECONOMIC_ELIGIBILITY,
     KEY_HOT_QUALIFIERS,
+    KEY_MANUAL_OVERRIDE,
+    KEY_QUALIFICATION,
     KEY_REASONS,
     KEY_REVIEW_REASONS,
     KEY_REVIEW_REQUIRED,
@@ -51,6 +69,7 @@ from .evidence_keys import (
 )
 from .evidence_reconciler import reconcile_evidence
 from .inference_provider import InferenceProvider
+from .material_catalog import CatalogEntry, accept_value, match_codes, match_distinct, split_phrase
 from .material_identity import merge_form_and_grade, split_material_code
 from .quantity_normalizer import QuantityEvidence, normalize_quantity_evidence
 from .triage_helpers import SINGLE_LOAD_REVIEW_CAP_LBS, WEIGHT_SOURCE_AREA, replay_stored_mass
@@ -61,98 +80,68 @@ _logger = logging.getLogger(__name__)
 # idempotency key so a later valid resubmission is admitted, not replayed.
 REJECTED_LEAD_PREFIX = "REJ-"
 
+# A lead becomes broker-approved only through
+# ``action_approve_for_commercial_preparation``, which mints the immutable
+# review snapshot in the same transaction. That action marks its status write
+# with a module-private object token; RPC clients can only send JSON values in
+# a context, so no remote caller (and no ``sudo()``) can reproduce it.
+_APPROVAL_STATUS_KEY = "plasticos_web_leads_approval_status_write"
+_APPROVAL_STATUS_TOKEN = object()
+REVIEW_STATUS_APPROVED = "approved"
+
 # ── Pallet weight assumption when no lbs given ───────────────────────────────
 _LBS_PER_PALLET_ASSUMPTION = 1_500  # conservative: typical plastic pallet
-_FORM_TERM_CRATE = "crate"
 
-# ═══════════════════════════════════════════════════════════
-# Mapping helpers — translate AI output to Odoo field values
-# ═══════════════════════════════════════════════════════════
+# Active rows of the ten vocabulary masters. Inactive rows, including form BALES, stay out.
+_CATALOG_MODELS: tuple[tuple[str, str], ...] = (
+    ("polymer", "plasticos.polymer"),
+    ("form", "plasticos.material.form"),
+    ("material_grade", "plasticos.material.grade"),
+    ("quality_tier", "plasticos.material.quality.tier"),
+    ("source_type", "plasticos.source.type"),
+    ("color", "plasticos.material.color"),
+    ("attribute", "plasticos.material.attribute"),
+    ("filler", "plasticos.filler.type"),
+    ("packaging", "plasticos.packaging.type"),
+    ("process", "plasticos.process.type"),
+)
+_OMIT_ATTRIBUTE_CODES = frozenset({"reusable"})
 
-_POLYMER_NORMALIZE: dict[str, str] = {
-    "hdpe": "HDPE",
-    "ldpe": "LDPE",
-    "lldpe": "LLDPE",
-    "pp": "PP",
-    "pet": "PET",
-    "rpet": "PET",
-    "ps": "PS",
-    "hips": "HIPS",
-    "pvc": "PVC",
-    "eva": "EVA",
-    "abs": "ABS",
-    "nylon": "NYLON",
-    "pa": "NYLON",
-    "pc": "PC",
-    "pbt": "PBT",
-    "pom": "POM",
-    "acetal": "POM",
-    "pmma": "PMMA",
-    "ppo": "PPO",
-    "tpe": "TPE",
-    "tpu": "TPE",
-    "pla": "PET",
-    "e-waste": "EWASTE",
-    "ewaste": "EWASTE",
-}
 
-_FORM_NORMALIZE: dict[str, str] = {
-    "bale": "BALES",
-    "baled": "BALES",
-    "bales": "BALES",
-    "regrind": "REGRIND",
-    "flake": "FLAKE",
-    "flakes": "FLAKE",
-    "pellet": "PELLETS",
-    "pellets": "PELLETS",
-    "rollstock": "ROLLSTOCK",
-    "purge": "PURGE",
-    "lump": "OTHER",
-    "lumps": "OTHER",
-    "film": "FILM",
-    "fluff": "FLUFF",
-    "sheet": "SHEET",
-    "powder": "POWDER",
-    "parts": "PARTS",
-    "part": "PARTS",
-    "pallet": "PALLETS",
-    "pallets": "PALLETS",
-    "tote": "TOTES",
-    "totes": "TOTES",
-    _FORM_TERM_CRATE: "CRATES",
-    "crates": "CRATES",
-    "re-useable": "OTHER",
-    "reuseable": "OTHER",
-    "reusable": "OTHER",
-    "bottle": "BOTTLES",
-    "bottles": "BOTTLES",
-    "drum": "DRUMS",
-    "drums": "DRUMS",
-    "bucket": "BUCKETS",
-    "buckets": "BUCKETS",
-    "pail": "BUCKETS",
-    "pails": "BUCKETS",
-    "roll": "ROLLSTOCK",
-    "rolls": "ROLLSTOCK",
-}
+def _merged_attributes(
+    attribute_text: Any,
+    seller_attributes: tuple[str, ...],
+    photo_rows: list[dict[str, Any]],
+    catalog: Mapping[str, tuple[CatalogEntry, ...]],
+) -> tuple[str, ...]:
+    """Joint attribute codes, or the seller phrase plus photo codes. reusable is a quality tier."""
+    if isinstance(attribute_text, (list, tuple)):
+        attribute_text = " ".join(str(item) for item in attribute_text)
+    joint = tuple(
+        code
+        for code in match_codes(str(attribute_text or ""), catalog.get("attribute", ()))
+        if code.casefold() not in _OMIT_ATTRIBUTE_CODES
+    )
+    if joint:
+        return joint
+    photo_values = [
+        str(item)
+        for row in photo_rows
+        if isinstance(row, dict) and not row.get("error")
+        for item in (
+            row.get("observed_attributes")
+            if isinstance(row.get("observed_attributes"), (list, tuple))
+            else [row.get("observed_attributes")]
+        )
+        if item
+    ]
+    seen: list[str] = []
+    for code in (*seller_attributes, *match_codes(" ".join(photo_values), catalog.get("attribute", ()))):
+        if code.casefold() in _OMIT_ATTRIBUTE_CODES or code in seen:
+            continue
+        seen.append(code)
+    return tuple(seen)
 
-_SOURCE_NORMALIZE: dict[str, str] = {
-    "post_industrial": "post_industrial",
-    "post-industrial": "post_industrial",
-    "post_consumer": "post_consumer",
-    "post-consumer": "post_consumer",
-    "post_commercial": "post_commercial",
-    "post-commercial": "post_commercial",
-    "agricultural": "agricultural",
-    "prime": "prime",
-    "virgin": "prime",
-    "wide_spec": "wide_spec",
-    "wide spec": "wide_spec",
-    "off_spec": "off_spec",
-    "off spec": "off_spec",
-    "ocean_recovered": "ocean_recovered",
-    "ocean": "ocean_recovered",
-}
 
 _FREQ_TO_DEAL: dict[str, str] = {
     "ongoing": "recurring",
@@ -190,6 +179,19 @@ def _safe_int(val: Any, default: int = 0) -> int:
         return default
 
 
+def _declared_material_text(canonical: dict, raw: dict) -> str:
+    """The seller's own material words, as the merge and the stored-evidence replay read them."""
+    return " ".join(
+        str(value or "")
+        for value in (
+            canonical.get("material_description"),
+            canonical.get("material_composition_text"),
+            raw.get("DescribeYourMaterial"),
+            raw.get("WhatIsIt"),
+        )
+    )
+
+
 def _is_lead_identity_collision(exc: Exception) -> bool:
     """True for a PostgreSQL unique violation on the web-lead identity constraint."""
     if not isinstance(exc, psycopg2.IntegrityError):
@@ -204,23 +206,25 @@ class PlasticosWebLead(models.Model):
     """Stores every inbound web lead admitted through the provider port.
 
     HOT leads automatically generate a plasticos.intake record.
+    REVIEW leads keep their evidence and get an assigned broker activity; no intake.
     COLD leads are stored for reference but do not create downstream records.
 
     Pipeline (admit_inbound → create_from_packet):
       1. Project the provider payload into a provider-neutral packet
-      2. Create web.lead record (decision=cold, state=received)
+      2. Create web.lead record (decision=review, state=received: not yet classified)
       3. _run_triage_pipeline():
-           a. AI normalization (LLM)
-           b. Image analysis (Vision)
+           a. Image analysis (Vision)
+           b. AI normalization (LLM), with those photo rows as well as the seller text
            c. _merge_ai_and_vision() — weight fallback cascade here
-           d. classify_lead() — deterministic HOT/COLD
-           e. HOT → _create_intake() + notify admin
+           d. classify_lead() — legacy HOT/COLD, kept for shadow comparison
+           e. commercial qualification → validated HOT/REVIEW/COLD (live mode routes on it)
+           f. HOT → _create_intake() + notify admin; REVIEW → broker activity
            f. Submitted photos are already stored, on HOT and on COLD
     """
 
     _name = "plasticos.web.lead"
     _description = "Web Lead"
-    _inherit = ["mail.thread"]
+    _inherit = ["mail.thread", "mail.activity.mixin"]
     _order = "submitted_at desc, id desc"
     _rec_name = "lead_id"
 
@@ -239,6 +243,15 @@ class PlasticosWebLead(models.Model):
         index=True,
         tracking=True,
         help="When the seller submitted the form. The list sorts on this date.",
+    )
+    assigned_user_id = fields.Many2one(
+        "res.users",
+        string="Assigned To",
+        tracking=True,
+        index=True,
+        ondelete="set null",
+        domain=[("share", "=", False)],
+        help="Queue assignee until an opportunity exists. The opportunity salesperson is the commercial owner after that.",
     )
     source = fields.Selection(
         [
@@ -327,16 +340,24 @@ class PlasticosWebLead(models.Model):
     decision = fields.Selection(
         [
             ("hot", "HOT"),
+            ("review", "REVIEW"),
             ("cold", "COLD"),
         ],
         required=True,
-        default="cold",  # FIX: explicit default — no missing-required crash
+        # A lead that has not been classified yet is not COLD. ``state`` tells an
+        # unprocessed lead (received / error) from a completed REVIEW (review_pending).
+        default="review",
         index=True,
         tracking=True,
+        help=(
+            "HOT: commercially compelling, an intake exists for broker review. "
+            "REVIEW: potentially valuable, a broker must clarify missing or conflicting facts. "
+            "COLD: clearly unsuitable on direct evidence."
+        ),
     )
     decision_reasons = fields.Json(
         readonly=True,
-        help="Reasons for the HOT/COLD classification.",
+        help="Reasons for the HOT/REVIEW/COLD disposition, including the model recommendation and any override.",
     )
 
     # ═══════════════════════════════════════════════════════════
@@ -367,9 +388,9 @@ class PlasticosWebLead(models.Model):
         string="Quantity (Form Input)",
         help="Raw quantity text from the form — unprocessed, for display only.",
     )
-    estimated_lbs_per_load = fields.Integer(string="Est. Lbs/Load")
+    estimated_lbs_per_load = fields.Integer(string="Lbs/Load")
     estimated_lbs_high = fields.Integer(
-        string="Est. Lbs High",
+        string="Lbs High",
         help="High end of a seller weight range. Empty when the seller stated one weight.",
     )
     lead_image_ids = fields.Many2many(
@@ -378,7 +399,7 @@ class PlasticosWebLead(models.Model):
         compute="_compute_lead_image_ids",
         help="Image files already stored on this lead. A cold decision does not remove them.",
     )
-    estimated_loads_per_month = fields.Integer(string="Est. Loads/Month")
+    estimated_loads_per_month = fields.Integer(string="Loads/Month")
     frequency = fields.Char(string="Frequency")
     has_contaminants = fields.Boolean(string="Has Contaminants")
     contaminant_notes = fields.Text(string="Contaminant Notes")
@@ -415,6 +436,7 @@ class PlasticosWebLead(models.Model):
     state = fields.Selection(
         [
             ("received", "Received"),
+            ("review_pending", "Review Pending"),
             ("intake_created", "Intake Created"),
             ("skipped", "Skipped (Cold)"),
             ("error", "Error"),
@@ -436,7 +458,8 @@ class PlasticosWebLead(models.Model):
         tracking=True,
         index=True,
         help=(
-            "Internal human-review handoff state for a HOT intake. 'Blocked' is a "
+            "Internal human-review handoff state for a HOT intake, a REVIEW lead, or a failed "
+            "lead that needs recovery. 'Blocked' is a "
             "durable, visible state meaning no eligible reviewer is configured; the "
             "handoff is never silently assigned to the ingestion worker. This field "
             "does not call Mack, matching, Gate, or any commercial operation."
@@ -501,6 +524,29 @@ class PlasticosWebLead(models.Model):
     # CRUD Guards
     # ═══════════════════════════════════════════════════════════
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        if any(vals.get("review_status") == REVIEW_STATUS_APPROVED for vals in vals_list):
+            raise AccessError(
+                "A web lead is broker-approved only through its Approve action, which records the approval evidence."
+            )
+        return super().create(vals_list)
+
+    def _check_approval_status_write(self, vals):
+        """Refuse a transition to approved that did not come from the approval action.
+
+        Rewriting ``approved`` on a lead that is already approved (a triage
+        replay) is not a transition and stays allowed.
+        """
+        if vals.get("review_status") != REVIEW_STATUS_APPROVED:
+            return
+        if self.env.context.get(_APPROVAL_STATUS_KEY) is _APPROVAL_STATUS_TOKEN:
+            return
+        if any(rec.review_status != REVIEW_STATUS_APPROVED for rec in self):
+            raise AccessError(
+                "A web lead is broker-approved only through its Approve action, which records the approval evidence."
+            )
+
     def write(self, vals):
         """Guard against modifying processed leads.
 
@@ -522,6 +568,7 @@ class PlasticosWebLead(models.Model):
                 "mack_review_reason",
             }
         )
+        self._check_approval_status_write(vals)
         non_state_fields = set(vals.keys()) - _STATE_ONLY_FIELDS
         if non_state_fields:
             for rec in self:
@@ -732,7 +779,7 @@ class PlasticosWebLead(models.Model):
             "lead_id": str(lead_id),
             "source": "web_lead",
             "lead_source_id": web_lead_source.id if web_lead_source else False,
-            "decision": "cold",
+            "decision": DISPOSITION_REVIEW,
             "raw_payload": dict(packet.raw_payload),
             "provider_key": packet.provider,
             "provider_external_id": packet.provider_external_id or False,
@@ -779,9 +826,9 @@ class PlasticosWebLead(models.Model):
         """Execute the full AI triage pipeline on this web lead.
 
         Steps:
-          [AI]     1. AI normalization (if enabled)
-          [VISION] 2. Image analysis (if enabled + images present)
-          [MERGE]  3. Merge AI + Vision → weight fallback cascade
+          [VISION] 1. Image analysis (if enabled + images present)
+          [AI]     2. AI normalization of the seller text and those photo rows
+          [MERGE]  3. Merge that reading; the classifier still receives the photo rows
           [CLASS]  4. Deterministic HOT/COLD classification
           [WRITE]  5. Persist classification result
           [HOT]    6. Create intake + notify admin
@@ -793,6 +840,7 @@ class PlasticosWebLead(models.Model):
         """
         self.ensure_one()
         config = self.env["plasticos.web.lead.config"].get_config()
+        catalog = self._material_catalog()
         run_id = uuid.uuid4().hex
         log_lines = [f"[RUN] {run_id} started"]
 
@@ -800,6 +848,13 @@ class PlasticosWebLead(models.Model):
             canonical_payload = self.canonical_payload or {}
             is_packet_path = bool(canonical_payload)
             triage_input = canonical_payload if is_packet_path else self.raw_payload or {}
+            broker_corrections: dict[str, Any] = {}
+            if is_packet_path:
+                # A re-run assesses the facts a broker corrected during REVIEW. The
+                # submitted packet itself is never rewritten.
+                triage_input, broker_corrections = self._triage_input_with_broker_corrections(canonical_payload)
+                if broker_corrections:
+                    log_lines.append(f"[CORRECTIONS] {sorted(broker_corrections)}")
             quantity_evidence: QuantityEvidence | None = None
             attachment_evidence: list[dict[str, Any]] = []
 
@@ -814,21 +869,6 @@ class PlasticosWebLead(models.Model):
                     f"source={quantity_evidence.weight_source} cadence={quantity_evidence.loads_per_month}"
                 )
 
-            ai_data: dict[str, Any] = {}
-            text_provider_spec = config.get_inference_provider("text_normalization") if config.ai_enabled else None
-            if text_provider_spec:
-                log_lines.append("[AI] Running normalization.")
-                text_provider = InferenceProvider(**text_provider_spec)
-                ai_data = ai_normalizer.normalize_with_provider(
-                    raw_payload=triage_input,
-                    quantity_evidence=quantity_evidence,
-                    provider=text_provider,
-                )
-                provider_used = ai_data.pop("_provider_used", "unknown")
-                log_lines.append(f"[AI] provider={provider_used}:{text_provider.model}")
-            else:
-                log_lines.append("[AI] SKIPPED (disabled or no API keys).")
-
             vision_results: list[dict[str, Any]] = []
             vision_provider_spec = config.get_inference_provider("vision_analysis") if config.vision_enabled else None
             if is_packet_path:
@@ -842,6 +882,7 @@ class PlasticosWebLead(models.Model):
                         content,
                         content_type=mimetype,
                         provider=vision_provider,
+                        catalog=catalog,
                     )
                     log_lines.append(f"[VISION] provider={vision_provider.provider}:{vision_provider.model}")
 
@@ -869,17 +910,43 @@ class PlasticosWebLead(models.Model):
                 else:
                     log_lines.append("[VISION] SKIPPED.")
 
-            merged = self._merge_ai_and_vision(ai_data, vision_results, quantity_evidence=quantity_evidence)
+            ai_data: dict[str, Any] = {}
+            text_provider_spec = config.get_inference_provider("text_normalization") if config.ai_enabled else None
+            if text_provider_spec:
+                log_lines.append("[AI] Running normalization.")
+                text_provider = InferenceProvider(**text_provider_spec)
+                ai_data = ai_normalizer.normalize_with_provider(
+                    raw_payload=triage_input,
+                    quantity_evidence=quantity_evidence,
+                    provider=text_provider,
+                    catalog=catalog,
+                    vision_results=vision_results,
+                )
+                provider_used = ai_data.pop("_provider_used", "unknown")
+                log_lines.append(f"[AI] provider={provider_used}:{text_provider.model}")
+            else:
+                log_lines.append("[AI] SKIPPED (disabled or no API keys).")
+
+            merged = self._merge_ai_and_vision(
+                ai_data,
+                vision_results,
+                quantity_evidence=quantity_evidence,
+                seller_payload=triage_input if is_packet_path else None,
+                catalog=catalog,
+            )
             evidence_bundle = None
             if is_packet_path and quantity_evidence is not None:
                 evidence_bundle = reconcile_evidence(
-                    canonical_payload=canonical_payload,
+                    canonical_payload=triage_input,
                     quantity=quantity_evidence,
                     ai_normalized=ai_data,
                     attachments=attachment_evidence,
                     run_id=run_id,
+                    polymer_entries=catalog["polymer"],
                 )
                 log_lines.append(f"[RECONCILE] conflicts={len(evidence_bundle['conflicts'])}")
+                if broker_corrections:
+                    evidence_bundle["broker_corrections"] = broker_corrections
 
             economic_eligibility = evaluate_economic_eligibility(
                 estimated_lbs=float(merged.get("estimated_lbs") or 0),
@@ -895,9 +962,12 @@ class PlasticosWebLead(models.Model):
                 f"threshold={economic_eligibility.applicable_hot_min_lbs:,.0f}lbs"
             )
 
-            log_lines.append("[CLASS] Running deterministic classification.")
+            log_lines.append("[CLASS] Running legacy deterministic classification.")
             result = classify_lead(
                 polymer=merged.get("polymer"),
+                form_code=merged.get("form"),
+                material_grade_code=merged.get("material_grade"),
+                quality_tier_code=merged.get("quality_tier"),
                 material_description=self.material_description,
                 estimated_lbs=merged.get("estimated_lbs", 0),
                 source_description=merged.get("source_description", ""),
@@ -913,55 +983,90 @@ class PlasticosWebLead(models.Model):
                 economic_policy_reasons=list(economic_eligibility.reasons),
                 vision_evidence=vision_results,
             )
-            log_lines.append(f"[CLASS] decision={result.decision}")
+            log_lines.append(f"[CLASS] legacy_decision={result.decision}")
 
-            review_reasons = list(result.review_reasons) if result.decision == "hot" else []
-            if float(merged.get("estimated_lbs") or 0) > SINGLE_LOAD_REVIEW_CAP_LBS or ai_data.get(
-                "weight_above_review_cap"
-            ):
-                review_reasons.append("Weight is above the single-load review cap.")
+            mode = config.get_qualification_mode()
             economic_assessment = None
+            qualification = None
             if evidence_bundle is not None:
                 economic_provider_spec = (
                     config.get_inference_provider("economic_evaluation") if config.ai_enabled else None
                 )
                 economic_provider = InferenceProvider(**economic_provider_spec) if economic_provider_spec else None
+                signals = None
+                if mode != QUALIFICATION_MODE_LEGACY:
+                    signals = self._qualification_signals(
+                        merged, evidence_bundle, economic_eligibility.to_dict(), config
+                    )
                 economic_assessment = evaluate_economic_opportunity(
                     provider=economic_provider,
-                    canonical_payload=canonical_payload,
+                    canonical_payload=triage_input,
                     evidence_bundle=evidence_bundle,
-                    classification={
-                        KEY_DECISION: result.decision,
-                        KEY_REASONS: result.reasons,
-                        KEY_HOT_QUALIFIERS: result.hot_qualifiers_met,
-                    },
                     eligibility=economic_eligibility.to_dict(),
+                    qualification_signals=signals,
+                    # Legacy order only: the model comments on an already-final decision.
+                    classification=(
+                        {
+                            KEY_DECISION: result.decision,
+                            KEY_REASONS: result.reasons,
+                            KEY_HOT_QUALIFIERS: result.hot_qualifiers_met,
+                        }
+                        if signals is None
+                        else None
+                    ),
                 )
                 evidence_bundle[KEY_ECONOMIC_ASSESSMENT] = economic_assessment
-                if result.decision == "hot":
-                    review_reasons.extend(evidence_bundle.get("clarification_requests", []))
-                    review_reasons.extend(
-                        f"Evidence conflict: {item.get('field', 'unknown')}"
-                        for item in evidence_bundle.get("conflicts", [])
-                    )
-                    review_reasons.extend(economic_assessment.get(KEY_ASSESSMENT, {}).get("clarifications", []))
-                    if economic_assessment.get(KEY_STATUS) != ASSESSMENT_STATUS_ASSESSED:
-                        review_reasons.append(
-                            "Economic assessment is unavailable; broker review is required before commercial work."
-                        )
                 log_lines.append(f"[ECONOMIC] status={economic_assessment.get(KEY_STATUS)}")
+                if signals is not None:
+                    qualification = derive_final_disposition(assessment_record=economic_assessment, signals=signals)
+            elif mode == QUALIFICATION_MODE_LIVE:
+                # A lead without packet evidence cannot be qualified; it is never silently COLD.
+                qualification = derive_final_disposition(
+                    assessment_record=dict(status=ASSESSMENT_STATUS_UNAVAILABLE, reason="no_packet_evidence"),
+                    signals={},
+                )
+            if qualification is not None:
+                qualification["routing_mode"] = mode
+                qualification["legacy_decision"] = result.decision
+                log_lines.append(
+                    f"[QUALIFY] mode={mode} recommendation={qualification['model_recommendation']} "
+                    f"final={qualification['final_disposition']} legacy={result.decision}"
+                )
 
-            values = {
-                "decision": result.decision,
-                "decision_reasons": {
+            live = mode == QUALIFICATION_MODE_LIVE and qualification is not None
+            decision = qualification["final_disposition"] if live else result.decision
+
+            review_reasons = self._collect_review_reasons(
+                decision=decision,
+                live=live,
+                legacy_result=result,
+                merged=merged,
+                ai_data=ai_data,
+                economic_assessment=economic_assessment,
+                evidence_bundle=evidence_bundle,
+                qualification=qualification,
+            )
+
+            decision_reasons = {
+                KEY_REASONS: qualification["reasons"] if live else result.reasons,
+                "cold_gates": qualification["hard_exclusions"] if live else result.cold_gates_triggered,
+                KEY_HOT_QUALIFIERS: [] if live else result.hot_qualifiers_met,
+                KEY_ECONOMIC_ELIGIBILITY: economic_eligibility.to_dict(),
+                KEY_REVIEW_REQUIRED: bool(review_reasons),
+                KEY_REVIEW_REASONS: review_reasons,
+                KEY_VISION: result.vision_evidence,
+            }
+            if qualification is not None:
+                decision_reasons[KEY_QUALIFICATION] = qualification
+                decision_reasons["legacy_classification"] = {
+                    KEY_DECISION: result.decision,
                     KEY_REASONS: result.reasons,
                     "cold_gates": result.cold_gates_triggered,
                     KEY_HOT_QUALIFIERS: result.hot_qualifiers_met,
-                    KEY_ECONOMIC_ELIGIBILITY: economic_eligibility.to_dict(),
-                    KEY_REVIEW_REQUIRED: bool(review_reasons),
-                    KEY_REVIEW_REASONS: review_reasons,
-                    KEY_VISION: result.vision_evidence,
-                },
+                }
+            values = {
+                "decision": decision,
+                "decision_reasons": decision_reasons,
                 "ai_normalized": ai_data,
                 "ai_vision_results": vision_results,
                 "ai_analysis": merged,
@@ -976,7 +1081,7 @@ class PlasticosWebLead(models.Model):
                 values["evidence_bundle"] = evidence_bundle
             self.write(values)
 
-            if result.decision == "hot":
+            if decision == DISPOSITION_HOT:
                 log_lines.append("[HOT] Creating intake and scheduling human review.")
                 self._process_hot_lead_triage(merged, config)
                 if evidence_bundle is not None:
@@ -987,6 +1092,9 @@ class PlasticosWebLead(models.Model):
                 synchronize_images = getattr(crm_lead, "_propagate_available_commercial_images", None)
                 if callable(synchronize_images):
                     synchronize_images()
+            elif decision == DISPOSITION_REVIEW:
+                log_lines.append("[REVIEW] Assigning broker clarification. No intake or opportunity.")
+                self._route_review_lead(config)
             else:
                 log_lines.append("[COLD] Archiving lead. Stored photos stay on the lead.")
                 self.write({"state": "skipped"})
@@ -995,13 +1103,117 @@ class PlasticosWebLead(models.Model):
             _logger.exception("Triage pipeline error for lead %s", self.lead_id)
             log_lines.append(f"[ERROR] {exc}")
             self.write({"state": "error", "error_message": str(exc)})
+            try:
+                with self.env.cr.savepoint():
+                    self._schedule_lead_review_activity(
+                        config,
+                        summary=f"Recover failed web lead: {self.lead_id}",
+                        note=(
+                            "<p>Web-lead processing failed. The submission and its evidence are kept.</p>"
+                            "<p><b>Action:</b> fix the cause, then use Retry Processing.</p>"
+                        ),
+                    )
+            except Exception:
+                _logger.exception("Could not queue recovery work for failed web lead %s", self.lead_id)
 
         log_lines.append(f"[RUN] {run_id} finished")
         self.write({"triage_log": "\n".join(log_lines)})
 
+    @staticmethod
+    def _collect_review_reasons(
+        *, decision, live, legacy_result, merged, ai_data, economic_assessment, evidence_bundle, qualification
+    ):
+        """Broker-visible reasons a HOT or REVIEW lead needs attention before commercial work."""
+        review_reasons = list(legacy_result.review_reasons) if (decision == DISPOSITION_HOT and not live) else []
+        if float(merged.get("estimated_lbs") or 0) > SINGLE_LOAD_REVIEW_CAP_LBS or ai_data.get(
+            "weight_above_review_cap"
+        ):
+            review_reasons.append("Weight is above the single-load review cap.")
+        if economic_assessment is not None and decision in (DISPOSITION_HOT, DISPOSITION_REVIEW):
+            review_reasons.extend(evidence_bundle.get("clarification_requests", []))
+            review_reasons.extend(
+                f"Evidence conflict: {item.get('field', 'unknown')}" for item in evidence_bundle.get("conflicts", [])
+            )
+            review_reasons.extend(economic_assessment.get(KEY_ASSESSMENT, {}).get("clarifications", []))
+            if economic_assessment.get(KEY_STATUS) != ASSESSMENT_STATUS_ASSESSED:
+                review_reasons.append(
+                    "Economic assessment is unavailable; broker review is required before commercial work."
+                )
+        if live and decision == DISPOSITION_REVIEW:
+            if qualification["review_priority"] == "high":
+                review_reasons.append("High priority: the commercial assessment sees a strong opportunity.")
+            review_reasons.extend(qualification["reasons"])
+            review_reasons.extend(qualification["missing_information"])
+        return review_reasons
+
+    def _triage_input_with_broker_corrections(self, canonical_payload):
+        """Overlay facts a broker corrected on the lead onto the submitted packet.
+
+        Returns ``(triage_input, corrections)``. A correction is a lead field
+        that differs from what the submission (or the previous run) produced.
+        The stored ``canonical_payload`` stays the seller's submission; each
+        correction keeps both values so submitted and corrected facts stay
+        distinguishable.
+        """
+        self.ensure_one()
+        submitted = dict(canonical_payload or {})
+        triage_input = dict(submitted)
+        corrections: dict[str, Any] = {}
+        previous = self.ai_analysis if isinstance(self.ai_analysis, dict) else {}
+
+        def _record(field, before, after):
+            corrections[field] = dict(submitted=before, corrected=after)
+
+        material = (self.material_description or "").strip()
+        if material and material != (submitted.get("material_description") or "").strip():
+            triage_input["material_description"] = material
+            _record("material_description", submitted.get("material_description"), material)
+
+        submitted_quantity = (submitted.get("weight_per_load_text") or submitted.get("quantity_text") or "").strip()
+        quantity = (self.quantity_text or "").strip()
+        if quantity and quantity != submitted_quantity:
+            # The corrected text replaces both seller quantity boxes; the one
+            # parser then separates mass, inventory, and cadence again.
+            triage_input["quantity_text"] = quantity
+            triage_input["weight_per_load_text"] = ""
+            _record("quantity_text", submitted_quantity, quantity)
+
+        if previous:
+            verified_lbs = int(self.estimated_lbs_per_load or 0)
+            if verified_lbs > 0 and verified_lbs != int(previous.get("estimated_lbs") or 0):
+                triage_input["weight_per_load_text"] = str(verified_lbs)
+                _record("estimated_lbs_per_load", previous.get("estimated_lbs"), verified_lbs)
+            loads = int(self.estimated_loads_per_month or 0)
+            if loads > 0 and loads != int(previous.get("loads_per_month") or 0):
+                triage_input["frequency_text"] = f"{loads} loads per month"
+                _record("estimated_loads_per_month", previous.get("loads_per_month"), loads)
+
+        contaminants = (self.contaminant_notes or "").strip()
+        if contaminants and contaminants != (submitted.get("contaminants_text") or "").strip():
+            triage_input["contaminants_text"] = contaminants
+            _record("contaminants_text", submitted.get("contaminants_text"), contaminants)
+        return triage_input, corrections
+
     # ═══════════════════════════════════════════════════════════
     # Merge AI + Vision
     # ═══════════════════════════════════════════════════════════
+
+    def _material_catalog(self) -> dict[str, tuple[CatalogEntry, ...]]:
+        """Active rows of the ten vocabulary masters. Inactive rows stay out."""
+        catalog: dict[str, tuple[CatalogEntry, ...]] = {}
+        for kind, model_name in _CATALOG_MODELS:
+            model = self.env[model_name]
+            domain = [("active", "=", True)] if "active" in model._fields else []
+            entries: list[CatalogEntry] = []
+            for record in model.search(domain):
+                code = (record.code or "").strip()
+                if not code or (kind == "attribute" and code.casefold() in _OMIT_ATTRIBUTE_CODES):
+                    continue
+                description = record.description if "description" in record._fields else ""
+                full_name = record.full_name if "full_name" in record._fields else ""
+                entries.append(CatalogEntry(code, record.name or "", description or "", full_name or ""))
+            catalog[kind] = tuple(entries)
+        return catalog
 
     def _merge_ai_and_vision(
         self,
@@ -1009,12 +1221,16 @@ class PlasticosWebLead(models.Model):
         vision_results: list[dict[str, Any]],
         *,
         quantity_evidence: QuantityEvidence | None = None,
+        seller_payload: Mapping[str, Any] | None = None,
+        catalog: Mapping[str, tuple[CatalogEntry, ...]] | None = None,
     ) -> dict[str, Any]:
         """Merge text AI normalization with vision analysis.
 
         Authority rules:
-        - Text AI: polymer, weight, source (form data knows the business context)
-        - Vision: form, color, contamination (eyes on the material)
+        - The joint reply, which has already seen the seller text and the photos, is the reading.
+        - A photo code fills a slot that reply left empty when the seller named no different code.
+        - A seller-named polymer that disagrees with a confident photo stays the seller code.
+        - The classifier still receives the original photo rows.
 
         Legacy-path weight fallback cascade (FIX — resolves WeightPerLoad="unknown" bug):
           1. AI estimated_lbs_per_load (most reliable when AI ran)
@@ -1026,13 +1242,8 @@ class PlasticosWebLead(models.Model):
         quantity stays area, including when an earlier model call stored that
         area number as pounds. A stated unit count uses the unit weight table.
         """
+        catalog = catalog or self._material_catalog()
         merged: dict[str, Any] = {}
-
-        polymer_raw = (ai_data.get("polymer") or "").lower().strip()
-        merged["polymer"] = _POLYMER_NORMALIZE.get(polymer_raw, polymer_raw or None)
-        merged["form"] = _FORM_NORMALIZE.get((ai_data.get("form") or "").lower().strip(), None)
-        merged["color"] = (ai_data.get("color") or "").lower().strip() or None
-        merged["source_type"] = _SOURCE_NORMALIZE.get((ai_data.get("source_type") or "").lower().strip(), None)
         merged["loads_per_month"] = _safe_int(ai_data.get("loads_per_month"), 0)
         # Missing AI output is unknown evidence, never a negative fact. The
         # classifier owns the distinct treatment of None versus explicit False.
@@ -1044,7 +1255,8 @@ class PlasticosWebLead(models.Model):
         merged["frequency"] = (ai_data.get("frequency") or "").lower().strip()
 
         raw = self.raw_payload or {}
-        canonical = self.canonical_payload or {}
+        # The corrected triage input when the pipeline passes one, else the submitted packet.
+        canonical = seller_payload if seller_payload is not None else (self.canonical_payload or {})
         merged["source_description"] = (
             canonical.get("source_description")
             if quantity_evidence is not None
@@ -1053,15 +1265,7 @@ class PlasticosWebLead(models.Model):
 
         # Seller item words name a grade. They are not written into the form
         # slot: a physical form from text AI or vision has to survive beside them.
-        declared_material = " ".join(
-            str(value or "")
-            for value in (
-                canonical.get("material_description"),
-                canonical.get("material_composition_text"),
-                raw.get("DescribeYourMaterial"),
-                raw.get("WhatIsIt"),
-            )
-        )
+        declared_material = _declared_material_text(canonical, raw)
 
         # ── Weight fallback cascade ────────────────────────────────────
         if quantity_evidence is not None:
@@ -1104,30 +1308,96 @@ class PlasticosWebLead(models.Model):
         merged["estimated_lbs"] = lbs
         merged["lbs_source"] = lbs_source
 
-        # ── Vision overrides for form/color/contamination ──────────────
+        # ── Vision supplies form, grade, color, and contamination ──────
         vision_form = None
+        vision_grade = None
+        vision_color = None
+        vision_packaging = None
         if vision_results:
             valid_vision = [v for v in vision_results if not v.get("error")]
             best_vision = max(valid_vision, key=lambda v: v.get("confidence", 0), default={})
             if best_vision:
-                vision_form = _FORM_NORMALIZE.get((best_vision.get("observed_form") or "").lower().strip())
-                v_color = (best_vision.get("observed_color") or "").lower().strip()
-                if v_color and not merged["color"]:
-                    merged["color"] = v_color
-                if best_vision.get("contamination_visible"):
-                    merged["contamination_visible"] = True
-                    merged["contamination_notes"] = best_vision.get("contamination_notes")
+                vision_form = best_vision.get("observed_form")
+                vision_grade = best_vision.get("observed_material_grade")
+                vision_color = best_vision.get("observed_color")
+                vision_packaging = best_vision.get("observed_packaging")
                 merged["vision_summary"] = best_vision.get("visual_summary", "")
+            # One clean photo never erases contamination another photo shows.
+            dirty = [v for v in valid_vision if v.get("contamination_visible") is True]
+            if dirty:
+                merged["contamination_visible"] = True
+                notes = [str(v.get("contamination_notes") or "").strip() for v in dirty]
+                merged["contamination_notes"] = "; ".join(dict.fromkeys(note for note in notes if note)) or None
+
+        seller = split_phrase(declared_material, catalog)
+
+        def _slot(ai_key: str, kind: str, photo_value: Any = None) -> str | None:
+            entries = catalog.get(kind, ())
+            accepted = accept_value(ai_data.get(ai_key), entries)
+            if accepted:
+                return accepted
+            seller_code = seller.get(ai_key)
+            if seller_code:
+                return seller_code
+            return accept_value(photo_value, entries)
+
+        # A seller who names two polymers ("HDPE and PP regrind") leaves the
+        # identity unresolved: neither the text AI, a photo, nor label length
+        # picks one of them. Exactly one named polymer still resolves.
+        seller_polymers = match_distinct(
+            declared_material, catalog.get("polymer", ()), catalog.get("material_grade", ())
+        )
+        seller_polymer = seller_polymers[0] if len(seller_polymers) == 1 else None
+        vision_polymer = accept_value(
+            agreed_confident_polymer(list(vision_results or [])),
+            catalog.get("polymer", ()),
+        )
+        joint_polymer = accept_value(ai_data.get("polymer"), catalog.get("polymer", ()))
+        if len(seller_polymers) > 1:
+            merged["polymer"] = None
+            merged["polymer_source"] = None
+        elif seller_polymer and vision_polymer and seller_polymer != vision_polymer:
+            merged["polymer"] = seller_polymer
+            merged["polymer_source"] = "seller_text"
+        elif joint_polymer:
+            merged["polymer"] = joint_polymer
+            merged["polymer_source"] = "text_ai"
+        elif seller_polymer:
+            merged["polymer"] = seller_polymer
+            merged["polymer_source"] = "seller_text"
+        elif vision_polymer:
+            merged["polymer"] = vision_polymer
+            merged["polymer_source"] = "vision"
+        else:
+            merged["polymer"] = None
+            merged["polymer_source"] = None
 
         # Grade and form stay in separate slots. A drum grade must not erase
         # regrind, and an AI form must not hide the item word.
-        from odoo.addons.plasticos_material_profile.grade_codes import GRADE_CODES
-
         merged["form"], merged["material_grade"] = merge_form_and_grade(
-            merged.get("form"),
+            ai_data.get("form"),
             declared_material,
             vision_form,
-            GRADE_CODES,
+            catalog.get("form", ()),
+            catalog.get("material_grade", ()),
+        )
+        explicit_grade = accept_value(ai_data.get("material_grade"), catalog.get("material_grade", ()))
+        if explicit_grade:
+            merged["material_grade"] = explicit_grade
+        elif not merged["material_grade"]:
+            merged["material_grade"] = accept_value(vision_grade, catalog.get("material_grade", ()))
+
+        merged["color"] = _slot("color", "color", vision_color)
+        merged["source_type"] = _slot("source_type", "source_type")
+        merged["filler_type"] = _slot("filler_type", "filler")
+        merged["packaging_type"] = _slot("packaging_type", "packaging", vision_packaging)
+        merged["process_type"] = _slot("process_type", "process")
+        merged["quality_tier"] = _slot("quality_tier", "quality_tier")
+        merged["attributes"] = _merged_attributes(
+            ai_data.get("attributes"),
+            seller["attributes"],
+            list(vision_results or []),
+            catalog,
         )
         return merged
 
@@ -1192,7 +1462,13 @@ class PlasticosWebLead(models.Model):
         analysis = dict(self.ai_analysis) if isinstance(self.ai_analysis, dict) else {}
         normalized = self.ai_normalized if isinstance(self.ai_normalized, dict) else {}
         raw_polymer = str(analysis.get("polymer") or normalized.get("polymer") or "").strip()
-        polymer = _POLYMER_NORMALIZE.get(raw_polymer.lower(), raw_polymer or None) if raw_polymer else None
+        catalog = self._material_catalog()
+        polymer_entries = catalog["polymer"]
+        polymer = accept_value(raw_polymer, polymer_entries) if raw_polymer else None
+        # Replay keeps a two-polymer seller description unresolved, as the merge does.
+        declared_material = _declared_material_text(self.canonical_payload or {}, self.raw_payload or {})
+        if len(match_distinct(declared_material, polymer_entries, catalog.get("material_grade", ()))) > 1:
+            polymer = None
         config = self.env["plasticos.web.lead.config"].get_config()
         economic = evaluate_economic_eligibility(
             estimated_lbs=lbs,
@@ -1205,6 +1481,9 @@ class PlasticosWebLead(models.Model):
         )
         result = classify_lead(
             polymer=polymer,
+            form_code=analysis.get("form"),
+            material_grade_code=analysis.get("material_grade"),
+            quality_tier_code=analysis.get("quality_tier"),
             material_description=self.material_description,
             estimated_lbs=lbs,
             source_description=str(analysis.get("source_description") or ""),
@@ -1248,7 +1527,9 @@ class PlasticosWebLead(models.Model):
         merged["polymer"] = polymer
         merged["estimated_lbs"] = lbs
         merged["loads_per_month"] = self.estimated_loads_per_month or analysis.get("loads_per_month") or 0
-        self.with_context(skip_hot_notify=True)._process_hot_lead_triage(merged, config)
+        # A lead newly promoted to HOT gets exactly one reviewer handoff:
+        # _process_hot_lead_triage notifies only when it creates the intake.
+        self._process_hot_lead_triage(merged, config)
 
     # ═══════════════════════════════════════════════════════════
     # HOT Lead Processing
@@ -1291,9 +1572,7 @@ class PlasticosWebLead(models.Model):
         """Create intake record WITHOUT partner from merged AI data.
 
         Unified replacement for _create_intake_triage + _create_intake_simple.
-        Looks up polymer_id, form_id, material_grade_id, source_type_id from
-        master registries by code. Falls back to 'other' / 'post_consumer'
-        records if code not found; the optional material grade has no fallback.
+        Writes every catalog code the merge accepted. An empty slot stays empty.
         Analysis stored before merge split form from grade is split here.
 
         FIX: removed inconsistent qty_per_load defaults (1 vs 40000).
@@ -1305,30 +1584,42 @@ class PlasticosWebLead(models.Model):
             from odoo.addons.plasticos_material_profile.grade_codes import GRADE_CODES
 
             form_value, grade_value = split_material_code(merged.get("form"), GRADE_CODES)
-        polymer_code = (merged.get("polymer") or "other").lower()
-        form_code = (form_value or "other").lower()
-        source_type_code = merged.get("source_type") or getattr(config, "default_source_type", None) or "post_consumer"
-        qty_per_load = max(merged.get("estimated_lbs", 0), 1)
+        # An unknown source stays empty on the intake. A configured default is not
+        # evidence about this seller and is never written as if it were.
+        source_type_code = merged.get("source_type") or None
+        qty_per_load = float(merged.get("estimated_lbs") or 0)
+        if qty_per_load <= 0:
+            # Never invent a quantity: an intake needs a stated or verified per-load weight.
+            raise UserError(
+                f"Lead '{self.lead_id}' has no verified per-load weight. "
+                "Record the confirmed Lbs/Load before creating an intake."
+            )
         loads_per_month = max(merged.get("loads_per_month", 0), 0)
         deal_type = _FREQ_TO_DEAL.get(merged.get("frequency", ""), "spot")
 
-        def _lookup(Model, code, fallback_code):
-            rec = Model.search([("code", "=ilike", code)], limit=1)
-            if not rec and fallback_code and code != fallback_code:
-                rec = Model.search([("code", "=ilike", fallback_code)], limit=1)
-            return rec
+        def _one(model, code):
+            if not code:
+                return model.browse()
+            return model.search([("code", "=ilike", str(code))], limit=1)
 
-        Polymer = self.env["plasticos.polymer"]
-        Form = self.env["plasticos.material.form"]
-        Grade = self.env["plasticos.material.grade"]
-        SourceType = self.env["plasticos.source.type"]
-
-        polymer_rec = _lookup(Polymer, polymer_code, "other")
-        form_rec = _lookup(Form, form_code, "other")
-        grade_rec = _lookup(Grade, grade_value, None) if grade_value else Grade
-        source_type_rec = _lookup(SourceType, source_type_code, "post_consumer")
+        polymer_rec = _one(self.env["plasticos.polymer"], merged.get("polymer"))
+        form_rec = _one(self.env["plasticos.material.form"], form_value)
+        grade_rec = _one(self.env["plasticos.material.grade"], grade_value)
+        source_type_rec = _one(self.env["plasticos.source.type"], source_type_code)
+        color_rec = _one(self.env["plasticos.material.color"], merged.get("color"))
+        packaging_rec = _one(self.env["plasticos.packaging.type"], merged.get("packaging_type"))
+        quality_tier_rec = _one(self.env["plasticos.material.quality.tier"], merged.get("quality_tier"))
+        filler_rec = _one(self.env["plasticos.filler.type"], merged.get("filler_type"))
+        attribute_codes = [code for code in (merged.get("attributes") or ()) if code]
+        attribute_recs = (
+            self.env["plasticos.material.attribute"].search([("code", "in", attribute_codes)])
+            if attribute_codes
+            else self.env["plasticos.material.attribute"]
+        )
 
         web_lead_source = self.env["utm.source"].search([("name", "=", "Web Lead Form")], limit=1)
+
+        from odoo.addons.plasticos_intake.source_origin import web_lead_source_address
 
         intake_vals = {
             "pending_company_name": self.company_name or "Unknown",
@@ -1344,17 +1635,45 @@ class PlasticosWebLead(models.Model):
             "contamination_notes": (
                 merged.get("contaminants_noted") or merged.get("contamination_notes") or self.contaminant_notes or False
             ),
+            "assigned_user_id": self.assigned_user_id.id or False,
         }
+        if color_rec:
+            intake_vals["color_ids"] = [(6, 0, color_rec.ids)]
+        if packaging_rec:
+            intake_vals["packaging_type_id"] = packaging_rec.id
+        if quality_tier_rec:
+            intake_vals["quality_tier_id"] = quality_tier_rec.id
+        if filler_rec:
+            intake_vals["filler_type_id"] = filler_rec.id
+        if attribute_recs:
+            intake_vals["material_attribute_ids"] = [(6, 0, attribute_recs.ids)]
+        if merged.get("process_type"):
+            intake_vals["origin_process_type"] = merged["process_type"]
+        intake_vals.update(
+            web_lead_source_address(self.pickup_postal_code, self.pickup_place, self.pickup_location_text)
+        )
 
         return self.env["plasticos.intake"].create(intake_vals)
 
-    @staticmethod
-    def _eligible_reviewer(config):
-        """The configured reviewer, only while an active internal user; otherwise empty."""
+    def _eligible_reviewer(self, config):
+        """The configured reviewer, only while an active internal user who can resolve the work.
+
+        Resolving a REVIEW lead, approving a HOT snapshot, and recording a
+        promotion or rejection all write the web lead. A reviewer without that
+        right would hold work they cannot complete, so they are not eligible.
+        """
         reviewer = getattr(config, "hot_intake_reviewer_id", None)
         if not reviewer or not reviewer.exists() or not reviewer.active or reviewer.share:
             return None
+        if not self.env["plasticos.web.lead"].with_user(reviewer).has_access("write"):
+            return None
         return reviewer
+
+    def _blocked_reviewer_reason(self, config):
+        reviewer = getattr(config, "hot_intake_reviewer_id", None)
+        if reviewer and reviewer.exists() and reviewer.active and not reviewer.share:
+            return f"Configured reviewer {reviewer.name} cannot edit web leads, so they could not resolve this work."
+        return "No web-lead reviewer is configured (HOT Intake Reviewer)."
 
     def _notify_admin_hot_intake(self, intake, config):
         """Create one internal Odoo review activity or record a durable blocked handoff.
@@ -1368,16 +1687,12 @@ class PlasticosWebLead(models.Model):
         self.ensure_one()
         reviewer = self._eligible_reviewer(config)
         if reviewer is None:
-            self.write(
-                {
-                    "mack_review_state": "blocked",
-                    "mack_review_reason": "HOT Intake Reviewer is not configured.",
-                }
-            )
+            reason = self._blocked_reviewer_reason(config)
+            self.write({"mack_review_state": "blocked", "mack_review_reason": reason})
             self.message_post(
                 body=(
-                    "HOT lead intake was created, but the internal review handoff is blocked: "
-                    "configure a HOT Intake Reviewer in Web Lead Settings, then use Route Review."
+                    f"HOT lead intake was created, but the internal review handoff is blocked: {reason} "
+                    "Configure a HOT Intake Reviewer who can edit web leads, then use Route Review."
                 )
             )
             _logger.warning("HOT lead %s has no configured internal reviewer.", self.lead_id)
@@ -1428,41 +1743,284 @@ class PlasticosWebLead(models.Model):
         )
 
     def action_route_hot_review(self):
-        """Re-attempt a blocked human handoff after a reviewer has been configured."""
+        """Re-attempt a blocked human handoff after a reviewer has been configured.
+
+        A HOT lead routes its intake review; a REVIEW lead routes its
+        clarification work; a failed lead routes its recovery work.
+        """
         config = self.env["plasticos.web.lead.config"].get_config()
         for rec in self:
+            if rec.intake_id:
+                rec._notify_admin_hot_intake(rec.intake_id, config)
+            elif rec.state == "review_pending":
+                rec._route_review_lead(config)
+            elif rec.state == "error":
+                rec._schedule_lead_review_activity(
+                    config,
+                    summary=f"Recover failed web lead: {rec.lead_id}",
+                    note="<p>Web-lead processing failed. Fix the cause, then use Retry Processing.</p>",
+                )
+            else:
+                raise UserError("Only a HOT intake, a REVIEW lead, or a failed lead has a review handoff to route.")
+        return True
+
+    # ═══════════════════════════════════════════════════════════
+    # Commercial qualification: REVIEW lifecycle
+    # ═══════════════════════════════════════════════════════════
+
+    def _qualification_signals(self, merged, evidence_bundle, eligibility, config):
+        """Deterministic evidence dimensions handed to the model and the validator."""
+        self.ensure_one()
+        bundle = evidence_bundle or {}
+        seller = bundle.get("seller") or self.canonical_payload or {}
+        material_text = " ".join(
+            str(value or "")
+            for value in (
+                seller.get("material_description"),
+                seller.get("material_composition_text"),
+                self.material_description,
+            )
+        )
+        source_text = f"{merged.get('source_description') or ''} {merged.get('source_type') or ''}"
+        risk_indicators = detect_risk_indicators(
+            polymer=merged.get("polymer"),
+            material_text=material_text,
+            source_text=source_text,
+            reject_materials=config.get_reject_materials(),
+            reject_sources=config.get_reject_sources(),
+        )
+        hard_exclusions = detect_hard_exclusions(
+            polymer=merged.get("polymer"),
+            material_text=material_text,
+            is_plastic_hint=merged.get("is_plastic"),
+            reject_materials=config.get_reject_materials(),
+        )
+        return build_qualification_signals(
+            seller=seller,
+            merged=merged,
+            quantity=bundle.get("quantity"),
+            vision=bundle.get("vision"),
+            conflicts=bundle.get("conflicts"),
+            clarification_requests=bundle.get("clarification_requests"),
+            economic_eligibility=eligibility,
+            risk_indicators=risk_indicators,
+            hard_exclusions=hard_exclusions,
+            cold_max_lbs=config.cold_max_lbs or 8_000,
+            polymer_entries=self._material_catalog()["polymer"],
+        )
+
+    def _review_activity_summary(self):
+        return f"Clarify REVIEW web lead: {self.lead_id}"
+
+    def _schedule_lead_review_activity(self, config, *, summary, note):
+        """One internal activity on this lead for the configured reviewer, or a visible blocked handoff.
+
+        Deduplicated by lead, reviewer, and purpose (the summary). The webhook
+        worker is never an implicit reviewer.
+        """
+        self.ensure_one()
+        reviewer = self._eligible_reviewer(config)
+        if reviewer is None:
+            reason = self._blocked_reviewer_reason(config)
+            self.write({"mack_review_state": "blocked", "mack_review_reason": reason})
+            self.message_post(
+                body=(
+                    f"This web lead needs broker work, but the review handoff is blocked: {reason} "
+                    "Configure a HOT Intake Reviewer who can edit web leads, then use Route Review."
+                )
+            )
+            _logger.warning("Web lead %s has no configured internal reviewer.", self.lead_id)
+            return False
+        existing = self.env["mail.activity"].search_count(
+            [
+                ("res_model", "=", self._name),
+                ("res_id", "=", self.id),
+                ("user_id", "=", reviewer.id),
+                ("summary", "=", summary),
+            ]
+        )
+        if not existing:
+            self.activity_schedule("mail.mail_activity_data_todo", user_id=reviewer.id, summary=summary, note=note)
+        self.write(
+            {
+                "mack_review_state": "queued",
+                "mack_review_reason": f"Internal review is assigned to {reviewer.name}.",
+            }
+        )
+        return True
+
+    def _route_review_lead(self, config):
+        """Make a REVIEW disposition actionable: queue state, clarification status, assigned work."""
+        self.ensure_one()
+        self.write({"state": "review_pending", "review_status": "clarification_required"})
+        qualification = (self.decision_reasons or {}).get(KEY_QUALIFICATION) or {}
+        questions = list(qualification.get("recommended_clarification") or []) + list(
+            qualification.get("missing_information") or []
+        )
+        items = "".join(f"<li>{escape(question)}</li>" for question in dict.fromkeys(questions))
+        priority = "High priority. " if qualification.get("review_priority") == "high" else ""
+        self._schedule_lead_review_activity(
+            config,
+            summary=self._review_activity_summary(),
+            note=(
+                f"<p>{priority}This web lead may be worth pursuing but needs facts before an intake.</p>"
+                f"<ul><li><b>Company:</b> {escape(self.company_name or 'Unknown')}</li></ul>"
+                + (f"<p><b>Ask the seller:</b></p><ul>{items}</ul>" if items else "")
+                + "<p><b>Action:</b> record the verified facts and notes, then Promote to HOT, "
+                "Re-Run Triage, or Reject After Review.</p>"
+            ),
+        )
+
+    def _close_lead_review_activities(self, feedback):
+        self.ensure_one()
+        activities = self.env["mail.activity"].search(
+            [
+                ("res_model", "=", self._name),
+                ("res_id", "=", self.id),
+                ("summary", "=", self._review_activity_summary()),
+            ]
+        )
+        if activities:
+            activities.action_feedback(feedback=feedback)
+
+    def _manual_override_record(self, decision, rationale, **extra):
+        """Actor, rationale, and time of a broker disposition change, stored in decision_reasons."""
+        self.ensure_one()
+        return dict(
+            previous_decision=self.decision,
+            decision=decision,
+            actor_id=self.env.user.id,
+            actor=self.env.user.display_name,
+            rationale=(rationale or "")[:2000],
+            at=fields.Datetime.to_string(fields.Datetime.now()),
+            **extra,
+        )
+
+    def action_promote_to_hot(self):
+        """Broker promotion of a REVIEW (or COLD) lead to HOT once its facts are verified.
+
+        Requires a rationale in Broker Review Notes and a verified per-load
+        weight. Records the actor and rationale, then reuses the one idempotent
+        HOT path, so a repeated promotion never duplicates the intake or the
+        opportunity. It does not approve a snapshot or start any commercial step.
+        """
+        config = self.env["plasticos.web.lead.config"].get_config()
+        for rec in self:
+            if rec.intake_id:
+                raise UserError("Intake already exists for this lead.")
+            if rec.state == "error":
+                raise UserError("Retry processing of a failed lead before promoting it.")
+            rationale = (rec.review_notes or "").strip()
+            if not rationale:
+                raise UserError("Record the broker rationale in Broker Review Notes before promoting to HOT.")
+            if (rec.estimated_lbs_per_load or 0) <= 0:
+                raise UserError(
+                    "Record the verified per-load weight (Lbs/Load) before promoting to HOT. "
+                    "An intake is never created from an invented quantity."
+                )
+            merged = dict(rec.ai_analysis or rec.ai_normalized or {})
+            merged["estimated_lbs"] = rec.estimated_lbs_per_load
+            merged["loads_per_month"] = rec.estimated_loads_per_month or merged.get("loads_per_month") or 0
+            reasons = dict(rec.decision_reasons or {})
+            reasons[KEY_MANUAL_OVERRIDE] = rec._manual_override_record(
+                DISPOSITION_HOT, rationale, verified_lbs_per_load=rec.estimated_lbs_per_load
+            )
+            previous = rec.decision
+            rec.write({"decision": DISPOSITION_HOT, "decision_reasons": reasons, "review_status": "pending"})
+            rec._close_lead_review_activities("Promoted to HOT by broker.")
+            rec._process_hot_lead_triage(merged, config)
+            rec.message_post(
+                body=f"{rec.env.user.display_name} promoted this lead from {previous.upper()} to HOT. "
+                f"Rationale: {rationale[:500]}"
+            )
+        return True
+
+    def _write_recovered_assessment(self, assessment, history):
+        """Replace only the economic assessment inside a processed lead's evidence bundle.
+
+        Not reachable over RPC (leading underscore) and not driven by context:
+        the processed-lead write guard has no bypass. Seller facts, the
+        disposition, and every other evidence key are copied unchanged from
+        the stored bundle, never from the caller.
+        """
+        self.ensure_one()
+        bundle = dict(self.evidence_bundle or {})
+        bundle[KEY_ECONOMIC_ASSESSMENT] = assessment
+        bundle["economic_assessment_history"] = list(history)
+        # Skips only this model's processed-lead guard; the ORM, ACLs, and tracking still apply.
+        return super().write({"evidence_bundle": bundle})
+
+    def action_retry_economic_assessment(self):
+        """Assessment-only recovery for a lead that already has an intake.
+
+        Re-runs the commercial assessment over stored evidence. It does not
+        re-read acquisition URLs, recreate attachments, intake, or opportunity,
+        change the disposition, or touch an approved snapshot. A lead without
+        an intake is reassessed with Re-Run Triage instead.
+        """
+        config = self.env["plasticos.web.lead.config"].get_config()
+        for rec in self:
+            rec.check_access("write")
             if not rec.intake_id:
-                raise UserError("Only a lead with an intake has a review handoff to route.")
-            rec._notify_admin_hot_intake(rec.intake_id, config)
+                raise UserError("Use Re-Run Triage to reassess a lead that has no intake.")
+            bundle = dict(rec.evidence_bundle or {})
+            if not bundle:
+                raise UserError("This lead has no stored evidence bundle to reassess.")
+            spec = config.get_inference_provider("economic_evaluation") if config.ai_enabled else None
+            provider = InferenceProvider(**spec) if spec else None
+            merged = dict(rec.ai_analysis or {})
+            eligibility = ((rec.decision_reasons or {}).get(KEY_ECONOMIC_ELIGIBILITY)) or {}
+            signals = rec._qualification_signals(merged, bundle, eligibility, config)
+            assessment = evaluate_economic_opportunity(
+                provider=provider,
+                canonical_payload=rec.canonical_payload,
+                evidence_bundle=bundle,
+                eligibility=eligibility,
+                qualification_signals=signals,
+            )
+            previous = bundle.get(KEY_ECONOMIC_ASSESSMENT) or {}
+            history = list(bundle.get("economic_assessment_history") or [])
+            if previous:
+                history.append(
+                    {
+                        key: previous.get(key)
+                        for key in (KEY_STATUS, "reason", "schema_version", KEY_ASSESSMENT)
+                        if key in previous
+                    }
+                )
+            rec._write_recovered_assessment(assessment, history[-10:])
+            rec.message_post(
+                body=f"Economic assessment re-run: status {assessment.get(KEY_STATUS)}. "
+                "Disposition, intake, and approved snapshots are unchanged."
+            )
         return True
 
     def action_approve_for_commercial_preparation(self):
-        """Record a broker approval as an immutable server-derived snapshot.
+        """Approve the lead; the immutable review snapshot is recorded in the same transaction.
 
         The snapshot model's ``_record_broker_approval`` is the only path that
         can mint a snapshot: it derives approver, time, revision, lead/intake
         binding, payload and hash itself, so no caller can supply provenance.
+        The status write carries the module-private token, so this is the only
+        path to ``approved``. Both writes share one transaction: if either
+        fails, neither persists. The broker stays on the lead form.
         """
         self.ensure_one()
-        if self.review_status == "approved" and self.review_snapshot_ids:
-            return self.action_view_review_snapshots()
+        # Serialize approvals of one lead. Odoo cursors run at REPEATABLE READ:
+        # a concurrent approval that committed first raises a serialization
+        # failure here, and the request retry then sees the approved state.
+        # justification: atomic row lock; the ORM has no SELECT ... FOR UPDATE.
+        self.env.cr.execute("SELECT id FROM plasticos_web_lead WHERE id = %s FOR UPDATE", [self.id])
+        self.invalidate_recordset(["review_status", "review_snapshot_ids"])
+        if self.review_status == REVIEW_STATUS_APPROVED and self.review_snapshot_ids:
+            return True
 
-        snapshot = self.env["plasticos.web.lead.review.snapshot"]._record_broker_approval(self)
-        self.write({"review_status": "approved"})
-        self.message_post(
-            body=(
-                f"Broker-approved snapshot <b>{snapshot.name}</b> created by {self.env.user.display_name}. "
-                "Downstream matching or commercial preparation must use this snapshot."
-            )
+        self.env["plasticos.web.lead.review.snapshot"]._record_broker_approval(self)
+        self.with_context(**{_APPROVAL_STATUS_KEY: _APPROVAL_STATUS_TOKEN}).write(
+            {"review_status": REVIEW_STATUS_APPROVED}
         )
-        return {
-            "type": "ir.actions.act_window",
-            "name": snapshot.name,
-            "res_model": "plasticos.web.lead.review.snapshot",
-            "res_id": snapshot.id,
-            "view_mode": "form",
-            "target": "current",
-        }
+        self.message_post(body=f"Broker approved this lead for commercial preparation ({self.env.user.display_name}).")
+        return True
 
     def action_request_clarification(self):
         """Record that evidence requires seller/broker clarification before approval."""
@@ -1472,10 +2030,21 @@ class PlasticosWebLead(models.Model):
         return True
 
     def action_reject_after_review(self):
-        """Record a broker-reviewed rejection without deleting source evidence."""
+        """Record a broker-reviewed rejection without deleting source evidence.
+
+        A REVIEW lead leaves the queue as COLD with the broker as the actor; a
+        HOT lead keeps its intake and evidence for audit.
+        """
         self.ensure_one()
-        self.write({"review_status": "rejected"})
-        self.message_post(body="Broker rejected this lead after review; intake and evidence remain retained for audit.")
+        values = {"review_status": "rejected"}
+        if not self.intake_id and self.decision == DISPOSITION_REVIEW:
+            reasons = dict(self.decision_reasons or {})
+            reasons[KEY_MANUAL_OVERRIDE] = self._manual_override_record(DISPOSITION_COLD, self.review_notes or "")
+            values.update({"decision": DISPOSITION_COLD, "decision_reasons": reasons, "state": "skipped"})
+        self.write(values)
+        if not self.intake_id:
+            self._close_lead_review_activities("Rejected after broker review.")
+        self.message_post(body="Broker rejected this lead after review; evidence remains retained for audit.")
         return True
 
     def action_view_review_snapshots(self):
@@ -1495,10 +2064,10 @@ class PlasticosWebLead(models.Model):
     # ═══════════════════════════════════════════════════════════
 
     def action_retry_triage(self):
-        """Re-run the full AI triage pipeline."""
+        """Re-run the full AI triage pipeline (reassessment for a lead with no intake)."""
         for rec in self:
-            if rec.state not in ("error", "skipped", "received"):
-                raise UserError("Only errored, skipped, or received leads can be re-triaged.")
+            if rec.state not in ("error", "skipped", "received", "review_pending"):
+                raise UserError("Only errored, skipped, received, or review-pending leads can be re-triaged.")
             rec._run_triage_pipeline()
 
     def action_retry_processing(self):
@@ -1513,28 +2082,12 @@ class PlasticosWebLead(models.Model):
             rec._run_triage_pipeline()
 
     def action_force_create_intake(self):
-        """Force-create an intake from a COLD lead (manual override)."""
-        for rec in self:
-            if rec.intake_id:
-                raise UserError("Intake already exists for this lead.")
-            config = rec.env["plasticos.web.lead.config"].get_config()
-            merged = rec.ai_analysis or rec.ai_normalized or {}
-            rec._process_hot_lead_triage(merged, config)
+        """Manual intake creation. Same validated path as Promote to HOT: rationale and verified weight."""
+        return self.action_promote_to_hot()
 
     def action_force_hot(self):
-        """Manually override a COLD lead to HOT and create intake."""
-        for rec in self:
-            if rec.intake_id:
-                raise UserError("Intake already exists for this lead.")
-            config = rec.env["plasticos.web.lead.config"].get_config()
-            merged = rec.ai_analysis or rec.ai_normalized or {}
-            rec.write(
-                {
-                    "decision": "hot",
-                    "decision_reasons": {"reasons": ["Manual override by user"]},
-                }
-            )
-            rec._process_hot_lead_triage(merged, config)
+        """Manual override to HOT. Same validated path as Promote to HOT: rationale and verified weight."""
+        return self.action_promote_to_hot()
 
     # ═══════════════════════════════════════════════════════════
     # UX Smart Button Actions

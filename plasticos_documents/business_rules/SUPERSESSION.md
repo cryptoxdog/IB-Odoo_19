@@ -31,3 +31,30 @@ External-send ownership of these seven clauses moves to `plasticos_logistics`. T
 | `BRS-POS-09-R012` | Stop on verified or inapplicable | `plasticos_logistics` |
 
 `REGISTRY.json` `source_rule_ids`, `local_rule_count` (44) and `external_rule_count` (126) stay the installed-text inventory. `ownership_transferred` records the seven IDs. `ALL_170_RULES_SCOPE.csv` classifies them `CROSS_DOMAIN_CONSUMER_REFERENCE`. The logistics admission is the same date in `plasticos_logistics/business_rules/SUPERSESSION.md`, cross-referenced to the existing clocks `BRS-02-R007`, `BRS-06-R039` and `BRS-07-R051`. This entry does not install `BRS-POS-04` through `BRS-POS-08`, `BRS-POS-11` or `BRS-POS-12`.
+
+## 2026-11-12 vendor bill extraction {#2026-11-12-vendor-bill-extraction}
+
+On 2026-11-12 the operator approved native IAP extraction for vendor bills, in these words: "I approve native IAP extraction for vendor bills". This is the separate selection and cost authorization that `BRS-POS-02-R013` names. For vendor bills only, it supersedes that rule's statement that paid Odoo document digitization/IAP SHALL NOT be required. The chapter file `BRS-POS-02-native-documents-originals-and-intake.md` stays byte-for-byte in this module; `REGISTRY.json`, `EFFECTIVE_RULES.json` and `EFFECTIVE_RULES.md` keep the installed text.
+
+| Field | Record |
+| --- | --- |
+| Source | Frozen BRS-POS v1.0.0, chapter `BRS-POS-02`, unchanged bytes |
+| Prior rule | `BRS-POS-02-R013` (LOCKED): no mandatory digitization charges |
+| Successor | `BRS-POS-02-R013` as amended by this entry, vendor bills only |
+| Reason | Operator selected and cost-authorized native IAP extraction for vendor bills |
+| Affected owners | Native original custody in `plasticos_documents_native` (`BRS-POS-02`); native Accounting vendor-bill intake. No change to `plasticos_documents` verification or compliance policy |
+| Effective admission | 2026-11-12, operator approval quoted above. Runtime stays `NOT_RUN` |
+
+Scope limits. Every other document class keeps `BRS-POS-02-R013` as written: BOL, scale, receiving and compliance evidence need no paid digitization. `BRS-POS-09-R016` (optional Studio or AI costs) keeps its text: this entry is the separate cost authorization it requires, for vendor bills and for nothing else. Extraction prefills a draft vendor bill and nothing else. AI or OCR output never verifies evidence (`BRS-POS-03-R004`), never sets an authoritative weight (`BRS-POS-03-R013`), and never posts or settles money (`BRS-POS-03-R008`, `BRS-POS-09-R013`). The `BRS-POS-02-R012` negative control stays: an uploaded supplier PDF does not become a posted bill because it arrived or was extracted.
+
+Acceptance implications. Positive: a vendor invoice that reaches the native vendor-bill intake is extracted by native IAP into a draft bill that a person reviews. Negative: with extraction unavailable or wrong, the manual draft-bill path of `AC-POS-02-013` still operates, and no extracted value verifies a document, sets a weight, or posts a move.
+
+## 2026-11-12 Export campaign S3: operation-scoped evidence {#2026-11-12-operation-scope}
+
+**Source:** operator approval of the PlasticOS Export campaign and code grant, 2026-11-11, contract `PLASTICOS-EXPORT-C02-S3-DOCUMENTS-CLAIMS-COMMISSION` and its coordinator reconciliation C02_S3_RECONCILIATION (B1-B15). Architecture: `docs/adr/ADR-130-export-physical-evidence-and-owner-contracts.md`. This entry adds interpretations; it does not edit an earlier section or any source BRS chapter. The installed-text inventory stays 44 verbatim rules, 37 of them Documents-owned, and external-send ownership of `BRS-POS-09-R006` through `BRS-POS-09-R012` stays with `plasticos_logistics`.
+
+| Rule ID | Amended interpretation (2026-11-12) |
+| --- | --- |
+| `BRS-POS-03-R004`, `BRS-POS-03-R005` | `plasticos.document` stays the single business verifier and the single multi-subject evidence owner. One original may carry several rows; each row has one obligation: `legacy` (invoice, close, transaction display, claims, the scale-ticket rule) or an operation obligation declared by its owner. An operation row has its own decision and never writes another row's decision. There is no parallel evidence-link model. |
+| `BRS-POS-03-R002`, `BRS-POS-03-R003` | An operation row records its exact subject, subject company, obligation, operation revision (distinct from the attachment checksum) and coverage. Quantity is known only with its unit; unknown is never inferred from an old number or checksum. Accepted scope is immutable. The scoped verdict `plasticos.document.get_scoped_evidence_verdict` answers per company, subject, obligation and operation revision; unknown obligations fail closed. |
+| `BRS-POS-09-R001` through `BRS-POS-09-R005`, `BRS-POS-09-R013` | Invoice, close and transaction compliance read exact current legacy rows only; an operation row neither satisfies nor blocks them. The active scale-ticket rule (overdue after 2 business days, escalation after 7, scheduled every 6 hours) stays the Documents status source and is not re-timed. Its clocks read the Logistics actual pickup and actual delivery (`BRS-07-R051` as amended 2026-11-11); an unknown actual time starts nothing. Documents supplies status and internal activity only; Logistics remains the single external reminder writer. |

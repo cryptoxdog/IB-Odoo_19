@@ -15,6 +15,7 @@ from unittest.mock import patch
 
 from odoo import fields
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+from odoo.addons.plasticos_offer.tests.test_manual_send import send_offer_email
 from odoo.addons.plasticos_web_leads.models.classification_engine import classify_lead
 from odoo.exceptions import UserError, ValidationError
 from odoo.tests.common import tagged
@@ -90,11 +91,12 @@ class TestGoldenLeadToDelivery(PlasticosTestCase):
                 "intake_id": intake.id,
                 "supplier_id": intake.partner_id.id,
                 "buyer_id": self.buyer.id,
+                "price_per_lb": 0.2,
+                "quantity_lbs": 40000,
             }
         )
-        if hasattr(offer, "action_send"):
-            offer.action_send()
-            self.assertIn(offer.state, ("sent", "accepted", "draft"), "Offer should be sent")
+        send_offer_email(offer)
+        self.assertEqual(offer.state, "sent", "Offer should be sent by email")
 
         # 4) Offer → transaction
         if hasattr(offer, "action_accept"):
@@ -305,8 +307,11 @@ class TestGoldenHotWebLeadToIntake(PlasticosTestCase):
         self.assertEqual(lead.evidence_bundle["economic_assessment"]["status"], "assessed")
         lead.write({"review_notes": "Commercial source verified against submitted form."})
 
-        action = lead.action_approve_for_commercial_preparation()
-        snapshot = self.env[action["res_model"]].browse(action["res_id"])
+        result = lead.action_approve_for_commercial_preparation()
+        # Approval keeps the broker on the lead; the evidence is recorded silently.
+        self.assertIs(result, True)
+        snapshot = lead.review_snapshot_ids
+        self.assertEqual(len(snapshot), 1)
 
         self.assertEqual(lead.review_status, "approved")
         self.assertEqual(snapshot.web_lead_id, lead)
@@ -331,7 +336,7 @@ class TestGoldenHotWebLeadToIntake(PlasticosTestCase):
 
         self.assertTrue(lead.intake_id, "HOT lead still requires an intake for auditability")
         self.assertEqual(lead.mack_review_state, "blocked")
-        self.assertIn("not configured", lead.mack_review_reason.lower())
+        self.assertIn("no web-lead reviewer is configured", lead.mack_review_reason.lower())
         self.assertFalse(lead.intake_id.activity_ids, "No arbitrary internal user may receive the activity")
 
         # Once a reviewer exists, Route Review completes the handoff to that user only.

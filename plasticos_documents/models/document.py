@@ -18,6 +18,21 @@ ALLOWED_SUBJECT_SELECTION = [
 ]
 ALLOWED_SUBJECTS = frozenset(item[0] for item in ALLOWED_SUBJECT_SELECTION)
 ASSOCIATION_GRANT_KEY = "plasticos_document_association_grant"
+
+# Obligation of a business row. Every row that existed before operation scope
+# is legacy: invoice, close, transaction display and claims read legacy rows only.
+LEGACY_OBLIGATION = "legacy"
+# Operation-scope dimensions. They identify which obligation and which business
+# operation revision this row proves. They never change once the row is accepted.
+SCOPE_FIELDS = frozenset(
+    {
+        "obligation_kind",
+        "operation_revision_key",
+        "coverage_key",
+        "quantity_known",
+        "evidence_uom_id",
+    }
+)
 ASSOCIATION_PROVENANCE = frozenset(
     {
         "associated_by",
@@ -27,6 +42,10 @@ ASSOCIATION_PROVENANCE = frozenset(
         "subject_company_id",
         "association_review_required",
         "covered_quantity",
+        "operation_revision_key",
+        "coverage_key",
+        "quantity_known",
+        "evidence_uom_id",
     }
 )
 ASSOCIATION_IDENTITY = frozenset({"res_model", "res_id", "transaction_id", "load_id"})
@@ -243,6 +262,75 @@ class PlasticosDocument(models.Model):
     association_source_reference = fields.Char(string="Source Reference Draft")
     association_covered_quantity = fields.Float(string="Covered Quantity Draft")
 
+    # ── Operation scope (one row per original, subject, obligation and revision) ──
+    obligation_kind = fields.Char(
+        string="Obligation",
+        required=True,
+        default=LEGACY_OBLIGATION,
+        readonly=True,
+        index=True,
+        help=(
+            "Which obligation this row proves. 'legacy' is the invoice, close and transaction evidence. "
+            "Any other value is an operation obligation declared by its owner."
+        ),
+    )
+    operation_revision_key = fields.Char(
+        string="Operation Revision",
+        readonly=True,
+        index=True,
+        help=(
+            "The business operation revision this row proves, for example one booking revision. "
+            "It is not the attachment checksum (Source Revision)."
+        ),
+    )
+    coverage_key = fields.Char(
+        string="Coverage",
+        readonly=True,
+        help="Normalized documentary coverage inside the operation, for example one container or one photo set.",
+    )
+    quantity_known = fields.Boolean(
+        string="Quantity Known",
+        readonly=True,
+        default=False,
+        help="True only when the source states the covered quantity and its unit. Unknown is never inferred.",
+    )
+    evidence_uom_id = fields.Many2one(
+        "uom.uom",
+        string="Evidence Unit",
+        readonly=True,
+        ondelete="restrict",
+        help="Unit of the covered quantity. Required when the quantity is known.",
+    )
+    association_obligation_kind = fields.Char(string="Obligation Draft")
+    association_operation_revision_key = fields.Char(string="Operation Revision Draft")
+    association_coverage_key = fields.Char(string="Coverage Draft")
+    association_quantity_known = fields.Boolean(string="Quantity Known Draft")
+    association_evidence_uom_id = fields.Many2one(
+        "uom.uom",
+        string="Evidence Unit Draft",
+        ondelete="set null",
+    )
+
+    _legacy_rows_carry_no_operation_scope = models.Constraint(
+        "CHECK(obligation_kind <> 'legacy' OR (operation_revision_key IS NULL AND coverage_key IS NULL "
+        "AND quantity_known IS NOT TRUE AND evidence_uom_id IS NULL))",
+        "A legacy evidence row carries no operation scope.",
+    )
+    _accepted_operation_scope_is_complete = models.Constraint(
+        "CHECK(obligation_kind = 'legacy' OR association_state <> 'accepted' OR "
+        "(operation_revision_key IS NOT NULL AND coverage_key IS NOT NULL AND subject_company_id IS NOT NULL))",
+        "Accepted operation evidence needs its operation revision, coverage and subject company.",
+    )
+    _known_quantity_has_unit = models.Constraint(
+        "CHECK(quantity_known IS NOT TRUE OR evidence_uom_id IS NOT NULL)",
+        "A known evidence quantity needs its unit.",
+    )
+    # NOT NULL keys on accepted operation rows close the NULL replay gap.
+    _unique_accepted_operation_scope = models.UniqueIndex(
+        "(attachment_id, res_model, res_id, source_revision, obligation_kind, operation_revision_key, coverage_key) "
+        "WHERE association_state = 'accepted' AND obligation_kind <> 'legacy'"
+    )
+
     # ── Document Category ──────────────────────────────────────────
     doc_category = fields.Selection(
         [
@@ -296,12 +384,59 @@ class PlasticosDocument(models.Model):
             return True
         if any(vals.get(name) for name in ASSOCIATION_PROVENANCE):
             return True
+        if "obligation_kind" in vals and (vals["obligation_kind"] or LEGACY_OBLIGATION) != LEGACY_OBLIGATION:
+            return True
         accepted = any(rec.association_state == "accepted" for rec in self)
         if not accepted:
             return False
         if "association_state" in vals or ASSOCIATION_PROVENANCE.intersection(vals):
             return True
+        if "obligation_kind" in vals:
+            return True
         return bool(ASSOCIATION_IDENTITY.intersection(vals))
+
+    @staticmethod
+    def _scope_value(record, name):
+        value = record[name]
+        if isinstance(value, models.BaseModel):
+            return value.id or False
+        if isinstance(value, bool):
+            return value
+        return value or False
+
+    def _scope_input_normalizers(self):
+        return {
+            "evidence_uom_id": self._m2o_id,
+            "quantity_known": bool,
+            "obligation_kind": lambda value: value or LEGACY_OBLIGATION,
+        }
+
+    @api.model
+    def _legacy_obligation_domain(self):
+        """Domain of the legacy obligation: invoice, close, transaction, claims, scale ticket."""
+        return [("obligation_kind", "=", LEGACY_OBLIGATION)]
+
+    @api.model
+    def _operation_obligation_domain(self):
+        return [("obligation_kind", "!=", LEGACY_OBLIGATION)]
+
+    def _is_legacy_obligation(self):
+        self.ensure_one()
+        return (self.obligation_kind or LEGACY_OBLIGATION) == LEGACY_OBLIGATION
+
+    def _refuse_accepted_scope_rewrite(self, vals):
+        """Accepted operation scope is immutable, whatever grant the caller holds."""
+        touched = SCOPE_FIELDS.intersection(vals)
+        if not touched:
+            return
+        for rec in self:
+            if rec.association_state != "accepted":
+                continue
+            for name in touched:
+                normalize = self._scope_input_normalizers().get(name, lambda value: value or False)
+                new = normalize(vals[name])
+                if new != self._scope_value(rec, name):
+                    raise AccessError("Accepted evidence scope cannot be rewritten.")
 
     def _refuse_direct_association_write(self, vals):
         if not self._association_vals_need_grant(vals):
@@ -391,8 +526,13 @@ class PlasticosDocument(models.Model):
     def write(self, vals):
         self._refuse_direct_decision_write(vals)
         self._refuse_direct_association_write(vals)
+        self._refuse_accepted_scope_rewrite(vals)
         self._refuse_verified_eligibility_write(vals)
         self._refuse_direct_eligibility_write(vals)
+        # Old subjects lose this evidence when it moves or changes scope.
+        previous = self.env["plasticos.transaction"]
+        if ASSOCIATION_IDENTITY.intersection(vals) or SCOPE_FIELDS.intersection(vals):
+            previous = self._get_related_transactions(self)
         result = super().write(vals)
         # Recompute if any compliance-affecting field changed
         compliance_fields = {
@@ -409,13 +549,43 @@ class PlasticosDocument(models.Model):
             "association_state",
             "source_revision",
             "evidence_digest",
+            "superseded_by",
+            *SCOPE_FIELDS,
         }
         if compliance_fields.intersection(vals.keys()):
             self._invalidate_native_projection()
-            self._trigger_transaction_recompute(self)
+            self._trigger_transaction_recompute(self, previous=previous)
         return result
 
+    def _refuse_evidence_unlink(self):
+        """Accepted or decided evidence is deleted only by a Documents Manager.
+
+        BRS-POS-03-R004 and BRS-POS-03-R005: the recorded decision and its
+        exact association are the audit trail. Superuser code paths (module
+        uninstall, data repair) are server-side only and stay open.
+        """
+        if self.env.su or self.env.user.has_group(OVERRIDE_GROUP):
+            return
+        for rec in self:
+            if rec.association_state == "accepted" or rec.verified or rec.override:
+                raise AccessError(
+                    "Accepted, verified, or overridden evidence can be deleted only by a Documents Manager."
+                )
+
     def unlink(self):
+        self._refuse_evidence_unlink()
+        decided = self.filtered(
+            lambda rec: (
+                rec.association_state == "accepted"
+                and not rec._is_legacy_obligation()
+                and (rec.verified or rec.override)
+            )
+        )
+        if decided:
+            raise UserError(
+                "Decided operation evidence cannot be deleted: its decision, actor and revision are history. "
+                "Record a correction with action_supersede instead."
+            )
         # Capture transactions before delete
         transactions = self._get_related_transactions(self)
         attachments = self.attachment_id
@@ -423,7 +593,7 @@ class PlasticosDocument(models.Model):
         self._invalidate_native_attachments(attachments)
         # Trigger recompute after delete (both flags AND compliance)
         if transactions:
-            projected = transactions.sudo()  # sudo: compliance flags; group_user ACL still admits every internal user
+            projected = transactions.sudo()  # sudo: compliance flags; internal users keep document read access
             projected._compute_missing_doc_flags()
             if hasattr(projected, "_compute_compliance"):
                 projected._compute_compliance()
@@ -437,15 +607,19 @@ class PlasticosDocument(models.Model):
         """Native Documents overrides this after unlink."""
         return
 
-    def _trigger_transaction_recompute(self, records):
+    def _trigger_transaction_recompute(self, records, previous=None):
         """Trigger recomputation of doc-related fields on related transactions.
 
         R2 fix: Ensures real-time updates when documents are created/modified.
         Issue 3 fix: Also recomputes compliance_status.
+        ``previous`` names the transactions the rows pointed at before a write,
+        so the old subject drops evidence that moved away from it.
         """
         transactions = self._get_related_transactions(records)
+        if previous:
+            transactions |= previous.exists()
         if transactions:
-            projected = transactions.sudo()  # sudo: compliance flags; group_user ACL still admits every internal user
+            projected = transactions.sudo()  # sudo: compliance flags; internal users keep document read access
             projected._compute_missing_doc_flags()
             # Issue 3 fix: compliance_status depends on documents too
             if hasattr(projected, "_compute_compliance"):
@@ -480,7 +654,8 @@ class PlasticosDocument(models.Model):
         marker = "Conflicting association withheld from evidence."
         if any(marker in (message.body or "") for message in self.message_ids):
             return
-        self.message_post(
+        note_target = self.sudo()  # sudo: system review note; a read-only user reaches this via recompute
+        note_target.message_post(
             body=f"{marker} {reason}",
             message_type="notification",
             subtype_xmlid="mail.mt_note",
@@ -610,14 +785,11 @@ class PlasticosDocument(models.Model):
         """Company recorded on the native original. Native Documents supplies it."""
         return self.env["res.company"]
 
-    def _resolved_subject_company(self, target):
-        """Unique legal company of a visible subject. Does not invent env.company.
+    def _subject_company_candidates(self, target):
+        """Legal company sources of a subject. Reads identity only; grants nothing.
 
-        Returns ``(company, error)``. ``company`` is empty when the subject has
-        no commercial company source. ``error`` is a UserError message fragment.
+        Returns ``(companies, requires_company)``.
         """
-        if self.env.su:
-            return self.env["res.company"], "exact association cannot be authorized through sudo"
         owned = target.sudo()  # sudo: legal-company identity only; actor company_ids still gate acceptance
         companies = self.env["res.company"]
         requires_company = False
@@ -639,6 +811,17 @@ class PlasticosDocument(models.Model):
             requires_company = True
             if owned.company_id:
                 companies |= owned.company_id
+        return companies, requires_company
+
+    def _resolved_subject_company(self, target):
+        """Unique legal company of a visible subject. Does not invent env.company.
+
+        Returns ``(company, error)``. ``company`` is empty when the subject has
+        no commercial company source. ``error`` is a UserError message fragment.
+        """
+        if self.env.su:
+            return self.env["res.company"], "exact association cannot be authorized through sudo"
+        companies, requires_company = self._subject_company_candidates(target)
         if len(companies) > 1:
             return self.env["res.company"], "the subject companies conflict"
         if requires_company and not companies:
@@ -648,14 +831,116 @@ class PlasticosDocument(models.Model):
             return self.env["res.company"], "the subject belongs to another company"
         return company, False
 
+    # ── Operation-scope extension hooks ────────────────────────────
+
+    @api.model
+    def _scoped_obligation_kinds(self):
+        """Operation obligations an owner has declared. Core Documents declares none.
+
+        A downstream owner (for example Export) adds its kinds by ordinary
+        ``_inherit``. An undeclared kind is refused at association and is
+        ``not_available`` in the verdict; it is never vacuously satisfied.
+        """
+        return frozenset()
+
+    @api.model
+    def _release_obligations(self, operation_kind):
+        """Obligations whose stale evidence withholds this physical operation.
+
+        Default: every declared obligation, for every operation kind. The owner
+        of an obligation (for example Export) narrows this by ``_inherit``;
+        Documents does not invent an obligation-to-operation mapping.
+        """
+        return self._scoped_obligation_kinds()
+
+    @api.model
+    def _scoped_subject_models(self):
+        """Subjects that may carry operation evidence: the native subjects and Logistics J1.
+
+        A model name is not an authority grant; target, company and original
+        checks still run. Downstream owners extend this by ``_inherit``.
+        """
+        return ALLOWED_SUBJECTS | {"plasticos.iso.journey"}
+
+    def _normalized_operation_scope(
+        self, obligation_kind, operation_revision_key, coverage_key, quantity_known, covered_quantity, evidence_uom_id
+    ):
+        """Validate explicit operation dimensions. Nothing is inferred from old numbers or checksums."""
+        if obligation_kind not in self._scoped_obligation_kinds():
+            raise UserError("UNRESOLVED: that obligation is not a declared evidence obligation.")
+        revision = (operation_revision_key or "").strip()
+        if not revision:
+            raise UserError("UNRESOLVED: operation evidence needs its exact operation revision.")
+        coverage = " ".join((coverage_key or "").split()).lower() or "whole"
+        uom = self.env["uom.uom"].browse(self._m2o_id(evidence_uom_id)).exists() if evidence_uom_id else False
+        if quantity_known:
+            if not uom:
+                raise UserError("UNRESOLVED: a known evidence quantity needs its unit.")
+            if not covered_quantity or covered_quantity <= 0:
+                raise UserError("UNRESOLVED: a known evidence quantity must be positive.")
+        elif covered_quantity:
+            raise UserError("UNRESOLVED: an unknown quantity cannot carry a covered quantity.")
+        return {
+            "obligation_kind": obligation_kind,
+            "operation_revision_key": revision,
+            "coverage_key": coverage,
+            "quantity_known": bool(quantity_known),
+            "evidence_uom_id": uom.id if quantity_known and uom else False,
+            "covered_quantity": covered_quantity if quantity_known else 0.0,
+        }
+
     def action_associate(self, res_model, res_id, source_reference, covered_quantity=0.0):
-        """Accept one exact subject for this original. Does not verify it."""
+        """Accept one exact subject for this original. Does not verify it.
+
+        This is the legacy obligation: invoice, close and transaction evidence.
+        """
+        return self._associate_scope(
+            res_model,
+            res_id,
+            source_reference,
+            obligation_kind=LEGACY_OBLIGATION,
+            covered_quantity=covered_quantity,
+        )
+
+    def _associate_scope(
+        self,
+        res_model,
+        res_id,
+        source_reference,
+        *,
+        obligation_kind=LEGACY_OBLIGATION,
+        operation_revision_key=False,
+        coverage_key=False,
+        quantity_known=False,
+        covered_quantity=0.0,
+        evidence_uom_id=False,
+    ):
+        """Accept one exact subject and obligation scope for this original. Does not verify it.
+
+        The acting user is checked here. A context flag cannot authorize it.
+        Replaying the same scope returns the accepted row; a contradictory
+        payload for the same scope is refused.
+        """
         self.ensure_one()
         self._require_verifier()
+        legacy = (obligation_kind or LEGACY_OBLIGATION) == LEGACY_OBLIGATION
         reference = (source_reference or "").strip()
         if not reference:
             raise UserError("UNRESOLVED: an attributable source reference is required.")
-        if res_model not in ALLOWED_SUBJECTS or not res_id:
+        if legacy:
+            scope = {"covered_quantity": covered_quantity or 0.0}
+            allowed = ALLOWED_SUBJECTS
+        else:
+            scope = self._normalized_operation_scope(
+                obligation_kind,
+                operation_revision_key,
+                coverage_key,
+                quantity_known,
+                covered_quantity,
+                evidence_uom_id,
+            )
+            allowed = self._scoped_subject_models()
+        if res_model not in allowed or res_model not in self.env or not res_id:
             raise UserError("UNRESOLVED: that record is not an exact evidence subject.")
         attachment = self.attachment_id.sudo()  # sudo: checksum only; the verifier check already ran
         if (
@@ -672,6 +957,8 @@ class PlasticosDocument(models.Model):
         company, company_error = self._resolved_subject_company(target)
         if company_error:
             raise UserError(f"UNRESOLVED: {company_error}.")
+        if not legacy and not company:
+            raise UserError("UNRESOLVED: operation evidence needs the subject's company.")
         if self.candidate_partner_id and self.candidate_partner_id not in self._subject_parties(target):
             raise UserError("UNRESOLVED: the subject party does not match the stated counterparty.")
         partner_company = self.candidate_partner_id.company_id if self.candidate_partner_id else False
@@ -683,19 +970,34 @@ class PlasticosDocument(models.Model):
         digest = attachment.checksum
         subject_id = int(res_id)
         self._lock_original(attachment)
-        self._lock_association(attachment, res_model, subject_id, digest)
+        lock_digest = digest
+        if not legacy:
+            lock_digest = (
+                f"{digest}:{scope['obligation_kind']}:{scope['operation_revision_key']}:{scope['coverage_key']}"
+            )
+        self._lock_association(attachment, res_model, subject_id, lock_digest)
         self.invalidate_recordset()
-        existing = self.search(
-            [
-                ("attachment_id", "=", attachment.id),
-                ("res_model", "=", res_model),
-                ("res_id", "=", subject_id),
-                ("source_revision", "=", digest),
-                ("association_state", "=", "accepted"),
-            ],
-            limit=1,
-        )
+        domain = [
+            ("attachment_id", "=", attachment.id),
+            ("res_model", "=", res_model),
+            ("res_id", "=", subject_id),
+            ("source_revision", "=", digest),
+            ("association_state", "=", "accepted"),
+            ("obligation_kind", "=", LEGACY_OBLIGATION if legacy else scope["obligation_kind"]),
+        ]
+        if not legacy:
+            domain += [
+                ("operation_revision_key", "=", scope["operation_revision_key"]),
+                ("coverage_key", "=", scope["coverage_key"]),
+            ]
+        existing = self.search(domain, limit=1)
         if existing:
+            if not legacy and (
+                bool(existing.quantity_known) != scope["quantity_known"]
+                or (existing.evidence_uom_id.id or False) != scope["evidence_uom_id"]
+                or existing.covered_quantity != scope["covered_quantity"]
+            ):
+                raise UserError("UNRESOLVED: this evidence scope was already accepted with a different quantity.")
             return existing
         vals = {
             "res_model": res_model,
@@ -705,11 +1007,11 @@ class PlasticosDocument(models.Model):
             "associated_at": fields.Datetime.now(),
             "source_reference": reference,
             "source_revision": digest,
-            "covered_quantity": covered_quantity or 0.0,
             "subject_company_id": company.id if company else False,
             "pending_reason": False,
             "transaction_id": target.id if res_model == "plasticos.transaction" else False,
             "load_id": target.id if res_model == "plasticos.load" else False,
+            **scope,
         }
         placeholder = (
             self.association_state == "pending"
@@ -737,6 +1039,19 @@ class PlasticosDocument(models.Model):
     def action_associate_from_form(self):
         """Form command. Draft fields are not the association until this runs."""
         self.ensure_one()
+        kind = (self.association_obligation_kind or "").strip()
+        if kind and kind != LEGACY_OBLIGATION:
+            return self._associate_scope(
+                self.association_subject_model,
+                self.association_subject_id,
+                self.association_source_reference or "",
+                obligation_kind=kind,
+                operation_revision_key=self.association_operation_revision_key,
+                coverage_key=self.association_coverage_key,
+                quantity_known=self.association_quantity_known,
+                covered_quantity=self.association_covered_quantity,
+                evidence_uom_id=self.association_evidence_uom_id.id,
+            )
         row = self.action_associate(
             self.association_subject_model,
             self.association_subject_id,
@@ -744,6 +1059,20 @@ class PlasticosDocument(models.Model):
             self.association_covered_quantity,
         )
         return row
+
+    @api.model
+    def get_scoped_evidence_verdict(self, company_id, subject_kind, subject_id, obligation_kind, source_revision_key):
+        """Frozen Documents command: is this exact operation obligation currently proven?
+
+        Delegates to the compliance service. Returns ``applied`` with the proving
+        row, ``blocked`` (missing or not yet verified), ``stale`` (only expired,
+        superseded, replaced or other-revision evidence), ``ambiguous``
+        (conflicting originals for one coverage) or ``not_available`` (unknown
+        obligation, subject or company). It writes nothing.
+        """
+        return self.env["plasticos.compliance.service"].scoped_evidence_verdict(
+            company_id, subject_kind, subject_id, obligation_kind, source_revision_key
+        )
 
     def action_verify(self):
         """Record one verification decision for this evidence scope."""
@@ -863,7 +1192,8 @@ class IrAttachmentEvidenceRevision(models.Model):
         documents = self.env["plasticos.document"].search([("attachment_id", "in", self.ids)])
         replaced = documents.filtered(_replaced_accepted_evidence)
         if replaced:
-            replaced._association_write({"association_review_required": True})
+            flagged = replaced.sudo()  # sudo: fail-closed review flag; actor may hold only document read
+            flagged._association_write({"association_review_required": True})
         if documents:
             documents._invalidate_native_projection()
             documents._trigger_transaction_recompute(documents)

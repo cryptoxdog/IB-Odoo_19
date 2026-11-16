@@ -89,17 +89,25 @@ def test_purchase_line_key_resolves_the_purchase_header():
     assert header["PONumber"] == "7275"
 
 
-def test_incoterm_crosswalk_skips_the_do_not_use_basis():
-    assert incoterm_code("FOB Supplier Dock") == "FOB"
+def test_incoterm_crosswalk_maps_only_the_literal_fas_and_skips_the_do_not_use_basis():
+    """BRS-EXP-02-R006: only ``fas`` is the Incoterms 2020 rule of the same name."""
     assert incoterm_code("FAS") == "FAS"
+    assert incoterm_code(" fas ") == "FAS"
     assert incoterm_code("Z - DO NOT USE") is None
+
+
+def test_domestic_shipping_point_bases_are_declined_not_mapped_to_fob():
+    """BRS-EXP-02-R006 (ADR-021 amendment 2026-11-12): the recycler's FOB is a dock pickup, not Incoterms FOB."""
+    for basis in ("FOB", "fob", "FOB Supplier Dock", " fob supplier dock ", "Pickup"):
+        assert incoterm_code(basis) is None, basis
+        assert declined_price_basis(basis), basis
+    assert not declined_price_basis("FAS"), "FAS is mapped, not declined"
 
 
 def test_delivered_basis_is_declined_not_mapped_to_fas():
     """Delivered is not FAS, and the source proves neither DAP nor DDP: no Incoterm, reported."""
     assert incoterm_code("Delivered") is None
     assert declined_price_basis(" Delivered ")
-    assert not declined_price_basis("FOB Supplier Dock")
     assert not declined_price_basis("Z - DO NOT USE")
     assert not declined_price_basis(None)
 

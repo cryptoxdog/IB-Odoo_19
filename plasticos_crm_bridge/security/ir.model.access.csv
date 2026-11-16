@@ -11,3 +11,4 @@ access_opportunity_approval_manager,plasticos.opportunity.approval.manager,model
 access_opportunity_material_user,plasticos.opportunity.material.user,model_plasticos_opportunity_material,base.group_user,1,1,1,0
 access_opportunity_material_sales,plasticos.opportunity.material.sales,model_plasticos_opportunity_material,plasticos_security_base.group_sales_rep,1,1,1,0
 access_opportunity_material_manager,plasticos.opportunity.material.manager,model_plasticos_opportunity_material,base.group_system,1,1,1,1
+access_offer_buyer_selection_wizard_user,plasticos.offer.buyer.selection.wizard.user,model_plasticos_offer_buyer_selection_wizard,base.group_user,1,1,1,0

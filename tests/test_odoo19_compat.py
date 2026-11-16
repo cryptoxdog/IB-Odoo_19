@@ -22,8 +22,6 @@ import unittest
 _SQL_JUSTIFIED_FILES = {
     # Post-install hooks use SQL for atomic group assignment during module load
     "hooks.py": "Atomic group assignment during module install",
-    # Attachment cleanup requires direct SQL for performance on large datasets
-    "plasticos_base/models/ir_attachment.py": "Bulk attachment cleanup performance",
     # Midnight recompute uses SQL for efficient batch field updates
     "plasticos_base/models/midnight_recompute.py": "Batch recompute performance",
     # Audit cron uses SQL for efficient batch queries

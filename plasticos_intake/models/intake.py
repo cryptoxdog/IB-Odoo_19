@@ -1,7 +1,7 @@
 import logging
 import os
 
-from odoo import api, fields, models
+from odoo import _, api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
 _logger = logging.getLogger(__name__)
@@ -79,8 +79,12 @@ class PlasticosIntake(models.Model):
         string="Contact Person",
         tracking=True,
         index=True,
-        domain="[('is_company', '=', False), '|', ('parent_id', '=', facility_id), ('parent_id', '=', partner_id)]",
-        help="The person at the facility you are dealing with. Auto-selected from preferred contact memory.",
+        domain=(
+            "[('is_company', '=', False), '|', '|', "
+            "('parent_id', '=', facility_id), ('parent_id', '=', partner_id), "
+            "('location_partner_ids', 'in', facility_id)]"
+        ),
+        help="The person at this location. A linked person wins; otherwise one child contact, or the parent company's person.",
         ondelete="restrict",
     )
 
@@ -181,10 +185,9 @@ class PlasticosIntake(models.Model):
     polymer_id = fields.Many2one(
         "plasticos.polymer",
         string="Polymer",
-        required=True,
         index=True,
         ondelete="restrict",
-        help="Polymer type from master registry.",
+        help="Polymer type from master registry. Empty when triage matched no polymer.",
     )
     material_grade_id = fields.Many2one(
         "plasticos.material.grade",
@@ -196,17 +199,24 @@ class PlasticosIntake(models.Model):
     form_id = fields.Many2one(
         "plasticos.material.form",
         string="Form",
-        required=True,
         index=True,
         ondelete="restrict",
-        help="Material form from master registry.",
+        help="Material form from master registry. Empty when triage matched no form.",
     )
-    color_id = fields.Many2one(
-        "plasticos.material.color",
-        string="Color",
+    material_incomplete = fields.Boolean(
+        string="Material Incomplete",
+        compute="_compute_material_incomplete",
+        store=True,
         index=True,
-        ondelete="restrict",
-        help="Material color from master registry.",
+        help="True while the intake has no polymer or no form. It can be saved, but matching is refused until both are filled.",
+    )
+    color_ids = fields.Many2many(
+        "plasticos.material.color",
+        "plasticos_intake_color_rel",
+        "intake_id",
+        "color_id",
+        string="Color",
+        help="Every color this intake names. More than one can be selected.",
     )
     source_type_id = fields.Many2one(
         "plasticos.source.type",
@@ -223,6 +233,13 @@ class PlasticosIntake(models.Model):
         index=True,
         ondelete="restrict",
         help="How the material is packaged/shipped (Gaylords, Super Sacks, Bales).",
+    )
+    quality_tier_id = fields.Many2one(
+        "plasticos.material.quality.tier",
+        string="Quality Tier",
+        index=True,
+        ondelete="restrict",
+        help="Quality tier from the material quality tier master (Grade A, Grade B, Grade C, Reusable, Standard).",
     )
 
     # ═════════════════════════════════════════════════════════
@@ -259,6 +276,32 @@ class PlasticosIntake(models.Model):
         store=True,
         help="Derived: True when 'Flame Retardant' attribute is in material_attribute_ids.",
     )
+
+    def _plasticos_missing_match_material(self):
+        """Labels of the material facts a match needs that this intake lacks; empty when complete."""
+        self.ensure_one()
+        from ..match_material import missing_match_material
+
+        return missing_match_material({"polymer_type": self.polymer_id, "form": self.form_id})
+
+    @api.depends("polymer_id", "form_id")
+    def _compute_material_incomplete(self):
+        for rec in self:
+            rec.material_incomplete = bool(rec._plasticos_missing_match_material())
+
+    def _plasticos_require_match_material(self):
+        """Refuse a match start while the intake's material is incomplete."""
+        for rec in self:
+            missing = rec._plasticos_missing_match_material()
+            if missing:
+                raise UserError(
+                    _(
+                        "Intake '%(intake)s' cannot be matched: %(missing)s not set. "
+                        "Fill it on the intake, then match again.",
+                        intake=rec.display_name,
+                        missing=" and ".join(missing),
+                    )
+                )
 
     @api.depends("material_attribute_ids.code")
     def _compute_material_flags(self):
@@ -381,8 +424,20 @@ class PlasticosIntake(models.Model):
         "Lost = deal lost. Expired = no activity timeout.",
     )
 
-    lat = fields.Float(string="Latitude")
-    lon = fields.Float(string="Longitude")
+    lat = fields.Float(string="Latitude", digits=(10, 7))
+    lon = fields.Float(string="Longitude", digits=(10, 7))
+    source_street = fields.Char(
+        string="Source Street",
+        help="Street copied from the intake's origin. Empty until a source supplies one.",
+    )
+    source_city = fields.Char(
+        string="Source City",
+        help="City copied from the intake's origin. A web-lead pickup place is stored here.",
+    )
+    source_zip = fields.Char(
+        string="Source ZIP",
+        help="Postal code copied from the intake's origin.",
+    )
 
     # ═════════════════════════════════════════════════════════
     # Material Images (from web lead attachments)
@@ -475,7 +530,10 @@ class PlasticosIntake(models.Model):
                         "Please ensure the sequence 'plasticos.intake' is configured."
                     )
                 vals["name"] = sequence
-        return super().create(vals_list)
+            self._plasticos_assign_reach_contact(vals)
+        records = super().create(vals_list)
+        records._seed_zero_snapshot_from_location()
+        return records
 
     @api.depends("partner_id", "pending_company_name")
     def _compute_company_display(self):
@@ -513,37 +571,36 @@ class PlasticosIntake(models.Model):
         elif len(children) == 1:
             self.facility_id = children[0].id
 
+    def _plasticos_assign_reach_contact(self, vals):
+        """Set the reached person when the caller did not pass a contact.
+
+        A facility wins over the company. ``create()`` does not run onchange,
+        so conversion and RPC creates use the same person as the form.
+        """
+        if vals.get("contact_id"):
+            return
+        partners = self.env["res.partner"]
+        facility = partners.browse(vals.get("facility_id")) if vals.get("facility_id") else partners.browse()
+        partner = partners.browse(vals.get("partner_id")) if vals.get("partner_id") else partners.browse()
+        source = facility or partner
+        if not source:
+            return
+        person = source._plasticos_reach_person()
+        if person:
+            vals["contact_id"] = person.id
+
     @api.onchange("facility_id")
     def _onchange_facility_id(self):
-        """Auto-select contact from preferred memory or single contact."""
+        """Auto-select the location's reached person, then a single material profile."""
         self.contact_id = False
         if not self.facility_id:
             return
 
-        facility = self.facility_id
+        person = self.facility_id._plasticos_reach_person()
+        if person:
+            self.contact_id = person
 
-        preferred = facility.preferred_contact_id
-        if preferred and preferred.parent_id.id == facility.id:
-            self.contact_id = preferred.id
-            return
-
-        if facility.id == self.partner_id.id:
-            preferred = facility.preferred_contact_id
-            if preferred:
-                self.contact_id = preferred.id
-                return
-
-        contacts = self.env["res.partner"].search(
-            [
-                ("parent_id", "=", facility.id),
-                ("is_company", "=", False),
-                ("type", "in", ["contact", False]),
-            ]
-        )
-        if len(contacts) == 1:
-            self.contact_id = contacts[0].id
-
-        profiles = self.env["plasticos.material.profile"].search([("partner_id", "=", facility.id)])
+        profiles = self.env["plasticos.material.profile"].search([("partner_id", "=", self.facility_id.id)])
         if len(profiles) == 1:
             self.material_profile_id = profiles[0].id
 
@@ -559,10 +616,12 @@ class PlasticosIntake(models.Model):
             return
         self.polymer_id = mp.polymer_id.id if mp.polymer_id else self.polymer_id
         self.form_id = mp.form_id.id if mp.form_id else self.form_id
-        self.color_id = mp.color_id.id if mp.color_id else self.color_id
+        if mp.color_ids:
+            self.color_ids = [(6, 0, mp.color_ids.ids)]
         self.source_type_id = mp.source_type_id.id if mp.source_type_id else self.source_type_id
         self.material_grade_id = mp.material_grade_id.id if mp.material_grade_id else self.material_grade_id
         self.packaging_type_id = mp.packaging_type_id.id if mp.packaging_type_id else self.packaging_type_id
+        self.quality_tier_id = mp.quality_tier_id.id if mp.quality_tier_id else self.quality_tier_id
         self.mfi_value = mp.melt_flow_index or self.mfi_value
         self.density_value = mp.density or self.density_value
         self.moisture_pct = mp.moisture_percent or self.moisture_pct
@@ -571,10 +630,11 @@ class PlasticosIntake(models.Model):
             self.quantity_per_load_lbs = int(mp.quantity_per_load_lbs)
         if mp.loads_per_month:
             self.loads_per_month = mp.loads_per_month
-        if mp.lat:
-            self.lat = mp.lat
-        if mp.lon:
-            self.lon = mp.lon
+        if not self.lat and not self.lon:
+            if mp.lat:
+                self.lat = mp.lat
+            if mp.lon:
+                self.lon = mp.lon
         self.origin_process_type = mp.origin_process_type or self.origin_process_type
         self.filler_type_id = mp.filler_type_id.id if mp.filler_type_id else self.filler_type_id
         self.filler_pct = mp.filler_pct or self.filler_pct
@@ -596,7 +656,48 @@ class PlasticosIntake(models.Model):
             self._sync_preferred_contact()
         if "lead_source_id" in vals or "partner_id" in vals:
             self._sync_lead_source()
+        if {"facility_id", "partner_id"} & set(vals) and not self.env.context.get("plasticos_intake_origin_seed"):
+            self._seed_zero_snapshot_from_location()
         return res
+
+    def _seed_zero_snapshot_from_location(self):
+        """Fill a zero coordinate snapshot, and blank source address, from the location."""
+        from odoo.addons.plasticos_intake.source_origin import seed_blank_snapshot
+
+        for rec in self:
+            location = rec.facility_id or rec.partner_id
+            if not location:
+                continue
+            updates = seed_blank_snapshot(
+                rec.lat,
+                rec.lon,
+                rec.source_street,
+                rec.source_city,
+                rec.source_zip,
+                location.partner_latitude,
+                location.partner_longitude,
+                location.street,
+                location.city,
+                location.zip,
+            )
+            if updates:
+                rec.with_context(plasticos_intake_origin_seed=True).write(updates)
+
+    @api.model
+    def _fill_zero_snapshots_for_locations(self, locations):
+        """After a location is geocoded, copy its coordinates onto intakes still at zero."""
+        if not locations:
+            return
+        intakes = self.search(
+            [
+                ("lat", "=", 0),
+                ("lon", "=", 0),
+                "|",
+                ("facility_id", "in", locations.ids),
+                ("partner_id", "in", locations.ids),
+            ]
+        )
+        intakes._seed_zero_snapshot_from_location()
 
     def _sync_preferred_contact(self):
         """Batch-write preferred_contact_id on facilities when contact changes.
@@ -752,6 +853,8 @@ class PlasticosIntake(models.Model):
         if not (os.environ.get("GATE_URL") or "").strip():
             raise UserError("Gate is not configured (GATE_URL is unset).")
 
+        self._plasticos_require_match_material()
+
         if not self.partner_id and self.pending_company_name:
             self._create_partner_from_pending()
 
@@ -792,10 +895,32 @@ class PlasticosIntake(models.Model):
         if not profile_partner:
             return
 
+        from odoo.addons.plasticos_intake.source_origin import location_updates_from_intake
+
+        location_updates = location_updates_from_intake(
+            profile_partner.partner_latitude,
+            profile_partner.partner_longitude,
+            self.lat,
+            self.lon,
+            profile_partner.street,
+            profile_partner.city,
+            profile_partner.zip,
+            self.source_street,
+            self.source_city,
+            self.source_zip,
+        )
+        if location_updates:
+            profile_partner.write(location_updates)
+
         profile_vals = build_material_profile_vals_from_intake(self)
         profile_vals["partner_id"] = profile_partner.id
         if self.packaging_type_id:
             profile_vals["packaging_type_id"] = self.packaging_type_id.id
+        if self.quality_tier_id:
+            profile_vals["quality_tier_id"] = self.quality_tier_id.id
+        if MaterialProfile._fields["lat"].related:
+            profile_vals.pop("lat", None)
+            profile_vals.pop("lon", None)
 
         profile = MaterialProfile.create(profile_vals)
         self.write({"material_profile_id": profile.id})

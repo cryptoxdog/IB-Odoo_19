@@ -1,0 +1,300 @@
+schema: plasticos.broker.architecture-alignment/v1
+kernel:
+  name: recursive_architecture_alignment_auditor
+  version: '1.0'
+  input_sha256: ce9f7d2face6e7007c27313cbc885a5d11df85335877851e60ddb87b84adb639
+audit_status: PartiallySucceeded
+readiness_status: Unknown
+convergence_status: Partial
+target_binding:
+  artifact: PlasticOS_Broker_Intelligence_Harvest_Integrated_v2_Leverage_Revised.zip
+  input_sha256: 972ddcc80169306a8dd3441687de59542539b9504c3ae26bf8c4d2a945f9d96f
+  type: Four-addon Odoo 19 source ZIP
+  source_repository: cryptoxdog/IB-Odoo_19
+  source_branch: Staging
+  source_revision: d25da3236887c924c8a0164b00c1198f1804a2ea
+  prior_interface_revision: c2c72bc36d6201d4114531a8f666c411db612f64
+  revision_delta: Two documentation-only commits; no changed codeowner paths.
+  open_pull_requests_inspected:
+  - number: 471
+    scope: PlasticOS_Export documentation only
+authorized_scope:
+  inspection: All 108 input ZIP members, source contract and relevant Staging model interfaces; opaque historical
+    source validated by hash.
+  mutation: Contained addon Python/models, Odoo-only tests, portable tests, manifests, validations and packaging
+    reports.
+  authorization: Explicit request to produce a revised pack overrides kernel audit-only default; no GitHub
+    or Odoo mutations.
+excluded_scope:
+- Staging repository mutation
+- Production or Staging deployment
+- Matching/scoring changes
+- External Gate/SDK changes
+- Historical standalone v1 input that was not provided
+source_authority_used:
+- source: User-supplied Leverage Revised pack
+  purpose: implemented source, tests and previous receipts
+  precedence: 1
+- source: IB-Odoo_19 Staging INVARIANTS.md, source owner models
+  revision: d25da3236887c924c8a0164b00c1198f1804a2ea
+  purpose: Odoo domain authority and isolation rules
+  precedence: 2
+- source: Uploaded Recursive Architecture Alignment Auditor
+  version: '1.0'
+  purpose: inspection, risk and validation protocol
+  precedence: 3
+architecture_adapters:
+- id: plasticos-odoo19
+  status: Applied
+  source: IB-Odoo_19/INVARIANTS.md
+  rules:
+  - POS-INV-01
+  - POS-INV-02
+  - POS-INV-03
+  - POS-INV-04
+  - POS-INV-05
+  - POS-INV-15
+  - POS-INV-19
+  - POS-INV-20
+  - BAN001
+  scope: Native Odoo authorization, one business owner, replay, optional shadow and explicit activation
+- id: l9-inter-node-transport
+  status: NotApplicable
+  reason: This bundle does not send L9 inter-node packets or call CEG/EIE; Odoo Gate transport remains untouched.
+normalized_context:
+  purpose: Evidence-grounded, human-reviewed broker advice without assuming authority over Odoo commerce.
+  source_records:
+  - plasticos.intake
+  - plasticos.web.lead
+  - plasticos.offer
+  - plasticos.match.result
+  four_optional_addons:
+  - plasticos_broker_intelligence
+  - plasticos_broker_intelligence_mack
+  - plasticos_broker_intelligence_web_leads
+  - plasticos_broker_intelligence_rejections
+  knowledge_seed_status: 106 source-traceable drafts, zero auto-approved
+  changes_to_commercial_state: none
+artifact_inventory:
+  source: BUILD_MANIFEST.json
+  input_member_count: 108
+  complete_pre_change_zip_inventory: true
+  opaque_assets: Harvest source/evaluation inventory retained and validated against its declared digests; live
+    Odoo records are external.
+boundary_map:
+  read_auth_and_source_company_scope: plasticos_broker_intelligence/models/advice_service.py
+  knowledge_admission_and_retirement: plasticos_broker_intelligence/models/knowledge.py
+  native_audit_event_writer: plasticos_broker_intelligence/models/audit.py
+  candidate_feedback_owner: plasticos_broker_intelligence/models/feedback.py
+  immutable_consultations: plasticos_broker_intelligence_mack/models/consultation.py
+  web_lead_shadow_extension: plasticos_broker_intelligence_web_leads/models/web_lead_advice.py
+  rejection_advice: plasticos_broker_intelligence_rejections/wizards/rejection_wizard.py
+  business_state_authorities:
+  - plasticos_web_leads
+  - plasticos_intake
+  - plasticos_offer
+  - plasticos_matching
+  transport: none introduced; external CEG/EIE policy preserved
+alignment_summary: Five source-level defects repaired at owning boundaries; no automatic matching/offer/routing/approval
+  introduced. Live Odoo authorization, SQL and installer behavior remain untested.
+alignment_score:
+  weighted_overall: null
+  status: Unknown
+  reason: Required actual Odoo Enterprise runtime, tenant permissions and SQL migration evidence unavailable;
+    numeric score would imply unproven compliance.
+  score_is_not_release_permission: true
+violations:
+- id: ALN-01
+  severity: High
+  confidence: Confirmed
+  rule: POS-INV-05 company/party isolation
+  affected:
+  - plasticos_broker_intelligence/models/advice_service.py
+  - plasticos_broker_intelligence_rejections/wizards/rejection_wizard.py
+  evidence: Original retrieval filtered company_id in env.companies.ids, not source.company_id; a two-company
+    broker could mix approved advice from different source companies.
+  expected: Global plus only the source legal company, or active operator company when no source company exists.
+  root_cause: Duplicated and overbroad approved knowledge company domains.
+  correction: Single core _knowledge_company_domain used by advice and rejection.
+  owner: plasticos.broker.advice.service
+  status: Resolved
+  release_blocker: runtime_proof_pending
+  validation: Odoo tests authored; actual two-company ORM query NOT RUN
+- id: ALN-02
+  severity: High
+  confidence: Confirmed
+  rule: POS-INV-03 and POS-INV-07 evidence/approval cannot silently gain authority
+  affected:
+  - plasticos_broker_intelligence/models/knowledge.py
+  evidence: Original write() kept reviewer_attested=True when edited draft meaning, scope, supporting evidence
+    or company.
+  expected: Any material edit invalidates earlier review attestation before approved-state transition.
+  root_cause: Attestation not bound to current saved review inputs.
+  correction: _REVIEW_INPUTS reset attestation on material write; reject single write that changes inputs while
+    asserting attestation.
+  owner: plasticos.broker.knowledge
+  status: Resolved
+  release_blocker: runtime_proof_pending
+  validation: Odoo reviewer test authored, NOT RUN
+- id: ALN-03
+  severity: High
+  confidence: Confirmed
+  rule: POS-INV-04 stable identity, replay and POS-INV-05 company scope
+  affected:
+  - plasticos_broker_intelligence/services/evidence.py
+  - plasticos_broker_intelligence/models/feedback.py
+  evidence: Original feedback hash omitted company scope and concatenated user text via unescaped colons; distinct
+    data tuples can hash identical serialized inputs.
+  expected: Canonical domain-separated idempotency identity plus exact-safe recognition of previous receipts.
+  root_cause: Ambiguous serialization and missing legal-company discriminator.
+  correction: Canonical JSON-array SHA-256 v2, company/scope included; legacy SHA accepted only after exact
+    field comparison.
+  owner: plasticos.broker.feedback
+  status: Resolved
+  release_blocker: runtime_proof_pending
+  validation: Three new pure Python tests Passed; Odoo upgrade replay NOT RUN
+- id: ALN-04
+  severity: Medium
+  confidence: Confirmed
+  rule: POS-INV-15 shadow automation must not disrupt live owner
+  affected:
+  - plasticos_broker_intelligence_web_leads/models/web_lead_advice.py
+  evidence: Original optional knowledge query caught broad Exception with no DB savepoint; a failed SQL statement
+    could poison the surrounding transaction before normal routing continues.
+  expected: Optional shadow failure must leave the parent qualification transaction operational.
+  root_cause: Failure isolation missing around optional knowledge retrieval.
+  correction: Encapsulate knowledge lookup in native cursor savepoint, then preserve parent signals on error.
+  owner: plasticos.web.lead shadow bridge
+  status: Resolved
+  release_blocker: runtime_proof_pending
+  validation: Source check Passed; real DB error injection NOT RUN
+- id: ALN-05
+  severity: Medium
+  confidence: Confirmed
+  rule: POS-INV-04 stable identity, POS-INV-05 exact access
+  affected:
+  - plasticos_broker_intelligence/models/advice_service.py
+  evidence: int(True) == 1 and int(1.5) == 1 were permitted for source IDs.
+  expected: An invalid record identity must not be coerced into another existing record.
+  root_cause: Unconditional int() conversion.
+  correction: Reject booleans, floats and nondecimal strings before source browse.
+  owner: plasticos.broker.advice.service
+  status: Resolved
+  release_blocker: runtime_proof_pending
+  validation: Odoo malformed-ID test authored, NOT RUN
+unknowns:
+- id: U-01
+  subject: Odoo Enterprise installation, native security and SQL indexes
+  reason: No disposable Odoo 19 Enterprise database available
+  needed: Observed -i / -u execution, multi-company ACL and index receipts
+- id: U-02
+  subject: Existing supporting evidence attachments after review
+  reason: Native attachment ACL and file revision behavior not exercised
+  needed: Try modify/replace a supporting attachment after knowledge approval; verify source revision and evidence
+    audit
+- id: U-03
+  subject: Original standalone-v1 compatibility and 38 historical seed records
+  reason: Standalone v1 ZIP unavailable in authorized source inputs
+  needed: The original v1 source and exact installation/upgrade fixture
+- id: U-04
+  subject: Global/company duplicate stable-key precedence
+  reason: No admitted rule defines override behavior
+  needed: Reviewer scope policy and representative double-active-knowledge test before any automatic selection
+- id: U-05
+  subject: Previous source-record access revocation and stored receipts
+  reason: Business contract for post-revocation visibility not established
+  needed: Explicit policy decision and Odoo record-rule test
+domain_assessments:
+  intent_and_scope:
+    status: Passed
+    evidence: Four addon manifests retain auto_install=False and source-only advisory behavior
+  communication_contracts:
+    status: Passed
+    evidence: broker-advice/v1 wrapper and v2, broker-rejection-advice/v1, shadow/v1 preserved; no new packets
+  routing_and_integration:
+    status: Passed
+    evidence: No new external APIs; shadow only injected into native signal seam
+  ownership_and_authority:
+    status: Passed
+    evidence: Advisory has no commerce writes; source owner and reviewer owner remain separate
+  structure_and_source_of_truth:
+    status: Passed
+    evidence: Existing four addon layout and 106 draft seeds retained; source catalog digest verified
+  schema_and_configuration:
+    status: Unknown
+    evidence: Portable manifests and XML parse; live Odoo view/field resolution NOT RUN
+  security:
+    status: Unknown
+    evidence: Company lookup corrected in code; real ORM ACL and party isolation NOT RUN
+  reliability_and_observability:
+    status: Unknown
+    evidence: Portable feedback hashing and SQL savepoint source inspected; actual DB exception test NOT RUN
+  testing_and_validation:
+    status: Unknown
+    evidence: 49 portable tests; Odoo test harness unavailable
+overbuilt_vs_underbuilt:
+  verified_overbuilt: []
+  verified_underbuilt:
+  - Company selection overbroad
+  - Attestation stale after draft edits
+  - Replay serialization ambiguous
+  - Optional query failure isolation missing
+  speculative_or_unknown:
+  - Stored evidence attachment mutability after approval
+  - Concurrent global and company scoped advice precedence
+  simplest_high_value_correction: Use one source-company scope function at the existing core advisory ingress;
+    no new routing service.
+correction_roadmap:
+- order: 1
+  owner: Core advice + Rejection
+  finding: ALN-01
+  status: implemented
+  closing_evidence: Run two-company source-scoped guidance test in Odoo
+- order: 2
+  owner: Core knowledge lifecycle
+  finding: ALN-02
+  status: implemented
+  closing_evidence: Odoo draft edit/attestation and approval tests
+- order: 3
+  owner: Core feedback replay
+  finding: ALN-03
+  status: implemented
+  closing_evidence: Odoo old-digest replay and PostgreSQL unique index tests
+- order: 4
+  owner: Web lead optional bridge
+  finding: ALN-04
+  status: implemented
+  closing_evidence: Odoo shadow-mode database fault injection with unchanged final routing
+- order: 5
+  owner: Core source authorization
+  finding: ALN-05
+  status: implemented
+  closing_evidence: Odoo invalid-ID behavior tests
+- order: 6
+  owner: Odoo runtime operator
+  finding: U-01
+  status: blocked
+  closing_evidence: Complete real module installation, upgrade replay, ACL/security and business-state regression
+validation_gates:
+  archive_source_inventory: Passed
+  offline_tests: Passed
+  python_compilation: Passed
+  xml_structural_parse: Passed
+  static_addon_dependencies: Passed
+  source_catalog_digest: Passed
+  odoo_enterprise_registry: Unknown
+  odoo_multi_company_permissions: Unknown
+  odoo_upgrade_and_concurrency: Unknown
+  live_shadow_failure_recovery: Unknown
+minimum_safe_next_action:
+  action: Install and upgrade the four addons on an isolated Odoo 19 Enterprise database pinned to the inspected
+    Staging owner revision, then run actual ORM and two-company isolation tests.
+  why: Proves the highest-impact remaining Unknowns without exposing Production or weakening source ownership.
+  expected_evidence: Registry result, Odoo test receipt, company-A/B denial proof, old digest replay, attestation
+    reset, shadow failure recovery.
+convergence:
+  source_change_state: Bounded improvements complete with portable source tests.
+  release_state: Not production-ready; mandatory Odoo runtime validation unknown.
+  no_external_mutations: true
+  no_arbitrary_alignment_score: true
+  additional_source_only_pass_priority: None above actual Odoo execution evidence

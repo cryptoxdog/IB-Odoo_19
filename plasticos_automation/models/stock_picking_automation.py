@@ -4,6 +4,8 @@ from odoo import api, fields, models
 
 _logger = logging.getLogger(__name__)
 
+OPERATIONS_MANAGER_GROUP = "plasticos_security_base.group_operations_manager"
+
 
 class StockPickingAutomation(models.Model):
     _inherit = "stock.picking"
@@ -92,15 +94,20 @@ class StockPickingAutomation(models.Model):
                 )
 
                 if picking.trucker_followup_count >= 3:
-                    picking.activity_schedule(
-                        "mail.mail_activity_data_todo",
-                        user_id=picking.user_id.id or self.env.user.id,
+                    # One open escalation per picking, owned by an Operations Manager in the
+                    # picking's company: never the picking's responsible user, never the cron user.
+                    self.env["res.users"]._plasticos_escalate_to_manager(
+                        picking,
+                        OPERATIONS_MANAGER_GROUP,
                         summary=f"ESCALATION: Trucker receipt unconfirmed on {picking.name}",
                         note=(
                             f"Follow-up #{picking.trucker_followup_count} sent. "
                             f"Trucker {trucker_name} has not confirmed receipt. "
                             "Manual intervention required."
                         ),
+                        label="trucker receipt escalation",
+                        companies=picking.company_id,
+                        exclude_users=picking.user_id,
                     )
 
                 _logger.info(

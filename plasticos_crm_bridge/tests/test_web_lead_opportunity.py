@@ -78,6 +78,8 @@ class TestWebLeadOpportunity(TransactionCase):
 
         self.assertFalse(opportunity.partner_id)
         self.assertFalse(opportunity.user_id)
+        self.assertFalse(lead.assigned_user_id)
+        self.assertFalse(lead.intake_id.assigned_user_id)
         self.assertFalse(opportunity.expected_revenue)
         self.assertEqual(self.Partner.search_count([]), partners_before)
         self.assertEqual(lead.review_status, "clarification_required")
@@ -111,6 +113,25 @@ class TestWebLeadOpportunity(TransactionCase):
         self.assertFalse(cold.partner_id)
         self.assertEqual(cold.review_status, "pending")
         self.assertEqual(self.CrmLead.search_count([("type", "=", "opportunity")]), opportunities_before)
+
+    def test_a_queue_assignee_is_inherited_once_by_the_opportunity(self):
+        cold = self._admit("OPP-ASSIGN-001", weight="500 lbs")
+        self.assertFalse(cold.crm_lead_id)
+        rep = self.env.ref("base.user_admin")
+        cold.assigned_user_id = rep
+        # Promotion records a broker rationale; the 500 lb weight is the seller's own.
+        cold.review_notes = "Broker confirmed a recurring 500 lb load."
+
+        cold.action_force_hot()
+
+        self.assertEqual(cold.crm_lead_id.user_id, rep)
+        self.assertEqual(cold.intake_id.assigned_user_id, rep)
+        other = self.env["res.users"].search([("share", "=", False), ("id", "!=", rep.id)], limit=1)
+        self.assertTrue(other)
+        cold.write({"opportunity_user_id": other.id})
+        self.assertEqual(cold.crm_lead_id.user_id, other)
+        self.assertEqual(cold.assigned_user_id, rep)
+        self.assertEqual(cold.intake_id.assigned_user_id, rep)
 
     def test_convert_to_intake_keeps_stage_and_reuses_source_intake(self):
         lead = self._admit("OPP-CONVERT-001")
@@ -248,14 +269,17 @@ class TestWebLeadOpportunity(TransactionCase):
         polymer = self.env.ref("plasticos_material_profile.polymer_hdpe")
         form = self.env.ref("plasticos_material_profile.form_pellets")
         color = self.env.ref("plasticos_material_profile.color_natural")
+        blue = self.env.ref("plasticos_material_profile.color_blue")
         source_type = self.env.ref("plasticos_material_profile.source_post_industrial")
+        tier = self.env.ref("plasticos_material_profile.quality_tier_grade_a")
         profile = self.env["plasticos.material.profile"].create(
             {
                 "partner_id": partner.id,
                 "polymer_id": polymer.id,
                 "form_id": form.id,
-                "color_id": color.id,
+                "color_ids": [(6, 0, [color.id, blue.id])],
                 "source_type_id": source_type.id,
+                "quality_tier_id": tier.id,
                 "melt_flow_index": 8.5,
                 "contamination_percent": 2.5,
                 "quantity_per_load_lbs": 12500,
@@ -277,8 +301,9 @@ class TestWebLeadOpportunity(TransactionCase):
         self.assertEqual(intake.material_profile_id, profile)
         self.assertEqual(intake.polymer_id, polymer)
         self.assertEqual(intake.form_id, form)
-        self.assertEqual(intake.color_id, color)
+        self.assertEqual(intake.color_ids, color | blue)
         self.assertEqual(intake.source_type_id, source_type)
+        self.assertEqual(intake.quality_tier_id, tier)
         self.assertEqual(intake.mfi_value, 8.5)
         self.assertEqual(intake.contamination_pct, 2.5)
         self.assertEqual(intake.quantity_per_load_lbs, 12500)

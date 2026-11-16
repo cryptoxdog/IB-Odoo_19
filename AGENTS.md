@@ -171,6 +171,7 @@ Full project registry: `.claude/README.md`. Validate: `make check-plasticos-skil
 | `plasticos-odoo-version-bump` | Changing plasticos_* runtime code/XML/migrations — **mandatory** version bump + scoped `-u` only | `update` |
 | `plasticos-odoo-sh-deploy` | Odoo.sh production errors — SSH diagnose before fix | `logs`, `update`, `test-module` |
 | `plasticos-odoo-docker-testing` | Docker install-smoke + Odoo runtime tests before Odoo.sh | `install-smoke`, `test-odoo`, `test-module` |
+| `plasticos-pr-integration` | Combine open pull requests in a disposable worktree and run full Enterprise install-smoke | `install-smoke`, `runtime-test` |
 | `plasticos-static-audit-kernel` | Broad static audit / evidence report | `audit`, `audit-quick` |
 | `plasticos-pr-review-kernel` | `PR_REVIEW_MODE`, `REVIEW PR #N` | `pr-check`, `audit` |
 | `plasticos-repo-review-kernel` | Repo-wide readiness / pack review | `audit`, `wiring` |
@@ -859,3 +860,45 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > (`res_partner="id"`), so this module does not add a second map binding. It adds the hierarchy view and lists
 > `map` on the contacts action. `web_hierarchy`, `web_map`, and `contacts_enterprise` are known Odoo addons in
 > `tests/test_repo_dependency_integrity.py`.
+
+> **2026-11-10 pull-request integration correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> Combined open-PR integration in this repository is `plasticos-pr-integration` (`skills/plasticos-pr-integration/`).
+> It merges the fetched heads onto current `Staging` in a disposable worktree and runs `make install-smoke`
+> on the pinned Enterprise fixture. It does not edit the governance `l9-pr-integration-testing` pack.
+> The two runtime-test owners recorded on 2026-11-06 are unchanged: the `make pr-check` smoke stage, and
+> `make runtime-test m=<modules>` when an integration skill is invoked. Do not run `make test-module` or
+> `make test-odoo` ad hoc.
+
+> **2026-11-11 PlasticOS Export task read path (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> before changing a load's company or parent, container journeys (J1 `plasticos.iso.journey`, J2
+> `plasticos.iso.journey.source`), the physical-release guard, actual pickup/delivery clocks or the manual freight
+> context, read `docs/adr/ADR-130-export-physical-evidence-and-owner-contracts.md`, the 2026-11-11 section of
+> `plasticos_logistics/business_rules/SUPERSESSION.md`, and the Export campaign pack
+> `docs/campaigns/future-add-ons/PlasticOS_Export/` (`STRATEGIC_EXECUTION_PLAN_v2.8.md`, BRS-EXP-01..14). The
+> `plasticos_export` addon and its README do not exist yet (slice S5); until then the campaign pack is the Export
+> source. `plasticos.load.company_id` is an explicit source company (never `env.company`); one transaction owns many
+> loads through `plasticos.load.transaction_id`. Addon census at Staging `08504e12`: **31** `plasticos_*` addons,
+> **29** installable and 2 not installable (`plasticos_dev_tools`, `plasticos_website`); this supersedes the 30/28
+> count in Project Overview.
+
+> **2026-11-13 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> `make import-erp-material-profiles` (`DRY=1` rolls back) puts `plasticos.material.profile` records on the exact ERP
+> site partner named by two private operator files (`ERP_PROFILE_SUPPLIERS`, `ERP_PROFILE_CUSTOMERS`; defaults are the
+> gitignored `plasticos_material_profile/data/ERP-Material-Profiles-Suppliers.csv` and `-Customers.csv`). Both files are
+> one list; supplier versus customer carries no meaning. The only product map is
+> `plasticos_material_profile/data/ERP-Products.csv`, read by `material_normalizer.normalize_erp_product`; the phrase
+> sheet `material_mapping.csv` stays the VanillaSoft/CRM map and is unchanged. The loader is
+> `plasticos.erp.material.profile.loader` in `plasticos_transaction`, driven by
+> `plasticos_transaction/scripts/load_erp_material_profiles_shell.py`. The partner is the ERP site child
+> (`legacy_erp_address_<AddressID>`) whose `erp_address_label` equals the ship value, or the company
+> (`legacy_erp_cp_<CpID>`) when it has no ERP site children. Every other case is rejected with a reason and writes
+> nothing. Run it after the ERP partner import. It adds no field and no stored model, and it refuses a production database.
+> Summary: `.l9/pr/import-erp-material-profiles-summary.json`
+> (`records_seen == created + updated + unchanged + rejected`). Never commit the two operator files.
+
+> **2026-11-13 loader review correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> two sentences of the `make import-erp-material-profiles` correction above are made precise. (1) The database check
+> also runs on a dry run (`DRY=1`): a production database is refused for dry and applied runs alike. (2) One load runs
+> at a time on a database; a second run started meanwhile is refused and does not wait. The phrase sheet
+> `material_mapping.csv` is unchanged by the loader, and the ERP order-line import
+> (`plasticos_transaction/models/native_document_import.py`) still classifies order lines through that sheet.

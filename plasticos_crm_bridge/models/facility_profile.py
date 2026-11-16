@@ -22,7 +22,6 @@ _MERGE_IGNORE = {
 class FacilityProfileCrmOwnership(models.Model):
     _inherit = "plasticos.facility.profile"
 
-    partner_id = fields.Many2one(required=False)
     crm_lead_id = fields.Many2one(
         "crm.lead",
         string="CRM Lead",
@@ -48,12 +47,16 @@ class FacilityProfileCrmOwnership(models.Model):
         "A CRM lead may own only one facility profile.",
     )
 
+    @api.model
+    def _plasticos_owner_fields(self):
+        return (*super()._plasticos_owner_fields(), "crm_lead_id")
+
+    def _plasticos_owner_error(self):
+        return "A facility profile needs a facility partner or a CRM lead."
+
     @api.constrains("partner_id", "crm_lead_id")
-    def _check_crm_or_partner_owner(self):
-        for rec in self:
-            if rec.partner_id or rec.crm_lead_id:
-                continue
-            raise ValidationError("A facility profile needs a facility partner or a CRM lead.")
+    def _check_profile_owner(self):
+        return super()._check_profile_owner()
 
     def link_verified_location(self, partner):
         """Attach this lead-owned facility and its materials to a verified location.

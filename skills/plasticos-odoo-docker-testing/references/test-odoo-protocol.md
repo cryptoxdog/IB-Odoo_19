@@ -64,6 +64,10 @@ Without `-u`, Odoo runs at_install and post_install tests of every loaded module
 core and Enterprise included, against the fixture's schema. That is why the
 runner always upgrades the roster.
 
+## Combined open pull requests
+
+`plasticos-pr-integration` owns that job in this repository: merge the heads in a disposable worktree, then `make install-smoke` on the pinned Enterprise fixture. It does not edit the governance integration pack. The runtime command below stays available when that governance skill is invoked for a single checkout.
+
 ## Under l9-pr-integration-testing
 
 ```bash

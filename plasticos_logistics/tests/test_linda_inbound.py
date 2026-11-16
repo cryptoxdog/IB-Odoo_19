@@ -16,11 +16,13 @@ from unittest.mock import patch
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import AccessError, UserError
 from odoo.tests.common import new_test_user, tagged
+from odoo.tools import mute_logger
 
 LOGISTICS_REQUEST = "plasticos.logistics.request"
 LOGISTICS_RESPONSE = "plasticos.logistics.response"
 PURCHASE_ORDER = "purchase.order"
 SALE_ORDER = "sale.order"
+RECORDER_LOGGER = "odoo.addons.plasticos_logistics.models.linda_response"
 LINDA_MODE_PARAM = "plasticos_logistics.linda_mode"
 SUPPLIER_EMAIL = "sales@inbound-regrind.example"
 BUYER_EMAIL = "buy@inbound-compounding.example"
@@ -458,3 +460,123 @@ class TestLindaInbound(PlasticosTestCase):
         with self.assertRaises(UserError):
             response.unlink()
         self.assertEqual(response.disposition, "identity_unverified")
+
+    # ── S4: typed source branches (RP-04-E009) ───────────────
+
+    def test_reply_on_an_unregistered_source_kind_is_not_linda_evidence(self):
+        """An inbound email on a model no resolver registered is not Linda's (Export absent).
+
+        A reply whose In-Reply-To names a Linda mail is routed by the native gateway
+        to that ancestor's own thread, so the unregistered-model branch is exercised
+        with an email message posted directly on a partner thread.
+        """
+        po, issue = self._sent_po()
+        self.assertNotIn("res.partner", self.Request._linda_source_models())
+        message = self.supplier.message_post(
+            body="CONFIRMED",
+            message_type="email",
+            email_from=SUPPLIER_EMAIL,
+            subtype_xmlid="mail.mt_comment",
+        )
+        self.assertEqual((message.model, message.message_type), ("res.partner", "email"))
+        self.assertFalse(self.Response._record_incoming(message))
+        self.assertFalse(self._response(message))
+        self.assertFalse(self.Response.search([("request_id", "=", issue.id)]), "the PO issue gained no evidence")
+
+    def test_reply_on_a_registered_source_without_a_typed_request_records_nothing(self):
+        """A load is a registered typed source, but Linda never wrote to this one."""
+        self._set_mode("live")
+        load = self.env["plasticos.load"].create({"company_id": self.company.id, "pickup_partner_id": self.supplier.id})
+        message = self._receive(self._raw("CONFIRMED", SUPPLIER_EMAIL), model="plasticos.load", thread_id=load.id)
+        self.assertTrue(message)
+        self.assertFalse(self.Response._record_incoming(message))
+        self.assertFalse(self._response(message))
+
+    # ── Recorder containment: a recorder failure never loses the inbound email ──
+
+    def _assert_kept_with_failure_evidence(self, message, po):
+        self.assertEqual(len(message), 1, "the inbound email must be kept")
+        self.assertEqual((message.model, message.res_id, message.message_type), (PURCHASE_ORDER, po.id, "email"))
+        self.assertIn("original_email.eml", message.attachment_ids.mapped("name"))
+        response = self._response(message)
+        self.assertEqual(len(response), 1)
+        self.assertEqual(
+            (response.binding, response.interpretation, response.disposition, response.reason),
+            ("unbound", "not_interpreted", "unbound", "recorder_failed"),
+        )
+        self.assertFalse(response.candidate_kind, "a failed recorder asserts no meaning")
+        self.assertFalse(response.request_id, "a failed recorder binds no request")
+        self.assertEqual(response.purchase_order_id, po)
+
+    def test_recorder_exception_keeps_the_email_and_marks_the_failure(self):
+        """BRS-02-R009/R014: an unknown charset or a non-singleton match cannot reject the reply."""
+        po, issue = self._sent_po()
+        response_class = type(self.Response)
+        for error in (LookupError("unknown encoding: x-no-such-charset"), ValueError("Expected singleton")):
+            with self.subTest(error=type(error).__name__):
+
+                def failing(_self, *args, _error=error, **kwargs):
+                    raise _error
+
+                with (
+                    patch.object(response_class, "_validate", failing),
+                    self.assertLogs(RECORDER_LOGGER, level="ERROR") as logs,
+                ):
+                    message = self._reply_to(issue, "CONFIRMED")
+                self.assertIn(f"mail.message {message.id}", logs.output[0])
+                self._assert_kept_with_failure_evidence(message, po)
+        self.assertEqual((po.state, issue.state), ("purchase", "sent"))
+
+    def test_recorder_database_error_is_contained_by_the_savepoint(self):
+        """A failed statement inside the recorder must not abort the transaction creating the message."""
+        po, issue = self._sent_po()
+
+        def failing(recorder, *args, **kwargs):
+            recorder.env.cr.execute("SELECT 1/0")
+
+        with (
+            patch.object(type(self.Response), "_validate", failing),
+            mute_logger("odoo.sql_db"),
+            self.assertLogs(RECORDER_LOGGER, level="ERROR"),
+        ):
+            message = self._reply_to(issue, "CONFIRMED")
+        self.env.cr.execute("SELECT 1")  # the transaction is still usable
+        self._assert_kept_with_failure_evidence(message, po)
+
+    def test_failure_marker_failure_still_keeps_the_email(self):
+        """Even when the failure row cannot be written, the email stands and nothing is asserted."""
+        po, issue = self._sent_po()
+
+        def failing(_self, *args, **kwargs):
+            raise RuntimeError("recorder down")
+
+        with (
+            patch.object(type(self.Response), "_bind", failing),
+            patch.object(type(self.Response), "create", failing),
+            self.assertLogs(RECORDER_LOGGER, level="ERROR") as logs,
+        ):
+            message = self._reply_to(issue, "CONFIRMED")
+        self.assertEqual(len(logs.output), 2, "both the recorder failure and the marker failure are logged")
+        self.assertEqual(len(message), 1)
+        self.assertEqual((message.model, message.res_id), (PURCHASE_ORDER, po.id))
+        self.assertFalse(self._response(message))
+
+    def test_contained_failure_does_not_mask_the_next_reply(self):
+        """Falsifying: once the recorder works again the same kind of reply is recorded normally."""
+        _po, issue = self._sent_po()
+
+        def failing(_self, *args, **kwargs):
+            raise LookupError("unknown encoding")
+
+        with patch.object(type(self.Response), "_validate", failing), self.assertLogs(RECORDER_LOGGER, level="ERROR"):
+            failed = self._reply_to(issue, "CONFIRMED")
+        healthy = self._reply_to(issue, "CONFIRMED")
+
+        self.assertEqual(self._response(failed).reason, "recorder_failed")
+        self.assertEqual(
+            (self._response(healthy).disposition, self._response(healthy).reason),
+            ("identity_unverified", "sender_unauthenticated"),
+        )
+        # A replay of the failed message keeps its single failure row; it is never upgraded silently.
+        self.Response._record_incoming(failed)
+        self.assertEqual(self._response(failed).reason, "recorder_failed")

@@ -7,3 +7,6 @@ from . import test_opportunity_release
 from . import test_web_lead_opportunity
 from . import test_bridge_counts_batch
 from . import test_web_lead_http_hot
+from . import test_opportunity_reach_contact
+from . import test_manual_offers
+from . import test_crm_lead_personal_intel_view

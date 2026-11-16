@@ -97,3 +97,9 @@ class ResPartnerGeo(models.Model):
             self.env.cr.execute(
                 "SELECT pg_advisory_unlock(hashtext(%s))", ["plasticos_geolocalize.ir_cron_geo_backfill"]
             )
+
+    def write(self, vals):
+        res = super().write(vals)
+        if {"partner_latitude", "partner_longitude"} & set(vals):
+            self.env["plasticos.intake"]._fill_zero_snapshots_for_locations(self)
+        return res

@@ -1,0 +1,15 @@
+<odoo>
+  <record id="view_broker_advice_wizard" model="ir.ui.view">
+    <field name="name">plasticos.broker.advice.wizard.form</field>
+    <field name="model">plasticos.broker.advice.wizard</field>
+    <field name="arch" type="xml">
+      <form string="Broker Advice (Advisory Only)"><group>
+        <field name="source_model" readonly="1"/><field name="source_id" readonly="1"/>
+        <field name="question"/><field name="result" widget="text" readonly="1"/>
+      </group><footer>
+        <button name="action_get_advice" string="Get Evidence-Aware Advice" type="object" class="btn-primary"/>
+        <button string="Close" special="cancel"/>
+      </footer></form>
+    </field>
+  </record>
+</odoo>

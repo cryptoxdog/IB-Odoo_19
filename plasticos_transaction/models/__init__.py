@@ -12,3 +12,4 @@ from . import transaction_bridge
 from . import intake_bridge
 from . import partner_bridge
 from . import offer_bridge
+from . import erp_material_profile_loader

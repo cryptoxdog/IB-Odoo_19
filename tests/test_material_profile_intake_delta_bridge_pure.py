@@ -64,7 +64,7 @@ def _fake_intake(**kwargs):
         "intake_notes": None,
         "polymer_id": False,
         "form_id": False,
-        "color_id": False,
+        "color_ids": SimpleNamespace(ids=[]),
         "source_type_id": False,
         "material_grade_id": False,
         "filler_type_id": False,
@@ -75,6 +75,16 @@ def _fake_intake(**kwargs):
 
 
 class TestIntakeToProfileValueMapping(unittest.TestCase):
+    def test_intake_colors_are_written_as_the_profile_set(self):
+        colors = SimpleNamespace(ids=[7, 9])
+        intake = _fake_intake(color_ids=colors)
+        vals = build_material_profile_vals_from_intake(intake)
+        self.assertNotIn("color_id", vals)
+        self.assertEqual(vals["color_ids"], [(6, 0, [7, 9])])
+        payload = build_intake_to_profile_bridge_payload(intake)
+        self.assertEqual(payload["color_ids"], [7, 9])
+        self.assertNotIn("color_id", payload)
+
     def test_intake_mfi_maps_to_melt_flow_index(self):
         intake = _fake_intake(mfi_value=22.5)
         vals = build_material_profile_vals_from_intake(intake)

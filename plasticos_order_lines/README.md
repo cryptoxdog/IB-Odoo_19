@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_order_lines
 component_name: PlasticOS Order Lines
-module_version: 19.0.1.1.1
+module_version: 19.0.1.1.3
 layer: 3
 installable: true
 auto_install: true
@@ -32,7 +32,7 @@ Puts the material specification on sale and purchase order lines: which material
 
 ## How it works
 
-- **Line fields.** `sale.order.line` (`models/sale_order_line.py`) and `purchase.order.line` (`models/purchase_order_line.py`) each get `material_profile_id` plus `material_grade_id`, `color_id`, `form_id`, `packaging_type_id`, `source_type_id`, `filler_type_id`, and `material_attribute_ids`.
+- **Line fields.** `sale.order.line` (`models/sale_order_line.py`) and `purchase.order.line` (`models/purchase_order_line.py`) each get `material_profile_id` plus `material_grade_id`, `color_ids`, `form_id`, `packaging_type_id`, `source_type_id`, `filler_type_id`, and `material_attribute_ids`.
 - **Fill from the profile.** Choosing a material profile on a line fills those fields from the profile, sets the product from the profile polymer's product (`plasticos_product`) when there is one, and recomputes the line name. The user can still edit them.
 - **Description.** `material_description` is a stored compute: the product name, then the line's specs, joined with dashes. The text comes from `projected_material()` in `models/material_label.py`, a plain function, not a model. A trailing parenthetical on the product name is dropped so a color is not repeated.
 - **Printed text.** Sale lines print the material description above Odoo's product description (`_get_sale_order_line_multiline_description_sale`). Purchase lines do the same through `_get_product_purchase_description`.

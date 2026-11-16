@@ -357,5 +357,46 @@
       <field name="category">specialty</field>
       <field name="sequence">322</field>
     </record>
+    <!-- ── Family homes for polymers named on ERP lines with no master ── -->
+    <record id="polymer_epp" model="plasticos.polymer">
+      <field name="name">EPP</field>
+      <field name="code">EPP</field>
+      <field name="full_name">Expanded Polypropylene</field>
+      <field name="resin_id_code">5</field>
+      <field name="category">commodity</field>
+      <field name="sequence">12</field>
+    </record>
+    <record id="polymer_mdpe" model="plasticos.polymer">
+      <field name="name">MDPE</field>
+      <field name="code">MDPE</field>
+      <field name="full_name">Medium-Density Polyethylene</field>
+      <field name="resin_id_code">4</field>
+      <field name="category">commodity</field>
+      <field name="sequence">43</field>
+    </record>
+    <record id="polymer_epe" model="plasticos.polymer">
+      <field name="name">EPE</field>
+      <field name="code">EPE</field>
+      <field name="full_name">Expanded Polyethylene</field>
+      <field name="resin_id_code">4</field>
+      <field name="category">commodity</field>
+      <field name="sequence">52</field>
+    </record>
+    <record id="polymer_petg" model="plasticos.polymer">
+      <field name="name">PETG</field>
+      <field name="code">PETG</field>
+      <field name="full_name">Polyethylene Terephthalate Glycol</field>
+      <field name="resin_id_code">1</field>
+      <field name="category">commodity</field>
+      <field name="sequence">75</field>
+    </record>
+    <record id="polymer_san" model="plasticos.polymer">
+      <field name="name">SAN</field>
+      <field name="code">SAN</field>
+      <field name="full_name">Styrene Acrylonitrile</field>
+      <field name="resin_id_code">7</field>
+      <field name="category">commodity</field>
+      <field name="sequence">85</field>
+    </record>
   </data>
 </odoo>

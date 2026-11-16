@@ -6,6 +6,8 @@ from odoo import fields
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.tests.common import tagged
 
+from .common import create_claims_manager
+
 
 @tagged("post_install", "-at_install", "cron", "claims")
 class TestClaimReminderBatch(PlasticosTestCase):
@@ -21,6 +23,8 @@ class TestClaimReminderBatch(PlasticosTestCase):
 
     def test_two_open_claims_get_one_reminder_each_from_one_activity_lookup(self):
         claim_model = self.env["plasticos.claim"]
+        # Unassigned claims are reminded to a claims manager, never to the cron runner.
+        create_claims_manager(self.env, login="claims_reminder_batch_manager")
         opened = fields.Datetime.to_datetime("2000-01-01 00:00:00")
         first = self._create_claim(
             transaction=self._create_transaction(name="TX-TEST-REM-1"), opened_at=opened, state="in_progress"

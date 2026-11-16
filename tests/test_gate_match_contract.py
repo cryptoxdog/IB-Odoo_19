@@ -12,7 +12,11 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from plasticos_gate.services.gate_builders import build_converge_request, build_match_request  # noqa: E402
+from plasticos_gate.services.gate_builders import (  # noqa: E402
+    build_converge_request,
+    build_intake_request,
+    build_match_request,
+)
 from plasticos_gate.services.gate_config import (  # noqa: E402
     _gate_url_usable,
     gate_auto_writeback_enabled,
@@ -57,10 +61,11 @@ class _MockEnv:
 
 
 class _FieldProxy:
-    def __init__(self, *, code=None, name=None, record_id=None):
+    def __init__(self, *, code=None, name=None, record_id=None, active=True):
         self.code = code
         self.name = name
         self.id = record_id
+        self.active = active  # master records (forms, polymers) carry ``active``
 
 
 class _IntakeStub:
@@ -71,7 +76,7 @@ class _IntakeStub:
         self._fields = {
             "polymer_id",
             "form_id",
-            "color_id",
+            "color_ids",
             "source_type_id",
             "quantity_per_load_lbs",
             "contamination_pct",
@@ -82,7 +87,7 @@ class _IntakeStub:
         }
         self.polymer_id = _FieldProxy(code="HDPE", name="HDPE", record_id=10)
         self.form_id = _FieldProxy(code="PELLET", name="Pellet", record_id=11)
-        self.color_id = _FieldProxy(code="NAT", name="Natural", record_id=12)
+        self.color_ids = (_FieldProxy(code="NAT", name="Natural", record_id=12),)
         self.source_type_id = _FieldProxy(code="PCR", name="Post Consumer", record_id=13)
         self.quantity_per_load_lbs = 40000.0
         self.contamination_pct = 2.5
@@ -143,6 +148,29 @@ def test_build_match_request_maps_intake_fields():
     assert request.top_n == 5
     assert request.odoo["model"] == "plasticos.intake"
     assert request.odoo["record_id"] == 42
+
+
+def test_build_match_request_omits_an_archived_form():
+    """Bales are packaging: the archived Bales form is never sent to Gate as a form."""
+    intake = _IntakeStub()
+    intake.form_id = _FieldProxy(code="BALES", name="Bales", record_id=11, active=False)
+    request = build_match_request(_MockEnv(), intake=intake)
+    assert "form" not in request.query
+    assert request.query["polymer_type"] == "HDPE"
+
+
+def test_build_match_request_lists_every_intake_color():
+    env = _MockEnv()
+    intake = _IntakeStub()
+    intake.color_ids = (
+        _FieldProxy(code="NAT", name="Natural", record_id=12),
+        _FieldProxy(code="BLUE", name="Blue", record_id=13),
+    )
+    request = build_match_request(env, intake=intake)
+    assert request.query["color"] == ["NAT", "BLUE"]
+    assert build_intake_request(env, intake).intake_snapshot["color"] == ["NAT", "BLUE"]
+    intake.color_ids = ()
+    assert "color" not in build_match_request(env, intake=intake).query
 
 
 def test_map_match_response_reads_candidates_and_resolves_entity_ref():

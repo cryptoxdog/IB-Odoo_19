@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_geolocalize
 component_name: PlasticOS Geolocalize
-module_version: 19.0.1.1.0
+module_version: 19.0.1.1.1
 layer: 2
 installable: true
 auto_install: true
@@ -13,10 +13,11 @@ depends:
   - base
   - base_geolocalize
   - plasticos_intake
+  - plasticos_material_profile
 models_owned: []
 models_extended:
   - res.partner
-  - plasticos.intake
+  - plasticos.material.profile
 crons:
   - ir_cron_geo_backfill
 ---
@@ -27,7 +28,7 @@ The front matter above is a derived index. `__manifest__.py` and the `_inherit` 
 
 ## What it does
 
-Fills in missing partner coordinates with a nightly backfill, and makes each intake's latitude and longitude follow its partner.
+Fills in missing partner coordinates with a nightly backfill, and makes each material profile's latitude and longitude follow its location. An intake keeps its own coordinate snapshot.
 
 ## How it works
 
@@ -37,17 +38,18 @@ Fills in missing partner coordinates with a nightly backfill, and makes each int
   - For each one it calls Odoo's `partner.geo_localize()` (`base_geolocalize`), commits after each success, and sleeps between calls.
   - It stops after too many consecutive failures, which usually means the geocoder is rate-limiting.
 - **Tuning.** System parameters `plasticos_geolocalize.nominatim_delay`, `.failure_delay`, `.batch_size`, and `.max_consecutive_failures` override the defaults (1.1 s, 5 s, 25, 3). A missing or malformed value falls back to the default. The delay never goes below 1.0 s, the Nominatim usage floor.
-- **Intake coordinates.** The `plasticos.intake` extension (`models/intake_geo.py`) redefines `lat` and `lon` as stored, read-only fields related to the partner's `partner_latitude` and `partner_longitude`.
+- **Profile coordinates.** `models/material_profile_geo.py` redefines material-profile `lat` and `lon` as stored, read-only fields related to the location partner's `partner_latitude` and `partner_longitude`.
+- **Empty intake snapshots.** When a partner's coordinates are written, intakes that are still at zero and point at that partner receive the new pair. A snapshot that already has coordinates is left alone.
 - **Install hook.** `post_init_hook` in `hooks.py` grants this module's groups to the users of the crons it owns.
 
-`models/res_partner_geo.py` does not override `create` or `write`. A partner is geocoded by the nightly cron, not when it is saved.
+`models/res_partner_geo.py` overrides `write` only to push newly written coordinates onto zero intake snapshots. A partner is still geocoded by the nightly cron, not when its address is saved.
 
 ## Models
 
-| Model              | Kind     | File                        |
-| ------------------ | -------- | --------------------------- |
-| `res.partner`      | extended | `models/res_partner_geo.py` |
-| `plasticos.intake` | extended | `models/intake_geo.py`      |
+| Model                         | Kind     | File                               |
+| ----------------------------- | -------- | ---------------------------------- |
+| `res.partner`                 | extended | `models/res_partner_geo.py`        |
+| `plasticos.material.profile`  | extended | `models/material_profile_geo.py`   |
 
 The module defines no model of its own.
 
@@ -65,4 +67,4 @@ The module defines no model of its own.
 ## Read next
 
 - [`models/res_partner_geo.py`](models/res_partner_geo.py)
-- [`models/intake_geo.py`](models/intake_geo.py)
+- [`models/material_profile_geo.py`](models/material_profile_geo.py)

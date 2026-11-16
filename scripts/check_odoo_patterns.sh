@@ -344,9 +344,10 @@ fi
 # Excludes: graph_service (builds query params), matcher.py (builds result dicts),
 #           enrichment_service (builds API payloads), material_profile.py (builds export packets),
 #           transaction_import (legacy CSV import uses Char fields for historical data),
-#           build_material_mapping (writes material_mapping.csv rows, no ORM)
+#           build_material_mapping (writes material_mapping.csv rows, no ORM),
+#           docs/ candidate packs (fact payloads, not ORM writes)
 echo -n "Checking string writes to Many2one fields... "
-MATCHES=$(echo "$PY_FILES" | xargs grep -E '"(polymer|form|source_type)":\s*\w+' 2>/dev/null | grep -v '_id' | grep -v 'graph_service' | grep -v 'matcher.py' | grep -v 'enrichment_service' | grep -v 'material_profile.py' | grep -v 'transaction_import' | grep -v 'ai_normalizer' | grep -v '^scripts/build_material_mapping\.py:' || true)
+MATCHES=$(echo "$PY_FILES" | xargs grep -E '"(polymer|form|source_type)":\s*\w+' 2>/dev/null | grep -v '_id' | grep -v 'graph_service' | grep -v 'matcher.py' | grep -v 'enrichment_service' | grep -v 'material_profile.py' | grep -v 'transaction_import' | grep -v 'ai_normalizer' | grep -v '^scripts/build_material_mapping\.py:' | grep -v '^docs/' || true)
 if [ -n "$MATCHES" ]; then
     echo -e "${RED}FOUND${NC}"
     echo "$MATCHES"

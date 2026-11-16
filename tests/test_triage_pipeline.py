@@ -861,3 +861,95 @@ class TestVisionBytePath:
         assert result["support_unit"] == "Pallets"
         assert result["commercial_color"] == "Mixed"
         assert result["observed_polymer_hint"] is None
+
+
+def test_joint_prompt_carries_photo_codes_and_rejects_an_invented_code():
+    prompt = build_user_prompt(
+        {"WhatMaterialDoYouHave": "Polycarbonate plastic"},
+        [
+            {
+                "observed_form": "SHEET",
+                "observed_packaging": "palletized",
+                "observed_attributes": ["printed"],
+                "source_url": "https://files.example/photo?token=SECRET-TOKEN",
+            }
+        ],
+    )
+    assert "observed_form=SHEET" in prompt
+    assert "observed_packaging=palletized" in prompt
+    assert "observed_attributes=printed" in prompt
+    assert "SECRET-TOKEN" not in prompt
+
+    polymer = _ai.CatalogEntry("LDPE", "LDPE", "", "Low-Density Polyethylene")
+    system = _ai.system_prompt({"polymer": (polymer,)})
+    assert "Low-Density Polyethylene" in system
+    catalog_module = sys.modules["plasticos_web_leads.models.material_catalog"]
+    assert catalog_module.match_one("Low-Density Polyethylene", (polymer,)) is None
+
+    kept = _ai.restrict_to_catalog(
+        {"form": "SHEET", "packaging_type": "invented_wrap"},
+        {
+            "form": (_ai.CatalogEntry("SHEET", "Sheet"),),
+            "packaging": (_ai.CatalogEntry("palletized", "Palletized"),),
+        },
+    )
+    assert kept["form"] == "SHEET"
+    assert kept["packaging_type"] is None
+
+
+def test_prompt_rules_name_quality_tier_and_printed_film():
+    prompt = _ai.system_prompt(
+        {
+            "polymer": (_ai.CatalogEntry("BOPP", "BOPP", ""),),
+            "form": (_ai.CatalogEntry("FILM", "Film", ""),),
+            "color": (_ai.CatalogEntry("WHITE", "White", ""),),
+            "attribute": (_ai.CatalogEntry("printed", "Printed", ""),),
+            "quality_tier": (_ai.CatalogEntry("GRADE_A", "Grade A", ""),),
+            "process": (_ai.CatalogEntry("compression_mold", "Compression Mold", ""),),
+        }
+    )
+    assert "BOPP" in prompt
+    assert "FILM" in prompt
+    assert "WHITE" in prompt
+    assert "printed" in prompt
+    assert "w/ print" in prompt
+    assert "GRADE_A" in prompt
+    assert "reuseable" in prompt
+    assert "Bare Mixed or mixed after a material or grade word is attribute mixed" in prompt
+    assert "Only Mixed Color or mixed color is color MIXED" in prompt
+    assert "Never leave quality_tier null when" in prompt
+    assert "gaylord boxes as the product" in prompt
+    assert "quality_tier to REUSABLE" in prompt
+    assert "Do not set is_plastic=true from that phrase alone" in prompt
+    assert "compression molded or compression mold maps to process_type compression_mold" in prompt
+    assert "injection or injection molded maps to process_type injection" in prompt
+    assert "blow molded or blow mold maps to process_type blow_mold" in prompt
+    assert "Color Mixed Color is the color, not attribute mixed" not in prompt
+
+
+def test_text_normalization_is_locked_to_deepseek_flash():
+    config_path = os.path.join(_models_dir, "web_lead_config.py")
+    xml_path = os.path.join(os.path.dirname(_models_dir), "data", "web_lead_config_data.xml")
+    with open(config_path, encoding="utf-8") as handle:
+        config = handle.read()
+    with open(xml_path, encoding="utf-8") as handle:
+        seed = handle.read()
+    assert 'string="Text Inference Provider"' in config
+    text_field = config.split('string="Text Inference Provider"', 1)[1].split("vision_inference_provider", 1)[0]
+    assert 'default="deepseek"' in text_field
+    assert 'DEEPSEEK_TEXT_MODEL = "deepseek-flash"' in config
+    assert 'DEEPSEEK_BASE_URL = "https://api.deepseek.com"' in config
+    assert '<field name="text_inference_provider">deepseek</field>' in seed
+    assert '<field name="deepseek_model">deepseek-flash</field>' in seed
+    assert (
+        'default="openai"' in config.split("vision_inference_provider", 1)[1].split("economic_inference_provider", 1)[0]
+    )
+
+
+def test_vision_still_reaches_the_classifier_after_it_feeds_the_normalizer():
+    with open(os.path.join(_models_dir, "web_lead.py"), encoding="utf-8") as handle:
+        source = handle.read()
+    pipeline = source.split("def _run_triage_pipeline", 1)[1].split("\n    def ", 1)[0]
+    assert pipeline.index("analyze_image_with_provider") < pipeline.index("normalize_with_provider")
+    assert "vision_results=vision_results" in pipeline
+    assert "vision_evidence=vision_results" in pipeline

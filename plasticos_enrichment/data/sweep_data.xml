@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- Scheduled EIE enrichment sweep (ADR-012 amendment 2026-11-15).
+         Off by default: sweep_enabled=0 AND both crons inactive. Operator-approved
+         2026-11-14/15. Defaults are stable reference values; noupdate keeps an
+         operator's later change across upgrades. -->
+    <record id="param_gate_sweep_enabled" model="ir.config_parameter">
+        <field name="key">plasticos.gate.sweep_enabled</field>
+        <field name="value">0</field>
+    </record>
+    <record id="param_gate_sweep_daily_budget_usd" model="ir.config_parameter">
+        <field name="key">plasticos.gate.sweep_daily_budget_usd</field>
+        <field name="value">5.0</field>
+    </record>
+    <record id="param_gate_sweep_max_candidates" model="ir.config_parameter">
+        <field name="key">plasticos.gate.sweep_max_candidates</field>
+        <field name="value">50</field>
+    </record>
+    <record id="param_gate_sweep_cooldown_days" model="ir.config_parameter">
+        <field name="key">plasticos.gate.sweep_cooldown_days</field>
+        <field name="value">30</field>
+    </record>
+
+    <record id="cron_enrichment_sweep_send" model="ir.cron">
+        <field name="name">Enrichment Sweep — Nightly Send (EIE via Gate)</field>
+        <field name="model_id" ref="plasticos_enrichment.model_plasticos_enrichment_sweep"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_send_sweep()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="active">False</field>
+        <field name="user_id" ref="plasticos_base.user_system_cron"/>
+    </record>
+    <record id="cron_enrichment_sweep_results" model="ir.cron">
+        <field name="name">Enrichment Sweep — Collect Results to Review</field>
+        <field name="model_id" ref="plasticos_enrichment.model_plasticos_enrichment_sweep"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_collect_results()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">hours</field>
+        <field name="active">False</field>
+        <field name="user_id" ref="plasticos_base.user_system_cron"/>
+    </record>
+</odoo>

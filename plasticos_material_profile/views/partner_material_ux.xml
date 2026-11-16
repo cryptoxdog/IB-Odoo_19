@@ -32,19 +32,17 @@
                        invisible="not is_company"
                        context="{'default_partner_id': id,
                                  'form_view_ref': 'plasticos_material_profile.view_material_profile_form'}">
-                    <list editable="bottom">
+                    <list editable="bottom" open_form_view="1" delete="0" class="o_material_profile_lines">
                         <field name="polymer_id"/>
                         <field name="material_grade_id" optional="show"/>
                         <field name="form_id"/>
-                        <field name="color_id" optional="show"/>
+                        <field name="color_ids" widget="many2many_tags" optional="show"/>
                         <field name="source_type_id" optional="show"/>
-                        <field name="contamination_percent" string="Contam %"
-                               optional="show"/>
-                        <button name="action_open_profile_form"
-                                type="object"
-                                icon="fa-external-link"
-                                title="Open Full Profile"
-                                class="btn-link p-0"/>
+                        <field name="packaging_type_id" string="Packaging Type" optional="show"/>
+                        <button name="action_remove_profile" type="object" icon="fa-trash"
+                                title="Remove material profile"
+                                confirm="Remove this material profile? A profile tied to an approved lot is archived and kept."
+                                class="btn-link text-danger p-0"/>
                     </list>
                 </field>
 

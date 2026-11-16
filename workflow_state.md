@@ -15,6 +15,7 @@ These are proof gaps. A safeguard that refuses the wrong database is not one of 
 | Full historical VanillaSoft cohort (4,876 IDs) | [Gate 7](tests/production-rehearsal/evidence/2026-11-08_173212/gate-7.json) at `f8733d213fc96419698b1fd374de5fea54c4d362` created 250 durable references in a rolling window and set `full_cohort_claimed` to false | The complete historical cohort, if go-live requires it |
 | Full-volume ERP source resolution | [Gate 6](tests/production-rehearsal/evidence/2026-11-08_173212/gate-6.json) at the same SHA compared 46,886 fields with zero failures | 1,250 attributed unresolved source records remain. The run imported every partner layer and the newest 10% of worksheets (797, plus pinned worksheet 58699 when the source contains it). It does not prove every full-volume record resolves |
 | This Staging head | Rehearsal head `f8733d213fc96419698b1fd374de5fea54c4d362`. Observed Staging `b5b6056f01639212e722ccdec5b964b36deee9f5` | The `f8733d2` rehearsal does not authorize `b5b6056f` |
+| Web-lead qualification live routing (ADR-016 2026-11-11) | Pure decision tests (`tests/test_web_lead_qualification.py`) and Odoo flow tests (`plasticos_web_leads/tests/test_web_lead_qualification_flow.py`, not executed in the authoring session). `qualification_mode` defaults to `shadow` | A broker-labelled historical corpus, a shadow-period report (`scripts/web_lead_qualification_report.py`) with no go-live blockers, Staging real-provider runs, and an operator decision before switching to `live` |
 | Hosted import | `make import-erp` exists. No production permit is recorded here | Source, target, phase, and permit are unauthorized. A disposable-clone rehearsal does not authorize an Odoo.sh write |
 
 ## Evidence
@@ -41,4 +42,4 @@ These stay. They are not debt.
 
 ## Accepted decision
 
-`plasticos.material.profile.sub_grade` is a free `Char`, hidden on the form, with `TODO: Define sub-grade logic`. The letters A, B, and C are literals in `plasticos_material_profile/models/material_normalizer.py` and are copied onto that field. There is no grade master for them. Accepted 2026-11-04; no grade master is added for this.
+`plasticos.material.quality.tier` is the quality-tier master, seeded in `plasticos_material_profile/data/material_quality_tier_data.xml`. The codes are `GRADE_A`, `GRADE_B`, `GRADE_C`, `REUSABLE`, and `STANDARD`. Grade templates and material profiles store `quality_tier_id`. Phrase-sheet letters A, B, and C are written there by the CRM import. The free-text `sub_grade` field is retired.

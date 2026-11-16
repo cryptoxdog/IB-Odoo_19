@@ -284,6 +284,20 @@ def _new_documents() -> dict:
     return {"sales": [], "purchases": [], "invoice": False, "credits": [], "bills": [], "freight_bills": []}
 
 
+def _header_for_posted_number(index, number, source):
+    """One ``PO`` header whose number is the worksheet's posted order number, or ``None``.
+
+    ``WKSDetail.PPo`` is that number. Zero headers and several headers stay unresolved.
+    """
+    number = (number or "").strip()
+    if not number:
+        return None
+    matches = index.orders_by_source_number.get((source, number), [])
+    if len(matches) != 1:
+        return None
+    return index.orders.get(matches[0])
+
+
 def _realize_one(importer, index, report, partner_by_cp, context, number):
     from odoo.addons.plasticos_partner_import.erp.header_forensics import trade_date  # noqa: PLC0415
     from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
@@ -315,6 +329,10 @@ def _realize_one(importer, index, report, partner_by_cp, context, number):
         purchase_key = (line.get("PPO_ID") or "").strip()
         sale_header, sale_reason = header_for_line(index, sale_key, "SO")
         purchase_header, purchase_reason = header_for_line(index, purchase_key, "PO")
+        # PPO_ID is the line key. When it does not resolve, the worksheet still
+        # carries the purchase-order number it was opened from (PPo).
+        if purchase_header is None:
+            purchase_header = _header_for_posted_number(index, line.get("PPo"), "PO")
         # Each side that resolves no header is recorded with its own reason, so
         # a line that still links on the other side is not a silent half-link.
         for side, key, header, reason in (
@@ -627,6 +645,7 @@ def _upsert_order(importer, context, report, partner_by_cp, header, buysell, num
     Writing it does not confirm the order: it stays a draft, with no picking.
     """
     from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
+        clears_incoterm,
         declined_price_basis,
         with_worksheet,
     )
@@ -674,12 +693,19 @@ def _upsert_order(importer, context, report, partner_by_cp, header, buysell, num
         if incoterm:
             values[incoterm_field] = incoterm
         elif declined_price_basis(basis):
-            # An Incoterm an earlier run wrote for this basis is cleared, not kept.
-            values[incoterm_field] = False
+            stored = existing[incoterm_field] if existing is not None else False
+            if clears_incoterm(basis) or not stored:
+                # ``delivered`` clears an Incoterm an earlier run wrote; nothing is set either way.
+                values[incoterm_field] = False
+                outcome = "none set"
+            else:
+                # A domestic shipping-point basis never rewrites an order already imported
+                # (ADR-021 amendment 2026-11-12): the stored Incoterm is reported, not changed.
+                outcome = f"stored Incoterm {stored.code or stored.name!s} left unchanged"
             report.anomaly(
                 "BuySell",
                 number,
-                f"{model_name} {values['name']}: price basis {basis.strip()!r} has no supported Incoterm; none set",
+                f"{model_name} {values['name']}: price basis {basis.strip()!r} has no supported Incoterm; {outcome}",
             )
     return importer._upsert(model, xml_id, values, _silent(), None)
 
@@ -1561,6 +1587,15 @@ def _create_grade_product(importer, xml_id, grade, description):
     return product
 
 
+def _color_set_label(records):
+    labels = []
+    for record in records:
+        label = getattr(record, "code", None) or record.display_name
+        if label:
+            labels.append(label)
+    return ", ".join(labels)
+
+
 def _material_line_values(importer, report, model_name, existing, detail_id, normalized):
     """Fill empty material fields. A stored value that disagrees is kept and reported.
 
@@ -1574,13 +1609,13 @@ def _material_line_values(importer, report, model_name, existing, detail_id, nor
         ("material_grade_id", "material_grade"),
         ("form_id", "form"),
         ("source_type_id", "source_type"),
-        ("color_id", "color"),
         ("packaging_type_id", "packaging_type"),
+        ("filler_type_id", "filler_type"),
     ):
         if field_name not in fields:
             continue
         resolved = getattr(normalized, attr, None)
-        if not resolved:
+        if not resolved or len(resolved) != 1:
             continue
         current = existing[field_name] if existing is not None else resolved.browse()
         if not current:
@@ -1589,6 +1624,26 @@ def _material_line_values(importer, report, model_name, existing, detail_id, nor
             stored = getattr(current, "code", None) or current.display_name
             wanted = getattr(resolved, "code", None) or resolved.display_name
             report.anomaly("WKSDetail", detail_id, f"{field_name} stored {stored}, normalizer {wanted}; kept")
+    process = getattr(normalized, "process_type", None)
+    if process and "origin_process_type" in fields:
+        current = existing.origin_process_type if existing is not None else False
+        if not current:
+            values["origin_process_type"] = process
+        elif current != process:
+            report.anomaly(
+                "WKSDetail",
+                detail_id,
+                f"origin_process_type stored {current}, normalizer {process}; kept",
+            )
+    resolved_colors = getattr(normalized, "color", None)
+    if resolved_colors and "color_ids" in fields:
+        current_colors = existing.color_ids if existing is not None else resolved_colors.browse()
+        if not current_colors:
+            values["color_ids"] = [Command.set(list(resolved_colors.ids))]
+        elif set(current_colors.ids) != set(resolved_colors.ids):
+            stored = _color_set_label(current_colors)
+            wanted = _color_set_label(resolved_colors)
+            report.anomaly("WKSDetail", detail_id, f"color_ids stored {stored}, normalizer {wanted}; kept")
     if normalized.attributes and "material_attribute_ids" in fields:
         current = existing.material_attribute_ids if existing is not None else normalized.attributes.browse()
         missing = normalized.attributes - current

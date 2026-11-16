@@ -5,6 +5,7 @@ from odoo.exceptions import ValidationError
 
 from ..form_codes import FORM_SELECTION
 from ..process_codes import PROCESS_SELECTION
+from ..volume import monthly_volume_lbs as monthly_volume_product
 
 _logger = logging.getLogger(__name__)
 
@@ -29,13 +30,17 @@ class PlasticosMaterialProfile(models.Model):
             name = " ".join(part for part in parts if part)
             rec.display_name = name if rec.polymer_id else f"Profile #{rec.id}"
 
+    # Not ``required`` at the field level: an installed module may add another
+    # owner (plasticos_crm_bridge adds ``facility_profile_id``), and a column that
+    # claims NOT NULL in the base module cannot hold those rows. The owner rule is
+    # enforced by ``_check_profile_owner`` over ``_plasticos_owner_fields``.
     partner_id = fields.Many2one(
         "res.partner",
-        required=True,
         index=True,
         domain="[('parent_id','!=',False)]",
         ondelete="cascade",
         tracking=True,
+        help="Facility partner that owns this material profile.",
     )
 
     active = fields.Boolean(default=True)
@@ -56,19 +61,25 @@ class PlasticosMaterialProfile(models.Model):
         [
             # Commodity
             ("PP", "PP"),
+            ("EPP", "EPP"),
             ("PP_PE", "PP/PE"),
             ("HDPE", "HDPE"),
             ("HDPE_HMW", "HDPE HMW"),
             ("LDPE", "LDPE"),
+            ("MDPE", "MDPE"),
             ("LLDPE", "LLDPE"),
+            ("EPE", "EPE"),
             ("LDPE_LLDPE", "LDPE/LLDPE"),
             ("PLASTIC_PALLETS", "Plastic Pallets"),
+            ("1_2_COMMINGLED_BOTTLES", "1-2 Commingled Bottles"),
             ("3_7_COMMINGLED_BOTTLES", "3-7 Commingled Bottles"),
             ("1_7_COMMINGLED_BOTTLES", "1-7 Commingled Bottles"),
             ("GAYLORD_BOXES", "Gaylord Boxes"),
             ("PET", "PET"),
+            ("PETG", "PETG"),
             ("PET_HDPE", "PET/HDPE"),
             ("ABS", "ABS"),
+            ("SAN", "SAN"),
             ("HIPS", "HIPS"),
             ("PS", "PS"),
             ("EPS", "EPS"),
@@ -111,8 +122,6 @@ class PlasticosMaterialProfile(models.Model):
         help="Auto-populated from polymer_id. Kept for backward compatibility.",
     )
 
-    sub_grade = fields.Char()  # TODO: Define sub-grade logic and re-enable in view
-
     # ── Form (Many2one to master) ────────────────────────────
     form_id = fields.Many2one(
         "plasticos.material.form",
@@ -142,36 +151,23 @@ class PlasticosMaterialProfile(models.Model):
         tracking=True,
         help="What the material was before processing (Drums, Totes, Pallets). Optional.",
     )
-
-    # ── Color (Many2one to master) ───────────────────────────
-    color_id = fields.Many2one(
-        "plasticos.material.color",
-        string="Color",
+    quality_tier_id = fields.Many2one(
+        "plasticos.material.quality.tier",
+        string="Quality Tier",
         index=True,
         ondelete="restrict",
         tracking=True,
-        help="Canonical material color from the master registry.",
+        help="Quality tier from the material quality tier master (Grade A, Grade B, Grade C, Reusable, Standard).",
     )
-    # Backward-compatible computed field
-    color = fields.Selection(
-        [
-            ("CLEAR", "Clear"),
-            ("NATURAL", "Natural"),
-            ("WHITE", "White"),
-            ("BLACK", "Black"),
-            ("MIXED", "Mixed"),
-            ("BLUE", "Blue"),
-            ("BLUE_WHITE", "Blue/White"),
-            ("RED", "Red"),
-            ("GREEN", "Green"),
-            ("YELLOW", "Yellow"),
-            ("ORANGE", "Orange"),
-            ("GRAY", "Gray"),
-        ],
-        string="Color Code",
-        compute="_compute_color_code",
-        store=True,
-        help="Auto-populated from color_id. Kept for backward compatibility.",
+
+    # ── Color ──
+    color_ids = fields.Many2many(
+        "plasticos.material.color",
+        "plasticos_material_profile_color_rel",
+        "profile_id",
+        "color_id",
+        string="Color",
+        help="Every color this material names. More than one can be selected.",
     )
     color_flexibility = fields.Selection(
         [
@@ -285,8 +281,15 @@ class PlasticosMaterialProfile(models.Model):
         string="Density Max",
         help="Maximum acceptable density in g/cm³.",
     )
-    moisture_percent = fields.Float()
-    contamination_percent = fields.Float(index=True)
+    moisture_percent = fields.Float(
+        string="Moisture %",
+        help="Moisture content on a percent scale. 0.5 means 0.5% and 5 means 5%.",
+    )
+    contamination_percent = fields.Float(
+        string="Contamination %",
+        index=True,
+        help="Contamination on a percent scale. 0.5 means 0.5% and 5 means 5%. The high-contamination banner appears above 5.",
+    )
 
     # ── Volume / Supply Profile ──────────────────────────────
     quantity_per_load_lbs = fields.Float(
@@ -300,7 +303,18 @@ class PlasticosMaterialProfile(models.Model):
     avg_lot_size_lbs = fields.Float(index=True)
     min_lot_size_lbs = fields.Float()
     max_lot_size_lbs = fields.Float()
-    monthly_volume_lbs = fields.Float(index=True)
+    monthly_volume_lbs = fields.Float(
+        string="Monthly Volume Lbs",
+        compute="_compute_monthly_volume_lbs",
+        store=True,
+        index=True,
+        help="Quantity per Load (lbs) multiplied by Loads per Month.",
+    )
+
+    @api.depends("quantity_per_load_lbs", "loads_per_month")
+    def _compute_monthly_volume_lbs(self):
+        for rec in self:
+            rec.monthly_volume_lbs = monthly_volume_product(rec.quantity_per_load_lbs, rec.loads_per_month)
 
     frequency = fields.Selection(
         [
@@ -376,17 +390,6 @@ class PlasticosMaterialProfile(models.Model):
 
     # ── AI Enrichment ────────────────────────────────────────
     freeform_notes = fields.Text()
-    quality_tier = fields.Selection(
-        [
-            ("prime", "Prime"),
-            ("near_prime", "Near Prime"),
-            ("standard", "Standard"),
-            ("economy", "Economy"),
-            ("unknown", "Unknown"),
-        ],
-        string="Quality Tier",
-        help="AI-inferred quality tier based on material specifications.",
-    )
 
     # ── Navigation: Related Record Counts ──────────────────────
     # NOTE: intake_count is added by plasticos_intake module via inheritance
@@ -465,13 +468,6 @@ class PlasticosMaterialProfile(models.Model):
         for rec in self:
             code = rec.form_id.code if rec.form_id else False
             rec.form = code if code in valid_codes else False
-
-    @api.depends("color_id", "color_id.code")
-    def _compute_color_code(self):
-        valid_codes = {k for k, _ in self._fields["color"].selection}
-        for rec in self:
-            code = rec.color_id.code if rec.color_id else False
-            rec.color = code if code in valid_codes else False
 
     @api.depends("source_type_id", "source_type_id.code")
     def _compute_source_type_code(self):
@@ -614,6 +610,25 @@ class PlasticosMaterialProfile(models.Model):
             if rec.mfi_min and rec.mfi_max and rec.mfi_min > rec.mfi_max:
                 raise ValidationError(f"MFI min ({rec.mfi_min}) cannot be greater than max ({rec.mfi_max}).")
 
+    @api.model
+    def _plasticos_owner_fields(self):
+        """Fields of which at least one must be set: the profile's owner.
+
+        An inheriting module that adds another owner extends this tuple and
+        re-declares ``_check_profile_owner`` with its field in ``@api.constrains``.
+        """
+        return ("partner_id",)
+
+    def _plasticos_owner_error(self):
+        return "A material profile needs a facility partner."
+
+    @api.constrains("partner_id")
+    def _check_profile_owner(self):
+        owner_fields = self._plasticos_owner_fields()
+        for rec in self:
+            if not any(rec[name] for name in owner_fields):
+                raise ValidationError(rec._plasticos_owner_error())
+
     # ═════════════════════════════════════════════════════════
     # CRUD
     # ═════════════════════════════════════════════════════════
@@ -628,6 +643,9 @@ class PlasticosMaterialProfile(models.Model):
                 vals.get("material_grade_id"),
             )
         records = super().create(vals_list)
+        # @api.constrains runs only for fields present in the create values, so a
+        # create that names no owner field would otherwise skip the owner rule.
+        records._check_profile_owner()
         for record in records:
             record._emit_material_packet()
         return records
@@ -685,7 +703,7 @@ class PlasticosMaterialProfile(models.Model):
             "product_uom_id": product_uom_id,
             "material_profile_id": self.id,
             "material_grade_id": self.material_grade_id.id if self.material_grade_id else False,
-            "color_id": self.color_id.id if self.color_id else False,
+            "color_ids": [(6, 0, self.color_ids.ids)],
             "form_id": self.form_id.id if self.form_id else False,
             "packaging_type_id": self.packaging_type_id.id if self.packaging_type_id else False,
             "source_type_id": self.source_type_id.id if self.source_type_id else False,
@@ -721,8 +739,7 @@ class PlasticosMaterialProfile(models.Model):
                 "material_grade_name": rec.material_grade_id.name if rec.material_grade_id else None,
                 "form": rec.form_id.code if rec.form_id else None,
                 "form_name": rec.form_id.name if rec.form_id else None,
-                "color": rec.color_id.code if rec.color_id else None,
-                "color_name": rec.color_id.name if rec.color_id else None,
+                "colors": rec.color_ids.mapped("code"),
                 "attributes": rec.material_attribute_ids.mapped("code"),
                 "quality": {
                     "mfi": rec.melt_flow_index,
@@ -806,6 +823,21 @@ class PlasticosMaterialProfile(models.Model):
                 source_id,
                 self.id,
             )
+
+    def action_remove_profile(self):
+        """Delete this profile, or archive it when an approved lot still points at it."""
+        self.ensure_one()
+        self.check_access("read")
+        self.partner_id.check_access("read")
+        approval_model = "plasticos.opportunity.approval"
+        referenced = approval_model in self.env and self.env[approval_model].search_count(
+            [("material_profile_id", "=", self.id)]
+        )
+        if referenced:
+            self.write({"active": False})
+        else:
+            self.unlink()
+        return True
 
     def action_email_images(self):
         """Open email composer with material images pre-attached."""

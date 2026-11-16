@@ -14,13 +14,37 @@ class PlasticosWebLeadCRM(models.Model):
         index=True,
         ondelete="set null",
     )
+    opportunity_user_id = fields.Many2one(
+        "res.users",
+        string="Opportunity Salesperson",
+        related="crm_lead_id.user_id",
+        readonly=False,
+        ondelete="set null",
+        domain=[("share", "=", False)],
+        help="Salesperson on the opportunity. This is the commercial owner after the opportunity exists.",
+    )
+
+    def write(self, vals):
+        """Apply an opportunity salesperson edit before the processed-lead guard.
+
+        The queue field stays untouched. The stored salesperson is ``crm.lead.user_id``.
+        """
+        opportunity_user_set = "opportunity_user_id" in vals
+        opportunity_user_id = vals.pop("opportunity_user_id", False) if opportunity_user_set else False
+        result = super().write(vals)
+        if opportunity_user_set:
+            opportunities = self.mapped("crm_lead_id")
+            if opportunities:
+                opportunities.write({"user_id": opportunity_user_id})
+        return result
 
     def _create_crm_lead(self):
         """Called after HOT classification — creates one native crm.lead opportunity.
 
         HOT is a triage signal, not broker approval: the opportunity starts in
-        the seeded non-Won ``New`` stage, stays unassigned, and never creates a
-        partner. Submitted facts are copied as-is; estimates are labelled.
+        the seeded non-Won ``New`` stage and never creates a partner. It inherits
+        the web lead queue assignee when one was chosen, and stays unassigned
+        otherwise. Submitted facts are copied as-is; estimates are labelled.
 
         The material_profile_id from the linked intake is propagated to the
         crm.lead so brokers can see the normalised material specification
@@ -29,8 +53,8 @@ class PlasticosWebLeadCRM(models.Model):
         env.uid fix: the public webhook endpoint uses auth="none" which leaves
         env.uid=None even after sudo(). message_post calls env.user._is_public()
         which requires a singleton. We bind a known uid (SUPERUSER_ID) for all
-        mail-thread calls so the author is unambiguous. The crm.lead itself is
-        created without an assigned salesperson (user_id=False) as intended.
+        mail-thread calls so the author is unambiguous. The crm.lead itself inherits
+        the queue assignee. The webhook technical user is never the salesperson.
         """
         self.ensure_one()
         if self.crm_lead_id:
@@ -50,8 +74,8 @@ class PlasticosWebLeadCRM(models.Model):
             "source_id": source.id if source else False,
             "type": "opportunity",
             "stage_id": stage.id if stage else False,
-            # Never the webhook technical user; an operator assigns a salesperson.
-            "user_id": False,
+            # Queue assignee when an operator already chose one. Never the webhook user.
+            "user_id": self.assigned_user_id.id or False,
             # Only an already-linked partner is kept; none is created here.
             "partner_id": self.partner_id.id if self.partner_id else False,
             "source_intake_id": self.intake_id.id if self.intake_id else False,
@@ -65,7 +89,8 @@ class PlasticosWebLeadCRM(models.Model):
         # auth="none" leaves env.uid empty after sudo(). Lead creation, image
         # sync, and the opportunity note all reach mail.thread, which calls
         # env.user._is_public() and requires a singleton res.users. Bind that
-        # sequence to SUPERUSER_ID. The opportunity stays unassigned.
+        # sequence to SUPERUSER_ID. The opportunity salesperson is the inherited
+        # queue assignee, or nobody.
         actor = self.with_user(SUPERUSER_ID)
         lead = actor.env["crm.lead"].create(vals)
         actor.crm_lead_id = lead

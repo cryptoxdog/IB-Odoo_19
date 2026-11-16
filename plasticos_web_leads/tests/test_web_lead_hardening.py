@@ -11,6 +11,8 @@ from __future__ import annotations
 import json
 from unittest.mock import MagicMock, patch
 
+from lxml import etree
+
 from odoo.exceptions import AccessError, ConcurrencyError, UserError, ValidationError
 from odoo.tests import TransactionCase, tagged
 
@@ -129,8 +131,11 @@ class TestSnapshotApprovalAuthority(_WebLeadCase):
         lead = self._approved_hot_lead("HARD-SNAP-ACTION-001")
         lead.write({"review_notes": "Verified with the seller."})
 
-        action = lead.action_approve_for_commercial_preparation()
-        snapshot = self.env[action["res_model"]].browse(action["res_id"])
+        result = lead.action_approve_for_commercial_preparation()
+        # The broker stays on the lead: the action opens no snapshot screen.
+        self.assertIs(result, True)
+        snapshot = lead.review_snapshot_ids
+        self.assertEqual(len(snapshot), 1)
 
         self.assertEqual(lead.review_status, "approved")
         self.assertEqual(snapshot.web_lead_id, lead)
@@ -141,9 +146,9 @@ class TestSnapshotApprovalAuthority(_WebLeadCase):
         self.assertEqual(snapshot.content_hash, snapshot_content_hash(snapshot.snapshot_payload))
         self.assertEqual(snapshot.snapshot_payload["lead"]["lead_id"], lead.lead_id)
         self.assertEqual(snapshot.snapshot_payload["review_notes"], "Verified with the seller.")
-        # Re-approving an approved lead opens the existing evidence; it never mints a duplicate.
+        # A replayed or double-clicked approval is a no-op; it never mints a duplicate.
         again = lead.action_approve_for_commercial_preparation()
-        self.assertEqual(again["res_model"], snapshot._name)
+        self.assertIs(again, True)
         self.assertEqual(len(lead.review_snapshot_ids), 1)
         with self.assertRaises(UserError):
             snapshot.write({"content_hash": "tamper"})
@@ -172,6 +177,111 @@ class TestSnapshotApprovalAuthority(_WebLeadCase):
 
 
 @tagged("post_install", "-at_install", "plasticos", "web_lead", "hardening")
+class TestSilentApprovalEvidence(_WebLeadCase):
+    """Approval is one business action; its evidence is recorded without any snapshot interaction."""
+
+    _APPROVAL_MESSAGE = "is broker-approved only through its Approve action"
+
+    def test_reapproval_after_a_new_review_decision_mints_the_next_revision(self):
+        lead = self._approved_hot_lead("HARD-SILENT-REAPPROVE-001")
+        lead.action_approve_for_commercial_preparation()
+        first = lead.review_snapshot_ids
+        first_hash, first_payload = first.content_hash, dict(first.snapshot_payload)
+
+        lead.action_request_clarification()
+        self.assertEqual(lead.review_status, "clarification_required")
+        self.assertEqual(lead.review_snapshot_ids, first, "clarification records no approval evidence")
+        lead.write({"review_notes": "Seller confirmed the corrected weight."})
+        lead.action_approve_for_commercial_preparation()
+
+        self.assertEqual(lead.review_status, "approved")
+        self.assertEqual(sorted(lead.review_snapshot_ids.mapped("revision")), [1, 2])
+        self.assertEqual(first.content_hash, first_hash, "the earlier revision is unchanged")
+        self.assertEqual(dict(first.snapshot_payload), first_payload)
+        latest = lead.review_snapshot_ids.filtered(lambda snap: snap.revision == 2)
+        self.assertEqual(latest.snapshot_payload["review_notes"], "Seller confirmed the corrected weight.")
+
+    def test_reject_records_no_approval_evidence(self):
+        lead = self._approved_hot_lead("HARD-SILENT-REJECT-001")
+        lead.action_reject_after_review()
+        self.assertEqual(lead.review_status, "rejected")
+        self.assertFalse(lead.review_snapshot_ids)
+
+    def test_direct_status_write_cannot_approve(self):
+        lead = self._approved_hot_lead("HARD-SILENT-BYPASS-001")
+        with self.assertRaisesRegex(AccessError, self._APPROVAL_MESSAGE):
+            lead.write({"review_status": "approved"})
+        with self.assertRaisesRegex(AccessError, self._APPROVAL_MESSAGE):
+            lead.sudo().write({"review_status": "approved"})
+        with self.assertRaisesRegex(AccessError, self._APPROVAL_MESSAGE):
+            lead.with_user(self.internal_user).sudo().write({"review_status": "approved"})
+        lead.invalidate_recordset()
+        self.assertNotEqual(lead.review_status, "approved")
+        self.assertFalse(lead.review_snapshot_ids)
+
+    def test_rpc_context_cannot_forge_the_approval_token(self):
+        lead = self._approved_hot_lead("HARD-SILENT-RPC-001")
+        # A JSON-RPC client can send only JSON values in a context; none is the token.
+        for forged in (True, 1, "token", {"token": True}):
+            with self.assertRaisesRegex(AccessError, self._APPROVAL_MESSAGE):
+                lead.with_context(plasticos_web_leads_approval_status_write=forged).write({"review_status": "approved"})
+        with self.assertRaisesRegex(AccessError, self._APPROVAL_MESSAGE):
+            self.WebLead.create({"lead_id": "HARD-SILENT-RPC-CREATE-001", "review_status": "approved"})
+        lead.invalidate_recordset()
+        self.assertNotEqual(lead.review_status, "approved")
+        self.assertFalse(lead.review_snapshot_ids)
+
+    def test_rewriting_approved_on_an_approved_lead_is_not_a_transition(self):
+        lead = self._approved_hot_lead("HARD-SILENT-REPLAY-001")
+        lead.action_approve_for_commercial_preparation()
+        lead.write({"review_status": "approved"})  # e.g. a triage replay keeps the existing status
+        self.assertEqual(lead.review_status, "approved")
+        self.assertEqual(len(lead.review_snapshot_ids), 1)
+
+    def test_failed_evidence_leaves_no_approval(self):
+        lead = self._approved_hot_lead("HARD-SILENT-EVIDENCE-FAIL-001")
+        with (
+            patch.object(
+                type(self.Snapshot), "_record_broker_approval", side_effect=ValidationError("evidence refused")
+            ),
+            self.assertRaises(ValidationError),
+        ):
+            lead.action_approve_for_commercial_preparation()
+        lead.invalidate_recordset()
+        self.assertNotEqual(lead.review_status, "approved")
+        self.assertFalse(lead.review_snapshot_ids)
+
+    def test_failure_after_evidence_rolls_back_the_evidence_too(self):
+        lead = self._approved_hot_lead("HARD-SILENT-ATOMIC-001")
+        # Odoo's assertRaises runs its block in a savepoint, standing in for the
+        # request transaction: a failure after the snapshot was minted must take
+        # both the snapshot and the approved status with it.
+        with (
+            patch.object(type(lead), "message_post", side_effect=UserError("late failure")),
+            self.assertRaises(UserError),
+        ):
+            lead.action_approve_for_commercial_preparation()
+        self.env.invalidate_all()
+        self.assertNotEqual(lead.review_status, "approved")
+        self.assertEqual(self.Snapshot.search_count([("web_lead_id", "=", lead.id)]), 0)
+
+    def test_composed_form_has_no_snapshot_interaction(self):
+        arch = etree.fromstring(self.WebLead.get_views([(False, "form")])["views"]["form"]["arch"])
+        approve = arch.xpath("//button[@name='action_approve_for_commercial_preparation']")
+        self.assertEqual(len(approve), 1)
+        self.assertEqual(approve[0].get("string"), "Approve")
+        self.assertIsNone(approve[0].get("confirm"), "approval asks no snapshot confirmation")
+        self.assertFalse(arch.xpath("//button[@name='action_view_review_snapshots']"))
+        self.assertFalse(arch.xpath("//field[@name='review_snapshot_count']"))
+        self.assertFalse(arch.xpath("//field[@name='review_snapshot_ids']"))
+        self.assertNotIn("Snapshot", etree.tostring(arch, encoding="unicode"))
+        status_fields = arch.xpath("//field[@name='review_status']")
+        self.assertTrue(status_fields)
+        for node in status_fields:
+            self.assertIn(node.get("readonly"), ("1", "True", "true"), "approval status is not hand-editable")
+
+
+@tagged("post_install", "-at_install", "plasticos", "web_lead", "hardening")
 class TestAcquisitionSecretsAndDestinations(_WebLeadCase):
     """F187-02 / F187-03 / F187-05 through the real pipeline."""
 
@@ -182,14 +292,19 @@ class TestAcquisitionSecretsAndDestinations(_WebLeadCase):
             captured["prompt"] = user_prompt
             return {"polymer": "HDPE", "confidence": 0.9}, {"tokens": 1}
 
-        self.config.write({"ai_enabled": True, "openai_api_key": "test-key-not-real"})
+        previous_text_provider = self.config.text_inference_provider
+        self.config.write(
+            {"ai_enabled": True, "openai_api_key": "test-key-not-real", "text_inference_provider": "openai"}
+        )
         try:
             with patch(
                 "odoo.addons.plasticos_web_leads.models.ai_normalizer.call_structured_text", _fake_structured_text
             ):
                 lead = self._approved_hot_lead("HARD-SECRET-001", [_image_attachment()])
         finally:
-            self.config.write({"ai_enabled": False, "openai_api_key": False})
+            self.config.write(
+                {"ai_enabled": False, "openai_api_key": False, "text_inference_provider": previous_text_provider}
+            )
 
         self.assertIn("prompt", captured, "text normalization ran")
         self.assertNotIn("SECRET-SIGNED-TOKEN", captured["prompt"])
@@ -204,8 +319,9 @@ class TestAcquisitionSecretsAndDestinations(_WebLeadCase):
             self.Attachment.search_count([("res_model", "=", "plasticos.web.lead"), ("res_id", "=", lead.id)]), 1
         )
 
-        action = lead.action_approve_for_commercial_preparation()
-        snapshot = self.env[action["res_model"]].browse(action["res_id"])
+        lead.action_approve_for_commercial_preparation()
+        snapshot = lead.review_snapshot_ids
+        self.assertEqual(len(snapshot), 1)
         serialized = json.dumps(snapshot.snapshot_payload)
         self.assertNotIn("SECRET-SIGNED-TOKEN", serialized)
         self.assertNotIn("source_url", serialized)
@@ -310,7 +426,7 @@ class TestHotReviewerRouting(_WebLeadCase):
         self.assertTrue(lead.intake_id)
         self.assertEqual(lead.state, "intake_created")
         self.assertEqual(lead.mack_review_state, "blocked")
-        self.assertIn("not configured", lead.mack_review_reason.lower())
+        self.assertIn("no web-lead reviewer is configured", lead.mack_review_reason.lower())
         self.assertFalse(lead.intake_id.activity_ids)
         self.assertFalse(
             self.env["mail.activity"].search_count(

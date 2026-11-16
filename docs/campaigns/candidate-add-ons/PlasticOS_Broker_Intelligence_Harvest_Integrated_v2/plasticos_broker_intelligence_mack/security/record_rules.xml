@@ -1,0 +1,8 @@
+<odoo>
+  <record id="rule_broker_consultation_owner_company" model="ir.rule">
+    <field name="name">Mack consultations: only original broker and permitted company</field>
+    <field name="model_id" ref="model_plasticos_broker_consultation"/>
+    <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    <field name="domain_force">[('actor_id', '=', user.id), ('company_id', 'in', company_ids)]</field>
+  </record>
+</odoo>

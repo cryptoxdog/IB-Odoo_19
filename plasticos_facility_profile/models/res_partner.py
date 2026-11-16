@@ -1,9 +1,20 @@
 import base64
 
 from odoo import api, fields, models, tools
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, ValidationError
 
 from ..address_meaning import address_type_meaning
+
+# Commercial documents that keep a closed location in history instead of a delete.
+_LOCATION_REFERENCE_MODELS = (
+    ("sale.order", ("partner_id", "partner_invoice_id", "partner_shipping_id")),
+    ("purchase.order", ("partner_id",)),
+    ("account.move", ("partner_id",)),
+    ("stock.picking", ("partner_id",)),
+    ("crm.lead", ("partner_id",)),
+    ("plasticos.intake", ("partner_id", "facility_id")),
+    ("plasticos.opportunity.approval", ("partner_id",)),
+)
 
 
 class ResPartner(models.Model):
@@ -331,12 +342,12 @@ class ResPartner(models.Model):
         help="Last word of a person's name. Blank on a company, a location, or a one-word name.",
     )
     linked_person_email = fields.Char(
-        string="Email",
+        string="Linked Person Email",
         compute="_compute_linked_person_channels",
         help="A location's own email, or the email of the first linked person when the location has none.",
     )
     linked_person_mobile = fields.Char(
-        string="Mobile",
+        string="Linked Person Mobile",
         compute="_compute_linked_person_channels",
         help="A location's own mobile, or the mobile of the first linked person when the location has none.",
     )
@@ -405,6 +416,53 @@ class ResPartner(models.Model):
             partner.linked_person_email = email
             partner.linked_person_mobile = mobile
 
+    def _plasticos_child_contacts(self):
+        """People parented here, excluding locations and non-contact addresses."""
+        self.ensure_one()
+        return self.child_ids.filtered(lambda child: not child.is_company and child.type in ("contact", False))
+
+    def _plasticos_reach_candidates(self):
+        """People who may be reached for this partner. Empty means do not guess.
+
+        A location uses its People list. With nobody linked, one child contact
+        is that child, and several child contacts are left for the broker.
+        No child contact falls back to the parent company's people. A company
+        with no parent is chosen only when it has exactly one child contact.
+        """
+        self.ensure_one()
+        if not self.is_company:
+            return self
+        if self.parent_id:
+            if self.site_person_ids:
+                return self.site_person_ids
+            children = self._plasticos_child_contacts()
+            if len(children) == 1:
+                return children
+            if children:
+                return self.browse()
+            return self.parent_id._plasticos_child_contacts()
+        children = self._plasticos_child_contacts()
+        if len(children) == 1:
+            return children
+        return self.browse()
+
+    def _plasticos_reach_person(self):
+        """The person whose name and email follow this partner onto a lead and an intake.
+
+        ``preferred_contact_id`` wins only when it is already one of the candidates.
+        Otherwise the first candidate with an email wins, matching the location
+        header. A linked person with no email is still returned: the parent is
+        not used while anyone is linked.
+        """
+        self.ensure_one()
+        candidates = self._plasticos_reach_candidates()
+        if not candidates:
+            return self.browse()
+        preferred = self.preferred_contact_id
+        if preferred and preferred in candidates:
+            return preferred
+        return candidates.filtered("email")[:1] or candidates[:1]
+
     def _salesperson_from_parent(self):
         """The parent's salesperson, or the parent's parent when the parent has none."""
         self.ensure_one()
@@ -415,6 +473,11 @@ class ResPartner(models.Model):
             return parent.parent_id.user_id
         return self.env["res.users"]
 
+    # Base declares user_id with compute="_compute_user_id". The override below
+    # depends on parent_id.user_id, the field itself, so Odoo requires
+    # recursive=True; without it the registry sets the flag and logs a UserWarning.
+    user_id = fields.Many2one(recursive=True)
+
     @api.depends("parent_id", "parent_id.user_id", "parent_id.parent_id.user_id")
     def _compute_user_id(self):
         """A child takes the company salesperson. An empty parent salesperson is left alone."""
@@ -424,6 +487,37 @@ class ResPartner(models.Model):
             source = partner._salesperson_from_parent()
             if source:
                 partner.user_id = source
+
+    property_supplier_payment_term_id = fields.Many2one(
+        compute="_compute_supplier_payment_term_id",
+        store=True,
+        readonly=False,
+        recursive=True,
+    )
+
+    def _supplier_payment_term_from_parent(self):
+        """The parent's vendor term, or the parent's parent when the parent has none."""
+        self.ensure_one()
+        parent = self.parent_id
+        if parent.property_supplier_payment_term_id:
+            return parent.property_supplier_payment_term_id
+        if parent.parent_id.property_supplier_payment_term_id:
+            return parent.parent_id.property_supplier_payment_term_id
+        return self.env["account.payment.term"]
+
+    @api.depends(
+        "parent_id",
+        "parent_id.property_supplier_payment_term_id",
+        "parent_id.parent_id.property_supplier_payment_term_id",
+    )
+    def _compute_supplier_payment_term_id(self):
+        """A child takes the company vendor term. An empty ancestor term is left alone."""
+        for partner in self:
+            if not partner.parent_id:
+                continue
+            source = partner._supplier_payment_term_from_parent()
+            if source:
+                partner.property_supplier_payment_term_id = source
 
     @api.depends("phone_line_ids.label", "phone_line_ids.number")
     def _compute_mobile(self):
@@ -474,6 +568,54 @@ class ResPartner(models.Model):
     def _compute_location_child_ids(self):
         for partner in self:
             partner.location_child_ids = partner.child_ids.filtered("is_company")
+
+    def _location_reference_count(self, model_name, field_names):
+        """How many installed-model rows point at this location. No elevated read."""
+        self.ensure_one()
+        if model_name not in self.env:
+            return 0
+        model = self.env[model_name].with_context(active_test=False)
+        names = [name for name in field_names if name in model._fields]
+        if not names:
+            return 0
+        domain = [(name, "=", self.id) for name in names]
+        if len(domain) > 1:
+            domain = ["|"] * (len(domain) - 1) + domain
+        return model.search_count(domain)
+
+    def _location_is_referenced(self):
+        """True when people, profiles, or commercial documents still use this location."""
+        self.ensure_one()
+        partners = self.env["res.partner"].with_context(active_test=False)
+        if partners.search_count([("parent_id", "=", self.id)]):
+            return True
+        location = self.with_context(active_test=False)
+        if location.site_person_ids or location.material_profile_ids or location.facility_profile_ids:
+            return True
+        return any(
+            self._location_reference_count(model_name, field_names)
+            for model_name, field_names in _LOCATION_REFERENCE_MODELS
+        )
+
+    def action_remove_location(self):
+        """Delete an unused child location, or archive one that history still uses.
+
+        The row leaves the company Locations list either way. The parent company
+        itself is refused.
+        """
+        self.ensure_one()
+        self.check_access("read")
+        parent = self.parent_id
+        parent.check_access("read")
+        if not self.is_company or not parent:
+            raise UserError("Only a location of a company can be removed from this list.")
+        referenced = self._location_is_referenced()
+        elevated = self.sudo()  # sudo: caller read this child location and lacks partner unlink
+        if referenced:
+            elevated.write({"active": False, "entity_status": "inactive"})
+        else:
+            elevated.unlink()
+        return True
 
     def _avatar_get_placeholder_path(self):
         if self.is_company:

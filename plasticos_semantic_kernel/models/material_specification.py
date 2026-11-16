@@ -68,10 +68,12 @@ class PlasticosMaterialSpecification(models.Model):
         ondelete="restrict",
         tracking=True,
     )
-    color_id = fields.Many2one(
+    color_ids = fields.Many2many(
         "plasticos.material.color",
-        ondelete="restrict",
-        index=True,
+        "plasticos_material_spec_color_rel",
+        "specification_id",
+        "color_id",
+        string="Color",
     )
     source_type_id = fields.Many2one(
         "plasticos.source.type",

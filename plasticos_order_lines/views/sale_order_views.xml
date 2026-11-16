@@ -26,7 +26,7 @@
       <!-- Add material fields after product in line form -->
       <xpath expr="//field[@name='order_line']/list/field[@name='product_id']" position="after">
         <field name="material_grade_id" optional="show"/>
-        <field name="color_id" optional="show"/>
+        <field name="color_ids" widget="many2many_tags" optional="show"/>
         <field name="form_id" optional="show"/>
         <field name="packaging_type_id" optional="hide"/>
         <field name="source_type_id" optional="hide"/>
@@ -47,15 +47,14 @@
     <field name="arch" type="xml">
       <xpath expr="//search" position="inside">
         <field name="material_grade_id" string="Material Grade"/>
-        <field name="color_id" string="Color"/>
+        <field name="color_ids" string="Color"/>
         <field name="form_id" string="Form"/>
         <field name="packaging_type_id" string="Packaging"/>
         <field name="source_type_id" string="Source"/>
         <field name="filler_type_id" string="Filler"/>
         <field name="material_attribute_ids" string="Attributes"/>
-        <filter string="Has Color" name="has_color" domain="[('color_id', '!=', False)]"/>
+        <filter string="Has Color" name="has_color" domain="[('color_ids', '!=', False)]"/>
         <filter string="Has Form" name="has_form" domain="[('form_id', '!=', False)]"/>
-        <filter string="Color" name="group_color" context="{'group_by': 'color_id'}"/>
         <filter string="Form" name="group_form" context="{'group_by': 'form_id'}"/>
         <filter string="Packaging" name="group_packaging" context="{'group_by': 'packaging_type_id'}"/>
         <filter string="Material Grade" name="group_material_grade" context="{'group_by': 'material_grade_id'}"/>

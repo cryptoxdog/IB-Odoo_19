@@ -2,20 +2,24 @@
 
 Copied once from the linked material profile. Later edits stay on this row.
 They never write ``plasticos.material.profile`` or its image attachments.
-The approved lot stays frozen; this copy is the broker's working sheet.
+This copy is the broker's working sheet and the material authority of the
+pursuit: Gate matching freezes it into an approved lot when matching starts,
+and manual offers and the release read it. A frozen lot never changes after
+a later edit here; the next match freezes the edited sheet as a new lot.
 """
 
 from __future__ import annotations
 
 from odoo import _, api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
+
+SUPPLIER_OFFER_OPTIONAL = "plasticos_supplier_offer_optional"
 
 PROFILE_MODEL = "plasticos.material.profile"
 RELATION_FIELDS = (
     "polymer_id",
     "material_grade_id",
     "form_id",
-    "color_id",
     "packaging_type_id",
     "source_type_id",
     "filler_type_id",
@@ -34,7 +38,6 @@ SCALAR_FIELDS = (
 )
 LINE_SPEC_FIELDS = (
     "material_grade_id",
-    "color_id",
     "form_id",
     "packaging_type_id",
     "source_type_id",
@@ -61,6 +64,10 @@ class PlasticosOpportunityMaterial(models.Model):
     _rec_name = "display_name"
 
     _unique_opportunity_material = models.UniqueIndex("(opportunity_id)")
+    _check_buy_price_non_negative = models.Constraint(
+        "check(buy_price_per_lb >= 0)",
+        "Offer price cannot be negative.",
+    )
 
     display_name = fields.Char(compute="_compute_display_name", store=True)
     opportunity_id = fields.Many2one(
@@ -99,12 +106,13 @@ class PlasticosOpportunityMaterial(models.Model):
         ondelete="restrict",
         help="Form on this opportunity's own material copy.",
     )
-    color_id = fields.Many2one(
+    color_ids = fields.Many2many(
         "plasticos.material.color",
+        "plasticos_opportunity_material_color_rel",
+        "material_id",
+        "color_id",
         string="Color",
-        index=True,
-        ondelete="restrict",
-        help="Color on this opportunity's own material copy.",
+        help="Every color on this opportunity's own material copy.",
     )
     packaging_type_id = fields.Many2one(
         "plasticos.packaging.type",
@@ -140,6 +148,11 @@ class PlasticosOpportunityMaterial(models.Model):
     quantity_per_load_lbs = fields.Float(
         string="Quantity per Load (lbs)", help="Supply quantity copied onto the opportunity."
     )
+    buy_price_per_lb = fields.Float(
+        string="Offer Price",
+        digits=(10, 4),
+        help="Supplier price per pound for this pursuit. The material profile does not store it.",
+    )
     loads_per_month = fields.Integer(string="Loads per Month", help="Monthly loads copied onto the opportunity.")
     lat = fields.Float(string="Latitude", digits=(10, 7), help="Latitude copied onto the opportunity.")
     lon = fields.Float(string="Longitude", digits=(10, 7), help="Longitude copied onto the opportunity.")
@@ -166,26 +179,88 @@ class PlasticosOpportunityMaterial(models.Model):
             rec.display_name = name or _("Opportunity material")
 
     @api.model
-    def copy_from_profile(self, opportunity, profile):
-        """Copy ``profile`` onto ``opportunity`` once. Never writes the profile."""
-        opportunity.ensure_one()
+    def _vals_from_profile(self, profile, opportunity):
+        """Specification and weight for one new line. The profile has no price to copy."""
         profile.ensure_one()
-        if opportunity.opportunity_material_ids:
-            return opportunity.opportunity_material_ids[:1]
         vals = {
-            "opportunity_id": opportunity.id,
             "source_profile_id": profile.id,
             "freeform_notes": profile.freeform_notes or False,
             "material_attribute_ids": [(6, 0, profile.material_attribute_ids.ids)],
+            "color_ids": [(6, 0, profile.color_ids.ids)],
         }
         for name in RELATION_FIELDS:
             related = profile[name]
             vals[name] = related.id if related else False
         for name in SCALAR_FIELDS:
             vals[name] = profile[name]
-        material = self.create(vals)
-        material._copy_profile_images(profile)
+        intake = opportunity.source_intake_id[:1] if opportunity else self.env["plasticos.intake"]
+        from odoo.addons.plasticos_intake.source_origin import downstream_coordinates
+
+        lat, lon = downstream_coordinates(
+            profile.lat,
+            profile.lon,
+            intake.lat if intake else 0.0,
+            intake.lon if intake else 0.0,
+        )
+        vals["lat"] = lat
+        vals["lon"] = lon
+        return vals
+
+    @api.model
+    def copy_from_profile(self, opportunity, profile):
+        """Copy ``profile`` onto ``opportunity`` once. Never writes the profile."""
+        opportunity.ensure_one()
+        profile.ensure_one()
+        if opportunity.opportunity_material_ids:
+            return opportunity.opportunity_material_ids[:1]
+        vals = self._vals_from_profile(profile, opportunity)
+        vals["opportunity_id"] = opportunity.id
+        material = self.with_context(**{SUPPLIER_OFFER_OPTIONAL: True}).create(vals)
+        intake = opportunity.source_intake_id
+        if intake:
+            address = {}
+            if not opportunity.street and intake.source_street:
+                address["street"] = intake.source_street
+            if not opportunity.city and intake.source_city:
+                address["city"] = intake.source_city
+            if not opportunity.zip and intake.source_zip:
+                address["zip"] = intake.source_zip
+            if address:
+                opportunity.write(address)
         return material
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+        for record, vals in zip(records, vals_list, strict=True):
+            if record.source_profile_id and "image_attachment_ids" not in vals:
+                record._copy_profile_images(record.source_profile_id)
+        records._plasticos_sync_expected_revenue()
+        return records
+
+    def write(self, vals):
+        res = super().write(vals)
+        if {"buy_price_per_lb", "quantity_per_load_lbs"} & set(vals):
+            self._plasticos_sync_expected_revenue()
+        return res
+
+    def _plasticos_sync_expected_revenue(self):
+        """One load's weight times the supplier price. Monthly volume is not revenue."""
+        for material in self:
+            opportunity = material.opportunity_id
+            if not opportunity:
+                continue
+            revenue = (material.quantity_per_load_lbs or 0.0) * (material.buy_price_per_lb or 0.0)
+            if opportunity.expected_revenue != revenue:
+                opportunity.expected_revenue = revenue
+
+    @api.constrains("buy_price_per_lb", "opportunity_id")
+    def _require_positive_offer_when_profile_backed(self):
+        if self.env.context.get(SUPPLIER_OFFER_OPTIONAL):
+            return
+        for material in self:
+            if material.opportunity_id.material_profile_id and material.buy_price_per_lb <= 0:
+                raise ValidationError(_("Enter the supplier offer price before saving this opportunity."))
 
     def _copy_profile_images(self, profile):
         """Duplicate image attachments. The new rows are not the profile's files."""
@@ -233,4 +308,6 @@ class PlasticosOpportunityMaterial(models.Model):
             vals[name] = related.id if related else False
         if "material_attribute_ids" in present:
             vals["material_attribute_ids"] = [(6, 0, self.material_attribute_ids.ids)]
+        if "color_ids" in present:
+            vals["color_ids"] = [(6, 0, self.color_ids.ids)]
         return vals

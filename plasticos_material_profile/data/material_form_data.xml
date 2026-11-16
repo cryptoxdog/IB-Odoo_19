@@ -15,6 +15,7 @@
       <field name="code">BALES</field>
       <field name="description">Compressed bales of material (common for scrap).</field>
       <field name="sequence">5</field>
+      <field name="active" eval="False"/>
     </record>
     <record id="form_film" model="plasticos.material.form">
       <field name="name">Film</field>
@@ -51,6 +52,12 @@
       <field name="code">PURGE</field>
       <field name="description">Material purged from extruders or molding machines during color/material changes.</field>
       <field name="sequence">60</field>
+    </record>
+    <record id="form_repro" model="plasticos.material.form">
+      <field name="name">Repro</field>
+      <field name="code">REPRO</field>
+      <field name="description">Reprocessed plastic.</field>
+      <field name="sequence">55</field>
     </record>
     <record id="form_chopped" model="plasticos.material.form">
       <field name="name">Chopped</field>

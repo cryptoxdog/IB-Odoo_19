@@ -23,7 +23,7 @@ Do NOT infer carrier confirmation, completed gate-in, customs filing, official B
 
 ## v1.6.0 supplemental private fixture set
 
-- `PRIVATE_OPERATOR_CASE_PO64014/` preserves eleven exact user-provided originals (emails, original booking PDFs, three later same-number booking variants, scale ticket, load spreadsheet, forwarding email screenshot). This directory **MUST NOT be committed to the repository** or published.
-- Same-booking version evidence: `SOURCE_CASE_BOOKING_6509024800_REVISIONS.md` and the case-specific original hashes in `PRIVATE_OPERATOR_CASE_PO64014/SOURCE_INVENTORY.json`.
+- The eleven PO 64014 originals (emails, original booking PDFs, three later same-number booking variants, scale ticket, load spreadsheet, forwarding email screenshot), with their private README and source inventory, were removed from the repository on 2026-11-12 by operator decision. The operator holds them privately. Repository history was not rewritten. The former folder is git-ignored so the originals are not committed again.
+- Same-booking version evidence: `SOURCE_CASE_BOOKING_6509024800_REVISIONS.md`. The case-specific original hashes are held privately with the originals.
 - The historical image previously named as the forbidden legacy vendor plus ` container report.png` is now `legacy_container_report.png`; raw binary SHA-256 remains `322efa729218e3993bba7a9b3ea304fd46f3274c95de7800c9a9661625ed5f23`. This is a neutral source label, not falsification of the original artwork.
 - Any future generated CI fixtures must be sanitized, approved and distinct from the originals; source file presence is not live-Odoo evidence.

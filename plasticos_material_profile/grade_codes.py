@@ -38,6 +38,7 @@ GRADE_CODES: tuple[str, ...] = (
     "RETURNS",
     "DUNNAGE",
     "STRETCH_FILM",
+    "SHRINK_WRAP",
     "SILAGE_FILM",
     "NURSERY_FILM",
     "OCC",

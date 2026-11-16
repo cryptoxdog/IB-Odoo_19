@@ -1,0 +1,8 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_broker_knowledge_user,broker.knowledge.user,model_plasticos_broker_knowledge,base.group_user,1,0,0,0
+access_broker_knowledge_reviewer,broker.knowledge.reviewer,model_plasticos_broker_knowledge,plasticos_broker_intelligence.group_broker_reviewer,1,1,1,0
+access_broker_audit_user,broker.audit.user,model_plasticos_broker_review_event,base.group_user,1,0,0,0
+access_broker_audit_admin,broker.audit.system,model_plasticos_broker_review_event,base.group_system,1,0,0,0
+access_broker_feedback_user,broker.feedback.user,model_plasticos_broker_feedback,base.group_user,1,0,1,0
+access_broker_advice_wizard,broker.advice.wizard,model_plasticos_broker_advice_wizard,base.group_user,1,1,1,1
+access_broker_retire_wizard,broker.retire.wizard,model_plasticos_broker_retire_wizard,plasticos_broker_intelligence.group_broker_reviewer,1,1,1,1

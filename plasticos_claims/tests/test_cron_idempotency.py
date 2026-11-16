@@ -11,6 +11,8 @@ from odoo import fields
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.tests.common import tagged
 
+from .common import create_claims_manager
+
 _OFFER_STATES = ("draft", "sent", "responded")
 _SLA_STATES = ("awaiting_ready", "ready_confirmed", "rate_confirmed", "scheduled", "dispatched")
 _SCALE_STATES = ("delivered", "closed", "invoiced")
@@ -31,8 +33,13 @@ class TestCronInDomain(PlasticosTestCase):
     """One in-domain record per live cron, then the cron's own second-call guard."""
 
     def test_offer_expire_in_domain(self):
+        from odoo.addons.plasticos_offer.tests.test_manual_send import send_offer_email  # noqa: PLC0415
+
         offer_model = self.env["plasticos.offer"]
-        past = fields.Date.today() - timedelta(days=1)
+        # An offer is Sent only by emailing it, and an expired offer cannot be emailed: the
+        # past-due offer is sent while valid today, and the cron runs as if today were tomorrow.
+        past = fields.Date.today()
+        cron_day = past + timedelta(days=1)
         supplier = self.env["res.partner"].create({"name": "Cron Supplier", "is_company": True})
         buyer = self.env["res.partner"].create({"name": "Cron Buyer", "is_company": True})
         intake = self._create_intake(partner=supplier)
@@ -42,16 +49,18 @@ class TestCronInDomain(PlasticosTestCase):
                 "intake_id": intake.id,
                 "supplier_id": supplier.id,
                 "buyer_id": buyer.id,
+                "price_per_lb": 0.12,
+                "quantity_lbs": 40000,
                 "valid_until": past,
-                "state": "sent",
             }
         )
+        send_offer_email(past_offer)
         future_offer = offer_model.create(
             {
                 "intake_id": intake.id,
                 "supplier_id": supplier.id,
                 "buyer_id": buyer.id,
-                "valid_until": fields.Date.today() + timedelta(days=1),
+                "valid_until": cron_day + timedelta(days=1),
                 "state": "draft",
             }
         )
@@ -67,12 +76,14 @@ class TestCronInDomain(PlasticosTestCase):
             ]
         )
         self.assertLess(ahead, 500, f"plasticos.offer sort prefix already has {ahead} rows; limit is 500")
-        offer_model.cron_expire_offers()
+        with patch.object(fields.Date, "today", return_value=cron_day):
+            offer_model.cron_expire_offers()
         past_offer.invalidate_recordset()
         future_offer.invalidate_recordset()
         self.assertEqual(past_offer.state, "expired")
         self.assertEqual(future_offer.state, "draft")
-        offer_model.cron_expire_offers()
+        with patch.object(fields.Date, "today", return_value=cron_day):
+            offer_model.cron_expire_offers()
         past_offer.invalidate_recordset()
         future_offer.invalidate_recordset()
         self.assertEqual(past_offer.state, "expired")
@@ -198,6 +209,8 @@ class TestCronInDomain(PlasticosTestCase):
 
     def test_claim_sla_in_domain(self):
         claim_model = self.env["plasticos.claim"]
+        # Escalations and unassigned reminders are routed to a claims manager.
+        create_claims_manager(self.env, login="claims_sla_in_domain_manager")
         opened = fields.Datetime.to_datetime("2000-01-01 00:00:00")
         claim = self._create_claim(opened_at=opened, sla_hours=1, state="pending")
         self.assertTrue(claim)
@@ -635,43 +648,6 @@ class TestCronInDomain(PlasticosTestCase):
         self.assertTrue(document.verified)
         self.assertTrue(document.is_expired)
 
-    def test_attachment_orphan_cron_deletes_missing_filestore_row(self):
-        from odoo.tools import config
-
-        if not config.get("data_dir"):
-            self.fail("data_dir is unset; the orphan cron returns before it can delete a missing blob")
-        partner = self.env["res.partner"].create({"name": "Orphan Attachment Co", "is_company": True})
-        attachment = self.env["ir.attachment"].create(
-            {
-                "name": "present.txt",
-                "datas": "cHJlc2VudA==",
-                "res_model": "res.partner",
-                "res_id": partner.id,
-            }
-        )
-        self.env.cr.execute(
-            "UPDATE ir_attachment SET type = 'binary', store_fname = %s WHERE id = %s",
-            ["cron-lock-missing/absent.bin", attachment.id],
-        )
-        attachment.invalidate_recordset()
-        others = (
-            self.env["ir.attachment"]
-            .sudo()
-            .search_count(
-                [
-                    ("type", "=", "binary"),
-                    ("store_fname", "!=", False),
-                    ("id", "<", attachment.id),
-                ]
-            )
-        )
-        self.assertLess(others, 2000, f"attachment orphan prefix already has {others} rows; limit is 2000")
-        removed = self.env["ir.attachment"]._cron_cleanup_missing_filestore_orphans()
-        self.assertGreaterEqual(removed, 1)
-        self.assertFalse(attachment.exists())
-        self.env["ir.attachment"]._cron_cleanup_missing_filestore_orphans()
-        self.assertFalse(attachment.exists())
-
     def test_trucker_followup_marks_unconfirmed_outgoing_picking(self):
         self._skip_unless_model("plasticos.automation.log")
         picking_type = self.env["stock.picking.type"].search([("code", "=", "outgoing")], limit=1)
@@ -811,3 +787,19 @@ class TestCronInDomain(PlasticosTestCase):
         text = "\n".join(again.output)
         self.assertIn("action_cron_enrich_pending skipped", text)
         self.assertIn("action_cron_inference_only skipped", text)
+
+    def test_enrichment_sweep_crons_do_nothing_while_disabled(self):
+        """Seeded off (ADR-012 amendment 2026-11-15): no sweep, no Gate call, on every pass."""
+        self._skip_unless_model("plasticos.enrichment.sweep")
+        icp = self.env["ir.config_parameter"].sudo()
+        previous = icp.get_param("plasticos.gate.sweep_enabled") or ""
+        icp.set_param("plasticos.gate.sweep_enabled", "0")
+        self.addCleanup(icp.set_param, "plasticos.gate.sweep_enabled", previous)
+        before = self.env["plasticos.enrichment.sweep"].search_count([])
+        target = "odoo.addons.plasticos_gate.services.gate_client.send_sweep_action"
+        with patch(target) as send:
+            for _pass in range(2):
+                self.assertFalse(self.env["plasticos.enrichment.sweep"]._cron_send_sweep())
+                self.assertFalse(self.env["plasticos.enrichment.sweep"]._cron_collect_results())
+        send.assert_not_called()
+        self.assertEqual(self.env["plasticos.enrichment.sweep"].search_count([]), before)

@@ -5,7 +5,7 @@ Modules that inherit plasticos.intake:
   - plasticos_offer (intake_offers_bridge.py)
   - plasticos_matching (intake_extension.py — action_match_to_buyers override)
   - plasticos_intake_normalizer (intake_normalizer.py)
-  - plasticos_geolocalize (intake_geo.py)
+  - plasticos_geolocalize (material_profile_geo.py — profile coordinates follow the location)
   - plasticos_web_leads (web_lead_bridge.py)
   - plasticos_crm_bridge (web_lead.py — links via crm_lead_id)
 
@@ -54,8 +54,8 @@ class TestIntakeFieldContract(PlasticosTestCase):
         self.assertIsNotNone(f, "form_id missing — plasticos_matching depends on it")
         self.assertEqual(f.comodel_name, "plasticos.material.form")
 
-    def test_color_id_exists(self):
-        self.assertIn("color_id", self.fields)
+    def test_color_ids_exists(self):
+        self.assertIn("color_ids", self.fields)
 
     def test_source_type_id_exists(self):
         self.assertIn("source_type_id", self.fields)

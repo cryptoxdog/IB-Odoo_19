@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Material Profile",
-    "version": "19.0.5.11.13",
+    "version": "19.0.5.13.5",
     "summary": "Canonical material master registries: polymer, form, color, source, process, grade templates",
     "license": "LGPL-3",
     "author": "Igor Beylin",
@@ -21,6 +21,7 @@
         "data/packaging_type_data.xml",
         "data/polymer_data.xml",
         "data/material_grade_data.xml",
+        "data/material_quality_tier_data.xml",
         "data/material_form_data.xml",
         "data/material_color_data.xml",
         "data/source_type_data.xml",
@@ -29,14 +30,22 @@
         "views/polymer_views.xml",
         "views/grade_template_views.xml",
         "views/material_grade_views.xml",
+        "views/material_quality_tier_views.xml",
         "views/material_form_views.xml",
         "views/material_color_views.xml",
         "views/source_type_views.xml",
         "views/process_type_views.xml",
+        # Load order matters on upgrade: the partner tab embeds material-profile fields, so it must be
+        # refreshed before material_profile_views.xml writes its res.partner view and re-validates the form.
+        "views/partner_material_ux.xml",
         "views/material_profile_views.xml",
         "views/material_profile_ux.xml",
-        "views/partner_material_ux.xml",
     ],
+    "assets": {
+        "web.assets_backend": [
+            "plasticos_material_profile/static/src/material_profile_lines.css",
+        ],
+    },
     "installable": True,
     "auto_install": True,
     "application": False,

@@ -17,9 +17,11 @@ Validates:
 """
 
 from datetime import timedelta
+from unittest.mock import patch
 
 from odoo import fields
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+from odoo.addons.plasticos_offer.tests.test_manual_send import send_offer_email
 from odoo.exceptions import UserError
 from odoo.tests.common import tagged
 
@@ -91,7 +93,7 @@ class TestOfferStateMachine(PlasticosTestCase):
         offer = self._make_offer()
         self.assertEqual(offer.state, "draft")
 
-        offer.action_send()
+        send_offer_email(offer)
         self.assertEqual(offer.state, "sent")
 
         offer.action_mark_responded()
@@ -106,7 +108,7 @@ class TestOfferStateMachine(PlasticosTestCase):
         """Accept directly from sent (no response step)."""
         self._skip_check()
         offer = self._make_offer()
-        offer.action_send()
+        send_offer_email(offer)
         offer.action_accept()
         self.assertEqual(offer.state, "accepted")
 
@@ -120,7 +122,7 @@ class TestOfferStateMachine(PlasticosTestCase):
     def test_accept_from_rejected_raises(self):
         self._skip_check()
         offer = self._make_offer()
-        offer.action_send()
+        send_offer_email(offer)
         offer.action_reject()
         with self.assertRaises(UserError):
             offer.action_accept()
@@ -142,7 +144,7 @@ class TestOfferStateMachine(PlasticosTestCase):
     def test_send_from_sent_raises(self):
         self._skip_check()
         offer = self._make_offer()
-        offer.action_send()
+        send_offer_email(offer)
         with self.assertRaises(UserError):
             offer.action_send()
 
@@ -157,7 +159,7 @@ class TestOfferStateMachine(PlasticosTestCase):
     def test_reject_from_accepted_raises(self):
         self._skip_check()
         offer = self._make_offer()
-        offer.action_send()
+        send_offer_email(offer)
         offer.action_accept()
         with self.assertRaises(UserError):
             offer.action_reject()
@@ -179,7 +181,7 @@ class TestOfferStateMachine(PlasticosTestCase):
     def test_cancel_from_accepted_raises(self):
         self._skip_check()
         offer = self._make_offer()
-        offer.action_send()
+        send_offer_email(offer)
         offer.action_accept()
         with self.assertRaises(UserError):
             offer.action_cancel()
@@ -194,7 +196,7 @@ class TestOfferStateMachine(PlasticosTestCase):
     def test_reset_from_rejected_succeeds(self):
         self._skip_check()
         offer = self._make_offer()
-        offer.action_send()
+        send_offer_email(offer)
         offer.action_reject()
         offer.action_reset_to_draft()
         self.assertEqual(offer.state, "draft")
@@ -350,34 +352,38 @@ class TestOfferCronExpiry(PlasticosTestCase):
         if self.skip:
             self.skipTest("plasticos_offer not installed")
 
-    def test_cron_expires_past_due_offers(self):
-        self._skip_check()
+    def _sent_offer_valid_today(self):
+        """A sent offer whose last valid day is today (an expired offer cannot be sent)."""
         offer = self.Offer.create(
             {
                 "intake_id": self.intake.id,
                 "supplier_id": self.supplier.id,
                 "buyer_id": self.buyer.id,
-                "valid_until": fields.Date.today() - timedelta(days=1),
-                "state": "sent",
+                "price_per_lb": 0.12,
+                "quantity_lbs": 40000,
+                "valid_until": fields.Date.today(),
             }
         )
-        self.Offer.cron_expire_offers()
+        return send_offer_email(offer)
+
+    def _run_cron_tomorrow(self):
+        """Run the expiry cron as if today were tomorrow; the cron reads ``fields.Date.today``."""
+        with patch.object(fields.Date, "today", return_value=fields.Date.today() + timedelta(days=1)):
+            self.Offer.cron_expire_offers()
+
+    def test_cron_expires_past_due_offers(self):
+        self._skip_check()
+        offer = self._sent_offer_valid_today()
+        self._run_cron_tomorrow()
         offer.invalidate_recordset()
         self.assertEqual(offer.state, "expired")
 
     def test_cron_does_not_expire_accepted(self):
         """Accepted offers must not be expired by cron."""
         self._skip_check()
-        offer = self.Offer.create(
-            {
-                "intake_id": self.intake.id,
-                "supplier_id": self.supplier.id,
-                "buyer_id": self.buyer.id,
-                "valid_until": fields.Date.today() - timedelta(days=1),
-                "state": "accepted",
-            }
-        )
-        self.Offer.cron_expire_offers()
+        offer = self._sent_offer_valid_today()
+        offer.action_accept()
+        self._run_cron_tomorrow()
         offer.invalidate_recordset()
         self.assertEqual(offer.state, "accepted")
 

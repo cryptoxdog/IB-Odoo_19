@@ -16,6 +16,7 @@ import inspect
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.addons.plasticos_documents.models.compliance_service import PlasticosComplianceService
+from odoo.addons.plasticos_documents.models.document import PlasticosDocument
 from odoo.tests.common import tagged
 
 
@@ -88,6 +89,20 @@ class TestDocumentRuleModel(PlasticosTestCase):
         self.assertEqual(Rule._fields["res_model"].type, "char")
         self.assertEqual(Rule._fields["tag_id"].comodel_name, "plasticos.document.tag")
         self.assertTrue(Rule._fields["tag_id"].required)
+
+    def test_legacy_invoice_and_close_read_legacy_rows_only(self):
+        """Export campaign S3: invoice/close stay legacy; operation rows never contaminate them."""
+        source = inspect.getsource(PlasticosComplianceService.get_missing_documents)
+        self.assertIn("_legacy_obligation_domain()", source)
+        self.assertEqual(
+            self.env["plasticos.document"]._legacy_obligation_domain(), [("obligation_kind", "=", "legacy")]
+        )
+        field = self.env["plasticos.document"]._fields["obligation_kind"]
+        self.assertTrue(field.required)
+        self.assertEqual(self.env["plasticos.document"].default_get(["obligation_kind"])["obligation_kind"], "legacy")
+        # Core Documents declares no operation obligation. Downstream owners such as Export declare
+        # theirs by _inherit in the same registry, so the core class's own answer is what is checked.
+        self.assertEqual(PlasticosDocument._scoped_obligation_kinds(self.env["plasticos.document"]), frozenset())
 
     def test_receiving_policy_does_not_sum_partial_rows(self):
         source = inspect.getsource(PlasticosComplianceService._quantity_covers_subject)

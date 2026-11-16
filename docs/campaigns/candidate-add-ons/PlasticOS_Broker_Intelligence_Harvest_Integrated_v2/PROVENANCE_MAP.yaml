@@ -1,0 +1,117 @@
+schema: broker-intelligence-provenance/v1
+source_authority:
+  repository: cryptoxdog/IB-Odoo_19
+  branch: Staging
+  pinned_commit: c2c72bc36d6201d4114531a8f666c411db612f64
+  open_prs_at_original_inspection: 0
+  inspected_as: read_only
+  source_harvest_sha256: 2c0220acdc45c95ffe184da4e3b13dee58ec426a3b6d571aeae97bc02277062a
+  prior_revised_pack_sha256: 8175afa06619aadd2ad41ffb2bd0db0f30eea7d6920ded33f8cce99c137b3e66
+  recursive_leverage_kernel_sha256: f7fe111189a2884cff8ab77ebc7828d0e949bc90f4b569a8026a2f4a899bd75e
+  unavailable_original_standalone_v1: true
+knowledge_lineage:
+  admission_register: source_catalog/candidate_admission_register.json
+  source_manifest: source_catalog/semantic_harvest_v1/FILE_MANIFEST.sha256
+  draft_seed_xml: plasticos_broker_intelligence/data/knowledge_drafts.xml
+  draft_count: 106
+  auto_approved_count: 0
+  original_scenario_index: source_catalog/semantic_harvest_v1/evidence/source_scenario_index.jsonl
+  rejected_aliases: source_catalog/semantic_harvest_v1/comparisons/rejection_namespace_conflicts.jsonl
+single_ingress_evaluation:
+  status: existing_advice_ingress_sufficient
+  owner: plasticos.broker.advice.service
+  source_authorization_method: _authorized_target
+  source_consumers:
+    - broker-advice/v2
+    - Mack consultation
+    - optional web-lead advisory
+    - rejection guidance
+    - candidate feedback observation
+  separate_native_actions: retained
+  justification: >-
+    Native Odoo record permissions and distinct commercial workflows must not be
+    replaced with a parallel routing gateway. Approved guidance enters via the
+    core advisory service; feedback authorizes its source through the same check.
+  no_new_transport_or_lifecycle_owner: true
+change_traceability:
+  - id: LEV-01
+    evidence: Duplicated source record-read and company permission checks in feedback and advice.
+    owner: plasticos_broker_intelligence/models/advice_service.py
+    consumers:
+      - plasticos_broker_intelligence/models/feedback.py
+    validation: tests_offline/test_review_safety.py
+  - id: LEV-02
+    evidence: Bounded knowledge fetch hid possible unevaluated approved records.
+    owner: plasticos_broker_intelligence/models/advice_service.py
+    consumers:
+      - plasticos_broker_intelligence/services/reasoning.py
+    validation: tests_offline/test_review_safety.py
+  - id: LEV-03
+    evidence: Human reviewed workflow scope was omitted from reference advice.
+    owner: plasticos_broker_intelligence/services/reasoning.py
+    consumers:
+      - plasticos_broker_intelligence/models/advice_service.py
+      - plasticos_broker_intelligence_rejections/wizards/rejection_wizard.py
+    validation: tests_offline/test_review_safety.py
+  - id: LEV-04
+    evidence: First-row selection could silently choose among overlapping approved rejection references.
+    owner: plasticos_broker_intelligence_rejections/services/rejection.py
+    consumers:
+      - plasticos_broker_intelligence_rejections/wizards/rejection_wizard.py
+    validation: tests_offline/test_review_safety.py
+validation_boundary:
+  portable_source_tests: executable
+  odoo_19_enterprise_registry_and_orm: unverified
+  original_unprovided_standalone_v1_compatibility: unverified
+  release_manifest: BUILD_MANIFEST.json
+convergence_block:
+  historical_reference_only: true
+  superseded_by: ARCHITECTURE_ALIGNMENT_REPORT.yaml
+  convergence_status: partial
+  recursive_passes_run: 5
+  same_output_after_final_source_review: true
+  material_improvement_remaining_in_portable_scope: false
+  source_intent_preserved_for_supplied_parent_pack: true
+  scope_drift_detected: false
+  pack_coherence_improved: true
+  enforceability_improved: true
+  reuse_value_improved: true
+  execution_readiness: partial
+  single_ingress_evaluated: true
+  unknowns_remaining:
+    - Odoo 19 Enterprise registry and ORM validation
+    - Multi-user ACL and historical source revocation
+    - Original unprovided standalone v1 compatibility
+  validation_gates_passed:
+    - portable unit tests
+    - structural XML and Python syntax
+    - static dependency and source-catalog hash checks
+    - manifest-bound package integrity
+  validation_gates_failed: []
+  note: >-
+    Portable source scope reached a bounded fixed point; runtime and prior
+    standalone-v1 compatibility cannot be declared converged without evidence.
+
+alignment_follow_up:
+  input_leverage_revised_pack_sha256: 972ddcc80169306a8dd3441687de59542539b9504c3ae26bf8c4d2a945f9d96f
+  alignment_kernel_sha256: ce9f7d2face6e7007c27313cbc885a5d11df85335877851e60ddb87b84adb639
+  current_staging_inspection: d25da3236887c924c8a0164b00c1198f1804a2ea
+  intervening_changes: documentation_only
+  open_pr_number: 471
+  open_pr_scope: Export_docs_only
+  source_identity_owner: plasticos.broker.advice.service
+  source_to_correction:
+    ALN-01:
+      owners:
+        - plasticos_broker_intelligence/models/advice_service.py
+        - plasticos_broker_intelligence_rejections/wizards/rejection_wizard.py
+    ALN-02:
+      owner: plasticos_broker_intelligence/models/knowledge.py
+    ALN-03:
+      owners:
+        - plasticos_broker_intelligence/services/evidence.py
+        - plasticos_broker_intelligence/models/feedback.py
+    ALN-04:
+      owner: plasticos_broker_intelligence_web_leads/models/web_lead_advice.py
+    ALN-05:
+      owner: plasticos_broker_intelligence/models/advice_service.py

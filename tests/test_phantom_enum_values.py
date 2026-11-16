@@ -111,6 +111,9 @@ GLOBAL_ALLOWLIST = frozenset(
         "key",
         "payable_id",
         "worksheet",
+        # material_mapping.csv row status, and the web-lead catalog slot name. Not Selection values.
+        "mapped",
+        "attribute",
         "vendor",
         "invoice_no",
         "gl",
@@ -723,6 +726,7 @@ GLOBAL_ALLOWLIST = frozenset(
         "openai",
         "anthropic",
         "mistral",
+        "deepseek",
         "gemini",
         "perplexity",
         # Gate SDK error code compared in gate_client.py — not an Odoo Selection.

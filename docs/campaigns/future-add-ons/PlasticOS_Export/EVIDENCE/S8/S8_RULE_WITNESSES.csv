@@ -1,0 +1,21 @@
+case_id,rule_id,aspect,witness,basis,module
+AC-EXP-01-002,BRS-EXP-01-R002,negative,plasticos_export/tests/test_native_coverage.py::TestNativeCoverage::test_single_fact_owner_export_stores_no_second_fact,cited,plasticos_export
+AC-EXP-01-004,BRS-EXP-01-R004,,plasticos_export/tests/test_native_coverage.py::TestNativeCoverage::test_acceptance_writes_no_order_stock_or_load,cited,plasticos_export
+AC-EXP-02-006,BRS-EXP-02-R006,negative,plasticos_export/tests/test_native_coverage.py::TestNativeCoverage::test_export_never_writes_an_order_incoterm,cited,plasticos_export
+AC-EXP-06-001,BRS-EXP-06-R001,,plasticos_export/tests/test_native_coverage.py::TestNativeCoverage::test_company_and_audience_isolation_on_native_sources,cited,plasticos_export
+AC-EXP-06-003,BRS-EXP-06-R003,,plasticos_export/tests/test_native_coverage.py::TestNativeCoverage::test_order_shipment_and_invoice_states_stay_scoped,cited,plasticos_export
+AC-EXP-07-006,BRS-EXP-07-R006,negative,plasticos_export/tests/test_native_coverage.py::TestNativeCoverage::test_slot_carries_no_payload_or_vgm,cited,plasticos_export
+AC-EXP-08-002,BRS-EXP-08-R002,,plasticos_export/tests/test_native_coverage.py::TestNativeCoverage::test_one_customer_commitment_with_smaller_supplier_orders,cited,plasticos_export
+AC-EXP-08-003,BRS-EXP-08-R003,,plasticos_export/tests/test_native_coverage.py::TestNativeCoverage::test_partial_purchase_fulfilment_through_native_backorders,cited,plasticos_export
+AC-EXP-08-004,BRS-EXP-08-R004,,plasticos_export/tests/test_native_coverage.py::TestNativeCoverage::test_partial_sale_fulfilment_and_unvalidated_booking_association,cited,plasticos_export
+AC-EXP-08-006,BRS-EXP-08-R006,positive,plasticos_export/tests/test_allocation_guard.py::TestAllocationGuard::test_four_executed_loads_traced_to_four_bookings,cited,plasticos_export
+AC-EXP-08-006,BRS-EXP-08-R006,no double allocation,plasticos_export/tests/test_allocation_guard.py::TestAllocationGuard::test_received_load_cannot_be_allocated_twice,cited,plasticos_export
+AC-EXP-08-006,BRS-EXP-08-R006,replaced link frees its source; partial indexes,plasticos_export/tests/test_allocation_guard.py::TestAllocationGuard::test_replaced_link_frees_its_source,cited,plasticos_export
+AC-EXP-08-006,BRS-EXP-08-R006,"concurrent quantity bound, review B3",plasticos_export/tests/test_allocation_guard.py::TestAllocationGuard::test_commits_on_one_order_line_serialize_on_one_claim_row,cited,plasticos_export
+AC-EXP-08-006,BRS-EXP-08-R006,"cross-booking correction, review N4",plasticos_export/tests/test_allocation_guard.py::TestAllocationGuard::test_correction_across_bookings_checks_the_other_booking,cited,plasticos_export
+AC-EXP-01-004,BRS-EXP-01-R004 / 02-R006,"witness self-test, review B1",plasticos_export/tests/test_native_coverage.py::TestNativeCoverage::test_stamps_detect_any_stored_field_write,cited,plasticos_export
+AC-EXP-08-006,BRS-EXP-08-R006,no over-allocation,plasticos_export/tests/test_allocation_guard.py::TestAllocationGuard::test_planned_quantity_never_exceeds_the_order_line,cited,plasticos_export
+AC-EXP-08-006,BRS-EXP-08-R006,attributed corrections and splits,plasticos_export/tests/test_allocation_guard.py::TestAllocationGuard::test_correction_and_split_are_attributed,cited,plasticos_export
+AC-EXP-08-006,BRS-EXP-08-R006,concurrency,plasticos_export/tests/test_allocation_guard.py::TestAllocationGuard::test_double_commit_past_the_command_is_refused,cited,plasticos_export
+AC-EXP-09-007,BRS-EXP-09-R007,negative,plasticos_export/tests/test_native_coverage.py::TestNativeCoverage::test_no_direct_state_write_on_load_or_transaction,cited,plasticos_export
+AC-EXP-11-010,BRS-EXP-11-R010,,plasticos_export/tests/test_native_coverage.py::TestNativeCoverage::test_shipment_guard_and_native_po_remaining_balance,cited,plasticos_export

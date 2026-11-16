@@ -9,7 +9,7 @@
       <field name="polymer_id" ref="polymer_plastic_pallets"/>
       <field name="material_grade_id" ref="material_grade_pallets"/>
       <field name="packaging_type_id" ref="packaging_loose"/>
-      <field name="quality_tier">standard</field>
+      <field name="quality_tier_id" ref="quality_tier_standard"/>
       <field name="no_metal">True</field>
       <field name="condition_notes">No metal contamination</field>
       <field name="sequence">10</field>
@@ -20,7 +20,7 @@
       <field name="code">GAYLORD_BOXES</field>
       <field name="polymer_id" ref="polymer_gaylord_boxes"/>
       <field name="packaging_type_id" ref="packaging_loose"/>
-      <field name="quality_tier">standard</field>
+      <field name="quality_tier_id" ref="quality_tier_standard"/>
       <field name="sequence">20</field>
     </record>
 
@@ -30,7 +30,7 @@
       <field name="polymer_id" ref="polymer_lldpe"/>
       <field name="form_id" ref="form_powder"/>
       <field name="packaging_type_id" ref="packaging_gaylords"/>
-      <field name="quality_tier">standard</field>
+      <field name="quality_tier_id" ref="quality_tier_standard"/>
       <field name="description">Rotomolding grade LLDPE powder.</field>
       <field name="sequence">30</field>
     </record>
@@ -41,7 +41,7 @@
       <field name="polymer_id" ref="polymer_ldpe"/>
       <field name="form_id" ref="form_film"/>
       <field name="packaging_type_id" ref="packaging_bales"/>
-      <field name="quality_tier">grade_a</field>
+      <field name="quality_tier_id" ref="quality_tier_grade_a"/>
       <field name="is_clean">True</field>
       <field name="description">Premium quality LDPE film, clean and dry.</field>
       <field name="sequence">40</field>
@@ -53,7 +53,7 @@
       <field name="polymer_id" ref="polymer_hdpe_hmw"/>
       <field name="form_id" ref="form_pellets"/>
       <field name="packaging_type_id" ref="packaging_gaylords"/>
-      <field name="quality_tier">standard</field>
+      <field name="quality_tier_id" ref="quality_tier_standard"/>
       <field name="description">Reprocessed High Molecular Weight HDPE pellets.</field>
       <field name="sequence">50</field>
     </record>
@@ -62,7 +62,7 @@
       <field name="name">PP</field>
       <field name="code">PP</field>
       <field name="polymer_id" ref="polymer_pp"/>
-      <field name="quality_tier">standard</field>
+      <field name="quality_tier_id" ref="quality_tier_standard"/>
       <field name="sequence">60</field>
     </record>
 
@@ -72,7 +72,7 @@
       <field name="polymer_id" ref="polymer_ldpe"/>
       <field name="form_id" ref="form_film"/>
       <field name="packaging_type_id" ref="packaging_bales"/>
-      <field name="quality_tier">standard</field>
+      <field name="quality_tier_id" ref="quality_tier_standard"/>
       <field name="sequence">70</field>
     </record>
 
@@ -82,7 +82,7 @@
       <field name="polymer_id" ref="polymer_hdpe"/>
       <field name="form_id" ref="form_parts"/>
       <field name="packaging_type_id" ref="packaging_loose"/>
-      <field name="quality_tier">standard</field>
+      <field name="quality_tier_id" ref="quality_tier_standard"/>
       <field name="condition_notes">Wheels/Axles Removed</field>
       <field name="sequence">80</field>
     </record>
@@ -92,9 +92,9 @@
       <field name="code">LDPE_MIXED_FILM</field>
       <field name="polymer_id" ref="polymer_ldpe"/>
       <field name="form_id" ref="form_film"/>
-      <field name="color_id" ref="color_mixed"/>
+      <field name="color_ids" eval="[(6, 0, [ref('color_mixed')])]"/>
       <field name="packaging_type_id" ref="packaging_bales"/>
-      <field name="quality_tier">standard</field>
+      <field name="quality_tier_id" ref="quality_tier_standard"/>
       <field name="sequence">90</field>
     </record>
 
@@ -102,7 +102,7 @@
       <field name="name">HDPE</field>
       <field name="code">HDPE</field>
       <field name="polymer_id" ref="polymer_hdpe"/>
-      <field name="quality_tier">standard</field>
+      <field name="quality_tier_id" ref="quality_tier_standard"/>
       <field name="sequence">100</field>
     </record>
 
@@ -112,7 +112,7 @@
       <field name="polymer_id" ref="polymer_hdpe"/>
       <field name="material_grade_id" ref="material_grade_crates"/>
       <field name="packaging_type_id" ref="packaging_loose"/>
-      <field name="quality_tier">standard</field>
+      <field name="quality_tier_id" ref="quality_tier_standard"/>
       <field name="sequence">110</field>
     </record>
 
@@ -122,7 +122,7 @@
       <field name="polymer_id" ref="polymer_pp"/>
       <field name="form_id" ref="form_regrind"/>
       <field name="packaging_type_id" ref="packaging_gaylords"/>
-      <field name="quality_tier">standard</field>
+      <field name="quality_tier_id" ref="quality_tier_standard"/>
       <field name="sequence">120</field>
     </record>
 
@@ -132,7 +132,7 @@
       <field name="polymer_id" ref="polymer_hdpe"/>
       <field name="material_grade_id" ref="material_grade_drums"/>
       <field name="packaging_type_id" ref="packaging_loose"/>
-      <field name="quality_tier">standard</field>
+      <field name="quality_tier_id" ref="quality_tier_standard"/>
       <field name="sequence">130</field>
     </record>
 
@@ -142,7 +142,7 @@
       <field name="polymer_id" ref="polymer_hdpe"/>
       <field name="material_grade_id" ref="material_grade_jerry_cans"/>
       <field name="packaging_type_id" ref="packaging_loose"/>
-      <field name="quality_tier">standard</field>
+      <field name="quality_tier_id" ref="quality_tier_standard"/>
       <field name="sequence">135</field>
     </record>
 
@@ -152,7 +152,7 @@
       <field name="polymer_id" ref="polymer_pp"/>
       <field name="form_id" ref="form_corrugated"/>
       <field name="packaging_type_id" ref="packaging_bales"/>
-      <field name="quality_tier">standard</field>
+      <field name="quality_tier_id" ref="quality_tier_standard"/>
       <field name="sequence">140</field>
     </record>
 
@@ -162,7 +162,7 @@
       <field name="polymer_id" ref="polymer_pet"/>
       <field name="form_id" ref="form_pellets"/>
       <field name="packaging_type_id" ref="packaging_gaylords"/>
-      <field name="quality_tier">grade_a</field>
+      <field name="quality_tier_id" ref="quality_tier_grade_a"/>
       <field name="sequence">150</field>
     </record>
 
@@ -170,7 +170,7 @@
       <field name="name">PET</field>
       <field name="code">PET</field>
       <field name="polymer_id" ref="polymer_pet"/>
-      <field name="quality_tier">standard</field>
+      <field name="quality_tier_id" ref="quality_tier_standard"/>
       <field name="sequence">160</field>
     </record>
 
@@ -178,7 +178,7 @@
       <field name="name">LDPE</field>
       <field name="code">LDPE</field>
       <field name="polymer_id" ref="polymer_ldpe"/>
-      <field name="quality_tier">standard</field>
+      <field name="quality_tier_id" ref="quality_tier_standard"/>
       <field name="sequence">170</field>
     </record>
 
@@ -188,7 +188,7 @@
       <field name="polymer_id" ref="polymer_pet"/>
       <field name="form_id" ref="form_flake"/>
       <field name="packaging_type_id" ref="packaging_supersacks"/>
-      <field name="quality_tier">standard</field>
+      <field name="quality_tier_id" ref="quality_tier_standard"/>
       <field name="sequence">180</field>
     </record>
 
@@ -198,7 +198,7 @@
       <field name="polymer_id" ref="polymer_ldpe"/>
       <field name="form_id" ref="form_rollstock"/>
       <field name="packaging_type_id" ref="packaging_palletized"/>
-      <field name="quality_tier">standard</field>
+      <field name="quality_tier_id" ref="quality_tier_standard"/>
       <field name="sequence">190</field>
     </record>
 
@@ -208,7 +208,7 @@
       <field name="polymer_id" ref="polymer_pp"/>
       <field name="form_id" ref="form_parts"/>
       <field name="packaging_type_id" ref="packaging_bales"/>
-      <field name="quality_tier">standard</field>
+      <field name="quality_tier_id" ref="quality_tier_standard"/>
       <field name="no_liners">True</field>
       <field name="condition_notes">No liner contamination</field>
       <field name="sequence">200</field>
@@ -220,7 +220,7 @@
       <field name="polymer_id" ref="polymer_pet"/>
       <field name="form_id" ref="form_parts"/>
       <field name="packaging_type_id" ref="packaging_bales"/>
-      <field name="quality_tier">standard</field>
+      <field name="quality_tier_id" ref="quality_tier_standard"/>
       <field name="sequence">210</field>
     </record>
 
@@ -231,7 +231,7 @@
       <field name="form_id" ref="form_parts"/>
       <field name="source_type_id" ref="source_post_industrial"/>
       <field name="packaging_type_id" ref="packaging_gaylords"/>
-      <field name="quality_tier">standard</field>
+      <field name="quality_tier_id" ref="quality_tier_standard"/>
       <field name="sequence">220</field>
     </record>
 
@@ -241,7 +241,7 @@
       <field name="polymer_id" ref="polymer_pet"/>
       <field name="form_id" ref="form_regrind"/>
       <field name="packaging_type_id" ref="packaging_gaylords"/>
-      <field name="quality_tier">standard</field>
+      <field name="quality_tier_id" ref="quality_tier_standard"/>
       <field name="sequence">230</field>
     </record>
 
@@ -253,7 +253,7 @@
       <field name="polymer_id" ref="polymer_hdpe_hmw"/>
       <field name="material_grade_id" ref="material_grade_ibc_totes"/>
       <field name="packaging_type_id" ref="packaging_loose"/>
-      <field name="quality_tier">standard</field>
+      <field name="quality_tier_id" ref="quality_tier_standard"/>
       <field name="sequence">135</field>
     </record>
   </data>
