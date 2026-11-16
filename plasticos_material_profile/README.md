@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_material_profile
 component_name: PlasticOS Material Profile
-module_version: 19.0.5.13.4
+module_version: 19.0.5.13.5
 layer: 1
 installable: true
 auto_install: true
