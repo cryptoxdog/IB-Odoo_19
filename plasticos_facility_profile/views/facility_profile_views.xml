@@ -223,14 +223,13 @@
                     class="btn-link text-danger p-0"/>
           </list>
         </field>
-        <group string="Sites" invisible="is_company">
-          <field name="location_partner_ids" nolabel="1">
-            <list>
-              <field name="name"/>
-              <field name="city"/>
-            </list>
-          </field>
-        </group>
+        <separator string="Sites" invisible="is_company"/>
+        <field name="location_partner_ids" nolabel="1" invisible="is_company">
+          <list>
+            <field name="name"/>
+            <field name="city"/>
+          </list>
+        </field>
         <separator string="People" invisible="not is_company or not parent_id"/>
         <field name="site_person_ids" nolabel="1" invisible="not is_company or not parent_id">
           <list>
