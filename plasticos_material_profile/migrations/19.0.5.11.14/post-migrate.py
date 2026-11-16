@@ -71,16 +71,18 @@ def partition_bales_profiles(bales_rows, formless_rows):
         if owner is not None:
             occupied.setdefault((owner, polymer_id, grade_id or None), []).append(row_id)
 
+    safe_ids = []
     targets = {}
     for row_id, partner_id, facility_id, polymer_id, grade_id in bales_rows:
         owner = identity_owner(partner_id, facility_id)
-        key = (owner, polymer_id, grade_id or None) if owner is not None else ("unowned", row_id)
-        targets.setdefault(key, []).append(row_id)
+        if owner is None:
+            safe_ids.append(row_id)  # no unique index covers an ownerless row
+            continue
+        targets.setdefault((owner, polymer_id, grade_id or None), []).append(row_id)
 
-    safe_ids = []
     collisions = {}
     for key, ids in targets.items():
-        existing = occupied.get(key, []) if key[0] != "unowned" else []
+        existing = occupied.get(key, [])
         if not existing and len(ids) == 1:
             safe_ids.append(ids[0])
             continue
