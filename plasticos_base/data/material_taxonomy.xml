@@ -166,9 +166,11 @@
       <field name="parent_id" ref="category_forms"/>
       <field name="name">BAG</field>
     </record>
+    <!-- Bales are packaging, not a form: this form tag is archived (plasticos_base 19.0.1.1.14). -->
     <record id="form_bale" model="res.partner.category">
       <field name="parent_id" ref="category_forms"/>
       <field name="name">BALE</field>
+      <field name="active" eval="False"/>
     </record>
     <record id="form_chop" model="res.partner.category">
       <field name="parent_id" ref="category_forms"/>

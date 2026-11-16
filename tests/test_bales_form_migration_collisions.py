@@ -1,225 +1,235 @@
-"""``plasticos_material_profile`` 19.0.5.11.14 post-migrate never duplicates a profile identity.
+"""Bales retirement never duplicates a profile identity and never aborts the upgrade.
 
-Clearing the Bales form must not produce a second row for the unique key
-``(owner, polymer_id, form_id, material_grade_id)`` (NULLS NOT DISTINCT), where the
-owner is ``partner_id`` or, for a partner-less row, ``facility_profile_id``.
-A colliding Bales profile keeps its form and is reported; the upgrade never aborts.
+``plasticos_material_profile.bales_retirement`` moves a Bales-form profile whose
+form-less key is free, merges a duplicate into the existing form-less profile
+(fill empty fields, repoint references, delete the duplicate), and logs every
+pair it cannot resolve. The planner and the orchestrator are pure; the Odoo
+adapter (``OdooOps``) runs only inside Odoo and is not exercised here.
 """
 
 from __future__ import annotations
 
+import contextlib
+import copy
 import importlib.util
 import logging
-import sys
 from pathlib import Path
-from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[1]
-MIGRATION = ROOT / "plasticos_material_profile/migrations/19.0.5.11.14/post-migrate.py"
+MODULE = ROOT / "plasticos_material_profile" / "bales_retirement.py"
+BALES = 88  # packaging Bales id
+GAYLORDS = 89
 
 
 def _load():
-    spec = importlib.util.spec_from_file_location("material_profile_post_migrate_5_11_14", MIGRATION)
+    spec = importlib.util.spec_from_file_location("bales_retirement_under_test", MODULE)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
 
 
-MIG = _load()
+BR = _load()
 
 
-def test_no_collision_moves_every_bales_profile():
-    bales = [(1, 10, None, 100, None), (2, 10, None, 101, None), (3, 11, None, 100, 7)]
-    formless = [(9, 10, None, 100, 7)]  # same owner and polymer, different grade
-    safe, collisions = MIG.partition_bales_profiles(bales, formless)
-    assert safe == [1, 2, 3]
-    assert collisions == {}
-
-
-def test_collision_with_existing_formless_row_keeps_the_form():
-    bales = [(1, 10, None, 100, None), (2, 10, None, 101, None)]
-    formless = [(9, 10, None, 100, None)]
-    safe, collisions = MIG.partition_bales_profiles(bales, formless)
-    assert safe == [2]
-    assert collisions == {1: [9]}
-
-
-def test_grade_is_part_of_the_key_and_null_grade_matches_null_grade():
-    bales = [(1, 10, None, 100, 0), (2, 10, None, 100, 5)]
-    formless = [(9, 10, None, 100, None)]
-    safe, collisions = MIG.partition_bales_profiles(bales, formless)
-    assert safe == [2]
-    assert collisions == {1: [9]}
-
-
-def test_two_bales_rows_with_the_same_target_both_stay():
-    bales = [(1, 10, None, 100, None), (2, 10, None, 100, None), (3, 12, None, 100, None)]
-    safe, collisions = MIG.partition_bales_profiles(bales, [])
-    assert safe == [3]
-    assert collisions == {1: [2], 2: [1]}
-
-
-def test_rows_of_different_owners_do_not_collide():
-    bales = [(1, 10, None, 100, None), (2, 11, None, 100, None), (3, None, 50, 100, None)]
-    formless = [(9, 12, None, 100, None), (8, None, 51, 100, None)]
-    safe, collisions = MIG.partition_bales_profiles(bales, formless)
-    assert safe == [1, 2, 3]
-    assert collisions == {}
-
-
-def test_partner_owner_takes_precedence_over_facility_profile():
-    # A row with a partner falls under the partner index only, whatever its facility profile.
-    bales = [(1, 10, 50, 100, None), (2, None, 50, 100, None)]
-    formless = [(9, None, 50, 100, None)]
-    safe, collisions = MIG.partition_bales_profiles(bales, formless)
-    assert safe == [1]
-    assert collisions == {2: [9]}
-
-
-def test_unowned_rows_never_collide():
-    bales = [(1, None, None, 100, None), (2, None, None, 100, None)]
-    formless = [(9, None, None, 100, None)]
-    safe, collisions = MIG.partition_bales_profiles(bales, formless)
-    assert safe == [1, 2]
-    assert collisions == {}
-
-
-# ── migrate() over a fake cursor and environment ─────────────────────────
-
-
-class FakeRecordset:
-    def __init__(self, store, ids):
-        self.store = store
-        self.ids = list(ids)
-
-    def filtered(self, predicate):
-        return FakeRecordset(self.store, [i for i in self.ids if predicate(SimpleNamespace(**self.store.rows[i]))])
-
-    def write(self, vals):
-        self.store.writes.append((tuple(self.ids), dict(vals)))
-        for row_id in self.ids:
-            self.store.rows[row_id].update(vals)
-        return True
-
-    def __bool__(self):
-        return bool(self.ids)
-
-    def __len__(self):
-        return len(self.ids)
-
-
-class FakeModel:
-    def __init__(self, store):
-        self.store = store
-
-    def with_context(self, **_kw):
-        return self
-
-    def browse(self, ids):
-        return FakeRecordset(self.store, ids)
-
-
-class FakeStore:
-    FORM = 77
-    PACKAGING = 88
-
-    def __init__(self, rows, *, has_facility=True):
-        self.rows = {row["id"]: dict(row) for row in rows}
-        self.has_facility = has_facility
-        self.writes = []
-        self._result = []
-
-    # cursor
-    def execute(self, sql, params=None):
-        if "information_schema.columns" in sql:
-            self._result = [(1,)] if self.has_facility else []
-            return
-        assert params == (self.FORM,)
-        assert "%s" in sql  # parameterized, never formatted
-        assert ("facility_profile_id," in sql) == self.has_facility
-        self._result = [
-            (
-                r["id"],
-                r["partner_id"],
-                r["facility_profile_id"] if self.has_facility else None,
-                r["polymer_id"],
-                r["material_grade_id"],
-                r["form_id"],
-            )
-            for r in self.rows.values()
-            if r["form_id"] in (self.FORM, None)
-        ]
-
-    def fetchone(self):
-        return self._result[0] if self._result else None
-
-    def fetchall(self):
-        return list(self._result)
-
-
-def _row(row_id, partner_id, polymer_id, form_id, *, grade=None, facility=None, packaging=None):
+def _row(row_id, partner=None, polymer=100, grade=None, packaging=None, facility=None, **extra):
     return {
         "id": row_id,
-        "partner_id": partner_id,
+        "partner_id": partner,
         "facility_profile_id": facility,
-        "polymer_id": polymer_id,
+        "polymer_id": polymer,
         "material_grade_id": grade,
-        "form_id": form_id,
         "packaging_type_id": packaging,
+        **extra,
     }
 
 
-def _run(store, monkeypatch):
-    refs = {MIG.FORM_BALE: SimpleNamespace(id=store.FORM), MIG.PACKAGING_BALES: SimpleNamespace(id=store.PACKAGING)}
-    model = FakeModel(store)
-
-    class Env(dict):
-        def ref(self, xmlid, raise_if_not_found=True):
-            return refs[xmlid]
-
-    env = Env({"plasticos.material.profile": model})
-    fake_odoo = SimpleNamespace(SUPERUSER_ID=1, api=SimpleNamespace(Environment=lambda cr, uid, ctx: env))
-    monkeypatch.setitem(sys.modules, "odoo", fake_odoo)
-    MIG.migrate(store, "19.0.5.11.13")
+# ── plan ────────────────────────────────────────────────────────────────
 
 
-def test_migrate_keeps_colliding_rows_and_warns(monkeypatch, caplog):
-    store = FakeStore(
+def test_plan_moves_bales_rows_with_a_free_key():
+    bales = [_row(1, partner=10), _row(2, partner=10, polymer=101), _row(3, partner=11, grade=7)]
+    formless = [_row(9, partner=10, grade=7)]  # same owner and polymer, other grade
+    assert BR.plan(bales, formless, BALES) == [("move", 1), ("move", 2), ("move", 3)]
+
+
+def test_plan_merges_into_the_existing_formless_row():
+    assert BR.plan([_row(1, partner=10)], [_row(9, partner=10)], BALES) == [("merge", 1, 9)]
+
+
+def test_plan_intra_batch_moves_the_lowest_id_and_merges_the_rest():
+    bales = [_row(4, partner=10), _row(2, partner=10), _row(3, partner=12)]
+    assert BR.plan(bales, [], BALES) == [("move", 2), ("merge", 4, 2), ("move", 3)]
+
+
+def test_plan_packaging_conflict_is_unresolved():
+    actions = BR.plan([_row(1, partner=10)], [_row(9, partner=10, packaging=GAYLORDS)], BALES)
+    assert [action[:3] for action in actions] == [("unresolved", 1, 9)]
+
+
+def test_plan_same_packaging_or_empty_survivor_packaging_merges():
+    assert BR.plan([_row(1, partner=10)], [_row(9, partner=10, packaging=BALES)], BALES) == [("merge", 1, 9)]
+    assert BR.plan([_row(1, partner=10, packaging=GAYLORDS)], [_row(9, partner=10)], BALES) == [("merge", 1, 9)]
+
+
+def test_plan_owners_grades_and_facility_profiles_are_part_of_the_key():
+    bales = [_row(1, partner=10), _row(2, partner=11), _row(3, facility=50), _row(4, partner=10, grade=5)]
+    formless = [_row(9, partner=12), _row(8, facility=51), _row(7, partner=10, grade=6)]
+    assert BR.plan(bales, formless, BALES) == [("move", 1), ("move", 2), ("move", 3), ("move", 4)]
+
+
+def test_plan_partner_owner_wins_over_facility_profile():
+    bales = [_row(1, partner=10, facility=50), _row(2, facility=50)]
+    assert BR.plan(bales, [_row(9, facility=50)], BALES) == [("move", 1), ("merge", 2, 9)]
+
+
+def test_plan_ownerless_rows_always_move():
+    assert BR.plan([_row(1), _row(2)], [_row(9)], BALES) == [("move", 1), ("move", 2)]
+
+
+def test_fill_values_fills_only_empty_survivor_fields():
+    names = ["notes", "color_id", "packaging_type_id", "origin"]
+    survivor = {"notes": "kept", "color_id": False, "packaging_type_id": None, "origin": ""}
+    bales = {"notes": "lost", "color_id": 4, "packaging_type_id": BALES, "origin": False}
+    assert BR.fill_values(names, survivor, bales) == {"color_id": 4, "packaging_type_id": BALES}
+
+
+# ── retire over in-memory operations ────────────────────────────────────
+
+
+class ConstraintError(Exception):
+    pass
+
+
+class FakeOps:
+    """Profiles plus a reference table ``(model, field) -> {record_id: profile_id}``."""
+
+    FORM = 77
+
+    def __init__(self, profiles, references=None, unique_reference_fields=()):
+        self.profiles = {row["id"]: dict(row) for row in profiles}
+        self.references = references or {}
+        self.unique = set(unique_reference_fields)
+        self.rollbacks = 0
+
+    @contextlib.contextmanager
+    def savepoint(self):
+        snapshot = copy.deepcopy((self.profiles, self.references))
+        try:
+            yield
+        except Exception:
+            self.profiles, self.references = snapshot
+            self.rollbacks += 1
+            raise
+
+    def after_rollback(self):
+        pass
+
+    def rows(self):
+        bales = [dict(r) for r in self.profiles.values() if r.get("form_id") == self.FORM]
+        formless = [dict(r) for r in self.profiles.values() if not r.get("form_id")]
+        return bales, formless
+
+    def move(self, profile_id, packaging_id):
+        row = self.profiles[profile_id]
+        row["form_id"] = None
+        row["packaging_type_id"] = row["packaging_type_id"] or packaging_id
+
+    def merge(self, bales_id, survivor_id, packaging_id):
+        bales, survivor = self.profiles[bales_id], self.profiles[survivor_id]
+        bales_vals = dict(bales, packaging_type_id=bales["packaging_type_id"] or packaging_id)
+        filled = BR.fill_values(["notes", "color_id", "packaging_type_id"], survivor, bales_vals)
+        survivor.update(filled)
+        repointed = 0
+        for key, links in self.references.items():
+            for record_id, profile_id in list(links.items()):
+                if profile_id != bales_id:
+                    continue
+                if key in self.unique and survivor_id in links.values():
+                    raise ConstraintError(f"{key} already links profile {survivor_id}")
+                links[record_id] = survivor_id
+                repointed += 1
+        del self.profiles[bales_id]
+        return filled, repointed
+
+
+def test_retire_no_collision_moves(caplog):
+    ops = FakeOps([_row(1, partner=10, form_id=77), _row(2, partner=11, form_id=77, packaging=GAYLORDS)])
+    with caplog.at_level(logging.INFO):
+        counts = BR.retire(ops, BALES)
+    assert counts == BR.Counts(moved=2, merged=0, unresolved=0)
+    assert ops.profiles[1]["form_id"] is None and ops.profiles[1]["packaging_type_id"] == BALES
+    assert ops.profiles[2]["packaging_type_id"] == GAYLORDS
+    assert "2 moved, 0 merged, 0 unresolved" in caplog.text
+
+
+def test_retire_merge_fills_empty_fields_and_repoints(caplog):
+    ops = FakeOps(
         [
-            _row(1, 10, 100, FakeStore.FORM),  # collides with 9
-            _row(2, 10, 101, FakeStore.FORM, packaging=5),  # safe, keeps its packaging
-            _row(3, 11, 100, FakeStore.FORM),  # collides with 4 (same batch)
-            _row(4, 11, 100, FakeStore.FORM),
-            _row(9, 10, 100, None),
-        ]
+            _row(1, partner=10, form_id=77, notes="bales note", color_id=4),
+            _row(9, partner=10, notes="survivor note", color_id=None),
+        ],
+        references={("plasticos.transaction", "supplier_profile_id"): {501: 1, 502: 9}},
     )
+    with caplog.at_level(logging.INFO):
+        counts = BR.retire(ops, BALES)
+    assert counts == BR.Counts(moved=0, merged=1, unresolved=0)
+    assert 1 not in ops.profiles
+    survivor = ops.profiles[9]
+    assert survivor["notes"] == "survivor note"  # set value never overwritten
+    assert survivor["color_id"] == 4
+    assert survivor["packaging_type_id"] == BALES
+    assert ops.references[("plasticos.transaction", "supplier_profile_id")] == {501: 9, 502: 9}
+    assert "took color_id=4 from profile 1" in caplog.text
+    assert "merged material profile 1 into 9 (1 references repointed) and deleted 1" in caplog.text
+
+
+def test_retire_packaging_conflict_leaves_both_rows(caplog):
+    ops = FakeOps([_row(1, partner=10, form_id=77), _row(9, partner=10, packaging=GAYLORDS)])
+    before = copy.deepcopy(ops.profiles)
     with caplog.at_level(logging.WARNING):
-        _run(store, monkeypatch)
-    assert store.rows[2]["form_id"] is False
-    for kept in (1, 3, 4):
-        assert store.rows[kept]["form_id"] == FakeStore.FORM
-        assert store.rows[kept]["packaging_type_id"] == FakeStore.PACKAGING
-    assert store.rows[2]["packaging_type_id"] == 5
-    assert store.rows[9]["form_id"] is None
-    form_writes = [ids for ids, vals in store.writes if "form_id" in vals]
-    assert form_writes == [(2,)]
-    text = caplog.text
-    assert "material profile 1" in text and "[9]" in text
-    assert "material profile 3" in text and "[4]" in text
-    assert "material profile 4" in text and "[3]" in text
+        counts = BR.retire(ops, BALES)
+    assert counts == BR.Counts(moved=0, merged=0, unresolved=1)
+    assert ops.profiles == before
+    assert "left material profile 1 on the Bales form; it duplicates profile 9" in caplog.text
 
 
-def test_migrate_is_idempotent(monkeypatch):
-    store = FakeStore([_row(1, 10, 100, FakeStore.FORM), _row(9, 10, 100, None), _row(2, 10, 101, FakeStore.FORM)])
-    _run(store, monkeypatch)
-    first = {k: dict(v) for k, v in store.rows.items()}
-    store.writes.clear()
-    _run(store, monkeypatch)
-    assert store.rows == first
-    assert all("form_id" not in vals for _ids, vals in store.writes)
+def test_retire_repoint_constraint_failure_rolls_the_pair_back(caplog):
+    key = ("plasticos.match.result", "profile_id")
+    ops = FakeOps(
+        [_row(1, partner=10, form_id=77, color_id=4), _row(9, partner=10), _row(3, partner=11, form_id=77)],
+        references={key: {701: 1, 702: 9}},
+        unique_reference_fields=[key],
+    )
+    before = copy.deepcopy(ops.profiles)
+    with caplog.at_level(logging.WARNING):
+        counts = BR.retire(ops, BALES)
+    assert counts == BR.Counts(moved=1, merged=0, unresolved=1)
+    assert ops.rollbacks == 1
+    assert ops.profiles[1] == before[1] and ops.profiles[9] == before[9]  # fill rolled back too
+    assert ops.references[key] == {701: 1, 702: 9}
+    assert ops.profiles[3]["form_id"] is None  # the upgrade carried on
+    assert "rolled back the merge of material profile 1 into 9" in caplog.text
 
 
-def test_migrate_without_crm_bridge_column(monkeypatch):
-    store = FakeStore([_row(1, 10, 100, FakeStore.FORM), _row(2, 10, 100, None)], has_facility=False)
-    _run(store, monkeypatch)
-    assert store.rows[1]["form_id"] == FakeStore.FORM
+def test_retire_intra_batch_collision_merges_into_the_lowest_id():
+    ops = FakeOps([_row(5, partner=10, form_id=77, notes="five"), _row(2, partner=10, form_id=77)])
+    counts = BR.retire(ops, BALES)
+    assert counts == BR.Counts(moved=1, merged=1, unresolved=0)
+    assert list(ops.profiles) == [2]
+    assert ops.profiles[2]["form_id"] is None
+    assert ops.profiles[2]["packaging_type_id"] == BALES
+    assert ops.profiles[2]["notes"] == "five"
+
+
+def test_retire_is_idempotent():
+    ops = FakeOps([_row(1, partner=10, form_id=77), _row(9, partner=10), _row(2, partner=11, form_id=77)])
+    BR.retire(ops, BALES)
+    after = copy.deepcopy(ops.profiles)
+    assert BR.retire(ops, BALES) == BR.Counts(moved=0, merged=0, unresolved=0)
+    assert ops.profiles == after
+
+
+def test_migrations_call_the_shared_retirement():
+    for version in ("19.0.5.11.14", "19.0.5.13.5"):
+        text = (ROOT / "plasticos_material_profile" / "migrations" / version / "post-migrate.py").read_text()
+        assert "bales_retirement.retire_bales_form(" in text, version

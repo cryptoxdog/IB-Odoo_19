@@ -32,6 +32,8 @@ def _seed(filename: str, model: str) -> dict[str, dict[str, str]]:
         if record.get("model") != model:
             continue
         values = {field.get("name"): (field.text or "").strip() for field in record.findall("field")}
+        active = record.find("field[@name='active']")
+        values["active"] = not (active is not None and (active.get("eval") or "").casefold() == "false")
         records[record.get("id")] = values
     return records
 
@@ -64,8 +66,10 @@ def test_displayed_names_are_title_case_except_acronyms() -> None:
 
 
 def test_form_codes_equal_the_form_seed() -> None:
+    # Active forms only: the archived Bales form (packaging, not a form) is not a form code.
     seed = _seed("material_form_data.xml", "plasticos.material.form")
-    assert sorted(values["code"] for values in seed.values()) == sorted(FORMS.FORM_CODES)
+    assert sorted(values["code"] for values in seed.values() if values["active"]) == sorted(FORMS.FORM_CODES)
+    assert [values["code"] for values in seed.values() if not values["active"]] == ["BALES"]
 
 
 def test_former_form_codes_are_grades_and_no_longer_forms() -> None:

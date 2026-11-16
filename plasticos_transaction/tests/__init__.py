@@ -14,3 +14,4 @@ from . import test_post_link_integrity
 from . import test_supplier_confirmation_escalation
 from . import test_erp_material_profile_loader
 from . import test_offer_transaction_link_freeze
+from . import test_bales_retirement_runtime
