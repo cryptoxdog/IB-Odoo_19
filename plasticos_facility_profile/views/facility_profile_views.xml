@@ -227,7 +227,11 @@
         <field name="location_partner_ids" nolabel="1" invisible="is_company">
           <list>
             <field name="name"/>
+            <field name="street"/>
             <field name="city"/>
+            <field name="state_id"/>
+            <field name="zip"/>
+            <field name="phone"/>
           </list>
         </field>
         <separator string="People" invisible="not is_company or not parent_id"/>
