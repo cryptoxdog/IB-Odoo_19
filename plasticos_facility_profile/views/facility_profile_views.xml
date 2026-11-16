@@ -193,13 +193,17 @@
           <!-- Same row behaviour as the Material Profile lines: the built-in open
                button saves the row, then opens the full profile form. The class
                reuses that list's external-link icon styling (material_profile_lines.css). -->
-          <list editable="bottom" open_form_view="1" class="o_material_profile_lines">
+          <list editable="bottom" open_form_view="1" delete="0" class="o_material_profile_lines">
             <field name="process_type"/>
             <field name="feedstock_type"/>
             <field name="capacity_lbs_month" sum="Total Capacity"/>
             <field name="has_horizontal_baler"/>
             <field name="has_wash_line"/>
             <field name="handles_bales"/>
+            <button name="action_remove_profile" type="object" icon="fa-trash"
+                    title="Remove facility profile"
+                    confirm="Remove this facility profile? A profile whose partner has an open sale order cannot be removed."
+                    class="btn-link text-danger p-0"/>
           </list>
         </field>
         <separator string="Locations" invisible="not is_company or parent_id"/>

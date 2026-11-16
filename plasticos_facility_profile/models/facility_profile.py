@@ -460,3 +460,14 @@ class PlasticosFacilityProfile(models.Model):
             "view_mode": "form",
             "target": "current",
         }
+
+    def action_remove_profile(self):
+        """Delete this profile from its line's trash button.
+
+        ``unlink`` still refuses a profile whose partner has a live sale order.
+        """
+        self.ensure_one()
+        self.check_access("read")
+        self.partner_id.check_access("read")
+        self.unlink()
+        return True

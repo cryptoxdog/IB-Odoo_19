@@ -160,6 +160,9 @@ def test_open_full_profile_saves_the_facility_line():
     assert 'open_form_view="1"' in facility_field
     assert 'class="o_material_profile_lines"' in facility_field
     assert "action_open_profile_form" not in facility_field
+    assert 'delete="0"' in facility_field
+    assert 'name="action_remove_profile"' in facility_field
+    assert 'title="Remove facility profile"' in facility_field
 
 
 def test_facility_profile_is_a_section_above_locations():
