@@ -39,13 +39,17 @@ class PlasticosFacilityProfile(models.Model):
     _inherit = ["mail.thread"]
     _order = "partner_id"
 
+    # Not ``required`` at the field level: an installed module may add another
+    # owner (plasticos_crm_bridge adds ``crm_lead_id``), and a column that claims
+    # NOT NULL in the base module cannot hold those rows. The owner rule is
+    # enforced by ``_check_profile_owner`` over ``_plasticos_owner_fields``.
     partner_id = fields.Many2one(
         "res.partner",
-        required=True,
         index=True,
         ondelete="cascade",
         domain="[('parent_id','!=',False)]",
         tracking=True,
+        help="Facility partner that owns this capability profile.",
     )
 
     active = fields.Boolean(default=True)
@@ -273,6 +277,25 @@ class PlasticosFacilityProfile(models.Model):
                     "Capability profile can only be attached to facility-level partners (locations or standalone companies)."
                 )
 
+    @api.model
+    def _plasticos_owner_fields(self):
+        """Fields of which at least one must be set: the profile's owner.
+
+        An inheriting module that adds another owner extends this tuple and
+        re-declares ``_check_profile_owner`` with its field in ``@api.constrains``.
+        """
+        return ("partner_id",)
+
+    def _plasticos_owner_error(self):
+        return "A facility profile needs a facility partner."
+
+    @api.constrains("partner_id")
+    def _check_profile_owner(self):
+        owner_fields = self._plasticos_owner_fields()
+        for rec in self:
+            if not any(rec[name] for name in owner_fields):
+                raise ValidationError(rec._plasticos_owner_error())
+
     @api.constrains("density_min", "density_max")
     def _check_density_range(self):
         for rec in self:
@@ -382,7 +405,11 @@ class PlasticosFacilityProfile(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         self._reject_duplicate_facility_partners([vals.get("partner_id") for vals in vals_list])
-        return super().create(vals_list)
+        records = super().create(vals_list)
+        # @api.constrains runs only for fields present in the create values, so a
+        # create that names no owner field would otherwise skip the owner rule.
+        records._check_profile_owner()
+        return records
 
     def write(self, vals):
         if vals.get("partner_id"):
