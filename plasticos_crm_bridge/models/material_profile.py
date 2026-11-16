@@ -5,7 +5,6 @@ from odoo.exceptions import ValidationError
 class MaterialProfileCRMBridge(models.Model):
     _inherit = "plasticos.material.profile"
 
-    partner_id = fields.Many2one(required=False)
     facility_profile_id = fields.Many2one(
         "plasticos.facility.profile",
         string="Facility Profile",
@@ -20,12 +19,16 @@ class MaterialProfileCRMBridge(models.Model):
         "A lead-owned facility may only have one material profile per polymer, form, and material grade.",
     )
 
+    @api.model
+    def _plasticos_owner_fields(self):
+        return (*super()._plasticos_owner_fields(), "facility_profile_id")
+
+    def _plasticos_owner_error(self):
+        return "A material profile needs a facility partner or a lead-owned facility profile."
+
     @api.constrains("partner_id", "facility_profile_id")
-    def _check_material_owner(self):
-        for rec in self:
-            if rec.partner_id or rec.facility_profile_id:
-                continue
-            raise ValidationError("A material profile needs a facility partner or a lead-owned facility profile.")
+    def _check_profile_owner(self):
+        return super()._check_profile_owner()
 
     # ── Match Stats (per-profile, NOT per-partner) ──────────
     match_count = fields.Integer(

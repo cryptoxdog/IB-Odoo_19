@@ -30,13 +30,17 @@ class PlasticosMaterialProfile(models.Model):
             name = " ".join(part for part in parts if part)
             rec.display_name = name if rec.polymer_id else f"Profile #{rec.id}"
 
+    # Not ``required`` at the field level: an installed module may add another
+    # owner (plasticos_crm_bridge adds ``facility_profile_id``), and a column that
+    # claims NOT NULL in the base module cannot hold those rows. The owner rule is
+    # enforced by ``_check_profile_owner`` over ``_plasticos_owner_fields``.
     partner_id = fields.Many2one(
         "res.partner",
-        required=True,
         index=True,
         domain="[('parent_id','!=',False)]",
         ondelete="cascade",
         tracking=True,
+        help="Facility partner that owns this material profile.",
     )
 
     active = fields.Boolean(default=True)
@@ -606,6 +610,25 @@ class PlasticosMaterialProfile(models.Model):
             if rec.mfi_min and rec.mfi_max and rec.mfi_min > rec.mfi_max:
                 raise ValidationError(f"MFI min ({rec.mfi_min}) cannot be greater than max ({rec.mfi_max}).")
 
+    @api.model
+    def _plasticos_owner_fields(self):
+        """Fields of which at least one must be set: the profile's owner.
+
+        An inheriting module that adds another owner extends this tuple and
+        re-declares ``_check_profile_owner`` with its field in ``@api.constrains``.
+        """
+        return ("partner_id",)
+
+    def _plasticos_owner_error(self):
+        return "A material profile needs a facility partner."
+
+    @api.constrains("partner_id")
+    def _check_profile_owner(self):
+        owner_fields = self._plasticos_owner_fields()
+        for rec in self:
+            if not any(rec[name] for name in owner_fields):
+                raise ValidationError(rec._plasticos_owner_error())
+
     # ═════════════════════════════════════════════════════════
     # CRUD
     # ═════════════════════════════════════════════════════════
@@ -620,6 +643,9 @@ class PlasticosMaterialProfile(models.Model):
                 vals.get("material_grade_id"),
             )
         records = super().create(vals_list)
+        # @api.constrains runs only for fields present in the create values, so a
+        # create that names no owner field would otherwise skip the owner rule.
+        records._check_profile_owner()
         for record in records:
             record._emit_material_packet()
         return records
