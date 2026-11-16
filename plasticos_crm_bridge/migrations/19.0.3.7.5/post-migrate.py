@@ -11,9 +11,18 @@ import logging
 
 _logger = logging.getLogger(__name__)
 
+# Literal queries: one per table, no interpolation.
 _OWNER_RULES = (
-    ("plasticos_facility_profile", "partner_id IS NULL AND crm_lead_id IS NULL"),
-    ("plasticos_material_profile", "partner_id IS NULL AND facility_profile_id IS NULL"),
+    (
+        "plasticos_facility_profile",
+        ("partner_id", "crm_lead_id"),
+        "SELECT count(*) FROM plasticos_facility_profile WHERE partner_id IS NULL AND crm_lead_id IS NULL",
+    ),
+    (
+        "plasticos_material_profile",
+        ("partner_id", "facility_profile_id"),
+        "SELECT count(*) FROM plasticos_material_profile WHERE partner_id IS NULL AND facility_profile_id IS NULL",
+    ),
 )
 
 
@@ -34,17 +43,13 @@ def _has_columns(cr, table, columns):
 def migrate(cr, version):
     if not version:
         return
-    for table, missing_owner in _OWNER_RULES:
-        columns = (
-            ["partner_id", "crm_lead_id"] if "crm_lead_id" in missing_owner else ["partner_id", "facility_profile_id"]
-        )
-        if not _has_columns(cr, table, columns):
+    for table, owner_columns, query in _OWNER_RULES:
+        if not _has_columns(cr, table, owner_columns):
             _logger.info("%s: owner columns not present; owner report skipped", table)
             continue
-        # Table and predicate are module constants above, never input.
-        cr.execute(f"SELECT count(*) FROM {table} WHERE {missing_owner}")  # noqa: S608
+        cr.execute(query)
         count = cr.fetchone()[0]
         if count:
-            _logger.warning("%s: %s row(s) have no owner (%s); left unchanged", table, count, missing_owner)
+            _logger.warning("%s: %s row(s) have none of %s set; left unchanged", table, count, ", ".join(owner_columns))
         else:
             _logger.info("%s: every row has an owner", table)
