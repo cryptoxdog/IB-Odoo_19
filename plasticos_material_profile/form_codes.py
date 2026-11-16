@@ -12,10 +12,11 @@ fail until every downstream consumer is updated. Material grades (drums,
 totes, pallets) are not forms; they live in ``grade_codes.py``.
 """
 
-# ── Canonical form codes (must match material_form_data.xml) ─────────
+# ── Canonical form codes (must match the active records of material_form_data.xml) ──
 # Sorted alphabetically for deterministic comparison. UPPERCASE convention.
+# Bales are packaging (``plasticos.packaging.type`` code ``bales``), never a form: the
+# form ``plasticos_material_profile.form_bale`` is archived and is not a form code.
 FORM_CODES: tuple[str, ...] = (
-    "BALES",
     "CHOPPED",
     "CORRUGATED",
     "DENSIFIED",
@@ -44,7 +45,6 @@ EQUIPMENT_GATED_FORMS: dict[str, str] = {
     "REGRIND": "f.handles_regrind",
     "FLAKE": "f.handles_flake",
     "ROLLSTOCK": "f.handles_rollstock",
-    "BALES": "(f.has_shredder = true OR f.has_granulator = true)",
 }
 
 # Forms that pass through without equipment checks.

@@ -417,7 +417,8 @@ def build_match_request(
     elif intake is not None:
         if "polymer_id" in intake._fields and intake.polymer_id:
             query["polymer_type"] = intake.polymer_id.code or intake.polymer_id.name
-        if "form_id" in intake._fields and intake.form_id:
+        # An archived form (Bales, which is packaging) is not sent as a form.
+        if "form_id" in intake._fields and intake.form_id and intake.form_id.active:
             query["form"] = intake.form_id.code or intake.form_id.name
         color_value = _color_query_value(intake)
         if color_value is not None:
@@ -474,7 +475,7 @@ def build_intake_request(env, intake_rec) -> ProcessIntakeRequest:
         snapshot["supplier_partner_id"] = intake_rec.partner_id.id
     if "polymer_id" in intake_rec._fields and intake_rec.polymer_id:
         snapshot["polymer_type"] = intake_rec.polymer_id.code or intake_rec.polymer_id.name
-    if "form_id" in intake_rec._fields and intake_rec.form_id:
+    if "form_id" in intake_rec._fields and intake_rec.form_id and intake_rec.form_id.active:
         snapshot["form"] = intake_rec.form_id.code or intake_rec.form_id.name
     color_value = _color_query_value(intake_rec)
     if color_value is not None:

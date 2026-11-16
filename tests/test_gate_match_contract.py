@@ -61,10 +61,11 @@ class _MockEnv:
 
 
 class _FieldProxy:
-    def __init__(self, *, code=None, name=None, record_id=None):
+    def __init__(self, *, code=None, name=None, record_id=None, active=True):
         self.code = code
         self.name = name
         self.id = record_id
+        self.active = active  # master records (forms, polymers) carry ``active``
 
 
 class _IntakeStub:
@@ -147,6 +148,15 @@ def test_build_match_request_maps_intake_fields():
     assert request.top_n == 5
     assert request.odoo["model"] == "plasticos.intake"
     assert request.odoo["record_id"] == 42
+
+
+def test_build_match_request_omits_an_archived_form():
+    """Bales are packaging: the archived Bales form is never sent to Gate as a form."""
+    intake = _IntakeStub()
+    intake.form_id = _FieldProxy(code="BALES", name="Bales", record_id=11, active=False)
+    request = build_match_request(_MockEnv(), intake=intake)
+    assert "form" not in request.query
+    assert request.query["polymer_type"] == "HDPE"
 
 
 def test_build_match_request_lists_every_intake_color():

@@ -354,8 +354,11 @@ class PlasticosFacilityProfile(models.Model):
 
     @api.depends("form_preference_id", "form_preference_id.code")
     def _compute_form_preference(self):
+        # A retired form (Bales) has no code in FORM_SELECTION; it maps to no code instead of failing.
+        valid_codes = {code for code, _label in _get_form_selection(self)}
         for rec in self:
-            rec.form_preference = rec.form_preference_id.code if rec.form_preference_id else False
+            code = rec.form_preference_id.code if rec.form_preference_id else False
+            rec.form_preference = code if code in valid_codes else False
 
     @api.depends("accepted_polymer_ids", "process_type", "partner_id.state_id")
     def _compute_embedding_ready(self):

@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_material_profile
 component_name: PlasticOS Material Profile
-module_version: 19.0.5.13.4
+module_version: 19.0.5.13.5
 layer: 1
 installable: true
 auto_install: true
@@ -90,3 +90,13 @@ The material master. It holds the canonical registries (polymer, grade, form, co
 - [`models/material_profile.py`](models/material_profile.py)
 - [`process_codes.py`](process_codes.py)
 - [`../docs/adr/ADR-004-intake-vs-material-profile-domain-split.md`](../docs/adr/ADR-004-intake-vs-material-profile-domain-split.md)
+
+## Bales are packaging, not a form
+
+The Bales form (`plasticos_material_profile.form_bale`, code `BALES`) is archived and is not a form code
+(`form_codes.py`). The 19.0.5.11.14 and 19.0.5.13.5 post-migrations call `bales_retirement.retire_bales_form`:
+a Bales-form profile whose form-less identity key is free loses the form and gains packaging Bales when it has
+none; a duplicate is merged into the existing form-less profile (empty fields filled, every reference repointed,
+the duplicate deleted); a pair it cannot resolve (packaging conflict, constraint failure) is logged with both ids
+and left unchanged. The upgrade never aborts. `tests/test_bales_never_a_form.py` fails if a mapping file or code
+table sends a bale word to a form again.

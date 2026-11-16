@@ -238,7 +238,12 @@ TEXT_RULE_GRADES = {"BOTTLES", "BUCKETS", "CRATES", "DRUMS", "KNOCKDOWN_BINS", "
 NO_SUGGEST_POLYMERS = {"OTHER", "MIXED"}
 NO_SUGGEST_ATTRIBUTES = {"mixed"}
 NO_SUGGEST_FORMS = {"OTHER"}
+# Bales are packaging, never a form (operator decision; form BALES retired 2026-11-10).
+# HINT_DECISIONS is checked before the masters, so a bale word cannot reach the form master.
 HINT_DECISIONS = {
+    "bale": ("packaging_type", "bales"),
+    "bales": ("packaging_type", "bales"),
+    "baled": ("packaging_type", "bales"),
     "stacked": ("packaging_type", "palletized"),
     "stretch film (thin)": ("form", "FILM"),
     "blow mold": ("process_type", "blow_mold"),
@@ -316,6 +321,9 @@ def load_masters() -> dict[str, dict[str, str]]:
         tree = ET.parse(PROFILE / "data" / filename)  # nosemgrep
         for record in tree.iter("record"):
             fields = {field.get("name"): collapse(field.text) for field in record.findall("field")}
+            active = record.find("field[@name='active']")
+            if active is not None and (active.get("eval") or "").casefold() == "false":
+                continue  # a retired master (form BALES) is never a mapping target
             if fields.get("code"):
                 table[fields["code"]] = fields.get("name") or fields["code"]
         masters[name] = table
@@ -723,6 +731,9 @@ def classify_hint(key, rules, masters, web_words) -> dict[str, str]:
     """A form or type value. Both columns carry source, form, attribute, filler, and process words."""
     if any(pattern.search(key) for pattern in NOT_MATERIAL):
         return {"status": "not_material", "rule": "not_material", "note": "do not map (2026-11-03 decision)"}
+    if key in HINT_DECISIONS:
+        column, code = HINT_DECISIONS[key]
+        return {"status": "mapped", "rule": "hint_decision", column: code}
     for column in HINT_TARGETS:
         code = exact_master(key, masters[MASTER_OF[column]])
         if code:
@@ -730,9 +741,6 @@ def classify_hint(key, rules, masters, web_words) -> dict[str, str]:
     for code, spellings in ATTRIBUTE_WORDS.items():
         if key in spellings:
             return {"status": "mapped", "rule": "attribute_spelling", "attributes": code}
-    if key in HINT_DECISIONS:
-        column, code = HINT_DECISIONS[key]
-        return {"status": "mapped", "rule": "hint_decision", column: code}
     if key in rules:
         spec, _rule = rules[key]
         return {
