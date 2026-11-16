@@ -52,16 +52,20 @@ class PlasticosOfferTxBridge(models.Model):
 
         ``plasticos.offer.write`` admits ``transaction_id`` on closed offers through
         ``_plasticos_post_close_fields``; this guard narrows that to the initial link.
-        Writing the current value again is a no-op. A write that also changes the
-        state is a transition, not a closed-offer edit, and is left to the base guard.
+        It checks every write that names ``transaction_id`` on an offer whose current
+        state is closed, including one that also changes the state: then only the
+        current value is admitted. Writing the current value again is a no-op.
         """
         if "transaction_id" in vals:
             for rec in self:
-                if rec.state not in CLOSED_OFFER_STATES or vals.get("state", rec.state) != rec.state:
+                if rec.state not in CLOSED_OFFER_STATES:
                     continue
                 if not rec._plasticos_value_differs("transaction_id", vals["transaction_id"]):
                     continue
-                reason = rec._plasticos_transaction_link_error(vals["transaction_id"])
+                if vals.get("state", rec.state) != rec.state:
+                    reason = "the transaction link cannot change while the offer changes state"
+                else:
+                    reason = rec._plasticos_transaction_link_error(vals["transaction_id"])
                 if reason:
                     raise UserError(
                         f"Cannot change the transaction of offer '{rec.name}' in state '{rec.state}': {reason}."

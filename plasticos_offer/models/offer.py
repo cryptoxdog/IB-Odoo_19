@@ -467,6 +467,9 @@ class PlasticosOffer(models.Model):
         - Responded: only from Sent (or Responded).
         - Accepted: only from Sent or Responded; when the offer requires it, only after a real send.
         - Draft: never for an offer that keeps its sent history.
+        - Cancelled: never from Accepted (the rule of ``action_cancel``).
+        - Rejected: never from Accepted, Cancelled or Expired (the rule of ``action_reject``).
+        - Expired: never from Accepted (``cron_expire_offers`` expires only draft, sent and responded offers).
         """
         target = vals.get("state")
         if not target:
@@ -492,6 +495,12 @@ class PlasticosOffer(models.Model):
                     raise UserError(
                         _("Offer %(offer)s has no sent email on record and cannot be accepted.", offer=rec.name)
                     )
+            if target == "cancelled" and rec.state == "accepted":
+                raise UserError(_("Cannot cancel an accepted offer."))
+            if target == "rejected" and rec.state in ("accepted", "cancelled", "expired"):
+                raise UserError(_("Cannot reject an accepted, cancelled, or expired offer."))
+            if target == "expired" and rec.state == "accepted":
+                raise UserError(_("Offer %(offer)s was accepted and cannot expire.", offer=rec.name))
             if target == "draft" and rec._plasticos_keeps_sent_history():
                 raise UserError(
                     _(

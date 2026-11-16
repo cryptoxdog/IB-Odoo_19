@@ -104,3 +104,22 @@ class TestOfferTransactionLinkFreeze(PlasticosTestCase):
             with self.assertRaises(UserError):
                 offer.write({"transaction_id": tx.id})
             self.assertFalse(offer.transaction_id)
+
+    def test_link_cannot_be_cleared_while_the_state_changes(self):
+        offer = self._accepted_offer()
+        tx = self._transaction_for(offer.name)
+        offer.write({"transaction_id": tx.id})
+        with self.assertRaises(UserError):
+            offer.write({"state": "cancelled", "transaction_id": False})
+        self.assertEqual(offer.transaction_id, tx)
+        self.assertEqual(offer.state, "accepted")
+
+    def test_link_cannot_be_set_on_a_closed_to_closed_transition(self):
+        # expired → cancelled is a transition the base validator admits, so only this guard refuses the link.
+        offer = self._offer()
+        offer.write({"state": "expired"})
+        tx = self._transaction_for(offer.name)
+        with self.assertRaises(UserError):
+            offer.write({"state": "cancelled", "transaction_id": tx.id})
+        self.assertFalse(offer.transaction_id)
+        self.assertEqual(offer.state, "expired")
