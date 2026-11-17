@@ -322,36 +322,67 @@ def _review(cr, facility_id, profile_id, reason, detail):
     )
 
 
+# Approved with ADR-134 §7 and §9. The values are already capabilities, In profiles,
+# the ledger, and the review list before these statements run. Rollback is the
+# pre-upgrade database; this script keeps no second copy of the retired columns.
 _DROP_COLUMN = {
+    # nosemgrep: plasticos-destructive-migration-sql-py
     "process_type": "ALTER TABLE plasticos_facility_profile DROP COLUMN process_type",
+    # nosemgrep: plasticos-destructive-migration-sql-py
     "form_preference": "ALTER TABLE plasticos_facility_profile DROP COLUMN form_preference",
+    # nosemgrep: plasticos-destructive-migration-sql-py
     "handles_bales": "ALTER TABLE plasticos_facility_profile DROP COLUMN handles_bales",
+    # nosemgrep: plasticos-destructive-migration-sql-py
     "handles_regrind": "ALTER TABLE plasticos_facility_profile DROP COLUMN handles_regrind",
+    # nosemgrep: plasticos-destructive-migration-sql-py
     "handles_pellet": "ALTER TABLE plasticos_facility_profile DROP COLUMN handles_pellet",
+    # nosemgrep: plasticos-destructive-migration-sql-py
     "handles_flake": "ALTER TABLE plasticos_facility_profile DROP COLUMN handles_flake",
+    # nosemgrep: plasticos-destructive-migration-sql-py
     "handles_rollstock": "ALTER TABLE plasticos_facility_profile DROP COLUMN handles_rollstock",
+    # nosemgrep: plasticos-destructive-migration-sql-py
     "can_remove_metal": "ALTER TABLE plasticos_facility_profile DROP COLUMN can_remove_metal",
+    # nosemgrep: plasticos-destructive-migration-sql-py
     "can_reduce_moisture": "ALTER TABLE plasticos_facility_profile DROP COLUMN can_reduce_moisture",
+    # nosemgrep: plasticos-destructive-migration-sql-py
     "can_filter_fr": "ALTER TABLE plasticos_facility_profile DROP COLUMN can_filter_fr",
+    # nosemgrep: plasticos-destructive-migration-sql-py
     "can_screen_fines": "ALTER TABLE plasticos_facility_profile DROP COLUMN can_screen_fines",
+    # nosemgrep: plasticos-destructive-migration-sql-py
     "has_horizontal_baler": "ALTER TABLE plasticos_facility_profile DROP COLUMN has_horizontal_baler",
+    # nosemgrep: plasticos-destructive-migration-sql-py
     "has_downstroke_baler": "ALTER TABLE plasticos_facility_profile DROP COLUMN has_downstroke_baler",
+    # nosemgrep: plasticos-destructive-migration-sql-py
     "has_shredder": "ALTER TABLE plasticos_facility_profile DROP COLUMN has_shredder",
+    # nosemgrep: plasticos-destructive-migration-sql-py
     "has_granulator": "ALTER TABLE plasticos_facility_profile DROP COLUMN has_granulator",
+    # nosemgrep: plasticos-destructive-migration-sql-py
     "has_wash_line": "ALTER TABLE plasticos_facility_profile DROP COLUMN has_wash_line",
+    # nosemgrep: plasticos-destructive-migration-sql-py
     "has_extruder": "ALTER TABLE plasticos_facility_profile DROP COLUMN has_extruder",
+    # nosemgrep: plasticos-destructive-migration-sql-py
     "has_sorting_line": "ALTER TABLE plasticos_facility_profile DROP COLUMN has_sorting_line",
+    # nosemgrep: plasticos-destructive-migration-sql-py
     "density_min": "ALTER TABLE plasticos_facility_profile DROP COLUMN density_min",
+    # nosemgrep: plasticos-destructive-migration-sql-py
     "density_max": "ALTER TABLE plasticos_facility_profile DROP COLUMN density_max",
+    # nosemgrep: plasticos-destructive-migration-sql-py
     "melt_index_min": "ALTER TABLE plasticos_facility_profile DROP COLUMN melt_index_min",
+    # nosemgrep: plasticos-destructive-migration-sql-py
     "melt_index_max": "ALTER TABLE plasticos_facility_profile DROP COLUMN melt_index_max",
+    # nosemgrep: plasticos-destructive-migration-sql-py
     "form_preference_id": "ALTER TABLE plasticos_facility_profile DROP COLUMN form_preference_id",
 }
 _DROP_TABLE = {
+    # nosemgrep: plasticos-destructive-migration-sql-py
     "facility_profile_equipment_rel": "DROP TABLE facility_profile_equipment_rel CASCADE",
+    # nosemgrep: plasticos-destructive-migration-sql-py
     "facility_template_equipment_rel": "DROP TABLE facility_template_equipment_rel CASCADE",
+    # nosemgrep: plasticos-destructive-migration-sql-py
     "facility_profile_polymer_rel": "DROP TABLE facility_profile_polymer_rel CASCADE",
+    # nosemgrep: plasticos-destructive-migration-sql-py
     "plasticos_equipment_type": "DROP TABLE plasticos_equipment_type CASCADE",
+    # nosemgrep: plasticos-destructive-migration-sql-py
     "plasticos_facility_template": "DROP TABLE plasticos_facility_template CASCADE",
 }
 

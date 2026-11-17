@@ -26,5 +26,8 @@ def migrate(cr, version):
     if cr.fetchone() is None:
         _logger.info("semantic kernel 19.0.1.0.6: equipment_type_id already absent; columns_dropped=0")
         return
+    # Approved with ADR-134 §10. The field is now capability_type_id. Rollback is
+    # the pre-upgrade database; an uninstalled module has no rows to copy.
+    # nosemgrep: plasticos-destructive-migration-sql-py
     cr.execute("ALTER TABLE plasticos_facility_material_rule DROP COLUMN equipment_type_id")
     _logger.info("semantic kernel 19.0.1.0.6 counts: columns_dropped=1")
