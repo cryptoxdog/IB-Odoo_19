@@ -466,6 +466,8 @@ class PlasticosErpImport(models.AbstractModel):
             row = index.contacts[contact_id]
             if mapping.contact_exclusion(row.get("IsActive")):
                 continue
+            if _is_function_mailbox_row(row):  # its email joins the company; its number never does
+                continue
             roles = [role.lower() for role in self._contact_roles(index, contact_id)]
             (primary_rows if "primary" in roles else other_rows).append(row)
         values = {}
@@ -539,6 +541,8 @@ class PlasticosErpImport(models.AbstractModel):
         from ..erp import mapping
 
         Partner = self.env[RES_PARTNER].with_context(**IMPORT_CONTEXT, active_test=False)
+        if not hasattr(index, "function_mailbox_ct_ids"):
+            index.function_mailbox_ct_ids = set()
         catalog = self._address_catalog()
         mailbox_keys = mapping.site_mailbox_keys(_mailbox_companies_from(index, catalog))
 
@@ -669,15 +673,33 @@ class PlasticosErpImport(models.AbstractModel):
 
     def _route_channel_rows(self, partner_model, plan, company, index, report, dry_run: bool) -> None:
         """Rows that are no person: the channel lands on their one site, or on the company."""
-        routes = [(contact_id, row, partner_model.browse(site_id)) for contact_id, row, site_id in plan.to_site]
-        routes += [(contact_id, row, company) for contact_id, row in plan.to_company]
-        for contact_id, row, target in routes:
+        routes = [(contact_id, row, partner_model.browse(site_id), False) for contact_id, row, site_id in plan.to_site]
+        routes += [(contact_id, row, company, False) for contact_id, row in plan.to_company]
+        routes += [(contact_id, row, company, True) for contact_id, row in plan.to_company_email]
+        for contact_id in plan.mailbox_ct_ids:
+            index.function_mailbox_ct_ids.add(contact_id)
+        for contact_id, row, target, email_only in routes:
             index.omitted_contact_ids.add(contact_id)
             retired = False
             if not dry_run and target:
-                self._apply_non_person(target, row)
+                if email_only:
+                    self._append_company_email(target, row)
+                else:
+                    self._apply_non_person(target, row)
                 retired = self._retire_stale_contact(partner_model, contact_id, report)
             report.bump("contacts", "updated" if retired else "skipped")
+
+    def _append_company_email(self, company, row) -> None:
+        """An accounting mailbox joins the company's emails: appended, de-duplicated, never replacing one.
+
+        The company's phone is left unchanged.
+        """
+        from ..erp import mapping
+
+        current = mapping.clean_emails(company.email)
+        added = [address for address in _row_emails(row) if address not in current]
+        if added:
+            company.with_context(**IMPORT_CONTEXT).write({"email": ", ".join([*current, *added])})
 
     def _site_channels(self, partner_model, partner_by_address: dict, company, region: str) -> list:
         """``[(site partner id, phone keys, emails)]`` for the stored sites of one company (R2b)."""
@@ -800,23 +822,7 @@ class PlasticosErpImport(models.AbstractModel):
                 partner.write({"location_partner_ids": [(4, site_id) for site_id in missing]})
         self._sync_phone_lines(partner, phone_lines)
         self._append_comment_evidence(partner, email_evidence)
-        self._review_unparsed_phones(
-            partner, [values.get("phone"), *(number for _label, number in phone_lines)], region, report
-        )
         return partner
-
-    def _review_unparsed_phones(self, partner, numbers, region: str, report) -> None:
-        """List each dialable number of ``partner`` that ``phonenumbers`` cannot parse (ids and shape only)."""
-        from ..erp import mapping
-
-        if not mapping.phone_parser_available():
-            return
-        listed = report.review["unparsed_phones"]
-        for number in numbers:
-            if mapping.real_phone(number) and mapping.parse_phone(number, region) is None:
-                entry = {"partner_id": partner.id, "shape": mapping.masked_phone(number)}
-                if entry not in listed:
-                    listed.append(entry)
 
     def _append_comment_evidence(self, partner, lines: list) -> None:
         """Append each labelled line to ``comment`` as its own paragraph, once.
@@ -978,6 +984,41 @@ class PlasticosErpImport(models.AbstractModel):
             job = mapping.job_position(tags)
             if job and partner.function != job:
                 partner.write({"function": job})
+        self._report_mailbox_role_holders(Partner, index, report, tag_cache)
+
+    def _report_mailbox_role_holders(self, partner_model, index, report, tag_cache: dict) -> None:
+        """A function mailbox's role tag stays with the one person who already holds it.
+
+        Its role rows were skipped (the mailbox is no person). When exactly one
+        person of the company already carries the tag, nothing is added. When
+        none or several do, the tag is not assigned and the row is reported.
+        """
+        from ..erp import mapping
+
+        for contact_id in sorted(getattr(index, "function_mailbox_ct_ids", ()), key=_ct_order):
+            role_ids = index.roles_by_contact.get(contact_id, [])
+            if not role_ids:
+                continue
+            cp_id = index.contacts[contact_id].get("CpID")
+            people = {}
+            for other in index.contacts_by_cp.get(cp_id, []):
+                if other in index.omitted_contact_ids:
+                    continue
+                person = self._partner_by_xmlid(partner_model, f"legacy_erp_contact_{other}")
+                if person:
+                    people[person.id] = person
+            for role_id in role_ids:
+                tag, _reason = mapping.map_contact_role(index.contact_roles[role_id].get("RoleNm"))
+                if not tag:
+                    continue
+                tag_id = self._role_tag_id(tag, tag_cache, report)
+                holders = [person for person in people.values() if tag_id in person.category_id.ids]
+                if len(holders) != 1:
+                    report.anomaly(
+                        "ContactRoleAssignment",
+                        role_id,
+                        f"function mailbox CT_ID={contact_id}: role {tag!r} not assigned ({len(holders)} holders)",
+                    )
 
     def _user_ids_by_name(self, names: set[str]) -> dict[str, int | None]:
         """One query for the named users. A name with two users maps to None.
@@ -1565,6 +1606,8 @@ class _FoldPlan:
         self.unfolded: list = []  # (contact_id, row, kind): own person, or rejected when blank
         self.to_site: list = []  # (contact_id, row, site partner id): channel on the site, no person
         self.to_company: list = []  # (contact_id, row): channel on the company, no person
+        self.to_company_email: list = []  # (contact_id, row): accounting mailbox appended to the company email
+        self.mailbox_ct_ids: list[str] = []  # function mailboxes: their role tags are never assigned anew
         self.extra_sites: dict[str, int] = {}  # contact_id -> site partner id for an unfolded first name
         self.ambiguous: list[dict] = []  # review entries; candidate keys resolved after the people exist
 
@@ -1622,10 +1665,14 @@ def _fold_weak_rows(groups: dict, order: list, weak_rows: list, report, region="
         email_hits = set().union(*(by_email.get(a, set()) for a in emails)) & allowed
         candidates = phone_hits | email_hits
 
-        if kind == mapping.WEAK_ROLE and mapping.is_generic_mailbox(emails):  # c
-            site_ids = matching_sites(row)
+        mailbox = mapping.function_mailbox(emails)  # c: a function mailbox is never a person
+        if mailbox:
+            plan.mailbox_ct_ids.append(contact_id)
+            site_ids = matching_sites(row) if mailbox == mapping.MAILBOX_OPERATIONAL else []
             if len(site_ids) == 1:
                 plan.to_site.append((contact_id, row, site_ids[0]))
+            elif mailbox == mapping.MAILBOX_ACCOUNTING:
+                plan.to_company_email.append((contact_id, row))
             else:
                 plan.to_company.append((contact_id, row))
             continue
@@ -1663,11 +1710,16 @@ def _fold_weak_rows(groups: dict, order: list, weak_rows: list, report, region="
             plan.extra_sites[contact_id] = site_ids[0]
         elif len(site_ids) > 1:
             report.anomaly("Contact", contact_id, f"site ambiguous: {len(site_ids)} sites match")
-            report.review["site_ambiguous_contacts"].append(
-                {"ct_id": contact_id, "kind": kind, "site_partner_ids": sorted(site_ids)}
-            )
         plan.unfolded.append((contact_id, row, kind))
     return plan
+
+
+def _is_function_mailbox_row(row) -> bool:
+    """A weak-name contact row whose own address is a function mailbox (``ap@``, ``orders@``)."""
+    from ..erp import mapping
+
+    emails = _row_emails(row)
+    return bool(mapping.weak_name_kind(_text(row, "ContactNm"), emails) and mapping.function_mailbox(emails))
 
 
 def _ct_order(contact_id):

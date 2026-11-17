@@ -226,8 +226,6 @@ def data_verdict(result: dict, *, partners_only: bool = False) -> dict:
 
 _REVIEW_TITLES = {
     "ambiguous_contacts": "Contact rows not folded (ambiguous)",
-    "site_ambiguous_contacts": "Contact rows matching several sites",
-    "unparsed_phones": "Phones the parser could not read",
     "retire_kept": "People kept visible by the retire rule",
 }
 

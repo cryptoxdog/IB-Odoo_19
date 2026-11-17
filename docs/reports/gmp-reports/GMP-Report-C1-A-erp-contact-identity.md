@@ -149,3 +149,18 @@ no person, 48 of those matching one site).
 - Tests: 21 new (tie-break forms, generic mailbox → site / company, R2b three kinds,
   first name + site, several sites, E.164 + extension + region, digits-only fallback,
   unparsed listing, review lines and last line, balance unchanged).
+
+## Corrective run 5 (2026-11-17) — function mailboxes, review scope
+
+Two operator corrections relayed by the CTO session.
+
+- Function mailboxes never become a person, for every weak-named row (not only ambiguous
+  ones). Accounting local parts → appended to the commercial company's e-mail, de-duplicated,
+  never replacing; company phone untouched (function-mailbox rows are also excluded from
+  `_fill_company_from_contact`). Operational local parts → the one matching site, else the
+  company. Role tags: unchanged when exactly one person holds the tag, else reported.
+- Brief test 2 ("AP" with `ap@` stays its own card) is superseded by this decision and was
+  rewritten; the brief-test-3 fixture used `orders@` as a personal mailbox and now uses a
+  personal local part.
+- NEEDS REVIEW lists only ambiguous contact rows and retire-kept people; unparsed phones and
+  several-site rows are no longer listed (several-site rows remain anomalies).

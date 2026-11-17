@@ -270,7 +270,9 @@ def test_sky_shape_folds_weak_rows_into_one_person_with_all_roles_and_sites():
 
 
 # 2 ------------------------------------------------------------------------
-def test_a_role_mailbox_with_its_own_channels_stays_its_own_card():
+def test_a_role_mailbox_is_no_person_and_its_address_joins_the_company():
+    # Brief test 2 superseded by the operator decision of 2026-11-17: a function
+    # mailbox never becomes a person. ``AP`` with ``ap@`` is an accounting mailbox.
     world = _World()
     world.run(
         [
@@ -278,8 +280,10 @@ def test_a_role_mailbox_with_its_own_channels_stays_its_own_card():
             _row("202", "AP", PhoneBusiness="704-555-0202", Email="ap@skyco.test"),
         ]
     )
-    assert sorted(p.name for p in world.people()) == ["AP", "Dana Sky"]
-    assert world.resolve("202").email == "ap@skyco.test"
+    assert [p.name for p in world.people()] == ["Dana Sky"]
+    assert world.resolve("202") is None
+    assert world.company.email == f"{DANA_EMAIL}, ap@skyco.test", "appended, the existing address kept first"
+    assert world.company.phone == DANA_PHONE, "the mailbox's number never reaches the company"
 
 
 # 3 ------------------------------------------------------------------------
@@ -287,8 +291,8 @@ def test_an_email_prefix_row_folds_into_a_multi_person_card_and_adds_its_site():
     world = _World(sites=("Site A", "Site B"))
     world.run(
         [
-            _row("301", "Kim Ek & Ray Ek", PhoneBusiness="555-010-0301", Email="orders@ekco.test", Location="Site A"),
-            _row("302", "orders", Email="orders@ekco.test", Location="Site B"),
+            _row("301", "Kim Ek & Ray Ek", PhoneBusiness="555-010-0301", Email="kimray@ekco.test", Location="Site A"),
+            _row("302", "kimray", Email="kimray@ekco.test", Location="Site B"),
         ]
     )
     (card,) = world.people()
@@ -751,28 +755,72 @@ def test_an_email_prefix_that_no_candidate_name_produces_stays_ambiguous_and_is_
     }
 
 
-def test_a_generic_role_mailbox_never_folds_and_lands_on_its_one_site():
+def test_an_accounting_mailbox_goes_to_the_company_never_to_a_matching_site():
     world = _World(sites=("Site A", "Site B"))
     site_a = _site(world, "Site A", phone="704-555-1700")
+    world.company.email = "office@cust.test"
+    world.company.phone = "704-555-1799"
     report = world.run(
         [
             _row("1701", "Pat Doe", Email="billing@cust.test"),  # a person sharing the mailbox
             _row("1702", "BILLING", PhoneBusiness="704-555-1700", Email="billing@cust.test"),
-        ],
-        roles={"1702": ["Billing"]},
+        ]
     )
     assert world.resolve("1702") is None, "no person, no marker"
-    assert site_a.email == "billing@cust.test"
-    (pat,) = world.people()
-    assert pat.name == "Pat Doe" and pat.tags() == set(), "the mailbox's role tag goes to nobody new"
+    assert site_a.email is False, "an accounting mailbox never lands on a site"
+    assert world.company.email == "office@cust.test, billing@cust.test"
+    assert world.company.phone == "704-555-1799"
+    assert [p.name for p in world.people()] == ["Pat Doe"]
     assert report.counts["contacts"]["rejected"] == 0
 
 
-def test_a_generic_role_mailbox_with_no_matching_site_lands_on_the_company():
-    world = _World(sites=("Site A",))
+def test_an_accounting_mailbox_already_on_the_company_is_not_added_twice():
+    world = _World()
+    world.company.email = "AR@Cust.test"
     world.run([_row("1711", "COLLECTIONS", PhoneBusiness="704-555-1711", Email="ar@cust.test")])
     assert world.people() == []
-    assert (world.company.phone, world.company.email) == ("704-555-1711", "ar@cust.test")
+    assert world.company.email == "AR@Cust.test", "same address once cleaned: nothing written"
+    assert world.company.phone is False
+
+
+def test_an_accounting_mailbox_matching_no_person_but_one_site_still_goes_to_the_company():
+    world = _World(sites=("Site A", "Site B"))
+    site_a = _site(world, "Site A", email="ap@cust.test")
+    world.run([_row("1721", "Pat Doe", PhoneBusiness="704-555-1721"), _row("1722", "", Email="ap@cust.test")])
+    assert world.resolve("1722") is None
+    assert site_a.email == "ap@cust.test", "the site keeps what it had and gains nothing"
+    assert "ap@cust.test" in world.company.email.split(", ")
+
+
+def test_an_operational_mailbox_goes_to_its_one_site_else_to_the_company():
+    world = _World(sites=("Site A", "Site B"))
+    site_a = _site(world, "Site A", phone="704-555-1730")
+    world.run(
+        [
+            _row("1731", "FREIGHT", PhoneBusiness="704-555-1730", Email="shipping@cust.test"),
+            _row("1732", "Orders", Email="orders@cust.test"),
+        ]
+    )
+    assert world.people() == []
+    assert site_a.email == "shipping@cust.test"
+    assert world.company.email == "orders@cust.test", "no matching site: the company"
+
+
+@pytest.mark.parametrize(("holders", "reported"), [(["Collections"], False), ([], True), (["Billing", "AR/AP"], True)])
+def test_a_mailbox_role_tag_stays_with_its_single_holder_else_is_reported(holders, reported):
+    world = _World()
+    rows = [_row("1741", "BILLING", Email="ap@cust.test")]
+    roles = {"1741": ["Billing"]}
+    for position, role in enumerate(holders):
+        ct_id = str(1750 + position)
+        rows.append(_row(ct_id, ("Ann Roe", "Bea Low")[position], PhoneBusiness=f"704-555-17{50 + position}"))
+        roles[ct_id] = [role]
+    report = world.run(rows, roles=roles)
+    assert world.resolve("1741") is None
+    held = [p for p in world.people() if "AR/AP" in p.tags()]
+    assert len(held) == len(holders), "the mailbox adds the tag to nobody"
+    notes = [a for a in report.anomalies if "function mailbox CT_ID=1741" in a["detail"]]
+    assert bool(notes) is reported
 
 
 @pytest.mark.parametrize(("name", "email"), [("", "dock@cust.test"), ("dock", "dock@cust.test"), ("SALES", "")])
@@ -808,9 +856,7 @@ def test_r2b_a_row_matching_several_sites_keeps_todays_behaviour_and_is_listed()
         [_row("1821", "Pat Doe", PhoneBusiness="704-555-1829"), _row("1822", "Sam", PhoneBusiness="704-555-1820")]
     )
     assert world.resolve("1822").name == "Sam"
-    assert report.review["site_ambiguous_contacts"] == [
-        {"ct_id": "1822", "kind": "first_name", "site_partner_ids": sorted(world.site_ids.values())}
-    ]
+    assert "site ambiguous: 2 sites match" in [a["detail"] for a in report.anomalies if a["key"] == "1822"]
 
 
 class _FakePhonenumbers(types.ModuleType):
@@ -873,7 +919,6 @@ def test_without_the_library_phone_keys_are_digits_only(monkeypatch):
     monkeypatch.setitem(sys.modules, "phonenumbers", None)  # import fails
     assert mapping.parse_phone("+44 20 7946 0958") is None
     assert mapping.phone_keys("+44 20 7946 0958") == {"442079460958"}
-    assert not mapping.phone_parser_available()
 
 
 def test_an_international_and_a_national_form_of_one_number_fold_in_the_company_region(phonenumbers_lib):
@@ -885,11 +930,10 @@ def test_an_international_and_a_national_form_of_one_number_fold_in_the_company_
     assert world.resolve("1902") is world.resolve("1901")
 
 
-def test_a_phone_the_parser_cannot_read_is_listed_masked(phonenumbers_lib):
+def test_the_review_lists_only_ambiguous_rows_and_retire_kept_people(phonenumbers_lib):
     world = _World()
-    report = world.run([_row("1911", "Pat Doe", PhoneBusiness="12-34-56-78")])
-    person = world.resolve("1911")
-    assert report.review["unparsed_phones"] == [{"partner_id": person.id, "shape": "##-##-##-##"}]
+    report = world.run([_row("1911", "Pat Doe", PhoneBusiness="12-34-56-78")])  # not a possible number
+    assert set(report.review) == {"ambiguous_contacts", "retire_kept"}, "unparsed phones are not reviewed"
 
 
 def test_review_lines_list_every_entry_and_end_with_the_count():

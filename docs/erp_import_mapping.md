@@ -328,31 +328,37 @@ the person; role mailboxes stay; sales-rep mailboxes never reach Odoo.
   only counts persons whose first word is that name; (b) an e-mail prefix with
   several candidates folds into the one whose name produces the local part
   (`first.last`, `firstlast`, `flast`, `firstl`, `first`, `last`; case-folded,
-  alphanumeric only); (c) a role word whose own address has a generic local part
-  (`ap`, `ar`, `accounting`, `accounts`, `invoices`, `invoice`, `billing`,
-  `payables`, `receivables`, `office`, `orders`, `customerservice`, `info`,
-  `sales`, `purchasing`, `shipping`, `receiving`) never becomes or joins a person:
-  its phone and e-mail go to the one site of the company they match, else to the
-  company, and its role tags stay with the person who already holds them (nothing
-  is added); (d) phone to one person and e-mail to another does not fold. What
+  alphanumeric only); (c) see *Function mailboxes* below; (d) phone to one person
+  and e-mail to another does not fold. What
   remains is listed under NEEDS REVIEW.
+- **Function mailboxes (operator decision 2026-11-17).** A weak-named row (blank,
+  one word, role word or e-mail prefix) whose own address has a function local part
+  never becomes or joins a person, whether or not it matches anyone. Accounting
+  (`ap`, `ar`, `accounting`, `accounts`, `invoices`, `invoice`, `billing`,
+  `payables`, `receivables`): the address is appended to the commercial company's
+  e-mail, de-duplicated, never replacing one; the company's phone is untouched,
+  including by the "fill the company from its contacts" step. Operational
+  (`shipping`, `receiving`, `orders`, `office`, `customerservice`, `info`, `sales`,
+  `purchasing`): phone and e-mail go to the one site they match, else to the company.
+  Accounting wins when a cell has both. Role tags are not assigned anew: when exactly
+  one person of the company already holds the tag, nothing changes; otherwise the
+  role row is reported.
 - **R2b — one matching site.** A weak row that matches no person but exactly one
   site of the same company by phone or e-mail: a blank, role-word or e-mail-prefix
   row creates no person and puts its phone and e-mail on that site (filling empty
   fields, as for a site mailbox); a plain first name stays a person and gets that
-  site among its sites. Several matching sites: as before, listed under NEEDS
-  REVIEW.
+  site among its sites. Several matching sites: as before, reported as an anomaly.
 - **Phone match key.** Two numbers match when their digits match, or, when the
   `phonenumbers` library is installed (it ships with Odoo), when their E.164 forms
   (with `x<extension>`) match. The region is the partner's country, else its
   company's, else `US`, so `+44 20 …` and `020 …` of a UK company match. The same
   keys decide whether a phone line is already present.
 - **NEEDS REVIEW.** Every ERP import ends with an always-present review block, ids
-  only, every entry in full: contact rows left ambiguous (CT_ID, kind, reason,
-  candidate CT_IDs and partner ids), rows matching several sites, phones the parser
-  could not read (partner id, digit-masked shape), and people the retire rule kept
-  visible. Its last line, `NEEDS REVIEW: <n>`, is the last line of
-  `make import-erp`. These are diagnostics: the balance equation is unchanged.
+  only, every entry in full, listing exactly two things: contact rows left ambiguous
+  (CT_ID, kind, reason, candidate CT_IDs and partner ids) and people the retire rule
+  kept visible (partner id, reason). Its last line, `NEEDS REVIEW: <n>`, is the last
+  line of `make import-erp`. These are diagnostics: the balance equation is
+  unchanged. Rows matching several sites and unparsed phones are anomalies only.
 - **Replay.** A partner an earlier run created for a now-folded `CT_ID` has that
   marker re-pointed to the person. It is archived, never deleted, once no other
   `legacy_erp_contact_%` marker still points at it. Before that, what names it moves

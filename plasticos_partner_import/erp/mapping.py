@@ -649,48 +649,30 @@ def parse_phone(value: str | None, region: str | None = "US") -> str | None:
     return f"{key}x{number.extension}" if number.extension else key
 
 
-def phone_parser_available() -> bool:
-    """True when ``phonenumbers`` can be imported (then an unparsed value is reportable)."""
-    try:
-        import phonenumbers  # noqa: F401
-    except ImportError:
-        return False
-    return True
-
-
-def masked_phone(value: str | None) -> str:
-    """The shape of a phone value with every digit replaced by ``#`` (review output, no number)."""
-    return "".join("#" if char.isdigit() else char for char in (value or "").strip())
-
-
-# Mailbox local parts that name a function, not a person (C1 probe 3). A role-word
-# contact whose address starts with one of these is a shared mailbox.
-GENERIC_MAILBOX_LOCALS: frozenset[str] = frozenset(
-    {
-        "ap",
-        "ar",
-        "accounting",
-        "accounts",
-        "invoices",
-        "invoice",
-        "billing",
-        "payables",
-        "receivables",
-        "office",
-        "orders",
-        "customerservice",
-        "info",
-        "sales",
-        "purchasing",
-        "shipping",
-        "receiving",
-    }
+# Function mailboxes never become a person (operator decision 2026-11-17).
+# Accounting mailboxes belong to the commercial company; operational ones to the
+# one site they match, else to the company.
+ACCOUNTING_MAILBOX_LOCALS: frozenset[str] = frozenset(
+    {"ap", "ar", "accounting", "accounts", "invoices", "invoice", "billing", "payables", "receivables"}
 )
+OPERATIONAL_MAILBOX_LOCALS: frozenset[str] = frozenset(
+    {"shipping", "receiving", "orders", "office", "customerservice", "info", "sales", "purchasing"}
+)
+MAILBOX_ACCOUNTING = "accounting"
+MAILBOX_OPERATIONAL = "operational"
 
 
-def is_generic_mailbox(emails: list[str]) -> bool:
-    """True when one of the addresses has a generic function local part (``ap@``, ``orders@``)."""
-    return any(_alnum(address.split("@", 1)[0]).casefold() in GENERIC_MAILBOX_LOCALS for address in emails)
+def function_mailbox(emails: list[str]) -> str | None:
+    """``accounting`` or ``operational`` when an address has a function local part, else ``None``.
+
+    Accounting wins when a cell carries both (``ap@`` and ``orders@``).
+    """
+    locals_ = {"".join(char for char in address.split("@", 1)[0].casefold() if char.isalnum()) for address in emails}
+    if locals_ & ACCOUNTING_MAILBOX_LOCALS:
+        return MAILBOX_ACCOUNTING
+    if locals_ & OPERATIONAL_MAILBOX_LOCALS:
+        return MAILBOX_OPERATIONAL
+    return None
 
 
 def name_local_forms(name: str | None) -> frozenset[str]:

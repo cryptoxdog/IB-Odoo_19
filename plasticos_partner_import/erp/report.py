@@ -10,7 +10,7 @@ __all__ = ["ImportReport"]
 
 
 # Sections of the always-present review list, in print order.
-REVIEW_SECTIONS = ("ambiguous_contacts", "site_ambiguous_contacts", "unparsed_phones", "retire_kept")
+REVIEW_SECTIONS = ("ambiguous_contacts", "retire_kept")
 
 
 class ImportReport:
