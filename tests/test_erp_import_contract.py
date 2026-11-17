@@ -526,6 +526,20 @@ class _Partner:
         self.writes.append(dict(vals))
         self._apply(vals)
 
+    def sudo(self):
+        return self
+
+    def _commercial_sync_from_company(self):
+        """Odoo copies the commercial partner's commercial values onto the child.
+
+        Modelled on ``credit_limit`` only; ``commercial_syncs`` counts the calls.
+        """
+        self.commercial_syncs = getattr(self, "commercial_syncs", 0) + 1
+        model = getattr(self, "_model", None)
+        parent = model.rows.get(self.parent_id) if model and self.parent_id else None
+        if parent is not None and not self.is_company:
+            self.credit_limit = getattr(parent, "credit_limit", 0)
+
     def _plasticos_is_site(self):
         """Mirror of plasticos_facility_profile's D1 predicate (ADR-131), either shape."""
         return bool(self.parent_id) and (self.type in ("delivery", "invoice") or bool(self.is_company))

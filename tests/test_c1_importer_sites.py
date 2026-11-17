@@ -263,3 +263,73 @@ def test_d1_predicate_recognises_both_site_shapes():
     assert am.is_site(has_parent=True, partner_type="delivery", is_company=False)
     assert am.is_site(has_parent=True, partner_type="contact", is_company=True)
     assert not am.is_site(has_parent=True, partner_type="contact", is_company=False)
+
+
+# 5 ------------------------------------------------------------------------
+def test_a_converted_site_takes_its_company_credit_limit():
+    partners, markers = contract._PartnerModel(), contract._MarkerModel()
+    company = partners.create({"name": "Synthetic Co", "is_company": True, "credit_limit": 5000})
+    module, service = _service(partners, markers)
+    old = partners.create(
+        {"name": "Synthetic Co - Omaha", "parent_id": company.id, "is_company": True, "type": "delivery"}
+    )
+    old.credit_limit = 250  # the site's own limit from the old shape
+    markers.create(
+        {
+            "module": module.XMLID_MODULE,
+            "name": "legacy_erp_address_A9",
+            "model": "res.partner",
+            "res_id": old.id,
+            "noupdate": True,
+        }
+    )
+    _create(service, partners, company, _address_row("A9", "OMAHA, NE"), ImportReport(), {})
+    assert old.credit_limit == 5000, "the parent wins"
+    assert old.commercial_syncs == 1
+
+    # A replay of an already native site does not re-sync.
+    _create(service, partners, company, _address_row("A9", "OMAHA, NE"), ImportReport(), {})
+    assert old.commercial_syncs == 1
+
+
+class _SearchablePartners(contract._PartnerModel):
+    def search(self, domain):
+        def hit(row):
+            for field, op, value in domain:
+                current = getattr(row, field)
+                if op == "=" and current != value:
+                    return False
+                if op == "!=" and current == value:
+                    return False
+            return True
+
+        return contract._PartnerSet(row for row in self.rows.values() if hit(row))
+
+
+def test_an_unmarked_old_shape_site_is_converted_and_other_company_children_are_left(caplog):
+    partners, markers = _SearchablePartners(), contract._MarkerModel()
+    company = partners.create({"name": "Synthetic Co", "is_company": True, "credit_limit": 900})
+    module, service = _service(partners, markers)
+    unmarked_site = partners.create({"name": "Dock", "parent_id": company.id, "is_company": True, "type": "invoice"})
+    unmarked_site.credit_limit = 10
+    division = partners.create({"name": "Division", "parent_id": company.id, "is_company": True, "type": "contact"})
+    marked = partners.create({"name": "Yard", "parent_id": company.id, "is_company": True, "type": "delivery"})
+    markers.create(
+        {
+            "module": module.XMLID_MODULE,
+            "name": "legacy_erp_address_A3",
+            "model": "res.partner",
+            "res_id": marked.id,
+            "noupdate": True,
+        }
+    )
+
+    with caplog.at_level("INFO"):
+        service._convert_unmarked_sites(partners)
+
+    assert unmarked_site.is_company is False and unmarked_site.type == "invoice"
+    assert unmarked_site.credit_limit == 900
+    assert division.is_company is True, "not a site address type: left as a company"
+    assert marked.is_company is True, "a marked site is converted by its own address row"
+    assert f"converted unmarked old-shape site {unmarked_site.id}" in caplog.text
+    assert f"left company child {division.id}" in caplog.text

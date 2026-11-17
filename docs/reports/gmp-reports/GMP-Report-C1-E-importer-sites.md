@@ -17,6 +17,9 @@ Branch `feat/c1-e-importer-sites` from `origin/fix/c1-erp-contact-identity` (#52
 | 8 | `__manifest__.py`, `README.md` | Bump | 19.0.2.10.40 (#521) → 19.0.2.10.41 |
 | 9 | `tests/test_c1_importer_sites.py` (new) | Insert | Pure pytest |
 
+| 10 | `models/erp_import_service.py` `_create_location` | Insert | A site converted in place calls Odoo's `_commercial_sync_from_company()`, so it takes the company's commercial values (`credit_limit`, payment terms, accounts, fiscal position). Odoo 19 copies them only when `parent_id` is written, and an unchanged parent never is. Operator decision: the parent wins, and no site credit limit is copied anywhere (908 differ in Production). |
+| 11 | `models/erp_import_service.py` `_convert_unmarked_sites` (new) | Insert | After the address stage, a company child with no `legacy_erp_address_*` marker becomes a native address when its `type` is delivery or invoice, otherwise it is left as a company. Each case is logged by id. Production holds exactly one such record. |
+
 `_copied_role` is unchanged: a site still takes the parent's ranks, Company Role and role tags. With `is_company` False, Odoo now also syncs the commercial fields from the parent, as ADR-131 intends.
 
 ## Phase 1 — Baseline
@@ -32,8 +35,8 @@ As planned. Not touched: `wizards/partner_import_wizard.py` `action_view_partner
 
 - `ruff 0.16.0` format + check: clean.
 - `python3 scripts/check_module_wiring.py`: passed.
-- `tests/test_c1_importer_sites.py`: 20 passed.
-- Fixture fix in `tests/test_erp_import_contract.py` / `tests/test_erp_contact_identity.py`: their fake `res.partner` lacked `_plasticos_is_site()` and `site_person_ids`. The real model has both through the `plasticos_facility_profile` dependency. The fakes now mirror D1's predicate and the site–person link. No assertion changed. Before the fix 7 tests errored with `AttributeError`. After it, the import-contract, contact-identity, source-layer, site-core, contact-hierarchy and mapping-status suites pass (253).
+- `tests/test_c1_importer_sites.py`: 22 passed (adds: converted site takes the company credit limit and re-syncs only once; unmarked company child converted or left, each logged).
+- Fixture fix in `tests/test_erp_import_contract.py` / `tests/test_erp_contact_identity.py`: their fake `res.partner` lacked `_plasticos_is_site()`, `site_person_ids`, `sudo()` and `_commercial_sync_from_company()`. The real model has both through the `plasticos_facility_profile` dependency. The fakes now mirror D1's predicate and the site–person link. No assertion changed. Before the fix 7 tests errored with `AttributeError`. After it, the import-contract, contact-identity, source-layer, site-core, contact-hierarchy and mapping-status suites pass (253).
 - Full `pytest tests/`: see the commit's PR evidence.
 - Not run: Odoo runtime / Enterprise install-smoke (Cursor lane T). `plasticos_partner_import/tests/test_validation_query_scope.py` (Odoo runtime) still creates old-shape sites, and the D1 domain still matches them.
 

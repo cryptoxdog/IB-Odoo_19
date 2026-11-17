@@ -67,6 +67,9 @@ PARTNER_COUNT_PARAM = "plasticos_partner_import.partner_count_after_contacts"
 UNRESOLVED_RR_PARAM = "plasticos_partner_import.unresolved_rr"
 # Every historical-import write carries this context: no chatter, no tracking,
 # no business automation reacting to a bulk load.
+# Native address types of a site (ADR-131); the D1 predicate lives in plasticos_facility_profile.
+SITE_ADDRESS_TYPES = ("delivery", "invoice")
+
 IMPORT_CONTEXT = {
     "import_mode": True,
     "tracking_disable": True,
@@ -377,7 +380,47 @@ class PlasticosErpImport(models.AbstractModel):
                     Partner, row, address_id, parent_id, parent_name, partner_by_address, report, dry_run
                 )
 
+        if not dry_run:
+            self._convert_unmarked_sites(Partner)
         return partner_by_address
+
+    def _convert_unmarked_sites(self, partner_model) -> None:
+        """Convert an old-shape site that no ERP AddressID names (ADR-131).
+
+        A company with a parent and a delivery or invoice ``type`` is a site in
+        the old shape; it becomes a native address in place and takes its
+        company's commercial values. Any other company with a parent is left as
+        it is. Each case is logged by record id. A company child that carries
+        an ``legacy_erp_address_*`` marker is converted by its own address row.
+        """
+        marked = {
+            row.res_id
+            for row in self.env["ir.model.data"].search(
+                [
+                    ("module", "=", XMLID_MODULE),
+                    ("name", "=like", "legacy_erp_address_%"),
+                    ("model", "=", RES_PARTNER),
+                ]
+            )
+        }
+        children = partner_model.with_context(active_test=False).search(
+            [("is_company", "=", True), ("parent_id", "!=", False)]
+        )
+        for partner in children:
+            if partner.id in marked:
+                continue
+            if partner.type in SITE_ADDRESS_TYPES:
+                partner.write({"is_company": False})
+                partner.sudo()._commercial_sync_from_company()
+                _logger.info(
+                    "ERP import: converted unmarked old-shape site %s to a native %s address", partner.id, partner.type
+                )
+            else:
+                _logger.info(
+                    "ERP import: left company child %s as a company (type %s is not a site address type)",
+                    partner.id,
+                    partner.type,
+                )
 
     def _create_location(
         self,
@@ -416,7 +459,15 @@ class PlasticosErpImport(models.AbstractModel):
         if dry_run:
             report.skip("locations")
             return
+        prior = self._partner_by_xmlid(partner_model, f"legacy_erp_address_{address_id}")
+        was_company = bool(prior and prior.is_company)
         partner = self._upsert(partner_model, f"legacy_erp_address_{address_id}", values, report, "locations")
+        if was_company and not partner.is_company:
+            # An old-shape site converted in place. Odoo copies the company's
+            # commercial fields (terms, accounts, fiscal position, credit
+            # limit) only when parent_id is written, which an unchanged parent
+            # never is, so the copy runs here: the parent wins (ADR-131).
+            partner.sudo()._commercial_sync_from_company()
         partner_by_address[address_id] = partner.id
         self._sync_address_phones(partner, row)
 
