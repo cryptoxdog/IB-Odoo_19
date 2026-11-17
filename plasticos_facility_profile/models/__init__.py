@@ -1,6 +1,9 @@
 from . import company_role_tag
 from . import equipment_type
 from . import facility_profile
+from . import capability_type
+from . import capability
+from . import material_profile
 from . import facility_template
 from . import lead_source
 from . import partner_phone
@@ -9,5 +12,6 @@ from . import res_partner
 from . import res_partner_category
 from . import res_partner_classification
 from . import res_partner_delivery_term
+from . import res_partner_site_logistics
 from . import res_partner_contact_format
 from . import partner_phone_contact_format
