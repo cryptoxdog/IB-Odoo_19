@@ -391,7 +391,14 @@ class PlasticosErpImport(models.AbstractModel):
         dry_run,
         child_name: str | None = None,
     ) -> None:
-        """A location under the company. It is a company, not a second counterparty."""
+        """A site under the company: a native delivery or invoice address (ADR-131).
+
+        The site is not a company and not a second counterparty; the parent is
+        its commercial partner. A replay rewrites a site an earlier run stored
+        as a company with a parent into this shape in place: the record and its
+        ``legacy_erp_address_<AddressID>`` marker are kept, so material and
+        facility profiles and person links stay attached.
+        """
         from ..erp import mapping
 
         kind = mapping.address_kind(row)
@@ -399,7 +406,7 @@ class PlasticosErpImport(models.AbstractModel):
         values = {
             "name": child_name or _location_title(row, parent_name),
             "parent_id": parent_id,
-            "is_company": True,
+            "is_company": False,
             "type": mapping.ODOO_ADDRESS_TYPE[kind],
         }
         values.update(self._copied_role(parent))
@@ -477,6 +484,31 @@ class PlasticosErpImport(models.AbstractModel):
                 break
         if values:
             partner.write(values)
+
+    def _fill_sites_from_person(self, site_ids: list[int]) -> None:
+        """Fill a site's blank phone and email from its one linked person (ADR-131 D12).
+
+        Runs after the counterparty's people and their site links are stored.
+        A site linked to exactly one active person takes that person's phone
+        and email where its own is blank. A value the site already has is never
+        replaced, and a site with no person or with several is left as it is.
+        """
+        from ..erp import mapping
+
+        if not site_ids:
+            return
+        sites = self.env[RES_PARTNER].with_context(**IMPORT_CONTEXT).browse(sorted(set(site_ids))).exists()
+        for site in sites:
+            if not site._plasticos_is_site():
+                continue
+            people = site.site_person_ids
+            values = mapping.site_contact_fill(
+                site_phone=site.phone,
+                site_email=site.email,
+                people=[(person.phone, person.email) for person in people],
+            )
+            if values:
+                site.write(values)
 
     def _address_values(self, values: dict, row) -> None:
         """ERP: Addr2 is the street, Addr3 is the second street line."""
@@ -637,6 +669,10 @@ class PlasticosErpImport(models.AbstractModel):
                 )
             if excluded_ids and not dry_run:
                 self._retire_inactive_contacts(Partner, excluded_ids)
+            if not dry_run:
+                self._fill_sites_from_person(
+                    [pid for pid in partner_by_address.values() if pid and pid != company_partner_id]
+                )
 
     def _retire_inactive_contacts(self, partner_model, contact_ids: list[str]) -> None:
         """Remove the marker an earlier run stored for each excluded CT_ID.
@@ -669,9 +705,7 @@ class PlasticosErpImport(models.AbstractModel):
             ]
         )
         orphans = sorted(affected - {row.res_id for row in still_named})
-        people = (
-            partner_model.browse(orphans).exists().filtered(lambda partner: not partner.is_company and partner.active)
-        )
+        people = partner_model.browse(orphans).exists().filtered(lambda partner: _is_person(partner) and partner.active)
         if people:
             people.write({"active": False})
 
@@ -832,7 +866,7 @@ class PlasticosErpImport(models.AbstractModel):
         if not data:
             return False
         partner = partner_model.browse(data.res_id).exists() if data.res_id else partner_model.browse()
-        if partner and not partner.is_company and partner.active:
+        if partner and _is_person(partner) and partner.active:
             partner.write({"active": False})
         data.unlink()
         return True
@@ -1101,7 +1135,7 @@ class PlasticosErpImport(models.AbstractModel):
         only once no ERP contact marker still points at it, so a partner that
         another CT_ID still names stays visible until that CT_ID moves too.
         """
-        if not superseded or superseded.id == record.id or superseded.is_company:
+        if not superseded or superseded.id == record.id or not _is_person(superseded):
             return
         if "phone_line_ids" in superseded._fields:
             self._sync_phone_lines(record, [(line.label, line.number) for line in superseded.phone_line_ids])
@@ -1303,6 +1337,11 @@ class PlasticosErpImport(models.AbstractModel):
 # ---------------------------------------------------------------------------
 # Module-level helpers
 # ---------------------------------------------------------------------------
+def _is_person(partner) -> bool:
+    """A person partner: neither a company nor a site (either site shape)."""
+    return not partner.is_company and not partner._plasticos_is_site()
+
+
 def _text(row, column: str) -> str:
     return (row.get(column) or "").strip()
 

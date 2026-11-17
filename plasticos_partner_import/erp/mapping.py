@@ -41,6 +41,7 @@ __all__ = [
     "mailbox_key",
     "site_mailbox_keys",
     "site_mailbox_target",
+    "site_contact_fill",
     "normalize_contact_role",
     "sort_contact_roles",
     "parse_bool",
@@ -759,3 +760,22 @@ def sort_contact_roles(roles: list[str]) -> list[str]:
     """Order a contact's roles deterministically, primary first."""
     primary = PRIMARY_CONTACT_ROLE.lower()
     return sorted(roles, key=lambda role: (role.lower() != primary, role.lower()))
+
+
+def site_contact_fill(*, site_phone, site_email, people: list[tuple]) -> dict:
+    """Phone and email a site takes from its one linked person (ADR-131 D12).
+
+    ``people`` holds ``(phone, email)`` for each active person linked to the
+    site. Only a site with exactly one such person is filled, and only where
+    its own value is blank: a value the site already has is never replaced,
+    and with several people nobody is chosen for it.
+    """
+    if len(people) != 1:
+        return {}
+    phone, email = people[0]
+    values = {}
+    if phone and not site_phone:
+        values["phone"] = phone
+    if email and not site_email:
+        values["email"] = email
+    return values

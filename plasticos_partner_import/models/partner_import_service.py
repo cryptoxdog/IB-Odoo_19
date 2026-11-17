@@ -449,11 +449,12 @@ class PlasticosPartnerImportService(models.AbstractModel):
         external_id = self._make_external_id("fac", f"{partner_name}_{alias or facility_type}")
 
         if facility_type == "Location":
+            # A site: a native delivery address of the company (ADR-131), not a company.
             vals = {
                 "name": facility_name,
-                "company_type": "company",
-                "is_company": True,
-                "type": "contact",
+                "company_type": "site",
+                "is_company": False,
+                "type": "delivery",
                 "parent_id": parent.id,
                 "street": row.get("address", "").strip() or False,
                 "street2": row.get("adderess2", "").strip() or False,
@@ -660,10 +661,12 @@ class PlasticosPartnerImportService(models.AbstractModel):
                     f"not found for facility '{r.get('name')}'"
                 )
 
+            # A facility is a site: a native delivery address of its company (ADR-131).
             vals = {
                 "name": r["name"],
-                "company_type": "company",
-                "is_company": True,
+                "company_type": "site",
+                "is_company": False,
+                "type": "delivery",
                 "parent_id": parent.id,
             }
 

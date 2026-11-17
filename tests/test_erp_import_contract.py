@@ -526,6 +526,17 @@ class _Partner:
         self.writes.append(dict(vals))
         self._apply(vals)
 
+    def _plasticos_is_site(self):
+        """Mirror of plasticos_facility_profile's D1 predicate (ADR-131), either shape."""
+        return bool(self.parent_id) and (self.type in ("delivery", "invoice") or bool(self.is_company))
+
+    @property
+    def site_person_ids(self):
+        """Active people linked to this site (the inverse of ``location_partner_ids``)."""
+        model = getattr(self, "_model", None)
+        rows = model.rows.values() if model else ()
+        return _PartnerSet(row for row in rows if row.active and self.id in row.location_partner_ids.ids)
+
 
 class _PartnerModel:
     _name = "res.partner"
@@ -544,6 +555,7 @@ class _PartnerModel:
 
     def create(self, vals):
         record = _Partner(len(self.rows) + 1, vals)
+        record._model = self
         self.rows[record.id] = record
         return record
 
