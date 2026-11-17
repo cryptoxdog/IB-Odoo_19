@@ -18,7 +18,11 @@ class PlasticosLindaSweepCursor(models.Model):
     _description = "Plasticos Linda Load Sweep Cursor"
 
     lane = fields.Selection(
-        [("ack", "Dispatch Acknowledgement"), ("chase", "Document Chase")],
+        [
+            ("ack", "Dispatch Acknowledgement"),
+            ("chase", "Document Chase"),
+            ("schedule", "Schedule"),
+        ],
         required=True,
         readonly=True,
         help="Which load-obligation sweep this cursor belongs to.",
