@@ -1604,6 +1604,7 @@ class SyncOrchestrator:
                 self._bind_opportunity_material(lead)
             elif "plasticos.material.profile" in self.env:
                 self._apply_person_materials(partner, dto)
+            self._apply_existing_partner_rules(lead, dto, partner)
             if self._env_has_model("crm.tag"):
                 self._apply_crm_classification(lead, dto, partner=partner)
         return lead or Lead.browse()
@@ -1820,6 +1821,7 @@ class SyncOrchestrator:
             outcomes[outcome] += 1
         self.last_lead_outcome = outcome
         if outcome in ADMITTED_OUTCOMES and not dto.deleted:
+            self._resolve_vanillasoft_partner(lead, dto)
             self._apply_contact_materials(lead, dto.custom_fields)
             self._bind_opportunity_material(lead)
             if self._env_has_model("crm.tag"):
@@ -2533,11 +2535,13 @@ class SyncOrchestrator:
         from odoo.addons.plasticos_crm_bridge.models.crm_mapping import (  # noqa: PLC0415
             COMPANY_TYPE_ALIASES,
             COMPANY_TYPE_MAPPING,
+            CRM_COMPANY_TYPE_TAG_MAPPING,
             CRM_ROLE_TAG_MAPPING,
         )
 
         custom = dto.custom_fields or {}
         self._apply_crm_role_tags(lead, dto, custom, Command, CRM_ROLE_TAG_MAPPING)
+        self._apply_lead_company_type(lead, dto, custom, Command, CRM_COMPANY_TYPE_TAG_MAPPING, COMPANY_TYPE_ALIASES)
         self._apply_company_type(lead, dto, partner, custom, Command, COMPANY_TYPE_MAPPING, COMPANY_TYPE_ALIASES)
 
     def _apply_crm_role_tags(self, lead, dto, custom, command, mapping) -> None:
@@ -2583,6 +2587,202 @@ class SyncOrchestrator:
         if len(found) != 1 or found._name != "crm.tag" or found.name != role_name:
             return None
         return found
+
+    def _apply_lead_company_type(self, lead, dto, custom, command, mapping, aliases) -> None:
+        """The VanillaSoft Company Type as a native CRM tag on the lead, with or without a partner (C1 F1)."""
+        raw = _collapse_ws(custom.get("Company Type"))
+        if not raw or not (lead and getattr(lead, "id", False)):
+            return
+        canonical = aliases.get(raw, raw)
+        if canonical not in mapping:
+            self._append_classified_error(dto.external_id, f"BLOCKED_COMPANY_TYPE_VALUE: {raw}", OPTIONAL_CONTEXT)
+            return
+        tag = self._crm_role_tag(canonical, mapping)
+        if not tag:
+            self._append_classified_error(dto.external_id, f"BLOCKED_DESTINATION: {canonical}", OPTIONAL_CONTEXT)
+            return
+        if tag not in lead.tag_ids:
+            lead.write({"tag_ids": [command.link(tag.id)]})
+
+    # ── C1 C4: when a VanillaSoft record becomes a partner (D32/D33) ─────────
+    def _resolve_vanillasoft_partner(self, lead, dto) -> None:
+        """Link or create the partner a qualified record earns. Never inside a failure of the lead."""
+        if not (lead and getattr(lead, "id", False)) or "res.partner" not in self.env:
+            return
+        try:
+            with self.env.cr.savepoint():
+                self._resolve_vanillasoft_partner_body(lead, dto)
+        except Exception as exc:  # noqa: BLE001 - partner resolution must not drop the admitted lead
+            _logger.warning("VanillaSoft partner resolution failed for %s: %s", dto.external_id, exc)
+            self._append_classified_error(dto.external_id, f"partner resolution failed: {exc}", REQUIRED_MAPPING)
+
+    def _resolve_vanillasoft_partner_body(self, lead, dto) -> None:
+        from .vanillasoft_partners import is_do_not_call, parse_roles, partner_allowed  # noqa: PLC0415
+
+        custom = dto.custom_fields or {}
+        roles = parse_roles(custom.get("Buyer/Supplier"))
+        if is_do_not_call(dto.lead_status_raw):
+            company = _verified_company(lead, None) or self._existing_company(dto, create_allowed=False)
+            if company:
+                self._apply_do_not_call(company, lead, dto)
+            return
+        if not partner_allowed(dto.lead_status_raw, roles, approved=False):
+            return
+        company = _verified_company(lead, None)
+        if company is None:
+            if lead.partner_id:
+                # A partner is set but resolves to no single company: do not guess.
+                self._append_classified_error(dto.external_id, "BLOCKED_PARTNER_UNRESOLVED", OPTIONAL_CONTEXT)
+                return
+            company = self._existing_company(dto, create_allowed=True)
+            if company is None:
+                return
+            lead.write({"partner_id": company.id})
+        self._ensure_contact_person(company, dto)
+        self._raise_trade_ranks(company, roles)
+
+    def _apply_existing_partner_rules(self, lead, dto, partner) -> None:
+        """Approved contacts already have an ERP person: ranks and DNC on its company only."""
+        from .vanillasoft_partners import is_do_not_call, parse_roles  # noqa: PLC0415
+
+        do_not_call = is_do_not_call(dto.lead_status_raw)
+        roles = parse_roles((dto.custom_fields or {}).get("Buyer/Supplier"))
+        if not do_not_call and not roles:
+            return
+        try:
+            with self.env.cr.savepoint():
+                company = _verified_company(lead, partner)
+                if company is None:
+                    return
+                if do_not_call:
+                    self._apply_do_not_call(company, lead, dto)
+                else:
+                    self._raise_trade_ranks(company, roles)
+        except Exception as exc:  # noqa: BLE001 - partner rules must not drop the bound contact
+            _logger.warning("VanillaSoft partner rules failed for %s: %s", dto.external_id, exc)
+            self._append_classified_error(dto.external_id, f"partner rules failed: {exc}", REQUIRED_MAPPING)
+
+    def _existing_company(self, dto, *, create_allowed: bool):
+        """The one company this record names, ERP companies first; created only when none exists.
+
+        Matching is on the company name with case, punctuation and legal
+        suffixes ignored. Several matches at one tier are refused, never guessed.
+        """
+        from .vanillasoft_partners import normalized_company_name, pick_existing  # noqa: PLC0415
+
+        name = _collapse_ws(dto.company)
+        key = normalized_company_name(name)
+        if not key:
+            if create_allowed:
+                self._append_classified_error(dto.external_id, "BLOCKED_PARTNER_NO_COMPANY", OPTIONAL_CONTEXT)
+            return None
+        Partner = self.env["res.partner"].with_context(active_test=False)
+        # Search wide on the longest word (punctuation and "&" differ between sources),
+        # then keep only the companies whose normalized name is exactly this one.
+        probe = max(key.split(), key=len)
+        found = Partner.search([("is_company", "=", True), ("parent_id", "=", False), ("name", "ilike", probe)])
+        matches = found.filtered(lambda partner: normalized_company_name(partner.name) == key)
+        erp_ids = set()
+        if matches:
+            erp_ids = set(
+                self.env["ir.model.data"]
+                .sudo()  # sudo: the sync reads which partners carry an ERP counterparty XML id
+                .search(
+                    [
+                        ("module", "=", "plasticos_transaction"),
+                        ("model", "=", "res.partner"),
+                        ("name", "=like", "legacy_erp_cp_%"),
+                        ("res_id", "in", matches.ids),
+                    ]
+                )
+                .mapped("res_id")
+            )
+        chosen, reason = pick_existing(erp_ids, set(matches.ids) - erp_ids)
+        if chosen:
+            return Partner.browse(chosen)
+        if reason:
+            self._append_classified_error(dto.external_id, reason, OPTIONAL_CONTEXT)
+            return None
+        if not create_allowed:
+            return None
+        return self.env["res.partner"].create(self._company_vals(dto, name))
+
+    def _company_vals(self, dto, name: str) -> dict[str, Any]:
+        vals = {
+            "name": name,
+            "is_company": True,
+            "street": dto.street or False,
+            "street2": dto.street2 or False,
+            "city": dto.city or False,
+            "zip": dto.zip or False,
+            "phone": dto.phone or False,
+            "website": dto.website or False,
+        }
+        country_id = self._resolve_country_id(dto.country_code)
+        if country_id:
+            vals["country_id"] = country_id
+            state_text = _collapse_ws(dto.state_code)
+            if state_text:
+                State = self.env["res.country.state"]
+                state = State.search([("code", "=", state_text.upper()), ("country_id", "=", country_id)], limit=1)
+                if state:
+                    vals["state_id"] = state.id
+        return vals
+
+    def _ensure_contact_person(self, company, dto) -> None:
+        """The contact as a person under the company: the existing one with the same name or email, else new."""
+        from .vanillasoft_partners import normalized_company_name  # noqa: PLC0415
+
+        contact = " ".join(part for part in (_collapse_ws(dto.first_name), _collapse_ws(dto.last_name)) if part)
+        if not contact:
+            return
+        email = _collapse_ws(dto.email).casefold()
+        key = normalized_company_name(contact)
+        for child in company.with_context(active_test=False).child_ids:
+            if child.is_company:
+                continue
+            if normalized_company_name(child.name) == key or (email and _collapse_ws(child.email).casefold() == email):
+                return
+        self.env["res.partner"].create(
+            {
+                "name": contact,
+                "parent_id": company.id,
+                "type": "contact",
+                "email": dto.email or False,
+                "phone": dto.phone or False,
+                "function": dto.job_title or False,
+            }
+        )
+
+    def _raise_trade_ranks(self, company, roles) -> None:
+        """Buyer/Supplier raise ``customer_rank`` / ``supplier_rank`` to at least 1. Never lowered."""
+        from .vanillasoft_partners import trade_ranks  # noqa: PLC0415
+
+        wanted = {field: rank for field, rank in trade_ranks(roles).items() if (company[field] or 0) < rank}
+        if wanted:
+            company.write(wanted)
+
+    def _apply_do_not_call(self, company, lead, dto) -> None:
+        """7=Do Not Call on an existing company: the DNC status tag and a blacklist. Nothing is removed."""
+        from odoo.addons.plasticos_crm_bridge.models.crm_mapping import DNC_PARTNER_TAG_XMLID  # noqa: PLC0415
+
+        tag = self.env.ref(DNC_PARTNER_TAG_XMLID, raise_if_not_found=False)
+        if tag and tag._name == "res.partner.category" and tag not in company.category_id:
+            company.write({"category_id": [(4, tag.id)]})
+        message = f"VanillaSoft ContactID {dto.external_id}: 7=Do Not Call"
+        emails = {_collapse_ws(value) for value in (dto.email, getattr(lead, "email_from", "") if lead else "")}
+        if "mail.blacklist" in self.env:
+            for email in sorted(value for value in emails if value):
+                self.env["mail.blacklist"].sudo()._add(email, message=message)  # sudo: sync user blacklists by rule
+        if "phone.blacklist" in self.env:
+            numbers = {dto.phone, dto.mobile, *dto.phone_numbers, *dto.mobile_numbers}
+            if lead:
+                numbers |= {getattr(lead, "phone", ""), getattr(lead, "mobile", "")}
+            Blacklist = self.env["phone.blacklist"].sudo()  # sudo: sync user blacklists by rule
+            for number in sorted(_collapse_ws(value) for value in numbers if _collapse_ws(value)):
+                sanitized = self.env.user._phone_format(number=number)
+                if sanitized:
+                    Blacklist._add([sanitized], message=message)
 
     def _apply_company_type(self, lead, dto, partner, custom, command, mapping, aliases) -> None:
         raw = _collapse_ws(custom.get("Company Type"))

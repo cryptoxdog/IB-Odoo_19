@@ -9,4 +9,53 @@
         <value>Supplier</value>
         <value>plasticos_crm_bridge.crm_tag_supplier</value>
     </function>
+    <!-- C1 F1: VanillaSoft Company Type as native CRM tags. Adopt an existing tag of the same name; never insert a second. -->
+    <function model="crm.lead" name="_plasticos_adopt_crm_role_tag">
+        <value>Distribution Center</value>
+        <value>plasticos_crm_bridge.crm_tag_company_type_distribution_center</value>
+    </function>
+    <function model="crm.lead" name="_plasticos_adopt_crm_role_tag">
+        <value>Commercial Recycler</value>
+        <value>plasticos_crm_bridge.crm_tag_company_type_commercial_recycler</value>
+    </function>
+    <function model="crm.lead" name="_plasticos_adopt_crm_role_tag">
+        <value>Pallet Recycler</value>
+        <value>plasticos_crm_bridge.crm_tag_company_type_pallet_recycler</value>
+    </function>
+    <function model="crm.lead" name="_plasticos_adopt_crm_role_tag">
+        <value>Compounder</value>
+        <value>plasticos_crm_bridge.crm_tag_company_type_compounder</value>
+    </function>
+    <function model="crm.lead" name="_plasticos_adopt_crm_role_tag">
+        <value>Grinder/Processor</value>
+        <value>plasticos_crm_bridge.crm_tag_company_type_grinder_processor</value>
+    </function>
+    <function model="crm.lead" name="_plasticos_adopt_crm_role_tag">
+        <value>E-Waste</value>
+        <value>plasticos_crm_bridge.crm_tag_company_type_ewaste</value>
+    </function>
+    <function model="crm.lead" name="_plasticos_adopt_crm_role_tag">
+        <value>MRF</value>
+        <value>plasticos_crm_bridge.crm_tag_company_type_mrf</value>
+    </function>
+    <function model="crm.lead" name="_plasticos_adopt_crm_role_tag">
+        <value>Manufacturer</value>
+        <value>plasticos_crm_bridge.crm_tag_company_type_manufacturer</value>
+    </function>
+    <function model="crm.lead" name="_plasticos_adopt_crm_role_tag">
+        <value>Broker</value>
+        <value>plasticos_crm_bridge.crm_tag_company_type_broker</value>
+    </function>
+    <function model="crm.lead" name="_plasticos_adopt_crm_role_tag">
+        <value>Carrier</value>
+        <value>plasticos_crm_bridge.crm_tag_company_type_carrier</value>
+    </function>
+    <function model="crm.lead" name="_plasticos_adopt_crm_role_tag">
+        <value>Exporter</value>
+        <value>plasticos_crm_bridge.crm_tag_company_type_exporter</value>
+    </function>
+    <function model="crm.lead" name="_plasticos_adopt_crm_role_tag">
+        <value>Toll Processor</value>
+        <value>plasticos_crm_bridge.crm_tag_company_type_toll_processor</value>
+    </function>
 </odoo>
