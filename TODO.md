@@ -2,7 +2,9 @@
 
 ## Before the ERP migration continues
 
-- [ ] **Rewire `plasticos_logistics` off the deprecated delivery-term field.** Logistics must read and write the native incoterm fields (`sale.order.incoterm`, `purchase.order.incoterm_id` on `account.incoterms`) instead of `delivery_term` (FCFS / Appointment). Do this before the ERP → Odoo migration moves on. Do not add another custom incoterm field.
+- [x] ~~**Rewire `plasticos_logistics` off the deprecated delivery-term field.** Logistics must read and write the native incoterm fields (`sale.order.incoterm`, `purchase.order.incoterm_id` on `account.incoterms`) instead of `delivery_term` (FCFS / Appointment). Do this before the ERP → Odoo migration moves on. Do not add another custom incoterm field.~~
+
+  Note (2026-11-17): the dock rule (FCFS/Appointment) is not an Incoterm (operator, 2026-11-17); shipping terms use the native Incoterm; see ADR-135.
 
 ## Trip Handoff — State as of 2026-06-02
 
