@@ -62,21 +62,31 @@ _NAME_SUFFIXES = frozenset(
 
 
 _STATUS_PREFIX = "plasticos_facility_profile."
-# VanillaSoft Lead Status code -> Status tag external id.
+# VanillaSoft Lead Status codes (the text before "=").
+CODE_CURRENT, CODE_OPEN, CODE_HOT, CODE_WARM, CODE_COLD, CODE_RESIST, CODE_UNQUALIFIED = (
+    "1",
+    "2",
+    "2a",
+    "2b",
+    "2c",
+    "3",
+    "4",
+)
+# Lead Status code -> Status tag external id.
 LEAD_STATUS_TAG_XMLIDS = {
-    "1": _STATUS_PREFIX + "status_current",
-    "2": _STATUS_PREFIX + "status_open",
-    "2a": _STATUS_PREFIX + "status_hot",
-    "2b": _STATUS_PREFIX + "status_warm",
-    "2c": _STATUS_PREFIX + "status_cold",
-    "3": _STATUS_PREFIX + "status_resist",
-    "4": _STATUS_PREFIX + "status_unqualified",
+    CODE_CURRENT: _STATUS_PREFIX + "status_current",
+    CODE_OPEN: _STATUS_PREFIX + "status_open",
+    CODE_HOT: _STATUS_PREFIX + "status_hot",
+    CODE_WARM: _STATUS_PREFIX + "status_warm",
+    CODE_COLD: _STATUS_PREFIX + "status_cold",
+    CODE_RESIST: _STATUS_PREFIX + "status_resist",
+    CODE_UNQUALIFIED: _STATUS_PREFIX + "status_unqualified",
 }
 STATUS_CODE_DNC = "7"
 # 5 Dead Lead, 6 Wrong #, 8 Duplicate: the VanillaSoft Status tag is removed, nothing is set.
 STATUS_CLEARING_CODES = frozenset({"5", "6", "8"})
 # Most advanced first: Current > Hot > Warm > Resist > Open > Unqualified > Cold.
-STATUS_PRECEDENCE = ("1", "2a", "2b", "3", "2", "4", "2c")
+STATUS_PRECEDENCE = (CODE_CURRENT, CODE_HOT, CODE_WARM, CODE_RESIST, CODE_OPEN, CODE_UNQUALIFIED, CODE_COLD)
 _STATUS_CODE = re.compile(r"^\s*(\d+[a-z]?)\s*=", re.IGNORECASE)
 
 
