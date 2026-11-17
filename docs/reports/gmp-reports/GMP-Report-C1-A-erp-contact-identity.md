@@ -110,3 +110,16 @@ and facility profile on an archived partner.
 
 Earlier on the same day, corrective run 1 made `_sync_phone_lines` compare `(label, phone
 digits)` so a reformatted number is not re-added.
+
+## Corrective run 3 (2026-11-17) — retire paths without a survivor
+
+`_retire_stale_contact` and `_retire_inactive_contacts` archive a person that has no surviving
+person. They now call `_repoint_retired` first (shared `_repoint_records` machinery):
+`crm.lead` → the person's company (ADR-131 owning company, local predicate); material and
+facility profiles → the single linked site, else the company when it has no site, else no
+target. No target, or an equivalent profile already on the target, keeps the person visible
+(`retire kept … visible: profiles need a site` / `… already holds …`). A person that nothing
+names is archived exactly as before. Report lines now name each move's target
+(`… re-pointed: <model> <n> -> partner <id>`). Tests: one test per branch (one site,
+company without sites, company with sites and no link, several sites, equivalent profile,
+nothing names the person, stale non-person row) plus replay. Partner-import suite: 489 passed.

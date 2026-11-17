@@ -333,6 +333,14 @@ the person; role mailboxes stay; sales-rep mailboxes never reach Odoo.
   (one facility profile per partner; one material profile per polymer, form and
   grade) is not moved, and the old partner then stays visible. Moves and refusals
   are reported as `fold re-pointed …` / `fold kept … visible` anomalies.
+- **Retire without a survivor.** A person archived because its rows are now
+  inactive, or because its title turned out to be a number or a site mailbox, has no
+  person to receive its records. Before it is archived, `crm.lead.partner_id` moves
+  to its company; material and facility profiles move to its single linked site, or,
+  with no linked site, to its company when that company has no site. With several
+  linked sites, or company sites and no link, or a profile the target already holds,
+  the person stays visible and the report says `retire kept … visible`. A profile
+  never ends on a person (ADR in #530).
 - **Sites are added, never removed.** A person's `location_partner_ids` gains the
   sites its rows name; a site linked by hand, or carried over from a folded card,
   stays on replay.

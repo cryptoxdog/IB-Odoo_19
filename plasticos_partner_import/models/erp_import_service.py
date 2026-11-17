@@ -704,7 +704,7 @@ class PlasticosErpImport(models.AbstractModel):
                     retired = False
                     if not dry_run and company_partner_id:
                         self._apply_non_person(Partner.browse(company_partner_id), row)
-                        retired = self._retire_stale_contact(Partner, contact_id)
+                        retired = self._retire_stale_contact(Partner, contact_id, report)
                     report.bump("contacts", "updated" if retired else "skipped")
                     continue
                 target = mapping.site_mailbox_target(name, addresses, _text(row, "Location"), mailbox_keys)
@@ -713,7 +713,7 @@ class PlasticosErpImport(models.AbstractModel):
                     retired = False
                     if not dry_run:
                         self._apply_site_mailbox(partner_by_address, target, row)
-                        retired = self._retire_stale_contact(Partner, contact_id)
+                        retired = self._retire_stale_contact(Partner, contact_id, report)
                     report.bump("contacts", "updated" if retired else "skipped")
                     continue
                 kind = mapping.weak_name_kind(name, _row_emails(row))
@@ -758,13 +758,13 @@ class PlasticosErpImport(models.AbstractModel):
                     name=display_names.get(key),
                 )
             if excluded_ids and not dry_run:
-                self._retire_inactive_contacts(Partner, excluded_ids)
+                self._retire_inactive_contacts(Partner, excluded_ids, report)
             if not dry_run:
                 self._fill_sites_from_person(
                     [pid for pid in partner_by_address.values() if pid and pid != company_partner_id]
                 )
 
-    def _retire_inactive_contacts(self, partner_model, contact_ids: list[str]) -> None:
+    def _retire_inactive_contacts(self, partner_model, contact_ids: list[str], report=None) -> None:
         """Remove the marker an earlier run stored for each excluded CT_ID.
 
         Runs after the active people of the counterparty are stored. The person
@@ -796,8 +796,10 @@ class PlasticosErpImport(models.AbstractModel):
         )
         orphans = sorted(affected - {row.res_id for row in still_named})
         people = partner_model.browse(orphans).exists().filtered(lambda partner: _is_person(partner) and partner.active)
-        if people:
-            people.write({"active": False})
+        for person in people:
+            # What names the person moves first; a person whose records cannot move stays visible.
+            if self._repoint_retired(person, report):
+                person.write({"active": False})
 
     def _import_person(
         self,
@@ -942,12 +944,13 @@ class PlasticosErpImport(models.AbstractModel):
             lines.append(("fax", fax))
         self._sync_phone_lines(company, lines)
 
-    def _retire_stale_contact(self, partner_model, contact_id: str) -> bool:
+    def _retire_stale_contact(self, partner_model, contact_id: str, report=None) -> bool:
         """Retire the person an earlier run stored for a row that is not a person.
 
         The row's identity marker is removed and the partner it pointed at is
-        archived (never deleted: references stay valid). True when something
-        was retired.
+        archived (never deleted: references stay valid) once what names it has
+        moved (:meth:`_repoint_retired`); when something cannot move, the person
+        stays visible. True when the marker was retired.
         """
         data = self.env["ir.model.data"].search(
             [
@@ -960,7 +963,7 @@ class PlasticosErpImport(models.AbstractModel):
         if not data:
             return False
         partner = partner_model.browse(data.res_id).exists() if data.res_id else partner_model.browse()
-        if partner and _is_person(partner) and partner.active:
+        if partner and _is_person(partner) and partner.active and self._repoint_retired(partner, report):
             partner.write({"active": False})
         data.unlink()
         return True
@@ -1247,73 +1250,124 @@ class PlasticosErpImport(models.AbstractModel):
                 superseded.write({"active": False})
 
     def _repoint_superseded(self, superseded, record, report) -> bool:
-        """Move what names ``superseded`` onto ``record`` before it is archived. Never delete.
+        """Move what names ``superseded`` onto ``record`` before it is archived (contact fold).
 
-        ``crm.lead.partner_id``, ``plasticos.material.profile.partner_id`` and
-        ``plasticos.facility.profile.partner_id`` move to ``record``; each model is
-        used only when installed (no manifest dependency). Its linked sites are
-        added to ``record``. A profile that would duplicate one ``record`` already
-        holds (one facility profile per partner; one material profile per
-        polymer, form and grade) is not moved: the result is False and the
-        superseded partner stays visible, so nothing is left on an archived card.
-        Moves and refusals are reported under the superseded partner.
+        Leads, material and facility profiles go to ``record``, and its linked
+        sites are added to ``record`` (:meth:`_repoint_records`).
         """
-        moved: dict[str, int] = {}
+        return self._repoint_records(
+            superseded, lead_to=record, profile_to=record, sites_to=record, verb="fold", report=report
+        )
+
+    def _repoint_retired(self, person, report) -> bool:
+        """Move what names a retired person, which has no surviving person (ADR in #530).
+
+        ``crm.lead`` goes to the person's company. Profiles go to the person's
+        single linked site; with no linked site, to the company when it has no
+        site; otherwise they have no target and the person stays visible. A
+        profile never ends on a person.
+        """
+        if not self._named_by_records(person):
+            return True
+        company = _owning_company(person)
+        site_ids = person.location_partner_ids.ids if "location_partner_ids" in person._fields else []
+        if len(site_ids) == 1:
+            profile_to = self.env[RES_PARTNER].with_context(**IMPORT_CONTEXT).browse(site_ids[0])
+        elif not site_ids and company and not any(_is_site_partner(child) for child in company.child_ids):
+            profile_to = company
+        else:
+            profile_to = None
+        return self._repoint_records(
+            person, lead_to=company, profile_to=profile_to, sites_to=None, verb="retire", report=report
+        )
+
+    def _named_by_records(self, partner) -> bool:
+        """True when a lead or a material or facility profile names ``partner``."""
+        for model_name in ("crm.lead", "plasticos.material.profile", "plasticos.facility.profile"):
+            if model_name in self.env:
+                Model = self.env[model_name].with_context(active_test=False)
+                if Model.search([("partner_id", "=", partner.id)], limit=1):
+                    return True
+        return False
+
+    def _repoint_records(self, source, *, lead_to, profile_to, sites_to, verb: str, report) -> bool:
+        """Move what names ``source`` before it is archived. Never delete.
+
+        ``crm.lead.partner_id`` moves to ``lead_to``; ``plasticos.material.profile``
+        and ``plasticos.facility.profile`` ``partner_id`` move to ``profile_to``; each
+        model is used only when installed (no manifest dependency). With
+        ``sites_to``, the linked sites of ``source`` are added to it. A record that
+        cannot move (no target, or a profile that would duplicate one the target
+        already holds: one facility profile per partner, one material profile per
+        polymer, form and grade) stays where it is and the result is False, so the
+        caller keeps ``source`` visible. Moves and refusals are reported under
+        ``source``.
+        """
+        moved: list[str] = []
         blocked: list[str] = []
         if "crm.lead" in self.env:
             leads = (
                 self.env["crm.lead"]
                 .with_context(**IMPORT_CONTEXT, active_test=False)
-                .search([("partner_id", "=", superseded.id)])
+                .search([("partner_id", "=", source.id)])
             )
-            if leads:
-                leads.write({"partner_id": record.id})
-                moved["crm.lead"] = len(leads)
+            if leads and lead_to:
+                leads.write({"partner_id": lead_to.id})
+                moved.append(f"crm.lead {len(leads)} -> partner {lead_to.id}")
+            elif leads:
+                blocked.append("leads need a company")
         if "plasticos.material.profile" in self.env:
             Material = self.env["plasticos.material.profile"].with_context(**IMPORT_CONTEXT, active_test=False)
-            movable = Material.browse()
-            for profile in Material.search([("partner_id", "=", superseded.id)]):
-                duplicate = Material.search(
-                    [
-                        ("partner_id", "=", record.id),
-                        ("polymer_id", "=", profile.polymer_id.id),
-                        ("form_id", "=", profile.form_id.id or False),
-                        ("material_grade_id", "=", profile.material_grade_id.id or False),
-                    ],
-                    limit=1,
-                )
-                if duplicate:
-                    blocked.append(f"plasticos.material.profile {profile.id}")
-                else:
-                    movable |= profile
-            if movable:
-                movable.write({"partner_id": record.id})
-                moved["plasticos.material.profile"] = len(movable)
+            profiles = Material.search([("partner_id", "=", source.id)])
+            if profiles and not profile_to:
+                blocked.append("profiles need a site")
+            elif profiles:
+                movable = Material.browse()
+                for profile in profiles:
+                    duplicate = Material.search(
+                        [
+                            ("partner_id", "=", profile_to.id),
+                            ("polymer_id", "=", profile.polymer_id.id),
+                            ("form_id", "=", profile.form_id.id or False),
+                            ("material_grade_id", "=", profile.material_grade_id.id or False),
+                        ],
+                        limit=1,
+                    )
+                    if duplicate:
+                        blocked.append(f"partner {profile_to.id} already holds plasticos.material.profile {profile.id}")
+                    else:
+                        movable |= profile
+                if movable:
+                    movable.write({"partner_id": profile_to.id})
+                    moved.append(f"plasticos.material.profile {len(movable)} -> partner {profile_to.id}")
         if "plasticos.facility.profile" in self.env:
             Facility = self.env["plasticos.facility.profile"].with_context(**IMPORT_CONTEXT, active_test=False)
-            profiles = Facility.search([("partner_id", "=", superseded.id)])
-            if profiles and Facility.search([("partner_id", "=", record.id)], limit=1):
-                blocked.extend(f"plasticos.facility.profile {profile.id}" for profile in profiles)
+            profiles = Facility.search([("partner_id", "=", source.id)])
+            if profiles and not profile_to:
+                if "profiles need a site" not in blocked:
+                    blocked.append("profiles need a site")
+            elif profiles and Facility.search([("partner_id", "=", profile_to.id)], limit=1):
+                blocked.extend(
+                    f"partner {profile_to.id} already holds plasticos.facility.profile {profile.id}"
+                    for profile in profiles
+                )
             elif profiles:
-                profiles.write({"partner_id": record.id})
-                moved["plasticos.facility.profile"] = len(profiles)
-        if "location_partner_ids" in superseded._fields:
+                profiles.write({"partner_id": profile_to.id})
+                moved.append(f"plasticos.facility.profile {len(profiles)} -> partner {profile_to.id}")
+        if sites_to and "location_partner_ids" in source._fields:
             sites = [
                 site_id
-                for site_id in superseded.location_partner_ids.ids
-                if site_id not in record.location_partner_ids.ids
+                for site_id in source.location_partner_ids.ids
+                if site_id not in sites_to.location_partner_ids.ids
             ]
             if sites:
-                record.write({"location_partner_ids": [(4, site_id) for site_id in sites]})
-                moved["location_partner_ids"] = len(sites)
+                sites_to.write({"location_partner_ids": [(4, site_id) for site_id in sites]})
+                moved.append(f"location_partner_ids {len(sites)} -> partner {sites_to.id}")
         if report is not None and moved:
-            detail = ", ".join(f"{name} {count}" for name, count in sorted(moved.items()))
-            report.anomaly("Contact", f"partner {superseded.id}", f"fold re-pointed to partner {record.id}: {detail}")
+            report.anomaly("Contact", f"partner {source.id}", f"{verb} re-pointed: {', '.join(moved)}")
         if report is not None and blocked:
             report.anomaly(
-                "Contact",
-                f"partner {superseded.id}",
-                f"fold kept partner {superseded.id} visible: {record.id} already holds {', '.join(blocked)}",
+                "Contact", f"partner {source.id}", f"{verb} kept partner {source.id} visible: {'; '.join(blocked)}"
             )
         return not blocked
 
@@ -1604,6 +1658,26 @@ def _phone_key(number) -> str:
     from ..erp import mapping
 
     return mapping.phone_digits(number) or (number or "").strip()
+
+
+# ADR-131 site predicate, local to this module (the D1 model method is not a
+# dependency of the importer): a partner with a parent that is a delivery or
+# invoice address, or a company record parented under a company.
+_SITE_ADDRESS_TYPES = ("delivery", "invoice")
+
+
+def _is_site_partner(partner) -> bool:
+    return bool(partner.parent_id) and (partner.type in _SITE_ADDRESS_TYPES or bool(partner.is_company))
+
+
+def _owning_company(partner):
+    """The first ancestor-or-self that is a company and not a site; empty when none."""
+    node = partner
+    while node:
+        if node.is_company and not _is_site_partner(node):
+            return node
+        node = node.parent_id
+    return node
 
 
 def _row_phone_digits(row) -> list[str]:
