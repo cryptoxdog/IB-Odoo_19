@@ -11,6 +11,7 @@ Patterns checked:
 3. active_id in context (doesn't exist on model, use id)
 4. view_mode with 'tree' instead of 'list'
 5. <group> inside <search> views (Invalid view definition)
+6. <xpath expr> that selects on @string (Odoo 19 rejects it at load)
 
 Usage:
     python3 ci/check_odoo19_xml.py [root_dir]
@@ -122,6 +123,34 @@ def _check_view_xml_file(xml_file: Path) -> list[dict]:
                     }
                 )
 
+    # Pattern 6: xpath inheritance may not select on @string (Odoo 19).
+    errors.extend(_xpath_string_selector_errors(content, xml_file))
+
+    return errors
+
+
+_XPATH_EXPR = re.compile(
+    r"<xpath\b(?:[^>\"']|\"[^\"]*\"|'[^']*')*?\bexpr\s*=\s*(['\"])(.*?)\1",
+    re.DOTALL,
+)
+_STRING_SELECTOR = re.compile(r"@string\s*=")
+
+
+def _xpath_string_selector_errors(content: str, xml_file: Path) -> list[dict]:
+    """Reject an xpath expr that uses @string as a selector."""
+    errors: list[dict] = []
+    for match in _XPATH_EXPR.finditer(content):
+        expr = match.group(2)
+        if not _STRING_SELECTOR.search(expr):
+            continue
+        errors.append(
+            {
+                "file": str(xml_file),
+                "line": content[: match.start()].count("\n") + 1,
+                "pattern": "@string xpath selector",
+                "message": "Odoo 19 forbids @string as an xpath selector. Select the element by @name.",
+            }
+        )
     return errors
 
 
@@ -130,9 +159,12 @@ def _check_data_xml_file(xml_file: Path) -> list[dict]:
     errors: list[dict] = []
     try:
         with open(xml_file, encoding="utf-8") as f:
-            lines = f.read().splitlines()
+            content = f.read()
     except Exception:
         return errors
+
+    errors.extend(_xpath_string_selector_errors(content, xml_file))
+    lines = content.splitlines()
 
     for i, line in enumerate(lines, 1):
         if re.search(r'name="view_mode"[^>]*>.*tree', line):

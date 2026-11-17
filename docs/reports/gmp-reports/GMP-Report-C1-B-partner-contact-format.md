@@ -77,6 +77,25 @@ Rules:
 No file outside the lane contract was changed. `models/res_partner.py`,
 `models/partner_phone.py` and the views are untouched.
 
+## Remediation: Production probe 3 tuning (operator 2026-11-17)
+
+Probe facts:
+
+- 7,129 phone values: 6,340 NANP, 756 already `+international`, 24 international without "+".
+- 27 values sit on partners with no country.
+- 4 values are unparsed, and 203 have an extension.
+
+Changes:
+
+1. **Country:** the partner's country, else its commercial company's (for a child, the parent's commercial company), else US.
+   - One pure helper, `country_for`, holds the rule.
+   - The partner create/write path (ERP import, VanillaSoft sync, manual save), the phone-line path and the post-migrate all use it.
+2. **Everything else is unchanged.** No trailing-extension handling and no special case for a foreign number with no country (CTO correction 2026-11-17: the 7 values involved are not worth code). An unparsed value stays unchanged, as before.
+
+Tests: the country rule. `tests/test_partner_contact_format.py`: 41 passed (39 + 2 country tests).
+
+Version: kept at 19.0.5.4.16. That version is unreleased, and its post-migrate imports the formatter, so the tuned rules run on upgrade. The stacked #524 already uses 19.0.5.4.17 (version and migration folder), so a bump here would collide when the stack merges bottom-up.
+
 ## Phase 6 — Finalize
 
 Residual risk:

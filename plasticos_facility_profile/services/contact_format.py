@@ -76,6 +76,18 @@ class EmailResult(NamedTuple):
     dropped: int
 
 
+def country_for(*codes: str | None) -> str:
+    """The first country code given, else US.
+
+    Callers pass the partner's own country, then its commercial company's (for
+    a child, the parent's commercial company).
+    """
+    for code in codes:
+        if code:
+            return str(code).strip().upper()
+    return "US"
+
+
 def _country(country_code: str | None) -> str:
     return (country_code or "US").strip().upper() or "US"
 

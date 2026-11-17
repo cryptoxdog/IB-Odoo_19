@@ -298,6 +298,102 @@ punctuation, is one `res.partner`. Different names stay two people. Every
 `CT_ID` external id points at that one person. Role tags are added. `function`
 holds Primary when that role is present, otherwise the first role.
 
+**One real human, one partner (C1, 2026-11-17).** The ERP stores the same person
+again under a first name, a role word, or the mailbox prefix. Those rows fold into
+the person; role mailboxes stay; sales-rep mailboxes never reach Odoo.
+
+- **R1 weak name.** A `ContactNm` is weak when it is blank, a single word, a role
+  word (a key of `mapping.CONTACT_ROLE_TAGS`, any case: `BILLING`, `COLLECTIONS`),
+  or an e-mail prefix (one word equal to the local part of one of the row's own
+  external addresses, such as `todd.antonick`). Any other title of two or more
+  words is a full name. A multi-person title such as `A B & C D` is one full-name
+  person and is never split. `mapping.weak_name_kind`.
+- **R2 fold.** A weak row folds into the full-name person of the same counterparty
+  when its phone digits (`PhoneBusiness` or `PhoneMobile`; digits only, eleven
+  digits starting with `1` drop the `1`) or one of its external addresses
+  (case-folded) match exactly one full-name person. A plain first name (not a role
+  word, not an e-mail prefix) is only checked against persons whose first word is
+  that name. A folded row's `CT_ID` aliases the person, its channels join the
+  person's, its `Location` becomes one of the person's sites, and its roles land
+  on the person through the roles stage. The person's name and anchor `CT_ID`
+  (the lowest `CT_ID` of the full-name rows) never come from a folded row.
+- **R3 never.** Two different full names never merge, even on a shared phone or
+  mailbox. Zero or several candidates report `alias ambiguous`; phone to one person
+  and address to another reports `alias conflict`. Neither folds. A non-blank weak
+  name that does not fold is its own person, as before; an e-mail prefix written in
+  lower case is title-cased (`todd.antonick` → `Todd Antonick`), and a title
+  typed with capitals (`AP`) keeps its spelling. A blank name that does not fold is
+  rejected; a blank name that folds is not.
+- **Tie-breaks before "ambiguous" (probe 3, 2026-11-17).** (a) a plain first name
+  only counts persons whose first word is that name; (b) an e-mail prefix with
+  several candidates folds into the one whose name produces the local part
+  (`first.last`, `firstlast`, `flast`, `firstl`, `first`, `last`; case-folded,
+  alphanumeric only); (c) see *Function mailboxes* below; (d) phone to one person
+  and e-mail to another does not fold. What
+  remains is listed under NEEDS REVIEW.
+- **Function mailboxes (operator decision 2026-11-17).** A weak-named row (blank,
+  one word, role word or e-mail prefix) whose own address has a function local part
+  never becomes or joins a person, whether or not it matches anyone. Accounting
+  (`ap`, `ar`, `accounting`, `accounts`, `invoices`, `invoice`, `billing`,
+  `payables`, `receivables`): the address is appended to the commercial company's
+  e-mail, de-duplicated, never replacing one; the company's phone is untouched,
+  including by the "fill the company from its contacts" step. Operational
+  (`shipping`, `receiving`, `orders`, `office`, `customerservice`, `info`, `sales`,
+  `purchasing`): phone and e-mail go to the one site they match, else to the company.
+  Accounting wins when a cell has both. Role tags are not assigned anew: when exactly
+  one person of the company already holds the tag, nothing changes; otherwise the
+  role row is reported.
+- **R2b — one matching site.** A weak row that matches no person but exactly one
+  site of the same company by phone or e-mail: a blank, role-word or e-mail-prefix
+  row creates no person and puts its phone and e-mail on that site (filling empty
+  fields, as for a site mailbox); a plain first name stays a person and gets that
+  site among its sites. Several matching sites: as before, reported as an anomaly.
+- **Phone match key.** Two numbers match when their digits match, or, when the
+  `phonenumbers` library is installed (it ships with Odoo), when their E.164 forms
+  (with `x<extension>`) match. The region is the partner's country, else its
+  company's, else `US`, so `+44 20 …` and `020 …` of a UK company match. The same
+  keys decide whether a phone line is already present.
+- **NEEDS REVIEW.** Every ERP import ends with an always-present review block, ids
+  only, every entry in full, listing exactly two things: contact rows left ambiguous
+  (CT_ID, kind, reason, candidate CT_IDs and partner ids) and people the retire rule
+  kept visible (partner id, reason). Its last line, `NEEDS REVIEW: <n>`, is the last
+  line of `make import-erp`. These are diagnostics: the balance equation is
+  unchanged. Rows matching several sites and unparsed phones are anomalies only.
+- **Replay.** A partner an earlier run created for a now-folded `CT_ID` has that
+  marker re-pointed to the person. It is archived, never deleted, once no other
+  `legacy_erp_contact_%` marker still points at it. Before that, what names it moves
+  to the person: `crm.lead.partner_id`, `plasticos.material.profile.partner_id`,
+  `plasticos.facility.profile.partner_id` (each only when that model is installed),
+  and its linked sites (`location_partner_ids`). A profile the person already holds
+  (one facility profile per partner; one material profile per polymer, form and
+  grade) is not moved, and the old partner then stays visible. Moves and refusals
+  are reported as `fold re-pointed …` / `fold kept … visible` anomalies.
+- **Retire without a survivor.** A person archived because its rows are now
+  inactive, or because its title turned out to be a number or a site mailbox, has no
+  person to receive its records. Before it is archived, `crm.lead.partner_id` moves
+  to its company; material and facility profiles move to its single linked site, or,
+  with no linked site, to its company when that company has no site. With several
+  linked sites, or company sites and no link, or a profile the target already holds,
+  the person stays visible and the report says `retire kept … visible`. A profile
+  never ends on a person (ADR in #530).
+- **Sites are added, never removed.** A person's `location_partner_ids` gains the
+  sites its rows name; a site linked by hand, or carried over from a folded card,
+  stays on replay.
+
+**E-mail cells.** Every importer e-mail write (counterparty `APEMail`, address
+`Email` / `BillingEmail`, contact `Email`, site mailbox, company fill) goes through
+one cleaner, `mapping.email_cell`:
+
+1. drop the brokerage's own mailboxes (`mapping.INTERNAL_MAILBOX_DOMAINS`) — an
+   import rule only, the source row is not edited;
+2. split on `;` or `,`, trim, drop empty entries and entries not shaped
+   `local@domain.tld`, lower-case, de-duplicate keeping the first occurrence;
+3. join with `, `.
+
+A person's own first address stays first. A cell left with no address writes no
+e-mail. Fold matching uses the same cleaned addresses, so an internal mailbox is
+never a match.
+
 **Contact roles use the existing partner-tag mechanism.** 14 distinct role
 names, 510 contacts holding more than one. `res.partner.category` is this
 repository's multi-valued partner classification, so roles become tags under a

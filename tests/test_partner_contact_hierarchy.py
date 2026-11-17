@@ -158,6 +158,17 @@ def test_open_full_profile_saves_the_material_line():
     assert "plasticos_material_profile/static/src/material_profile_lines.css" in manifest
 
 
+def test_open_full_profile_saves_the_facility_line():
+    text = FACILITY_VIEWS.read_text(encoding="utf-8")
+    facility_field = text.split('<field name="facility_profile_ids"', 1)[1].split("</field>", 1)[0]
+    assert 'open_form_view="1"' in facility_field
+    assert 'class="o_material_profile_lines"' in facility_field
+    assert "action_open_profile_form" not in facility_field
+    assert 'delete="0"' in facility_field
+    assert 'name="action_remove_profile"' in facility_field
+    assert 'title="Remove facility profile"' in facility_field
+
+
 def test_facility_profile_is_a_section_above_locations():
     text = FACILITY_VIEWS.read_text(encoding="utf-8")
     assert '<page string="Facility Profile"' not in text

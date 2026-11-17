@@ -1610,6 +1610,19 @@ def test_unreadable_org_template_falls_back_to_repo_template(tmp_path: Path) -> 
     assert any(call["method"] == "POST" and call["path"].endswith("/pulls") for call in _gh_calls(tmp_path))
 
 
+def test_inherited_template_file_does_not_bypass_a_readable_org_template(tmp_path: Path) -> None:
+    repo, _seq = _init_repo(tmp_path)
+    _behind_staging(repo)
+    _commit(repo, "fix: org template wins")
+    stray = tmp_path / "stray_template.md"
+    stray.write_text("## Stray\n", encoding="utf-8")
+    proc = _run(repo, tmp_path, "fix/example", "Staging", "1", "0", PR_TEMPLATE_FILE=str(stray))
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "using the repo template" not in proc.stdout
+    composed = [call for call in _composer_calls(tmp_path) if "--check-template" not in call]
+    assert composed and all("--template" not in call and "--org-owner" in call for call in composed)
+
+
 def test_cloud_session_skips_smoke_by_default_and_says_so(tmp_path: Path) -> None:
     repo, seq = _init_repo(tmp_path)
     _seed_open_pr(tmp_path, repo)
