@@ -153,6 +153,8 @@
 
       <xpath expr="//div[hasclass('flex-column')]/h1" position="after">
         <field name="contact_header_name" nolabel="1" readonly="1" invisible="company_type == 'person' or not contact_header_name"/>
+        <!-- Company Type and Status tags under the name on company, site and person cards (ADR-131). -->
+        <field name="category_id" widget="many2many_tags" options="{'color_field': 'color'}" placeholder="Company Type, Status"/>
       </xpath>
 
       <xpath expr="//div[hasclass('flex-column')]/field[@name='company_type']" position="after">
@@ -208,6 +210,7 @@
         <field name="location_child_ids" nolabel="1" invisible="company_type != 'company'">
           <list>
             <field name="name"/>
+            <field name="contact_header_name" string="Contact"/>
             <field name="type" string="Address Type"/>
             <field name="street"/>
             <field name="city"/>
@@ -246,18 +249,17 @@
         <field name="default_delivery_term" string="Dock Rule" invisible="company_type == 'person'"/>
       </xpath>
 
-      <!-- The base Tags row stays for locations. The company card gets its own, under Lead Source. -->
-      <xpath expr="//field[@name='category_id']" position="attributes">
-        <attribute name="invisible">company_type == 'company'</attribute>
+      <!-- Tags show under the name for every card type; the base Tags row is hidden. -->
+      <xpath expr="//group//field[@name='category_id']" position="attributes">
+        <attribute name="invisible">1</attribute>
       </xpath>
-      <xpath expr="//field[@name='category_id']" position="after">
+      <xpath expr="//group//field[@name='category_id']" position="after">
         <field name="lead_source_id" widget="badge" invisible="company_type != 'site'"/>
         <field name="user_id" string="Salesperson" widget="many2one_avatar_user" readonly="parent_id" invisible="company_type != 'site'"/>
         <field name="property_supplier_payment_term_id" string="Payment Terms" invisible="company_type != 'site' or not supplier_rank"/>
       </xpath>
       <xpath expr="//field[@name='vat']" position="before">
         <field name="lead_source_id" widget="badge" invisible="company_type != 'company'"/>
-        <field name="category_id" widget="many2many_tags" options="{'color_field': 'color'}" placeholder="e.g. &quot;B2B&quot;, &quot;VIP&quot;, &quot;Consulting&quot;, ..." invisible="company_type != 'company'"/>
         <field name="user_id" string="Salesperson" widget="many2one_avatar_user" readonly="parent_id" invisible="company_type != 'company'"/>
       </xpath>
 

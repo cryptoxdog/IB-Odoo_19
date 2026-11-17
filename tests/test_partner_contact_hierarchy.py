@@ -76,10 +76,13 @@ def test_locations_list_is_full_width_and_has_the_address_columns():
     assert "Supplier Payment Terms" not in text
     company_card = text.split("field[@name='vat']", 1)[1].split("</xpath>", 1)[0]
     assert 'name="lead_source_id"' in company_card
-    assert 'name="category_id"' in company_card
-    assert company_card.index('name="lead_source_id"') < company_card.index('name="category_id"')
-    assert company_card.index('name="category_id"') < company_card.index('string="Salesperson"')
+    assert company_card.index('name="lead_source_id"') < company_card.index('string="Salesperson"')
     assert "Payment Terms" not in company_card
+    # ADR-131 (C1 F2): tags sit under the name on company, site and person cards, once.
+    assert 'name="category_id"' not in company_card
+    header = text.split('name="contact_header_name" nolabel="1"', 1)[1].split("</xpath>", 1)[0]
+    assert 'name="category_id" widget="many2many_tags"' in header
+    assert "invisible=" not in header.split('name="category_id"', 1)[1].split("/>", 1)[0]
     private = (ROOT / "plasticos_security_base" / "views" / "res_partner_views.xml").read_text(encoding="utf-8")
     private_field = private.split('name="is_private"', 1)[1].split("/>", 1)[0]
     assert 'readonly="1"' in private_field

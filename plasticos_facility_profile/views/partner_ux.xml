@@ -93,6 +93,9 @@
         <field name="inherit_id" ref="base.view_partner_tree"/>
         <field name="priority">20</field>
         <field name="arch" type="xml">
+            <xpath expr="//list/field[@name='category_id']" position="attributes">
+                <attribute name="optional">show</attribute>
+            </xpath>
             <xpath expr="//list/field[@name='complete_name']" position="after">
                 <field name="first_name" optional="show"/>
                 <field name="last_name" optional="show"/>
@@ -133,6 +136,12 @@
                         domain="[('customer_rank', '&gt;', 0)]"/>
                 <filter string="Suppliers" name="role_supplier"
                         domain="[('supplier_rank', '&gt;', 0)]"/>
+                <filter string="Buyer &amp; Supplier" name="role_buyer_supplier"
+                        domain="[('customer_rank', '&gt;', 0), ('supplier_rank', '&gt;', 0)]"/>
+                <filter string="Has Company Type" name="has_company_type"
+                        domain="[('category_id.parent_id.name', '=', 'Company Type')]"/>
+                <filter string="Has Status" name="has_status"
+                        domain="[('category_id.parent_id.name', '=', 'Status')]"/>
                 <filter string="Prospects" name="role_prospect"
                         domain="[('company_role', '=', 'prospect')]"/>
                 <filter string="Blocked" name="status_blocked"
