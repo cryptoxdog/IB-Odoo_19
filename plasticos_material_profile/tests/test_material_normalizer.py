@@ -311,13 +311,13 @@ class TestMaterialNormalizer(TransactionCase):
 
     def test_ld_lld_and_named_grade_phrases_resolve_on_the_worksheet_path(self):
         cases = (
-            ("LDPE/LLDPE Clear Repro", "LDPE_LLDPE", "REPRO", False, False, (), "CLEAR", False),
+            ("LDPE/LLDPE Clear Repro", "LDPE_LLDPE", False, False, False, ("repro",), "CLEAR", False),
             ("LLDPE/LDPE Mixed Color Purge", "LDPE_LLDPE", "PURGE", False, False, (), "MIXED", False),
             ("CONTAMINATED LDPE/LLDPE", "LDPE_LLDPE", False, False, False, (), False, False),
-            ("LD/LLDPE Repro", "LDPE_LLDPE", "REPRO", False, False, (), False, False),
-            ("LDPE/LLDPE Blue Repro", "LDPE_LLDPE", "REPRO", False, False, (), "BLUE", False),
+            ("LD/LLDPE Repro", "LDPE_LLDPE", False, False, False, ("repro",), False, False),
+            ("LDPE/LLDPE Blue Repro", "LDPE_LLDPE", False, False, False, ("repro",), "BLUE", False),
             ("LDPE/LLDPE Blue/White Purge", "LDPE_LLDPE", "PURGE", False, False, (), ("BLUE", "WHITE"), False),
-            ("LDPE/LLDPE Repro", "LDPE_LLDPE", "REPRO", False, False, (), False, False),
+            ("LDPE/LLDPE Repro", "LDPE_LLDPE", False, False, False, ("repro",), False, False),
             ("SPC-A", "PP", False, "TUBS_LIDS", "POST_CONSUMER", (), False, "bales"),
             ("New OPTI Bins", "HDPE", False, "CRATES", False, (), False, False),
         )

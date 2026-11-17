@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Material Profile",
-    "version": "19.0.5.13.6",
+    "version": "19.0.5.14.0",
     "summary": "Canonical material master registries: polymer, form, color, source, process, grade templates",
     "license": "LGPL-3",
     "author": "Igor Beylin",

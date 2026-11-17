@@ -12,6 +12,7 @@
         <field name="polymer_id"/>
         <field name="material_grade_id" optional="show"/>
         <field name="form_id"/>
+        <field name="direction"/>
         <field name="color_ids" widget="many2many_tags"/>
         <field name="source_type_id"/>
         <field name="monthly_volume_lbs" sum="Total Monthly Volume"/>
@@ -92,6 +93,7 @@
                   <field name="quality_tier_id"/>
                   <field name="material_grade_id"/>
                   <field name="form_id"/>
+                  <field name="direction"/>
                   <field name="color_ids" widget="many2many_tags"/>
                   <!-- color_flexibility moved to Buyer Fields tab -->
                 </group>

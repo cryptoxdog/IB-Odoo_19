@@ -3,6 +3,7 @@ import logging
 from odoo import api, fields, models
 from odoo.exceptions import ValidationError
 
+from ..direction import direction_for, is_site_shape
 from ..form_codes import FORM_SELECTION
 from ..process_codes import PROCESS_SELECTION
 from ..volume import monthly_volume_lbs as monthly_volume_product
@@ -140,6 +141,17 @@ class PlasticosMaterialProfile(models.Model):
         store=True,
         index=True,
         help="Auto-populated from form_id. Kept for backward compatibility.",
+    )
+    direction = fields.Selection(
+        [("in", "In"), ("out", "Out")],
+        string="Direction",
+        index=True,
+        tracking=True,
+        help=(
+            "Whether this material comes in or goes out. Set on create from the site type "
+            "when that is a pickup (out) or a delivery (in) address; otherwise from the "
+            "commercial partner's ranks. Blank when the partner is both or neither."
+        ),
     )
 
     # ── Material Grade (what the items were before processing) ──
@@ -331,7 +343,7 @@ class PlasticosMaterialProfile(models.Model):
     packaging_type_id = fields.Many2one(
         "plasticos.packaging.type",
         string="Packaging",
-        help="How the material is packaged/shipped (Gaylords, Super Sacks, Bales). Optional.",
+        help="How the material is packaged/shipped (Gaylords, Supersacs, Bales). Optional.",
         ondelete="restrict",
     )
 
@@ -415,17 +427,18 @@ class PlasticosMaterialProfile(models.Model):
     # ═════════════════════════════════════════════════════════
 
     _unique_partner_polymer_form = models.UniqueIndex(
-        "(partner_id, polymer_id, form_id, material_grade_id) NULLS NOT DISTINCT WHERE partner_id IS NOT NULL",
-        "A facility may only have one profile per polymer + form + material grade combination.",
+        "(partner_id, polymer_id, form_id, material_grade_id, direction)"
+        " NULLS NOT DISTINCT WHERE partner_id IS NOT NULL",
+        "A facility may only have one profile per polymer + form + material grade + direction.",
     )
 
     def _check_unique_triple_before_save(
-        self, partner_id, polymer_id, form_id, material_grade_id=None, exclude_id=None
+        self, partner_id, polymer_id, form_id, material_grade_id=None, direction=None, exclude_id=None
     ):
-        """Check for duplicate partner+polymer+form+grade before SQL insert.
+        """Check for duplicate partner+polymer+form+grade+direction before SQL insert.
 
-        An empty form or grade is a real identity key, so one unspecified profile is
-        allowed per partner, polymer, and the other key.
+        An empty form, grade, or direction is a real identity key, so one unspecified
+        profile is allowed per partner, polymer, and the other key.
         """
         if not partner_id or not polymer_id:
             return
@@ -434,6 +447,7 @@ class PlasticosMaterialProfile(models.Model):
             ("polymer_id", "=", polymer_id),
             ("form_id", "=", form_id or False),
             ("material_grade_id", "=", material_grade_id or False),
+            ("direction", "=", direction or False),
         ]
         if exclude_id:
             domain.append(("id", "!=", exclude_id))
@@ -446,10 +460,63 @@ class PlasticosMaterialProfile(models.Model):
             form_label = form.name or "unspecified"
             grade = self.env["plasticos.material.grade"].browse(material_grade_id or [])
             grade_label = grade.name or "unspecified"
+            direction_label = {"in": "In", "out": "Out"}.get(direction or "", "unspecified")
             raise ValidationError(
                 f"A material profile already exists for {partner.name} "
-                f"with polymer '{polymer.name}', form '{form_label}', and material grade '{grade_label}'."
+                f"with polymer '{polymer.name}', form '{form_label}', "
+                f"material grade '{grade_label}', and direction '{direction_label}'."
             )
+
+    def _direction_for_partner_id(self, partner_id):
+        """The create-time direction for one partner, or False when it stays blank."""
+        if not partner_id:
+            return False
+        partner = self.env["res.partner"].browse(partner_id)
+        if not partner:
+            return False
+        site_method = getattr(partner, "_plasticos_is_site", None)
+        site = (
+            bool(site_method())
+            if callable(site_method)
+            else is_site_shape(
+                has_parent=bool(partner.parent_id),
+                partner_type=partner.type,
+                is_company=bool(partner.is_company),
+            )
+        )
+        if site and partner.parent_id:
+            company = partner.parent_id.commercial_partner_id
+        else:
+            company = partner.commercial_partner_id
+        label = partner.erp_address_label if "erp_address_label" in partner._fields else False
+        role = partner.company_role if "company_role" in partner._fields else False
+        return (
+            direction_for(
+                site=site,
+                partner_type=partner.type,
+                source_label=label,
+                company_role=role,
+                supplier_rank=company.supplier_rank or 0,
+                customer_rank=company.customer_rank or 0,
+            )
+            or False
+        )
+
+    @api.model
+    def default_get(self, fields_list):
+        values = super().default_get(fields_list)
+        if "direction" in fields_list and not values.get("direction"):
+            partner_id = values.get("partner_id") or self.env.context.get("default_partner_id")
+            direction = self._direction_for_partner_id(partner_id)
+            if direction:
+                values["direction"] = direction
+        return values
+
+    @api.onchange("partner_id")
+    def _onchange_partner_direction(self):
+        """Fill a still-blank direction while the profile is being created."""
+        if not self.direction and self.partner_id and not isinstance(self.id, int):
+            self.direction = self._direction_for_partner_id(self.partner_id.id) or False
 
     # ═════════════════════════════════════════════════════════
     # Computed
@@ -636,11 +703,14 @@ class PlasticosMaterialProfile(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
+            if "direction" not in vals:
+                vals["direction"] = self._direction_for_partner_id(vals.get("partner_id")) or False
             self._check_unique_triple_before_save(
                 vals.get("partner_id"),
                 vals.get("polymer_id"),
                 vals.get("form_id"),
                 vals.get("material_grade_id"),
+                vals.get("direction"),
             )
         records = super().create(vals_list)
         # @api.constrains runs only for fields present in the create values, so a
@@ -656,9 +726,15 @@ class PlasticosMaterialProfile(models.Model):
             polymer_id = vals.get("polymer_id", record.polymer_id.id)
             form_id = vals.get("form_id", record.form_id.id)
             material_grade_id = vals.get("material_grade_id", record.material_grade_id.id)
-            if {"partner_id", "polymer_id", "form_id", "material_grade_id"} & set(vals):
+            direction = vals.get("direction", record.direction)
+            if {"partner_id", "polymer_id", "form_id", "material_grade_id", "direction"} & set(vals):
                 self._check_unique_triple_before_save(
-                    partner_id, polymer_id, form_id, material_grade_id, exclude_id=record.id
+                    partner_id,
+                    polymer_id,
+                    form_id,
+                    material_grade_id,
+                    direction,
+                    exclude_id=record.id,
                 )
         res = super().write(vals)
         for rec in self:

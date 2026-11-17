@@ -85,7 +85,6 @@ FORM_NORMALIZE = {
     "gaylords": "GAY",
     "log": "LOG",
     "logs": "LOG",
-    "loose": "LOOSE",
     "pallet": "PAL",
     "pallets": "PAL",
     "parts": "PART",
@@ -100,8 +99,6 @@ FORM_NORMALIZE = {
     "regrind": "RG",
     "regrinds": "RG",
     "reground": "RG",
-    "repro": "REPRO",
-    "reprocessed": "REPRO",
     "roll": "ROLL",
     "rolls": "ROLL",
     "rollstock": "ROLL",
@@ -116,11 +113,13 @@ FORM_NORMALIZE = {
 # Bales are packaging, not a form: the Bales form was retired on 2026-11-10
 # (plasticos_material_profile 19.0.5.11.14 moves those profiles onto packaging
 # Bales). Operator decision 2026-11-12: an extracted bale word sets the profile's
-# packaging type and no form. Values are plasticos.packaging.type codes.
+# packaging type and no form. ADR-134 §6 does the same for loose. Values are
+# plasticos.packaging.type codes. Repro is not a form and is not mapped to regrind.
 PACKAGING_NORMALIZE = {
     "bale": "bales",
     "bales": "bales",
     "baled": "bales",
+    "loose": "loose",
 }
 
 SOURCE_TYPE_NORMALIZE = {
@@ -189,9 +188,7 @@ FORM_CODE_TO_MASTER = {
     "PATTY": "OTHER",
     "GAY": "OTHER",
     "LOG": "LOGS",
-    "LOOSE": "LOOSE",
     "PAL": "PALLETS",
-    "REPRO": "REGRIND",
     "SWEEP": "FLOORSWEEP",
 }
 
