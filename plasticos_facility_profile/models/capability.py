@@ -66,11 +66,14 @@ class PlasticosCapability(models.Model):
         string="Rated lb/hr",
         help="The machine's rated throughput in pounds per hour.",
     )
-    details = _KeyProperties(
+    details = fields.Properties(
         string="Details",
         definition="capability_type_id.details_definition",
         help="Only this type's detail fields. A type change drops the values.",
     )
+    # The field stays a fields.Properties() so the audit sees it. The subclass
+    # makes a selection detail read back as its stored key.
+    details.__class__ = _KeyProperties
     in_material_ids = fields.One2many(
         MATERIAL_PROFILE,
         "capability_id",
