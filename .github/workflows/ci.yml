@@ -311,12 +311,16 @@ jobs:
           python-version: "3.12"
 
       - name: Install the pinned constellation-node-sdk and test tooling
+        env:
+          # Organization secret: read-only contents + metadata on Quantum-L9 repos.
+          # GITHUB_TOKEN cannot clone private Gate_SDK (anonymous git asks for a username).
+          L9_GITHUB_READ_TOKEN: ${{ secrets.L9_GITHUB_READ_TOKEN }}
         run: |
           pip install pytest==8.3.5 pytest-timeout==2.4.0
           # Install exactly the SDK line from requirements.txt (single source of the pin).
           SDK_REQ="$(grep -E '^constellation-node-sdk @ ' requirements.txt)"
           test -n "$SDK_REQ"
-          pip install "$SDK_REQ"
+          python3 ci/with_github_read_token.py -- pip install "$SDK_REQ"
           python -c "from constellation_node_sdk.gate import GateClient; assert hasattr(GateClient, 'execute')"
 
       - name: Run the Gate bridge tests against the pinned SDK
