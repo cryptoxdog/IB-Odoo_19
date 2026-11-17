@@ -162,7 +162,7 @@
             <xpath expr="//separator[@string='Material Profile']" position="attributes">
                 <attribute name="invisible">company_type == 'person'</attribute>
             </xpath>
-            <xpath expr="//field[@name='material_profile_ids']/preceding-sibling::div[hasclass('alert')][1]" position="attributes">
+            <xpath expr="//div[@role='status'][contains(@invisible, 'material_profile_count')]" position="attributes">
                 <attribute name="invisible">company_type == 'person' or material_profile_count &gt; 0</attribute>
             </xpath>
             <xpath expr="//field[@name='material_profile_ids']" position="attributes">
