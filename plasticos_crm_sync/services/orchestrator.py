@@ -2607,7 +2607,7 @@ class SyncOrchestrator:
     # ── C1 C4: when a VanillaSoft record becomes a partner (D32/D33) ─────────
     def _resolve_vanillasoft_partner(self, lead, dto) -> None:
         """Link or create the partner a qualified record earns. Never inside a failure of the lead."""
-        if not (lead and getattr(lead, "id", False)) or "res.partner" not in self.env:
+        if not (lead and getattr(lead, "id", False)) or not self._env_has_model("res.partner"):
             return
         try:
             with self.env.cr.savepoint():
@@ -2716,7 +2716,6 @@ class SyncOrchestrator:
             "city": dto.city or False,
             "zip": dto.zip or False,
             "phone": dto.phone or False,
-            "website": dto.website or False,
         }
         country_id = self._resolve_country_id(dto.country_code)
         if country_id:
@@ -2750,7 +2749,6 @@ class SyncOrchestrator:
                 "type": "contact",
                 "email": dto.email or False,
                 "phone": dto.phone or False,
-                "function": dto.job_title or False,
             }
         )
 
@@ -2791,10 +2789,10 @@ class SyncOrchestrator:
             company.write({"category_id": [(4, tag.id)]})
         message = f"VanillaSoft ContactID {dto.external_id}: 7=Do Not Call"
         emails = {_collapse_ws(value) for value in (dto.email, getattr(lead, "email_from", "") if lead else "")}
-        if "mail.blacklist" in self.env:
+        if self._env_has_model("mail.blacklist"):
             for email in sorted(value for value in emails if value):
                 self.env["mail.blacklist"].sudo()._add(email, message=message)  # sudo: sync user blacklists by rule
-        if "phone.blacklist" in self.env:
+        if self._env_has_model("phone.blacklist"):
             numbers = {dto.phone, dto.mobile, *dto.phone_numbers, *dto.mobile_numbers}
             if lead:
                 numbers |= {getattr(lead, "phone", ""), getattr(lead, "mobile", "")}
