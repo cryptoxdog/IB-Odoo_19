@@ -1,7 +1,7 @@
 PlasticOS Facility Profile
 ##########################
 
-Facility capability profiles — equipment, tolerances, BCP fields, company_role, and templates
+Facility capability profiles — capabilities, tolerances, and company role
 
 **Features:**
 
