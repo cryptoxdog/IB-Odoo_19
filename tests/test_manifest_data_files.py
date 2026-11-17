@@ -31,8 +31,6 @@ ALLOWLIST: dict[str, str] = {
     "plasticos_material_profile/data/ERP-Products.csv": "read by models/material_normalizer.py (ERP catalog)",
     "plasticos_material_profile/data/material_mapping.csv": "read by models/material_normalizer.py (phrase matrix)",
     "plasticos_crm_bridge/data/utm_source_deactivate.xml": "empty placeholder: a comment, no records",
-    # TEMPORARY: PR #525 lists it in the manifest. Remove this line once #525 merges.
-    "plasticos_facility_profile/data/company_role_tag_data.xml": "TEMPORARY until PR #525 merges",
 }
 
 
