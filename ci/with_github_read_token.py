@@ -44,7 +44,7 @@ def main(argv: list[str] | None = None) -> int:
     token = os.environ.get(TOKEN_ENV, "").strip()
     if not token:
         print(
-            f"{TOKEN_ENV} is empty. Gate_SDK is private, and GITHUB_TOKEN cannot "
+            "L9_GITHUB_READ_TOKEN is empty. Gate_SDK is private, and GITHUB_TOKEN cannot "
             "read Quantum-L9 repositories. Pass the organization read secret into this step.",
             file=sys.stderr,
         )
