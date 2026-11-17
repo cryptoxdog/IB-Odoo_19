@@ -2761,6 +2761,26 @@ class SyncOrchestrator:
         wanted = {field: rank for field, rank in trade_ranks(roles).items() if (company[field] or 0) < rank}
         if wanted:
             company.write(wanted)
+        self._link_company_role_tags(company, roles)
+
+    def _link_company_role_tags(self, company, roles) -> None:
+        """Gate still reads ``company_role_tag_ids``: mirror the roles there. Added, never removed.
+
+        A role tag whose external id is absent (it ships with plasticos_facility_profile
+        data) is skipped quietly.
+        """
+        from .vanillasoft_partners import COMPANY_ROLE_TAG_XMLIDS  # noqa: PLC0415
+
+        if "company_role_tag_ids" not in getattr(company, "_fields", {"company_role_tag_ids": None}):
+            return
+        missing = []
+        for role in sorted(set(roles)):
+            xmlid = COMPANY_ROLE_TAG_XMLIDS.get(role)
+            tag = self.env.ref(xmlid, raise_if_not_found=False) if xmlid else None
+            if tag and tag not in company.company_role_tag_ids:
+                missing.append(tag.id)
+        if missing:
+            company.write({"company_role_tag_ids": [(4, tag_id) for tag_id in missing]})
 
     def _apply_do_not_call(self, company, lead, dto) -> None:
         """7=Do Not Call on an existing company: the DNC status tag and a blacklist. Nothing is removed."""

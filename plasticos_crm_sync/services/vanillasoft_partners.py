@@ -42,6 +42,12 @@ SUPPLIER_QUALIFIED_STATUSES = frozenset({STATUS_HOT, STATUS_WARM, STATUS_RESIST}
 ROLE_BUYER = "Buyer"
 ROLE_SUPPLIER = "Supplier"
 
+# Gate reads Company Roles until it moves to ranks (C1 F1+C4, CTO directive).
+COMPANY_ROLE_TAG_XMLIDS = {
+    ROLE_BUYER: "plasticos_facility_profile.company_role_buyer",
+    ROLE_SUPPLIER: "plasticos_facility_profile.company_role_supplier",
+}
+
 _ROLE_WORDS = {"buyer": ROLE_BUYER, "supplier": ROLE_SUPPLIER}
 _COMPANY_TYPE_PARAGRAPH = re.compile(r"^VanillaSoft (?:ContactID \S+ )?Company Type: (.+)$")
 _NAME_SUFFIXES = frozenset(

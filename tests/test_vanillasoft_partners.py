@@ -211,6 +211,7 @@ class _Partner:
         self.customer_rank = vals.get("customer_rank", 0)
         self.supplier_rank = vals.get("supplier_rank", 0)
         self.category_id = _Set()
+        self.company_role_tag_ids = _Set()
         self.vals = vals
 
     @property
@@ -236,9 +237,9 @@ class _Partner:
 
     def write(self, vals):
         for key, value in vals.items():
-            if key == "category_id":
+            if key in ("category_id", "company_role_tag_ids"):
                 for command in value:
-                    self.category_id.append(self.env.tags[command[1]])
+                    getattr(self, key).append(self.env.tags[command[1]])
             else:
                 setattr(self, key, value)
 
@@ -310,7 +311,16 @@ class _Env(dict):
         super().__init__()
         self.partners = {}
         self.erp_ids = set()
-        self.tags = {900: types.SimpleNamespace(id=900, _name="res.partner.category", name="DNC")}
+        self.tags = {
+            900: types.SimpleNamespace(id=900, _name="res.partner.category", name="DNC"),
+            801: types.SimpleNamespace(id=801, _name="plasticos.company.role.tag", name="Buyer"),
+            802: types.SimpleNamespace(id=802, _name="plasticos.company.role.tag", name="Supplier"),
+        }
+        self.refs = {
+            "plasticos_base.tag_do_not_contact": 900,
+            "plasticos_facility_profile.company_role_buyer": 801,
+            "plasticos_facility_profile.company_role_supplier": 802,
+        }
         self["res.partner"] = _Partners(self)
         self["ir.model.data"] = _ModelData(self)
         self["mail.blacklist"] = _Blacklist()
@@ -321,7 +331,7 @@ class _Env(dict):
         self.cr = types.SimpleNamespace(savepoint=contextlib.nullcontext)
 
     def ref(self, xmlid, raise_if_not_found=True):
-        return self.tags[900] if xmlid == "plasticos_base.tag_do_not_contact" else None
+        return self.tags.get(self.refs.get(xmlid))
 
 
 class _Orch(SyncOrchestrator):
@@ -470,3 +480,28 @@ def test_approved_contact_without_role_or_dnc_writes_nothing(harness):
     person = env["res.partner"].create({"name": "Ada Byron", "parent_id": company.id})
     orch._apply_existing_partner_rules(lead, _dto(vp.STATUS_HOT, ""), person)
     assert company.customer_rank == 0 and company.supplier_rank == 0 and not company.category_id
+
+
+def test_company_roles_follow_the_ranks_for_gate_and_are_never_removed(harness):
+    env, orch, lead = harness
+    orch._resolve_vanillasoft_partner_body(lead, _dto(vp.STATUS_HOT, "Buyer/Supplier"))
+    company = lead.partner_id[0]
+    assert sorted(tag.name for tag in company.company_role_tag_ids) == ["Buyer", "Supplier"]
+    orch._resolve_vanillasoft_partner_body(lead, _dto(vp.STATUS_HOT, "Buyer"))  # replay, fewer roles
+    assert sorted(tag.name for tag in company.company_role_tag_ids) == ["Buyer", "Supplier"]
+
+
+def test_company_role_tag_absent_is_skipped_quietly(harness):
+    env, orch, lead = harness
+    env.refs.pop("plasticos_facility_profile.company_role_supplier")
+    orch._resolve_vanillasoft_partner_body(lead, _dto(vp.STATUS_HOT, "Supplier"))
+    company = lead.partner_id[0]
+    assert company.supplier_rank == 1 and not company.company_role_tag_ids
+    assert not orch.error_rows
+
+
+def test_company_role_xmlids():
+    assert vp.COMPANY_ROLE_TAG_XMLIDS == {
+        "Buyer": "plasticos_facility_profile.company_role_buyer",
+        "Supplier": "plasticos_facility_profile.company_role_supplier",
+    }

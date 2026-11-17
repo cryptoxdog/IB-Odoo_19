@@ -57,6 +57,7 @@ Orchestrator changes:
      - The lead stays the pipeline record.
      - `_ensure_contact_person` reuses a child with the same name or email, or creates the person.
      - `_raise_trade_ranks` sets `customer_rank` / `supplier_rank` to at least 1 from Buyer/Supplier. It never lowers them.
+- **Gate's Company Roles (CTO directive):** wherever ranks are raised, `_link_company_role_tags` also adds the matching Company Roles tag, because Gate still reads `company_role_tag_ids`. Buyer → `plasticos_facility_profile.company_role_buyer`, Supplier → `company_role_supplier`. Tags are added, never removed, and a missing external id is skipped quietly.
 - `_apply_existing_partner_rules` covers approved contacts. Their ERP person already exists, so only ranks and DNC are applied, to that person's commercial company.
 - `_apply_do_not_call` adds the DNC tag (skipped quietly when the external id is absent). It calls `mail.blacklist._add` for the DTO and lead emails, and `phone.blacklist._add` for each sanitized phone and mobile. Nothing is removed.
 
