@@ -650,7 +650,16 @@ def typed(monkeypatch):
     orch = _Orch(env)
     stored = []
 
-    def store(lead, phrases, partner=None, facility_profile=None, structured=None, record_form=None, external_id=None):
+    def store(
+        lead,
+        phrases,
+        partner=None,
+        facility_profile=None,
+        structured=None,
+        record_form=None,
+        external_id=None,
+        direction=None,
+    ):
         made = [_Profile(phrase, record_form) for phrase in phrases]
         stored.extend(made)
         return made

@@ -912,3 +912,12 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > and Material Form sets `form_id`. One value applies to every profile of the record, and several values are ignored and
 > reported. Only an empty field is filled. Bales (any packaging type) sets `packaging_type_id`, never `form_id`.
 > Which VanillaSoft records become partners is `docs/adr/ADR-133-vanillasoft-records-become-partners-selectively.md`.
+
+> **2026-11-17 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the 2026-11-13 sentence "Both files are one list; supplier versus customer carries no meaning." is superseded.
+> `make import-erp-material-profiles` writes `direction` from the file: the supplier list is `out` and the customer
+> list is `in`. The same product at one site from both lists is two profiles. A replay of the same files changes
+> nothing. VanillaSoft writes `out` for Supplier and `in` for Buyer. A record that is both is set per material when
+> the site decides (a pickup address is out); otherwise the direction stays blank and the record is listed under
+> NEEDS REVIEW. A material-profile write on the AI broker path (`plasticos_ai_broker`) with no direction is refused
+> and reported. Enrichment writes no material profiles.
