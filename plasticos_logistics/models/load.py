@@ -1993,7 +1993,7 @@ class PlasticosLoad(models.Model):
 
     def _light_load_guard(self, override_reason):
         """Refuse Linda a light load. A person continues only with a recorded reason."""
-        from ..schedule_window import OVERRIDE, light_load_decision
+        from ..schedule_window import NEED_REASON, OVERRIDE, REFUSE, light_load_decision
         from .linda_approval import is_linda
 
         self.ensure_one()
@@ -2004,11 +2004,11 @@ class PlasticosLoad(models.Model):
             self._schedule_minimum_net_weight(),
             None if linda else override_reason,
         )
-        if decision == "refuse":
+        if decision == REFUSE:
             raise UserError(
                 f"Load {self.name} is below the transaction minimum net weight. Linda cannot schedule or dispatch it."
             )
-        if decision == "need_reason":
+        if decision == NEED_REASON:
             raise UserError(
                 f"Load {self.name} is below the transaction minimum net weight. A recorded reason is required."
             )

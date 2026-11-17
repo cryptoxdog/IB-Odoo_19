@@ -37,6 +37,11 @@ FLAG_WEIGHT_UNKNOWN = "weight_unknown"
 FLAG_EXPORT_CUTOFF = "export_cutoff_notice"
 FLAG_BOOKING_ROLL = "booking_roll_request"
 
+AUDIENCE_SHIPPER = "shipper"
+AUDIENCE_BUYER = "buyer"
+AUDIENCE_PICKUP_SITE = "pickup_site"
+AUDIENCE_DELIVERY_SITE = "delivery_site"
+
 SCHEDULE_PURPOSES: tuple[str, ...] = (
     FLAG_EARLIER,
     FLAG_READY_FAR,
@@ -56,6 +61,7 @@ R018_CANCEL_REASON = "Replaced when a different appointment on this side was acc
 BOOK_X = "book_x"
 BOOK_Y_ACCEPT = "book_y_accept"
 WAIT = "wait"
+UNANSWERED = "unanswered"
 ALLOW = "allow"
 REFUSE = "refuse"
 NEED_REASON = "need_reason"
@@ -209,7 +215,7 @@ def earlier_slot_outcome(answer: str | None, today: date, decision: date) -> str
         return BOOK_X
     if normalized == "no":
         return BOOK_Y_ACCEPT
-    if normalized in ("", "unanswered") and today > decision:
+    if (not normalized or normalized == UNANSWERED) and today > decision:
         return BOOK_Y_ACCEPT
     return WAIT
 

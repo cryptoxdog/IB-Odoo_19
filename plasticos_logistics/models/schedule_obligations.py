@@ -15,6 +15,10 @@ from zoneinfo import ZoneInfo
 from odoo import api, fields, models
 
 from ..schedule_window import (
+    AUDIENCE_BUYER,
+    AUDIENCE_DELIVERY_SITE,
+    AUDIENCE_PICKUP_SITE,
+    AUDIENCE_SHIPPER,
     PARAMETER_DEFAULTS,
     ExportWindow,
     ScheduleFacts,
@@ -24,7 +28,7 @@ from ..schedule_window import (
     export_notices,
     staging_deadline,
 )
-from .linda_approval import linda_stopped, linda_user
+from .linda_approval import LINDA_STOPPED_REASON, linda_stopped, linda_user
 from .linda_request import LINDA_MODE_LIVE, SOURCE_LOAD
 
 _logger = logging.getLogger(__name__)
@@ -57,7 +61,7 @@ class PlasticosLogisticsRequestSchedule(models.Model):
 
     def _run_load_obligations(self, loads=None):
         results = super()._run_load_obligations(loads=loads)
-        if isinstance(results, list) and len(results) == 1 and results[0].get("reason") == "linda_stopped":
+        if isinstance(results, list) and len(results) == 1 and results[0].get("reason") == LINDA_STOPPED_REASON:
             return results
         target = loads
         if target is None:
@@ -260,7 +264,10 @@ class PlasticosLogisticsRequestSchedule(models.Model):
         )
         if existing:
             return existing
-        snapshot = {"reference": load.name or "", "paragraphs": [flag.body], "subject": _SUMMARIES[flag.code]}
+        snapshot = {}
+        snapshot["reference"] = load.name or ""
+        snapshot["paragraphs"] = [flag.body]
+        snapshot["subject"] = _SUMMARIES[flag.code]
         return self.sudo().create(  # sudo: the sweep files shadow evidence and holds no request ACL
             {
                 "company_id": load.company_id.id,
@@ -318,11 +325,11 @@ def _local_date(moment, tz_name):
 def _audience_partner(load, audience):
     supplier = load.transaction_id.supplier_id if load.transaction_id else False
     buyer = load.transaction_id.buyer_id if load.transaction_id else False
-    if audience in ("shipper", "pickup_site"):
+    if audience in (AUDIENCE_SHIPPER, AUDIENCE_PICKUP_SITE):
         return load.pickup_partner_id or supplier
-    if audience == "delivery_site":
+    if audience == AUDIENCE_DELIVERY_SITE:
         return load.delivery_partner_id or buyer
-    if audience == "buyer":
+    if audience == AUDIENCE_BUYER:
         if load.sale_order_id and load.sale_order_id.partner_id:
             return load.sale_order_id.partner_id
         return buyer or load.delivery_partner_id

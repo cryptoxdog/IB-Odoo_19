@@ -72,6 +72,9 @@ def is_linda(env):
     return bool(linda) and env.uid == linda.id
 
 
+LINDA_STOPPED_REASON = "linda_stopped"
+
+
 def linda_stopped(env):
     """True when the operator has archived Linda: the supported kill switch (C12 round 2, R3)."""
     linda = linda_user(env)
