@@ -197,6 +197,8 @@ Determine pickup and delivery dock requirements independently; blank/default/unv
 
 *Validation:* original IDs AC-V22, AC-V23, AC-V25 plus mapped cross-domain negatives; runtime NOT_RUN.
 
+*Implementation:* ADR-135 §3. Pickup is `pickup_dock_rule` on the transaction, the purchase order, and the load. Delivery stays `delivery_term`. Lookup is the site, then its commercial company, then Appointment (BRS-03-R016).
+
 ### `BRS-03-R017`: Delivery slot constrains pickup scheduling
 
 When destination requires appointment, obtain accepted available slot before final pickup commitment and coordinate feasible pickup around it.
@@ -216,6 +218,8 @@ Keep both-party proposals and explicit accepted slot/reference/source. appointme
 *Cross-domain boundaries:* `BRS-POS-10-R013`, `BRS-POS-09-R012`.
 
 *Validation:* original IDs AC-V26, AC-V29, AC-V81 plus mapped cross-domain negatives; runtime NOT_RUN.
+
+*Implementation:* ADR-135 §4. `appointment_requested` stays the stored request indicator. Sale-order confirmation creates one Logistics activity and does not set the flag.
 
 ### `BRS-03-R019`: FCFS removes only appointment gate
 

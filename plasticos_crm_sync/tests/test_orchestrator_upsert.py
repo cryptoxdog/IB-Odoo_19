@@ -1778,6 +1778,8 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(lead.street, "12 Dock St")
         self.assertEqual(lead.zip, "19019")
         self.assertEqual(lead.delivery_term, "fcfs")
+        # ADR-135 §3: the stored value is the dock rule of the side the partner plays.
+        self.assertIn(lead._plasticos_delivery_term_side(), ("pickup", "delivery"))
         self._assert_tokens_absent(tokens, text)
         self._assert_tokens_absent(tokens, self._profile_notes(lead))
 
@@ -2027,6 +2029,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(person.street, "ERP DOCK")
         self.assertEqual(person.phone, "555-0100")
         self.assertEqual(lead.delivery_term, "fcfs")
+        self.assertIn(lead._plasticos_delivery_term_side(), ("pickup", "delivery"))
         self.assertEqual(set(row.fields_json), {"Material", "Notes"})
         self.assertEqual(row.fields_json["Notes"], "Load Ready is mentioned in ordinary notes")
         self.assertEqual(other.fields_json["Load Ready"], "KEEP-OTHER")

@@ -4,6 +4,8 @@ from datetime import timedelta
 from odoo import Command, api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
+from ..dock_rule import APPOINTMENT, rule_from_site_then_company
+
 _logger = logging.getLogger(__name__)
 
 PRODUCT_PRICE = "Product Price"
@@ -163,10 +165,27 @@ class PlasticosTransaction(models.Model):
             ("fcfs", "First Come First Served"),
             ("appointment", "Appointment Required"),
         ],
-        string="Delivery Term",
+        string="Delivery Dock Rule",
         default=lambda self: self._get_default_delivery_term(),
         tracking=True,
-        help="Default chain: Supplier → Buyer → 'appointment' fallback. Editable.",
+        help=(
+            "Delivery-side dock rule. Defaults from the sale order ship-to site, "
+            "then that site's commercial company, then Appointment."
+        ),
+    )
+    pickup_dock_rule = fields.Selection(
+        [
+            ("fcfs", "First Come First Served"),
+            ("appointment", "Appointment Required"),
+        ],
+        string="Pickup Dock Rule",
+        default=lambda self: self._get_default_pickup_dock_rule(),
+        tracking=True,
+        help=(
+            "Pickup-side dock rule. The pickup partner is the load's pickup partner, "
+            "else the purchase-order vendor's single site, else the vendor. "
+            "The rule is that partner's site rule, then its commercial company, then Appointment."
+        ),
     )
     freight_rate = fields.Float(
         string="Freight Rate",
@@ -519,32 +538,107 @@ class PlasticosTransaction(models.Model):
         The range check lives on that inherit, which owns commission_override_pct.
         """
 
-    # ── Default Delivery Term Helper ─────────────────────────
+    # ── Dock rules (ADR-135 §3) ──────────────────────────────
     def _get_default_delivery_term(self):
-        """Get delivery term default using priority chain.
+        """Delivery rule for a form default. Create fills the value from the sale order."""
+        sale_id = self.env.context.get("default_sale_order_id")
+        if not sale_id:
+            return APPOINTMENT
+        sale = self.env["sale.order"].browse(sale_id)
+        return self._dock_rule_for_partner(sale.partner_shipping_id or sale.partner_id)
 
-        Priority:
-        1. Supplier's default_delivery_term (if set)
-        2. Buyer's default_delivery_term (if set)
-        3. "appointment" (fallback - safer/more conservative)
+    def _get_default_pickup_dock_rule(self):
+        """Pickup rule for a form default. Create fills the value from the vendor or context."""
+        partner_id = self.env.context.get("default_pickup_partner_id")
+        if not partner_id:
+            return APPOINTMENT
+        return self._dock_rule_for_partner(self.env[RES_PARTNER].browse(partner_id))
 
-        Note: At record creation, supplier_id/buyer_id may not be set yet.
-        The field is editable, so user can always override.
+    def _partner_is_site(self, partner) -> bool:
+        if not partner:
+            return False
+        return bool(partner._plasticos_is_site())
+
+    def _dock_rule_for_partner(self, partner) -> str:
+        """Site rule, else the commercial company's rule, else Appointment."""
+        if not partner:
+            return APPOINTMENT
+        commercial = partner.commercial_partner_id or partner
+        is_site = self._partner_is_site(partner)
+        return rule_from_site_then_company(
+            partner.default_delivery_term if is_site else None,
+            commercial.default_delivery_term,
+            partner_is_site=is_site,
+        )
+
+    def _vendor_or_its_single_site(self, vendor):
+        """The vendor when it is a site, else its only site, else the vendor itself."""
+        if not vendor:
+            return vendor
+        if self._partner_is_site(vendor):
+            return vendor
+        commercial = vendor.commercial_partner_id or vendor
+        sites = commercial.child_ids.filtered(lambda child: self._partner_is_site(child))
+        if len(sites) == 1:
+            return sites
+        return vendor
+
+    def _resolved_pickup_partner(self):
+        """Load pickup partner, else the PO vendor's single site, else the PO vendor.
+
+        A saved transaction consults its loads. Create has no loads yet, so it
+        uses ``default_pickup_partner_id`` or the vendor named in the values.
+        Several loads that name different pickup partners fall through to the vendor.
         """
-        supplier_id = self.env.context.get("default_supplier_id")
-        buyer_id = self.env.context.get("default_buyer_id")
+        self.ensure_one()
+        pickups = self.load_ids.mapped("pickup_partner_id")
+        if len(pickups) == 1:
+            return pickups
+        vendor = self.purchase_order_ids[:1].partner_id or self.supplier_id
+        return self._vendor_or_its_single_site(vendor)
 
-        if supplier_id:
-            supplier = self.env["res.partner"].browse(supplier_id)
-            if supplier.default_delivery_term:
-                return supplier.default_delivery_term
+    def _vendor_from_po_commands(self, commands):
+        ids: list[int] = []
+        for command in commands or []:
+            if not isinstance(command, (list, tuple)) or not command:
+                continue
+            kind = command[0]
+            if kind == Command.SET and len(command) >= 3:
+                ids.extend(command[2] or [])
+            elif kind == Command.LINK and len(command) >= 2:
+                ids.append(command[1])
+        if not ids:
+            return self.env[RES_PARTNER]
+        return self.env["purchase.order"].browse(ids[0]).partner_id
 
-        if buyer_id:
-            buyer = self.env["res.partner"].browse(buyer_id)
-            if buyer.default_delivery_term:
-                return buyer.default_delivery_term
+    def _fill_dock_rule_vals(self, vals):
+        """Set either side only when the caller did not pass it."""
+        if "delivery_term" not in vals:
+            sale = self.env["sale.order"].browse(vals["sale_order_id"]) if vals.get("sale_order_id") else False
+            partner = (sale.partner_shipping_id or sale.partner_id) if sale else self.env[RES_PARTNER]
+            vals["delivery_term"] = self._dock_rule_for_partner(partner)
+        if "pickup_dock_rule" not in vals:
+            context_partner = self.env.context.get("default_pickup_partner_id")
+            if context_partner:
+                partner = self.env[RES_PARTNER].browse(context_partner)
+            else:
+                vendor = self._vendor_from_po_commands(vals.get("purchase_order_ids"))
+                if not vendor and vals.get("supplier_id"):
+                    vendor = self.env[RES_PARTNER].browse(vals["supplier_id"])
+                partner = self._vendor_or_its_single_site(vendor)
+            vals["pickup_dock_rule"] = self._dock_rule_for_partner(partner)
 
-        return "appointment"
+    @api.onchange("sale_order_id")
+    def _onchange_delivery_dock_rule(self):
+        for record in self:
+            sale = record.sale_order_id
+            partner = (sale.partner_shipping_id or sale.partner_id) if sale else self.env[RES_PARTNER]
+            record.delivery_term = record._dock_rule_for_partner(partner)
+
+    @api.onchange("supplier_id", "purchase_order_ids")
+    def _onchange_pickup_dock_rule(self):
+        for record in self:
+            record.pickup_dock_rule = record._dock_rule_for_partner(record._resolved_pickup_partner())
 
     # ── Supplier Confirmation Compute ────────────────────────
     @api.depends("supplier_confirmation_received")
@@ -933,12 +1027,16 @@ class PlasticosTransaction(models.Model):
         for vals in vals_list:
             if vals.get("name", "New") == "New":
                 vals["name"] = self.env["ir.sequence"].next_by_code(PLASTICOS_TRANSACTION) or "New"
+            self._fill_dock_rule_vals(vals)
         names = [vals.get("name") for vals in vals_list if vals.get("name") and vals.get("name") != "New"]
         existing_names = set(self.search([("name", "in", names)]).mapped("name")) if names else set()
         for name in names:
             if name in existing_names:
                 raise ValidationError(f"Transaction reference '{name}' already exists.")
         records = super().create(vals_list)
+        linked = records.filtered("purchase_order_ids")
+        if linked:
+            linked.purchase_order_ids._compute_pickup_dock_rule_from_transaction()
         self._reconcile_new_transaction_loads(records)
         return records
 
@@ -960,6 +1058,8 @@ class PlasticosTransaction(models.Model):
         res = super().write(vals)
         if reopened:
             self._post_historical_reopen(reopened)
+        if {"pickup_dock_rule", "purchase_order_ids"} & set(vals) and self.purchase_order_ids:
+            self.purchase_order_ids._compute_pickup_dock_rule_from_transaction()
         self._reconcile_loads_after_party_write(vals)
         return res
 

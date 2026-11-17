@@ -50,6 +50,8 @@
                decoration-info="load_state in ('dispatched','picked_up')"
                decoration-success="load_state == 'delivered'"
                optional="show"/>
+        <field name="pickup_dock_rule"        string="Pickup Rule"   optional="hide"/>
+        <field name="delivery_term"           string="Delivery Rule" optional="hide"/>
         <field name="pickup_datetime"         string="Pickup"        optional="hide"/>
         <field name="delivery_datetime"       string="Est. Delivery" optional="hide"/>
         <!-- Document traffic lights -->
@@ -146,7 +148,8 @@
                      decoration-success="load_state == 'delivered'"/>
               <field name="carrier_name"      string="Carrier" readonly="1"/>
               <field name="trailer_number"    readonly="1"/>
-              <field name="delivery_term"     readonly="1"/>
+              <field name="pickup_dock_rule"  string="Pickup Dock Rule" readonly="1"/>
+              <field name="delivery_term"     string="Delivery Dock Rule" readonly="1"/>
               <field name="pickup_datetime"   readonly="1"/>
               <field name="delivery_datetime" string="Est. Delivery" readonly="1"/>
               <field name="delivered_at"      readonly="1" invisible="not delivered_at"/>

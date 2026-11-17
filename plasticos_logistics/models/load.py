@@ -299,6 +299,26 @@ class PlasticosLoad(models.Model):
         store=True,
         help="True if delivery_term differs from linked transaction.",
     )
+    pickup_dock_rule = fields.Selection(
+        [
+            ("fcfs", "First Come First Served"),
+            ("appointment", "Appointment Required"),
+        ],
+        string="Pickup Dock Rule",
+        default=lambda self: self._get_default_pickup_dock_rule(),
+        tracking=True,
+        help="Defaults from the transaction pickup dock rule. An override requires a reason.",
+    )
+    pickup_dock_rule_override_reason = fields.Text(
+        string="Pickup Override Reason",
+        help="Required when pickup_dock_rule differs from the transaction. Explain why the change was necessary.",
+    )
+    pickup_dock_rule_overridden = fields.Boolean(
+        string="Pickup Dock Rule Overridden",
+        compute="_compute_pickup_dock_rule_overridden",
+        store=True,
+        help="True if pickup_dock_rule differs from the linked transaction.",
+    )
 
     # ── Dispatch Tracking ─────────────────────────────────────────────
     dispatch_sent = fields.Datetime(
@@ -423,6 +443,8 @@ class PlasticosLoad(models.Model):
         for vals in vals_list:
             _refuse_linda_raw_write(self.env, vals)
         vals_list = [self._resolve_source_company(dict(vals), creating=True) for vals in vals_list]
+        for vals in vals_list:
+            self._fill_dock_rule_defaults(vals)
         for vals in vals_list:
             actual = {name for name in _ACTUAL_EVENT_FIELDS.intersection(vals) if vals.get(name)}
             if actual:
@@ -1001,6 +1023,9 @@ class PlasticosLoad(models.Model):
                     "delivery_term",
                     "delivery_term_override_reason",
                     "delivery_term_overridden",
+                    "pickup_dock_rule",
+                    "pickup_dock_rule_override_reason",
+                    "pickup_dock_rule_overridden",
                 }
                 if internal_freight_write:
                     allowed.update(_FREIGHT_ACTUAL_INPUT_FIELDS | {"actual_freight_recorded_at"})
@@ -1042,6 +1067,26 @@ class PlasticosLoad(models.Model):
                 return tx.delivery_term
         return "appointment"
 
+    def _get_default_pickup_dock_rule(self):
+        """Pickup dock rule from the linked transaction, else Appointment."""
+        tx_id = self.env.context.get("default_transaction_id")
+        if tx_id:
+            tx = self.env[PLASTICOS_TRANSACTION].browse(tx_id)
+            if tx.pickup_dock_rule:
+                return tx.pickup_dock_rule
+        return "appointment"
+
+    def _fill_dock_rule_defaults(self, vals):
+        """Copy both sides from a transaction named on create. Explicit values stay."""
+        tx_id = vals.get("transaction_id")
+        if not tx_id:
+            return
+        tx = self.env[PLASTICOS_TRANSACTION].browse(tx_id)
+        if "delivery_term" not in vals and tx.delivery_term:
+            vals["delivery_term"] = tx.delivery_term
+        if "pickup_dock_rule" not in vals and tx.pickup_dock_rule:
+            vals["pickup_dock_rule"] = tx.pickup_dock_rule
+
     @api.depends("delivery_term", "transaction_id.delivery_term")
     def _compute_delivery_term_overridden(self):
         """Check if delivery_term differs from the linked transaction."""
@@ -1052,13 +1097,32 @@ class PlasticosLoad(models.Model):
             else:
                 rec.delivery_term_overridden = False
 
-    @api.constrains("delivery_term", "delivery_term_override_reason")
+    @api.depends("pickup_dock_rule", "transaction_id.pickup_dock_rule")
+    def _compute_pickup_dock_rule_overridden(self):
+        """True when the load pickup rule differs from the linked transaction."""
+        for rec in self:
+            tx = rec.transaction_id
+            if tx and tx.pickup_dock_rule:
+                rec.pickup_dock_rule_overridden = rec.pickup_dock_rule != tx.pickup_dock_rule
+            else:
+                rec.pickup_dock_rule_overridden = False
+
+    @api.constrains(
+        "delivery_term",
+        "delivery_term_override_reason",
+        "pickup_dock_rule",
+        "pickup_dock_rule_override_reason",
+    )
     def _check_override_reason_required(self):
-        """Require reason when delivery_term is overridden."""
+        """Require a reason when either dock rule differs from the transaction."""
         for rec in self:
             if rec.delivery_term_overridden and not rec.delivery_term_override_reason:
                 raise ValidationError(
                     "Override reason is required when changing delivery term from transaction default."
+                )
+            if rec.pickup_dock_rule_overridden and not rec.pickup_dock_rule_override_reason:
+                raise ValidationError(
+                    "Override reason is required when changing the pickup dock rule from the transaction default."
                 )
 
     def action_confirm_ready(self):

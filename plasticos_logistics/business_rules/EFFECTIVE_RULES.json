@@ -398,6 +398,13 @@
       "id": "BRS-03-R016",
       "chapter": "BRS-03",
       "title": "Per-facility unknown-safe dock rules",
+      "implementation_refs": [
+        "plasticos.transaction.pickup_dock_rule",
+        "plasticos.transaction.delivery_term",
+        "purchase.order.pickup_dock_rule",
+        "plasticos.load.pickup_dock_rule",
+        "plasticos.load.delivery_term"
+      ],
       "source_rule_unchanged": "Determine pickup and delivery dock requirements independently; blank/default/unverified differs from confirmed FCFS.",
       "source_git_blob_sha1": "",
       "effective_text": "Determine pickup and delivery dock requirements independently; blank/default/unverified differs from confirmed FCFS.",
@@ -444,6 +451,10 @@
       "id": "BRS-03-R018",
       "chapter": "BRS-03",
       "title": "Proposal/request/acceptance/cancellation distinction",
+      "implementation_refs": [
+        "sale.order.appointment_requested",
+        "plasticos_automation.rule_request_dock_appointment"
+      ],
       "source_rule_unchanged": "Keep both-party proposals and explicit accepted slot/reference/source. appointment_requested remains a request indicator only.",
       "source_git_blob_sha1": "",
       "effective_text": "Keep both-party proposals and explicit accepted slot/reference/source. appointment_requested remains a request indicator only.",

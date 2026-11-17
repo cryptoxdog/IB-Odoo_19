@@ -88,8 +88,12 @@ class CrmLeadPlastOS(models.Model):
     # ── Delivery Term (captured during qualification) ──────
     delivery_term = fields.Selection(
         [("fcfs", "FCFS"), ("appointment", "Appointment")],
-        string="Delivery Term",
-        help="Delivery term preference captured during lead qualification. Copied to transaction on conversion.",
+        string="Dock Rule",
+        help=(
+            "Dock rule captured during qualification. On submit it is copied to the "
+            "side this partner plays: pickup when the partner is the vendor, delivery "
+            "when the partner is only a buyer. See _plasticos_delivery_term_side."
+        ),
     )
 
     # ── Web Lead Link ──────────────────────────────────────
@@ -1049,6 +1053,43 @@ class CrmLeadPlastOS(models.Model):
                 )
             )
 
+    def _plasticos_delivery_term_side(self):
+        """Which order side this lead's dock rule belongs to.
+
+        Decision (ADR-135 §3, lane A-dock). The field stays one stored value.
+        Submit uses ``partner_id`` as the vendor and ``release_buyer_facility_id``
+        as the delivery site (``release_parties``). The stored rule follows the
+        partner's role:
+
+        - supplier only, or both ranks: pickup, because that partner is the vendor
+        - buyer only: delivery
+        - no partner, or neither rank: delivery, because the field is the delivery
+          side until the partner's role says otherwise
+
+        An empty value is not copied. Submit leaves the transaction defaults.
+        """
+        self.ensure_one()
+        partner = self.partner_id
+        if not partner:
+            return "delivery"
+        supplier = partner.supplier_rank > 0
+        buyer = partner.customer_rank > 0
+        if supplier:
+            return "pickup"
+        if buyer:
+            return "delivery"
+        return "delivery"
+
+    def _plasticos_apply_delivery_term_side(self, transaction):
+        """Copy a qualified dock rule onto the side ``_plasticos_delivery_term_side`` names."""
+        self.ensure_one()
+        if not self.delivery_term or not transaction:
+            return
+        field_name = "pickup_dock_rule" if self._plasticos_delivery_term_side() == "pickup" else "delivery_term"
+        transaction.write({field_name: self.delivery_term})
+        if field_name == "pickup_dock_rule" and transaction.purchase_order_ids:
+            transaction.purchase_order_ids._compute_pickup_dock_rule_from_transaction()
+
     def action_submit_release(self):
         """Create one draft purchase order, one draft sale order, and one draft transaction.
 
@@ -1167,6 +1208,7 @@ class CrmLeadPlastOS(models.Model):
             }
         )
         sale.transaction_id = transaction.id
+        self._plasticos_apply_delivery_term_side(transaction)
         self.write(
             {
                 "release_purchase_order_id": purchase.id,

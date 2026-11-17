@@ -131,6 +131,8 @@ def check_deprecated_field_names(file: Path, tree: ast.AST) -> list[SetupViolati
         "x_buyer_id": "buyer_id",
         "x_followup_count": "followup_count",
         "x_last_followup_on": "last_followup_on",
+        # delivery_term stays the delivery-side dock rule (ADR-135 §3).
+        # pickup_dock_rule is the pickup side and has no x_ predecessor.
         "x_delivery_term": "delivery_term",
         "x_appt_requested": "appt_requested",
         "x_appt_requested_on": "appt_requested_on",
