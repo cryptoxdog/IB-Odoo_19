@@ -9,26 +9,19 @@
 
       Deprecated role tags (Buyer, Supplier, Broker, Carrier, Processor)
       are NO LONGER created here. They will be removed in Sprint 8.
+
+      C1 G1 (operator 2026-11-17): Needs Enrichment, Key Account, Preferred
+      Carrier and the Material Focus group are retired by post-migrate
+      19.0.1.1.15. Exporter and Toll Processor are Company Types (moved by
+      plasticos_facility_profile).
     -->
 
     <record id="category_operational" model="res.partner.category">
       <field name="name">Operational</field>
     </record>
-    <record id="tag_needs_enrichment" model="res.partner.category">
-      <field name="parent_id" ref="category_operational"/>
-      <field name="name">Needs Enrichment</field>
-    </record>
     <record id="tag_do_not_contact" model="res.partner.category">
       <field name="parent_id" ref="category_operational"/>
       <field name="name">Do Not Contact</field>
-    </record>
-    <record id="tag_key_account" model="res.partner.category">
-      <field name="parent_id" ref="category_operational"/>
-      <field name="name">Key Account</field>
-    </record>
-    <record id="tag_preferred_carrier" model="res.partner.category">
-      <field name="parent_id" ref="category_operational"/>
-      <field name="name">Preferred Carrier</field>
     </record>
     <record id="tag_exporter" model="res.partner.category">
       <field name="parent_id" ref="category_operational"/>
@@ -37,51 +30,6 @@
     <record id="tag_toll_processor" model="res.partner.category">
       <field name="parent_id" ref="category_operational"/>
       <field name="name">Toll Processor</field>
-    </record>
-
-    <!-- Material Focus parent — child tags anchored here for domain filtering -->
-    <record id="category_material_focus" model="res.partner.category">
-      <field name="name">Material Focus</field>
-    </record>
-    <record id="tag_mf_pallets" model="res.partner.category">
-      <field name="parent_id" ref="category_material_focus"/>
-      <field name="name">Pallets</field>
-    </record>
-    <record id="tag_mf_hdpe_drums" model="res.partner.category">
-      <field name="parent_id" ref="category_material_focus"/>
-      <field name="name">HDPE Drums</field>
-    </record>
-    <record id="tag_mf_ag_film" model="res.partner.category">
-      <field name="parent_id" ref="category_material_focus"/>
-      <field name="name">AG Film</field>
-    </record>
-    <record id="tag_mf_ldpe_film" model="res.partner.category">
-      <field name="parent_id" ref="category_material_focus"/>
-      <field name="name">LDPE Film</field>
-    </record>
-    <record id="tag_mf_baled_pet" model="res.partner.category">
-      <field name="parent_id" ref="category_material_focus"/>
-      <field name="name">Baled PET</field>
-    </record>
-    <record id="tag_mf_baled_hdpe" model="res.partner.category">
-      <field name="parent_id" ref="category_material_focus"/>
-      <field name="name">Baled HDPE</field>
-    </record>
-    <record id="tag_mf_mixed_rigid" model="res.partner.category">
-      <field name="parent_id" ref="category_material_focus"/>
-      <field name="name">Mixed Rigid</field>
-    </record>
-    <record id="tag_mf_pp_supersacks" model="res.partner.category">
-      <field name="parent_id" ref="category_material_focus"/>
-      <field name="name">PP Supersacks</field>
-    </record>
-    <record id="tag_mf_pvc_pipe" model="res.partner.category">
-      <field name="parent_id" ref="category_material_focus"/>
-      <field name="name">PVC Pipe</field>
-    </record>
-    <record id="tag_mf_stretch_wrap" model="res.partner.category">
-      <field name="parent_id" ref="category_material_focus"/>
-      <field name="name">Stretch Wrap / Pallet Film</field>
     </record>
 
   </data>
