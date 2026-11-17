@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_schedule" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.plasticos.schedule</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base_setup.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app string="PlasticOS Logistics" name="plasticos_logistics" groups="base.group_system">
+                    <block title="Schedule Window">
+                        <setting string="Miles per transit day" help="Used when the accepted carrier quote does not state transit days.">
+                            <field name="plasticos_schedule_miles_per_day"/>
+                        </setting>
+                        <setting string="Carrier lead time" help="Business days.">
+                            <field name="plasticos_schedule_lead_days"/>
+                        </setting>
+                        <setting string="Buffer" help="Business days subtracted from a delivery slot to date the staging deadline.">
+                            <field name="plasticos_schedule_buffer_days"/>
+                        </setting>
+                        <setting string="Far gap" help="Business days. A later slot beyond this gap is far enough to ask about.">
+                            <field name="plasticos_schedule_far_gap_days"/>
+                        </setting>
+                        <setting string="Near window" help="Business days. An earlier option is asked only inside this window.">
+                            <field name="plasticos_schedule_near_window_days"/>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+</odoo>

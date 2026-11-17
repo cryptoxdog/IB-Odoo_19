@@ -226,6 +226,27 @@ class PlasticosLoad(models.Model):
 
     ready_confirmed_by = fields.Char()
     ready_confirmed_at = fields.Datetime()
+    expected_ready_date = fields.Date(
+        string="Expected Ready Date",
+        tracking=True,
+        help="The date the shipper reports the load will be staged. Distinct from the confirmation stamp (BRS-02-R005).",
+    )
+    ready_net_weight_lbs = fields.Float(
+        string="Ready Net Weight (lb)",
+        tracking=True,
+        help="The full net weight the shipper says will be staged, in pounds. Zero means unknown.",
+    )
+    light_load_override_reason = fields.Text(
+        string="Light Load Override Reason",
+        tracking=True,
+        help="Recorded when a person schedules or dispatches a load below the transaction minimum net weight.",
+    )
+    pickup_rebook_required = fields.Boolean(
+        string="Pickup Rebook Required",
+        tracking=True,
+        help="Set when a changed delivery slot cancels the accepted pickup so it can be rebooked (BRS-03-R022).",
+    )
+    appointment_ids = fields.One2many("plasticos.load.appointment", "load_id", string="Appointments")
 
     pickup_datetime = fields.Datetime(string="Pickup Date/Time")
     delivery_datetime = fields.Datetime(string="Delivery Date/Time")
@@ -445,6 +466,7 @@ class PlasticosLoad(models.Model):
         vals_list = [self._resolve_source_company(dict(vals), creating=True) for vals in vals_list]
         for vals in vals_list:
             self._fill_dock_rule_defaults(vals)
+            self._fill_site_hours(vals)
         for vals in vals_list:
             actual = {name for name in _ACTUAL_EVENT_FIELDS.intersection(vals) if vals.get(name)}
             if actual:
@@ -1086,6 +1108,42 @@ class PlasticosLoad(models.Model):
             vals["delivery_term"] = tx.delivery_term
         if "pickup_dock_rule" not in vals and tx.pickup_dock_rule:
             vals["pickup_dock_rule"] = tx.pickup_dock_rule
+
+    def _partner_shipping_hours(self, partner_id):
+        if not partner_id:
+            return ""
+        partner = self.env[RES_PARTNER].browse(partner_id)
+        if "shipping_hours" not in partner._fields:
+            return ""
+        return partner.shipping_hours or ""
+
+    def _fill_site_hours(self, vals):
+        """Default pickup and delivery hours from the site, then the existing config text."""
+        from ..schedule_window import hours_default
+
+        params = self.env["ir.config_parameter"].sudo()  # sudo: ir.config_parameter is settings-admin only
+        if "pickup_hours" not in vals:
+            fallback = params.get_param("plasticos.load.default_pickup_hours", "M-F: 9:00 AM - 3:00 PM")
+            vals["pickup_hours"] = hours_default(self._partner_shipping_hours(vals.get("pickup_partner_id")), fallback)
+        if "delivery_hours" not in vals:
+            fallback = params.get_param("plasticos.load.default_delivery_hours", "M-F: 9:00 AM - 3:00 PM")
+            vals["delivery_hours"] = hours_default(
+                self._partner_shipping_hours(vals.get("delivery_partner_id")), fallback
+            )
+
+    @api.onchange("pickup_partner_id")
+    def _onchange_pickup_hours_from_site(self):
+        for rec in self:
+            site = rec._partner_shipping_hours(rec.pickup_partner_id.id)
+            if site and not rec.pickup_hours:
+                rec.pickup_hours = site
+
+    @api.onchange("delivery_partner_id")
+    def _onchange_delivery_hours_from_site(self):
+        for rec in self:
+            site = rec._partner_shipping_hours(rec.delivery_partner_id.id)
+            if site and not rec.delivery_hours:
+                rec.delivery_hours = site
 
     @api.depends("delivery_term", "transaction_id.delivery_term")
     def _compute_delivery_term_overridden(self):
@@ -1927,30 +1985,199 @@ class PlasticosLoad(models.Model):
                 correlation_id=correlation_id,
             )
 
-    def action_schedule(self, pickup_dt, delivery_dt):
-        for rec in self:
-            rec._require_freight_operator()
-            rec._require_physical_release("schedule")
-            rec.pickup_datetime = pickup_dt
-            rec.delivery_datetime = delivery_dt
-            rec._transition("scheduled")
+    def _schedule_minimum_net_weight(self):
+        self.ensure_one()
+        if not self.transaction_id or not self.transaction_id.minimum_net_weight:
+            return None
+        return self.transaction_id.minimum_net_weight
 
-    def action_dispatch(self):
-        """Dispatch load to carrier. Validates required fields before dispatch."""
+    def _light_load_guard(self, override_reason):
+        """Refuse Linda a light load. A person continues only with a recorded reason."""
+        from ..schedule_window import OVERRIDE, light_load_decision
+        from .linda_approval import is_linda
+
+        self.ensure_one()
+        linda = is_linda(self.env)
+        decision = light_load_decision(
+            linda,
+            self.ready_net_weight_lbs or None,
+            self._schedule_minimum_net_weight(),
+            None if linda else override_reason,
+        )
+        if decision == "refuse":
+            raise UserError(
+                f"Load {self.name} is below the transaction minimum net weight. Linda cannot schedule or dispatch it."
+            )
+        if decision == "need_reason":
+            raise UserError(
+                f"Load {self.name} is below the transaction minimum net weight. A recorded reason is required."
+            )
+        if decision == OVERRIDE:
+            self.light_load_override_reason = (override_reason or "").strip()
+
+    def action_schedule(self, pickup_dt, delivery_dt, light_load_override_reason=None):
+        """Schedule the load. Linda is held on the S11 gate. A light load refuses her."""
+        from .linda_approval import linda_acting, linda_stop
+
+        stop = linda_stop(self.env)
+        if stop:
+            return stop
+        if linda_acting(self.env):
+            return self._linda_schedule_gate(pickup_dt, delivery_dt)
         for rec in self:
-            rec._require_freight_operator()
-            rec._require_physical_release("dispatch")
-            if rec.state != "scheduled":
-                raise UserError(f"Load {rec.name} must be in Scheduled state before dispatch.")
-            if not rec.carrier_id:
-                raise UserError(f"Load {rec.name}: Carrier is required before dispatch.")
-            if not rec.pickup_partner_id:
-                raise UserError(f"Load {rec.name}: Pickup location is required before dispatch.")
-            if not rec.delivery_partner_id:
-                raise UserError(f"Load {rec.name}: Delivery location is required before dispatch.")
-            if not rec.pickup_datetime:
-                raise UserError(f"Load {rec.name}: Pickup date/time is required before dispatch.")
-            rec._transition("dispatched")
+            rec._apply_schedule(pickup_dt, delivery_dt, light_load_override_reason)
+
+    def _apply_schedule(self, pickup_dt, delivery_dt, light_load_override_reason):
+        self.ensure_one()
+        self._require_freight_operator()
+        self._light_load_guard(light_load_override_reason)
+        self._require_physical_release("schedule")
+        self.pickup_datetime = pickup_dt
+        self.delivery_datetime = delivery_dt
+        self._transition("scheduled")
+
+    def _linda_schedule_gate(self, pickup_dt, delivery_dt):
+        from ..schedule_window import REFUSE, light_load_decision
+        from .linda_approval import hold_for_approval, prior_refusal, record_refusal
+
+        held = []
+        for rec in self:
+            rec.check_access("read")
+            if not rec.company_id:
+                held.append(
+                    {"status": "blocked", "record_id": rec.id, "reason": f"Load {rec.name} needs its proven company"}
+                )
+                continue
+            arguments = {"load_id": rec.id, "pickup_dt": pickup_dt, "delivery_dt": delivery_dt}
+            subject_key = f"load:{rec.id}"
+            decision = light_load_decision(
+                True, rec.ready_net_weight_lbs or None, rec._schedule_minimum_net_weight(), None
+            )
+            if decision == REFUSE:
+                result = {"status": "blocked", "record_id": rec.id, "reason": "light_load"}
+                held.append(
+                    record_refusal(
+                        self.env,
+                        "schedule_load",
+                        subject_key,
+                        rec.company_id,
+                        result,
+                        arguments,
+                        f"schedule_load:{rec.id}",
+                        rec,
+                    )
+                )
+                continue
+            retry = prior_refusal(self.env, "schedule_load", subject_key, rec.company_id)
+            held.append(
+                hold_for_approval(
+                    self.env,
+                    "schedule_load",
+                    "refusal_retry" if retry else "acceptance",
+                    f"Linda schedules load {rec.name}",
+                    arguments,
+                    f"schedule_load:{rec.id}",
+                    rec.company_id,
+                    rec,
+                    subject_key=subject_key,
+                )
+            )
+        return held[0] if len(held) == 1 else held
+
+    def action_dispatch(self, light_load_override_reason=None):
+        """Dispatch load to carrier. Linda is held on the S11 gate. A light load refuses her."""
+        from .linda_approval import linda_acting, linda_stop
+
+        stop = linda_stop(self.env)
+        if stop:
+            return stop
+        if linda_acting(self.env):
+            return self._linda_dispatch_gate()
+        for rec in self:
+            rec._apply_dispatch(light_load_override_reason)
+
+    def _apply_dispatch(self, light_load_override_reason):
+        self.ensure_one()
+        self._require_freight_operator()
+        self._light_load_guard(light_load_override_reason)
+        self._require_physical_release("dispatch")
+        if self.state != "scheduled":
+            raise UserError(f"Load {self.name} must be in Scheduled state before dispatch.")
+        if not self.carrier_id:
+            raise UserError(f"Load {self.name}: Carrier is required before dispatch.")
+        if not self.pickup_partner_id:
+            raise UserError(f"Load {self.name}: Pickup location is required before dispatch.")
+        if not self.delivery_partner_id:
+            raise UserError(f"Load {self.name}: Delivery location is required before dispatch.")
+        if not self.pickup_datetime:
+            raise UserError(f"Load {self.name}: Pickup date/time is required before dispatch.")
+        self._transition("dispatched")
+
+    def _linda_dispatch_gate(self):
+        from ..schedule_window import REFUSE, light_load_decision
+        from .linda_approval import hold_for_approval, prior_refusal, record_refusal
+
+        held = []
+        for rec in self:
+            rec.check_access("read")
+            if not rec.company_id:
+                held.append(
+                    {"status": "blocked", "record_id": rec.id, "reason": f"Load {rec.name} needs its proven company"}
+                )
+                continue
+            arguments = {"load_id": rec.id}
+            subject_key = f"load:{rec.id}"
+            decision = light_load_decision(
+                True, rec.ready_net_weight_lbs or None, rec._schedule_minimum_net_weight(), None
+            )
+            if decision == REFUSE:
+                result = {"status": "blocked", "record_id": rec.id, "reason": "light_load"}
+                held.append(
+                    record_refusal(
+                        self.env,
+                        "dispatch_load",
+                        subject_key,
+                        rec.company_id,
+                        result,
+                        arguments,
+                        f"dispatch_load:{rec.id}",
+                        rec,
+                    )
+                )
+                continue
+            retry = prior_refusal(self.env, "dispatch_load", subject_key, rec.company_id)
+            held.append(
+                hold_for_approval(
+                    self.env,
+                    "dispatch_load",
+                    "refusal_retry" if retry else "acceptance",
+                    f"Linda dispatches load {rec.name}",
+                    arguments,
+                    f"dispatch_load:{rec.id}",
+                    rec.company_id,
+                    rec,
+                    subject_key=subject_key,
+                )
+            )
+        return held[0] if len(held) == 1 else held
+
+    def _open_rebook_activity(self):
+        """One open activity asking for the pickup to be rebooked (BRS-03-R022)."""
+        self.ensure_one()
+        summary = "Rebook pickup appointment"
+        existing = (
+            self.env["mail.activity"]
+            .sudo()
+            .search([("res_model", "=", self._name), ("res_id", "=", self.id), ("summary", "=", summary)], limit=1)
+        )
+        if existing:
+            return existing
+        return self.activity_schedule(
+            "mail.mail_activity_data_todo",
+            user_id=self.env.user.id,
+            summary=summary,
+            note="The accepted delivery slot changed. Rebook the pickup appointment.",
+        )
 
     _FREIGHT_CONTEXT_STALE_MESSAGE = (
         "Freight context changed after rate confirmation. Scheduling and dispatch are blocked until an "

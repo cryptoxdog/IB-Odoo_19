@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <!-- ADR-135 §7 and §8. Shadow drafts until the live cutover. -->
+    <record id="mail_template_linda_earlier_option_available" model="mail.template">
+        <field name="name">Linda: Earlier delivery slot</field>
+        <field name="model_id" ref="plasticos_logistics.model_plasticos_logistics_request"/>
+        <field name="email_from">{{ object.company_id.email_formatted }}</field>
+        <field name="subject">Earlier delivery slot</field>
+        <field name="use_default_to" eval="False"/>
+        <field name="auto_delete" eval="False"/>
+        <field name="body_html" type="html">
+<div>
+    <p>The buyer has an open delivery slot on <t t-out="(object._snapshot().get('paragraphs') or [''])[0]"/>, and the next one is the following open slot. To make that slot, the full load must be staged by the staging deadline. Can you have it ready at full weight by then?</p>
+</div>
+        </field>
+    </record>
+    <record id="mail_template_linda_ready_slot_far" model="mail.template">
+        <field name="name">Linda: Ready with a far slot</field>
+        <field name="model_id" ref="plasticos_logistics.model_plasticos_logistics_request"/>
+        <field name="email_from">{{ object.company_id.email_formatted }}</field>
+        <field name="subject">Delivery slot is far</field>
+        <field name="use_default_to" eval="False"/>
+        <field name="auto_delete" eval="False"/>
+        <field name="body_html" type="html">
+<div>
+    <p>Material for your PO is ready. We can deliver as early as the earliest delivery date. Is there any chance of a slot sooner than the accepted slot?</p>
+</div>
+        </field>
+    </record>
+    <record id="mail_template_linda_needs_delivery_slot" model="mail.template">
+        <field name="name">Linda: Delivery slot needed</field>
+        <field name="model_id" ref="plasticos_logistics.model_plasticos_logistics_request"/>
+        <field name="email_from">{{ object.company_id.email_formatted }}</field>
+        <field name="subject">Delivery slot needed</field>
+        <field name="use_default_to" eval="False"/>
+        <field name="auto_delete" eval="False"/>
+        <field name="body_html" type="html">
+<div>
+    <p>Ready now. Can we book delivery for the earliest delivery date or later?</p>
+</div>
+        </field>
+    </record>
+    <record id="mail_template_linda_dock_rule_unverified" model="mail.template">
+        <field name="name">Linda: Dock rule unverified</field>
+        <field name="model_id" ref="plasticos_logistics.model_plasticos_logistics_request"/>
+        <field name="email_from">{{ object.company_id.email_formatted }}</field>
+        <field name="subject">Dock rule unverified</field>
+        <field name="use_default_to" eval="False"/>
+        <field name="auto_delete" eval="False"/>
+        <field name="body_html" type="html">
+<div>
+    <p>Do you require an appointment, or is it first come, first served?</p>
+</div>
+        </field>
+    </record>
+    <record id="mail_template_linda_site_hours_unknown" model="mail.template">
+        <field name="name">Linda: Site hours unknown</field>
+        <field name="model_id" ref="plasticos_logistics.model_plasticos_logistics_request"/>
+        <field name="email_from">{{ object.company_id.email_formatted }}</field>
+        <field name="subject">Site hours unknown</field>
+        <field name="use_default_to" eval="False"/>
+        <field name="auto_delete" eval="False"/>
+        <field name="body_html" type="html">
+<div>
+    <p>What are your shipping hours, and what time zone are they in?</p>
+</div>
+        </field>
+    </record>
+    <record id="mail_template_linda_weight_unknown" model="mail.template">
+        <field name="name">Linda: Full weight unknown</field>
+        <field name="model_id" ref="plasticos_logistics.model_plasticos_logistics_request"/>
+        <field name="email_from">{{ object.company_id.email_formatted }}</field>
+        <field name="subject">Full weight unknown</field>
+        <field name="use_default_to" eval="False"/>
+        <field name="auto_delete" eval="False"/>
+        <field name="body_html" type="html">
+<div>
+    <p>What date will the full load be ready, and what full net weight in pounds will be staged? A delivery slot is not proposed until that weight is known.</p>
+</div>
+        </field>
+    </record>
+    <record id="mail_template_linda_export_cutoff_notice" model="mail.template">
+        <field name="name">Linda: Export cutoff notice</field>
+        <field name="model_id" ref="plasticos_logistics.model_plasticos_logistics_request"/>
+        <field name="email_from">{{ object.company_id.email_formatted }}</field>
+        <field name="subject">Export cutoff at risk</field>
+        <field name="use_default_to" eval="False"/>
+        <field name="auto_delete" eval="False"/>
+        <field name="body_html" type="html">
+<div>
+    <p>The booking cutoff is the current cutoff. To make it, the full load must be staged by the staging deadline. The next cutoff or vessel is named when it is on record.</p>
+</div>
+        </field>
+    </record>
+    <record id="mail_template_linda_booking_roll_request" model="mail.template">
+        <field name="name">Linda: Booking roll request</field>
+        <field name="model_id" ref="plasticos_logistics.model_plasticos_logistics_request"/>
+        <field name="email_from">{{ object.company_id.email_formatted }}</field>
+        <field name="subject">Booking roll request</field>
+        <field name="use_default_to" eval="False"/>
+        <field name="auto_delete" eval="False"/>
+        <field name="body_html" type="html">
+<div>
+    <p>The shipper cannot make the cutoff. Please roll the booking.</p>
+</div>
+        </field>
+    </record>
+</odoo>

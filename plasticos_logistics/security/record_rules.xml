@@ -90,4 +90,9 @@
         <field name="model_id" ref="model_plasticos_linda_sweep_cursor"/>
         <field name="domain_force">[('company_id', 'in', company_ids)]</field>
     </record>
+    <record id="rule_load_appointment_company" model="ir.rule">
+        <field name="name">Load appointment company isolation</field>
+        <field name="model_id" ref="model_plasticos_load_appointment"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
 </odoo>
