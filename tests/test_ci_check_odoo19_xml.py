@@ -501,5 +501,59 @@ class TestEdgeCases(unittest.TestCase):
             xml_file.unlink()
 
 
+class TestXpathStringSelector(unittest.TestCase):
+    """Odoo 19 rejects @string as an xpath inheritance selector."""
+
+    def _create_temp_xml(self, content: str) -> Path:
+        tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".xml", delete=False)
+        tmp.write(content)
+        tmp.close()
+        return Path(tmp.name)
+
+    def test_xpath_string_selector_rejected(self):
+        """An xpath expr that selects on @string fails the guard."""
+        xml_content = """<?xml version="1.0"?>
+<odoo>
+    <record id="view_test" model="ir.ui.view">
+        <field name="arch" type="xml">
+            <xpath expr="//separator[@string='Material Profile']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+        </field>
+    </record>
+</odoo>"""
+        xml_file = self._create_temp_xml(xml_content)
+        try:
+            errors = _check_view_xml_file(xml_file)
+            self.assertEqual(len(errors), 1)
+            err = errors[0]
+            self.assertEqual(err["file"], str(xml_file))
+            self.assertEqual(err["line"], 5)
+            self.assertEqual(err["pattern"], "@string xpath selector")
+            self.assertIn("@name", err["message"])
+        finally:
+            xml_file.unlink()
+
+    def test_xpath_name_selector_accepted(self):
+        """A named separator and an xpath that selects it by @name pass."""
+        xml_content = """<?xml version="1.0"?>
+<odoo>
+    <record id="view_test" model="ir.ui.view">
+        <field name="arch" type="xml">
+            <separator name="material_profile_separator" string="Material Profile"/>
+            <xpath expr="//separator[@name='material_profile_separator']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+        </field>
+    </record>
+</odoo>"""
+        xml_file = self._create_temp_xml(xml_content)
+        try:
+            errors = _check_view_xml_file(xml_file)
+            self.assertEqual(errors, [])
+        finally:
+            xml_file.unlink()
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -30,8 +30,9 @@ def test_contacts_list_shows_first_and_last_name_after_name():
     first_at = text.index('name="first_name" optional="show"', name_at)
     last_at = text.index('name="last_name" optional="show"', first_at)
     assert name_at < first_at < last_at
-    assert 'name="first_name" invisible="is_company"' in text
-    assert 'name="last_name" invisible="is_company"' in text
+    # C1 D1 (ADR-131): a site is neither a person nor a company, so the name parts show for people only.
+    assert 'name="first_name" invisible="company_type != \'person\'"' in text
+    assert 'name="last_name" invisible="company_type != \'person\'"' in text
 
 
 def test_material_profile_sits_above_the_notebook_at_priority_10():

@@ -3,7 +3,7 @@ import base64
 from odoo import api, fields, models, tools
 from odoo.exceptions import UserError, ValidationError
 
-from ..address_meaning import address_type_meaning
+from ..address_meaning import address_type_meaning, contact_type, contact_type_inverse, is_site, site_domain
 
 # Commercial documents that keep a closed location in history instead of a delete.
 _LOCATION_REFERENCE_MODELS = (
@@ -21,21 +21,46 @@ class ResPartner(models.Model):
     _inherit = "res.partner"
 
     # ── Stored company_type override (enables domain search) ──────────
+    # Site is the third Contact type (ADR-131): an address of a company, in
+    # either shape (native delivery/invoice address, or a company parented
+    # under a company). No new column; the stored company_type carries it.
     company_type = fields.Selection(
+        selection_add=[("site", "Site")],
+        ondelete={"site": lambda partners: partners._plasticos_drop_site_company_type()},
         store=True,
         compute="_compute_company_type",
         inverse="_inverse_company_type",
-        help="Company type - stored override to enable search domains.",
+        help="Company, Person, or Site (an address of a company). Stored to enable search domains.",
     )
 
-    @api.depends("is_company")
-    def _compute_company_type(self):
+    def _plasticos_is_site(self):
+        """True when this partner is a site of a company (either shape)."""
+        self.ensure_one()
+        return is_site(has_parent=bool(self.parent_id), partner_type=self.type, is_company=self.is_company)
+
+    @api.model
+    def _plasticos_site_domain(self):
+        """Search domain equal to ``_plasticos_is_site``."""
+        return site_domain()
+
+    def _plasticos_drop_site_company_type(self):
+        """Uninstall: fall back to the two base values."""
         for partner in self:
             partner.company_type = "company" if partner.is_company else "person"
 
+    @api.depends("is_company", "parent_id", "type")
+    def _compute_company_type(self):
+        for partner in self:
+            partner.company_type = contact_type(
+                has_parent=bool(partner.parent_id), partner_type=partner.type, is_company=partner.is_company
+            )
+
     def _inverse_company_type(self):
         for partner in self:
-            partner.is_company = partner.company_type == "company"
+            is_company, partner_type = contact_type_inverse(partner.company_type, partner.type)
+            partner.is_company = is_company
+            if partner_type != partner.type:
+                partner.type = partner_type
 
     # ── Facility Profile link ─────────────────────────────────────────
     facility_profile_ids = fields.One2many("plasticos.facility.profile", "partner_id", string="Facility Capabilities")
@@ -156,16 +181,16 @@ class ResPartner(models.Model):
         ),
     )
 
-    @api.depends("is_company", "parent_id", "child_ids")
+    @api.depends("is_company", "parent_id", "type", "child_ids", "child_ids.is_company", "child_ids.type")
     def _compute_is_facility(self):
         for rec in self:
-            if not rec.is_company:
-                rec.is_facility = False
-            elif rec.parent_id:
+            if rec._plasticos_is_site():
                 rec.is_facility = True
+            elif not rec.is_company:
+                rec.is_facility = False
             else:
-                has_company_children = any(c.is_company for c in rec.child_ids)
-                rec.is_facility = not has_company_children
+                has_sites = any(child._plasticos_is_site() for child in rec.child_ids)
+                rec.is_facility = not has_sites
 
     # ── Preferred Contact ─────────────────────────────────────────────
     preferred_contact_id = fields.Many2one(
@@ -379,26 +404,44 @@ class ResPartner(models.Model):
         help="What Address Type means for this company.",
     )
 
-    @api.depends("type", "is_company", "company_role", "erp_address_label")
+    @api.depends(
+        "type",
+        "is_company",
+        "parent_id",
+        "company_role",
+        "erp_address_label",
+        "commercial_partner_id.customer_rank",
+        "commercial_partner_id.supplier_rank",
+        "parent_id.commercial_partner_id.customer_rank",
+        "parent_id.commercial_partner_id.supplier_rank",
+    )
     def _compute_address_type_meaning(self):
         for partner in self:
+            site = partner._plasticos_is_site()
+            # The site's company: the parent's commercial entity (a site with
+            # is_company is its own commercial partner in standard Odoo).
+            company = partner.parent_id.commercial_partner_id if site else partner.commercial_partner_id
             partner.address_type_meaning = address_type_meaning(
                 partner.type,
                 is_company=partner.is_company,
                 company_role=partner.company_role,
                 source_label=partner.erp_address_label,
+                site=site,
+                buyer_and_supplier=bool(company.customer_rank > 0 and company.supplier_rank > 0),
             )
 
-    @api.depends("name", "is_company")
+    @api.depends("name", "is_company", "parent_id", "type")
     def _compute_name_parts(self):
         for partner in self:
-            words = [] if partner.is_company or not partner.name else partner.name.split()
+            not_a_person = partner.is_company or partner._plasticos_is_site()
+            words = [] if not_a_person or not partner.name else partner.name.split()
             partner.first_name = words[0] if words else False
             partner.last_name = words[-1] if len(words) > 1 else False
 
     @api.depends(
         "is_company",
         "parent_id",
+        "type",
         "email",
         "mobile",
         "site_person_ids.email",
@@ -408,7 +451,7 @@ class ResPartner(models.Model):
         for partner in self:
             email = False
             mobile = False
-            if partner.is_company and partner.parent_id:
+            if partner._plasticos_is_site():
                 person_email = partner.site_person_ids.filtered("email")[:1]
                 person_mobile = partner.site_person_ids.filtered("mobile")[:1]
                 email = partner.email or (person_email.email if person_email else False)
@@ -430,9 +473,7 @@ class ResPartner(models.Model):
         with no parent is chosen only when it has exactly one child contact.
         """
         self.ensure_one()
-        if not self.is_company:
-            return self
-        if self.parent_id:
+        if self._plasticos_is_site():
             if self.site_person_ids:
                 return self.site_person_ids
             children = self._plasticos_child_contacts()
@@ -441,6 +482,8 @@ class ResPartner(models.Model):
             if children:
                 return self.browse()
             return self.parent_id._plasticos_child_contacts()
+        if not self.is_company:
+            return self
         children = self._plasticos_child_contacts()
         if len(children) == 1:
             return children
@@ -548,26 +591,30 @@ class ResPartner(models.Model):
     @api.depends(
         "is_company",
         "parent_id",
+        "type",
         "child_ids.name",
         "child_ids.is_company",
+        "child_ids.type",
         "site_person_ids.name",
     )
     def _compute_contact_header_name(self):
         for partner in self:
-            if not partner.is_company:
+            if partner._plasticos_is_site():
+                people = partner.site_person_ids
+            elif not partner.is_company:
                 partner.contact_header_name = False
                 continue
-            if partner.parent_id:
-                people = partner.site_person_ids
             else:
-                people = partner.child_ids.filtered(lambda child: not child.is_company)
+                people = partner.child_ids.filtered(
+                    lambda child: not child.is_company and not child._plasticos_is_site()
+                )
             names = ", ".join(people.mapped("name"))
             partner.contact_header_name = names
 
-    @api.depends("child_ids", "child_ids.is_company")
+    @api.depends("child_ids", "child_ids.is_company", "child_ids.type")
     def _compute_location_child_ids(self):
         for partner in self:
-            partner.location_child_ids = partner.child_ids.filtered("is_company")
+            partner.location_child_ids = partner.child_ids.filtered(lambda child: child._plasticos_is_site())
 
     def _location_reference_count(self, model_name, field_names):
         """How many installed-model rows point at this location. No elevated read."""
@@ -607,7 +654,7 @@ class ResPartner(models.Model):
         self.check_access("read")
         parent = self.parent_id
         parent.check_access("read")
-        if not self.is_company or not parent:
+        if not self._plasticos_is_site():
             raise UserError("Only a location of a company can be removed from this list.")
         referenced = self._location_is_referenced()
         elevated = self.sudo()  # sudo: caller read this child location and lacks partner unlink
