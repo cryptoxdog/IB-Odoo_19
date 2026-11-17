@@ -52,7 +52,7 @@ Rules that go with it:
   Today the function returns "Pickup address", "Ship-to address", "Mailing address" and "Delivery" (`address_meaning.py:23-36`).
 - **Persons keep Odoo's native address** (their company's). A person's Sites list shows the site addresses linked to them.
 - **A site shows its contact's information.** The importer fills a site's blank phone and email from its single linked person. The Locations list gets a Contact column.
-- **Sites run by a third party stay under the counterparty that owns the cieTrade location.** The operator of a site is not created as a company.
+- **Sites run by a third party stay under the counterparty that owns the location in the historical ERP.** The operator of a site is not created as a company.
 - **The ledger lives on the counterparty.** Invoice-type sites act as mailing / remit-to addresses.
 
 ### B. Classification on native fields; no new fields
