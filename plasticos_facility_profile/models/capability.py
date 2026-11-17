@@ -28,7 +28,7 @@ class _KeyProperties(fields.Properties):
     The migration and the form both identify the baler by the key ``hrb``.
     """
 
-    def __get__(self, record, owner):
+    def __get__(self, record, owner=None):
         if record is not None and not record.env.context.get("property_selection_get_key"):
             record = record.with_context(property_selection_get_key=True)
         return super().__get__(record, owner)
