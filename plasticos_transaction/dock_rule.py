@@ -80,32 +80,56 @@ def copy_pickup_dock_rule(cr, table: str) -> dict[str, int | str]:
             "already_set": 0,
             "rows_blank": 0,
         }
-    from psycopg2 import sql
-
-    ident = sql.Identifier(table)
-    cr.execute(
-        sql.SQL(
-            """
+    # Each allowlisted table has its own statement. A table name is an identifier.
+    count_sql = {
+        "plasticos_transaction": """
             SELECT
                 COUNT(*)::integer,
                 COUNT(*) FILTER (WHERE pickup_dock_rule IS NOT NULL)::integer,
                 COUNT(*) FILTER (WHERE pickup_dock_rule IS NULL AND delivery_term IS NULL)::integer,
                 COUNT(*) FILTER (WHERE pickup_dock_rule IS NULL AND delivery_term IS NOT NULL)::integer
-            FROM {}
-            """
-        ).format(ident)
-    )
-    seen, already_set, blank, pending = cr.fetchone()
-    cr.execute(
-        sql.SQL(
-            """
-            UPDATE {}
+            FROM plasticos_transaction
+            """,
+        "purchase_order": """
+            SELECT
+                COUNT(*)::integer,
+                COUNT(*) FILTER (WHERE pickup_dock_rule IS NOT NULL)::integer,
+                COUNT(*) FILTER (WHERE pickup_dock_rule IS NULL AND delivery_term IS NULL)::integer,
+                COUNT(*) FILTER (WHERE pickup_dock_rule IS NULL AND delivery_term IS NOT NULL)::integer
+            FROM purchase_order
+            """,
+        "plasticos_load": """
+            SELECT
+                COUNT(*)::integer,
+                COUNT(*) FILTER (WHERE pickup_dock_rule IS NOT NULL)::integer,
+                COUNT(*) FILTER (WHERE pickup_dock_rule IS NULL AND delivery_term IS NULL)::integer,
+                COUNT(*) FILTER (WHERE pickup_dock_rule IS NULL AND delivery_term IS NOT NULL)::integer
+            FROM plasticos_load
+            """,
+    }[table]
+    update_sql = {
+        "plasticos_transaction": """
+            UPDATE plasticos_transaction
                SET pickup_dock_rule = delivery_term
              WHERE pickup_dock_rule IS NULL
                AND delivery_term IS NOT NULL
-            """
-        ).format(ident)
-    )
+            """,
+        "purchase_order": """
+            UPDATE purchase_order
+               SET pickup_dock_rule = delivery_term
+             WHERE pickup_dock_rule IS NULL
+               AND delivery_term IS NOT NULL
+            """,
+        "plasticos_load": """
+            UPDATE plasticos_load
+               SET pickup_dock_rule = delivery_term
+             WHERE pickup_dock_rule IS NULL
+               AND delivery_term IS NOT NULL
+            """,
+    }[table]
+    cr.execute(count_sql)
+    seen, already_set, blank, pending = cr.fetchone()
+    cr.execute(update_sql)
     return {
         "table_name": table,
         "copy_status": "copied",
