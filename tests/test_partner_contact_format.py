@@ -125,3 +125,47 @@ def test_no_domain_is_removed():
 def test_email_format_is_idempotent(raw):
     once = CF.format_emails(raw)
     assert CF.format_emails(once) == once
+
+
+# ── Production probe 3 tuning (operator, 2026-11-17) ───────────────────────
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("1-800-555-0100 2", "(800) 555-0100 x2"),
+        ("800-555-0100 123456", "(800) 555-0100 x123456"),
+        ("732 202 9500 15", "(732) 202-9500 x15"),
+    ],
+)
+def test_trailing_digit_group_after_a_valid_nanp_number_is_an_extension(raw, expected):
+    assert CF.format_phone(raw) == expected
+    assert CF.format_phone(CF.format_phone(raw)) == expected
+
+
+@pytest.mark.parametrize("raw", ["800-555-0100 1234567", "555-0100 2", "12345678 9", "1-034-567-8901 2"])
+def test_trailing_digits_need_a_valid_main_part(raw):
+    result = CF.format_phone_result(raw)
+    assert (result.value, result.parsed) == (raw, False)
+
+
+@pytest.mark.parametrize("raw", ["49 30 1234567", "493012345678", "4930 12345678"])
+def test_a_foreign_number_without_plus_and_no_country_is_left_unchanged_and_reported(raw):
+    result = CF.format_phone_result(raw, CF.country_for(None, None))
+    assert (result.value, result.parsed) == (raw, False)
+    assert not result.value.startswith("+")
+
+
+@pytest.mark.parametrize("raw", ["123456789", "12345678", "1-034-567-8901 5"])
+def test_unparsed_values_keep_todays_behaviour(raw):
+    result = CF.format_phone_result(raw)
+    assert result.value == raw and not result.parsed
+
+
+def test_country_is_own_then_commercial_company_then_us():
+    assert CF.country_for("CA", "US") == "CA"
+    assert CF.country_for(None, "ca") == "CA"
+    assert CF.country_for(False, None, "DE") == "DE"
+    assert CF.country_for(None, None) == "US"
+
+
+def test_commercial_company_country_formats_a_child_number():
+    assert CF.format_phone("416-555-0199", CF.country_for(None, "CA")) == "(416) 555-0199"

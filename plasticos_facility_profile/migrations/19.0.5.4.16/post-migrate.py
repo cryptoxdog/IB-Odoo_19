@@ -31,8 +31,13 @@ QUIET = {
 
 
 def _country_code(partner):
-    country = partner.country_id or partner.parent_id.country_id
-    return country.code or "US"
+    """The partner's country, else its commercial company's, else US."""
+    codes = (
+        partner.country_id.code,
+        partner.commercial_partner_id.country_id.code,
+        partner.parent_id.commercial_partner_id.country_id.code,
+    )
+    return next((code for code in codes if code), "US")
 
 
 def _batches(ids):

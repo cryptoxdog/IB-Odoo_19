@@ -7,8 +7,8 @@ partner's parent's, else US.
 
 from odoo import api, models
 
-from ..services.contact_format import format_phone_result
-from .res_partner_contact_format import DEFAULT_COUNTRY, log_contact_counters, new_counters
+from ..services.contact_format import country_for, format_phone_result
+from .res_partner_contact_format import log_contact_counters, new_counters
 
 PARTNER_PHONE = "plasticos.partner.phone"
 RES_PARTNER = "res.partner"
@@ -26,8 +26,12 @@ class PlasticosPartnerPhoneContactFormat(models.Model):
 
     @api.model
     def _plasticos_partner_country_code(self, partner):
-        country = partner.country_id or partner.parent_id.country_id
-        return country.code or DEFAULT_COUNTRY
+        """The partner's country, else its commercial company's, else US."""
+        return country_for(
+            partner.country_id.code,
+            partner.commercial_partner_id.country_id.code,
+            partner.parent_id.commercial_partner_id.country_id.code,
+        )
 
     @api.model_create_multi
     def create(self, vals_list):
