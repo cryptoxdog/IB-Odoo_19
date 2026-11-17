@@ -260,7 +260,7 @@ class PlasticosErpImport(models.AbstractModel):
                 elif "company_role_tag_ids" in Partner._fields:
                     values["company_role_tag_ids"] = [Command.set(tag_ids)]
             _set_if(values, "ref", _text(row, "OurCustNo"))
-            _set_if(values, "email", _text(row, "APEMail"))
+            _set_if(values, "email", _email(row, "APEMail"))
             _set_if(values, "website", _text(row, "WebSite"))
 
             credit_limit = mapping.parse_decimal(row.get("CreditLimit"))
@@ -554,6 +554,7 @@ class PlasticosErpImport(models.AbstractModel):
             groups: dict[str, list] = {}
             order: list[str] = []
             excluded_ids: list[str] = []
+            weak_rows: list[tuple[str, dict, str]] = []
             addresses = [
                 (address_id, label) for item_cp, address_id, label, _partner_id in catalog if item_cp == cp_id and label
             ]
@@ -572,8 +573,9 @@ class PlasticosErpImport(models.AbstractModel):
                     continue
                 name = _text(row, "ContactNm")
                 if not name:
-                    report.anomaly("Contact", contact_id, "blank ContactNm")
-                    report.reject("contacts")
+                    # A blank title may still be a known person's row (R2).
+                    # It is rejected only when it does not fold.
+                    weak_rows.append((contact_id, row, "blank"))
                     continue
                 if not mapping.is_person_name(name):
                     index.omitted_contact_ids.add(contact_id)
@@ -592,10 +594,30 @@ class PlasticosErpImport(models.AbstractModel):
                         retired = self._retire_stale_contact(Partner, contact_id)
                     report.bump("contacts", "updated" if retired else "skipped")
                     continue
+                kind = mapping.weak_name_kind(name, _row_emails(row))
+                if kind:
+                    weak_rows.append((contact_id, row, kind))
+                    continue
                 key = mapping.person_key(name)
                 if key not in groups:
                     order.append(key)
                     groups[key] = []
+                groups[key].append((contact_id, row))
+
+            folded, unfolded = _fold_weak_rows(groups, order, weak_rows, report)
+            display_names: dict[str, str] = {}
+            for contact_id, row, kind in unfolded:
+                name = _text(row, "ContactNm")
+                if kind == "blank":
+                    report.anomaly("Contact", contact_id, "blank ContactNm")
+                    report.reject("contacts")
+                    continue
+                key = mapping.person_key(name)
+                if key not in groups:
+                    order.append(key)
+                    groups[key] = []
+                    if kind == "email_prefix":
+                        display_names[key] = mapping.email_prefix_title(name)
                 groups[key].append((contact_id, row))
 
             label_to_partner = {
@@ -610,6 +632,8 @@ class PlasticosErpImport(models.AbstractModel):
                     report,
                     dry_run,
                     mapping,
+                    folded=folded.get(key, ()),
+                    name=display_names.get(key),
                 )
             if excluded_ids and not dry_run:
                 self._retire_inactive_contacts(Partner, excluded_ids)
@@ -652,15 +676,28 @@ class PlasticosErpImport(models.AbstractModel):
             people.write({"active": False})
 
     def _import_person(
-        self, partner_model, members, company_partner_id, label_to_partner, report, dry_run, mapping
+        self,
+        partner_model,
+        members,
+        company_partner_id,
+        label_to_partner,
+        report,
+        dry_run,
+        mapping,
+        folded=(),
+        name: str | None = None,
     ) -> None:
         """One person per company plus first and last name. Every CT_ID aliases that person.
 
         ``members`` holds explicitly active rows only; ``_import_contacts``
-        excluded every other row before grouping.
+        excluded every other row before grouping. ``folded`` holds weak-name
+        rows of the same company that resolved to this person (R2): they alias
+        it, add their channels, sites and roles, but never supply the name or
+        the anchor. ``name`` overrides the title (an unfolded e-mail prefix).
         """
-        members = sorted(members, key=_contact_sort_key)
-        name = _text(members[0][1], "ContactNm")
+        own = sorted(members, key=_contact_sort_key)
+        members = own + sorted(folded, key=_contact_sort_key)
+        name = name or _text(own[0][1], "ContactNm")
         parent = partner_model.browse(company_partner_id) if company_partner_id else partner_model.browse()
         values = {
             "name": name,
@@ -682,7 +719,7 @@ class PlasticosErpImport(models.AbstractModel):
             report.skip("contacts", len(members))
             return
 
-        anchor = self._anchor_contact_id(partner_model, members)
+        anchor = self._anchor_contact_id(partner_model, own)
         partner = self._upsert(partner_model, f"legacy_erp_contact_{anchor}", values, report, "contacts")
         for contact_id, _row in members:
             if contact_id == anchor:
@@ -1058,13 +1095,31 @@ class PlasticosErpImport(models.AbstractModel):
         report.bump(bucket, "skipped")
 
     def _retire_superseded_partner(self, superseded, record) -> None:
-        """Archive a person partner that the identity migration folded into ``record``."""
+        """Archive a person partner that the identity migration folded into ``record``.
+
+        Its extra numbers move to ``record``. It is archived (never deleted)
+        only once no ERP contact marker still points at it, so a partner that
+        another CT_ID still names stays visible until that CT_ID moves too.
+        """
         if not superseded or superseded.id == record.id or superseded.is_company:
             return
         if "phone_line_ids" in superseded._fields:
             self._sync_phone_lines(record, [(line.label, line.number) for line in superseded.phone_line_ids])
-        if superseded.active:
+        if superseded.active and not self._named_by_contact_marker(superseded.id):
             superseded.write({"active": False})
+
+    def _named_by_contact_marker(self, partner_id: int) -> bool:
+        """True while any ``legacy_erp_contact_%`` marker still points at ``partner_id``."""
+        marker = self.env["ir.model.data"].search(
+            [
+                ("module", "=", XMLID_MODULE),
+                ("name", "=like", "legacy_erp_contact_%"),
+                ("model", "=", RES_PARTNER),
+                ("res_id", "=", partner_id),
+            ],
+            limit=1,
+        )
+        return bool(marker)
 
     def _contact_roles(self, index, contact_id: str) -> list:
         """Ordered role names for a contact. ``Primary`` sorts first."""
@@ -1235,7 +1290,7 @@ class PlasticosErpImport(models.AbstractModel):
         if not partner_id:
             return
         partner = self.env[RES_PARTNER].with_context(**IMPORT_CONTEXT).browse(partner_id)
-        email = _email(row, "Email").split(";")[0].strip()
+        email = _email(row, "Email").split(",")[0].strip()
         if email and not partner.email:
             partner.write({"email": email})
 
@@ -1253,14 +1308,85 @@ def _text(row, column: str) -> str:
 
 
 def _email(row, *columns: str) -> str:
-    """The first e-mail cell among ``columns`` once the brokerage's own mailboxes are dropped."""
+    """The first non-empty e-mail cell among ``columns``, cleaned.
+
+    The brokerage's own mailboxes are dropped (``mapping.external_emails``),
+    then the entries are split, shape-checked, lower-cased, de-duplicated and
+    joined with ``", "`` (``mapping.email_cell``). Every importer email write
+    goes through here.
+    """
     from ..erp import mapping
 
     for column in columns:
-        value = mapping.external_emails(_text(row, column)).strip()
+        value = mapping.email_cell(_text(row, column))
         if value:
             return value
     return ""
+
+
+def _row_emails(row) -> list[str]:
+    """The cleaned addresses of a contact row's ``Email`` cell."""
+    value = _email(row, "Email")
+    return value.split(", ") if value else []
+
+
+def _fold_weak_rows(groups: dict, order: list, weak_rows: list, report) -> tuple[dict, list]:
+    """Resolve each weak-name contact row of one company to at most one full-name person.
+
+    R2: a weak row folds into the full-name group whose phone digits
+    (``PhoneBusiness`` / ``PhoneMobile``) or external email match it, when
+    exactly one group matches. A plain first name is only checked against the
+    groups whose first word is that name. R3: phone to one group and email to
+    another is a conflict; zero or several groups are ambiguous. Neither folds.
+
+    Returns ``(folded, unfolded)``: ``folded`` maps a group key to its extra
+    ``(contact_id, row)`` members; ``unfolded`` keeps ``(contact_id, row, kind)``.
+    """
+    from ..erp import mapping
+
+    by_phone: dict[str, set[str]] = {}
+    by_email: dict[str, set[str]] = {}
+    first_word: dict[str, str] = {}
+    for key in order:
+        members = groups[key]
+        first_word[key] = mapping.first_word_key(_text(sorted(members, key=_contact_sort_key)[0][1], "ContactNm"))
+        for _contact_id, row in members:
+            for digits in _row_phone_digits(row):
+                by_phone.setdefault(digits, set()).add(key)
+            for address in _row_emails(row):
+                by_email.setdefault(address, set()).add(key)
+
+    folded: dict[str, list] = {}
+    unfolded: list = []
+    for contact_id, row, kind in weak_rows:
+        allowed = set(order)
+        if kind == "first_name":
+            wanted = mapping.first_word_key(_text(row, "ContactNm"))
+            allowed = {key for key in order if first_word[key] == wanted}
+        phone_hits = set().union(*(by_phone.get(d, set()) for d in _row_phone_digits(row))) & allowed
+        email_hits = set().union(*(by_email.get(a, set()) for a in _row_emails(row))) & allowed
+        if phone_hits and email_hits and phone_hits.isdisjoint(email_hits):
+            report.anomaly("Contact", contact_id, "alias conflict: phone and email name different people")
+            unfolded.append((contact_id, row, kind))
+            continue
+        candidates = phone_hits | email_hits
+        if len(candidates) != 1:
+            report.anomaly("Contact", contact_id, f"alias ambiguous: {len(candidates)} full-name candidates")
+            unfolded.append((contact_id, row, kind))
+            continue
+        folded.setdefault(next(iter(candidates)), []).append((contact_id, row))
+    return folded, unfolded
+
+
+def _row_phone_digits(row) -> list[str]:
+    from ..erp import mapping
+
+    found = []
+    for column in ("PhoneBusiness", "PhoneMobile"):
+        digits = mapping.phone_digits(row.get(column))
+        if digits and digits not in found:
+            found.append(digits)
+    return found
 
 
 def _sales_rep_row_key(cp_id: str, row) -> str:

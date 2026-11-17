@@ -298,6 +298,50 @@ punctuation, is one `res.partner`. Different names stay two people. Every
 `CT_ID` external id points at that one person. Role tags are added. `function`
 holds Primary when that role is present, otherwise the first role.
 
+**One real human, one partner (C1, 2026-11-17).** The ERP stores the same person
+again under a first name, a role word, or the mailbox prefix. Those rows fold into
+the person; role mailboxes stay; sales-rep mailboxes never reach Odoo.
+
+- **R1 weak name.** A `ContactNm` is weak when it is blank, a single word, a role
+  word (a key of `mapping.CONTACT_ROLE_TAGS`, any case: `BILLING`, `COLLECTIONS`),
+  or an e-mail prefix (one word equal to the local part of one of the row's own
+  external addresses, such as `todd.antonick`). Any other title of two or more
+  words is a full name. A multi-person title such as `A B & C D` is one full-name
+  person and is never split. `mapping.weak_name_kind`.
+- **R2 fold.** A weak row folds into the full-name person of the same counterparty
+  when its phone digits (`PhoneBusiness` or `PhoneMobile`; digits only, eleven
+  digits starting with `1` drop the `1`) or one of its external addresses
+  (case-folded) match exactly one full-name person. A plain first name (not a role
+  word, not an e-mail prefix) is only checked against persons whose first word is
+  that name. A folded row's `CT_ID` aliases the person, its channels join the
+  person's, its `Location` becomes one of the person's sites, and its roles land
+  on the person through the roles stage. The person's name and anchor `CT_ID`
+  (the lowest `CT_ID` of the full-name rows) never come from a folded row.
+- **R3 never.** Two different full names never merge, even on a shared phone or
+  mailbox. Zero or several candidates report `alias ambiguous`; phone to one person
+  and address to another reports `alias conflict`. Neither folds. A non-blank weak
+  name that does not fold is its own person, as before; an e-mail prefix written in
+  lower case is title-cased (`todd.antonick` → `Todd Antonick`), and a title
+  typed with capitals (`AP`) keeps its spelling. A blank name that does not fold is
+  rejected; a blank name that folds is not.
+- **Replay.** A partner an earlier run created for a now-folded `CT_ID` has that
+  marker re-pointed to the person. It is archived, never deleted, once no other
+  `legacy_erp_contact_%` marker still points at it.
+
+**E-mail cells.** Every importer e-mail write (counterparty `APEMail`, address
+`Email` / `BillingEmail`, contact `Email`, site mailbox, company fill) goes through
+one cleaner, `mapping.email_cell`:
+
+1. drop the brokerage's own mailboxes (`mapping.INTERNAL_MAILBOX_DOMAINS`) — an
+   import rule only, the source row is not edited;
+2. split on `;` or `,`, trim, drop empty entries and entries not shaped
+   `local@domain.tld`, lower-case, de-duplicate keeping the first occurrence;
+3. join with `, `.
+
+A person's own first address stays first. A cell left with no address writes no
+e-mail. Fold matching uses the same cleaned addresses, so an internal mailbox is
+never a match.
+
 **Contact roles use the existing partner-tag mechanism.** 14 distinct role
 names, 510 contacts holding more than one. `res.partner.category` is this
 repository's multi-valued partner classification, so roles become tags under a

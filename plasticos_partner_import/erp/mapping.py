@@ -573,6 +573,86 @@ def external_emails(value: str | None) -> str:
     return "; ".join(part for part in kept if part and not _INTERNAL_EMAIL_RE.search(part))
 
 
+# ``local@domain.tld`` once lower-cased. A display name, an angle-bracket form,
+# or a fragment without a top-level domain is not an address.
+_EMAIL_SHAPE_RE = re.compile(r"^[^@\s<>,;]+@[^@\s<>,;.]+(?:\.[^@\s<>,;.]+)*\.[a-z]{2,}$")
+
+
+def clean_emails(value: str | None) -> list[str]:
+    """The addresses of one source e-mail cell, in source order.
+
+    Step 1 drops the brokerage's own mailboxes (:func:`external_emails`).
+    Step 2 splits on ``;`` or ``,``, trims, drops empty entries and entries
+    not shaped ``local@domain.tld``, lower-cases, and de-duplicates keeping
+    the first occurrence.
+    """
+    addresses: list[str] = []
+    for part in _EMAIL_LIST_SPLIT_RE.split(external_emails(value)):
+        entry = part.strip().lower()
+        if entry and _EMAIL_SHAPE_RE.match(entry) and entry not in addresses:
+            addresses.append(entry)
+    return addresses
+
+
+def email_cell(value: str | None) -> str:
+    """Step 3: the cleaned addresses joined with ``", "``. Nothing usable is ``""``."""
+    return ", ".join(clean_emails(value))
+
+
+def phone_digits(value: str | None) -> str:
+    """Digits of a dialable number, for matching only. ``1`` + ten digits drops the ``1``."""
+    digits = "".join(char for char in real_phone(value) if char.isdigit())
+    if len(digits) == 11 and digits.startswith("1"):
+        return digits[1:]
+    return digits
+
+
+def is_role_word(name: str | None) -> bool:
+    """True when a contact title is an ERP role word (``BILLING``, ``COLLECTIONS``)."""
+    return normalize_contact_role(name).casefold() in CONTACT_ROLE_TAGS
+
+
+def weak_name_kind(name: str | None, emails: list[str]) -> str | None:
+    """Why a contact title does not name a person by itself, or ``None`` for a full name.
+
+    ``blank``: no title. ``role``: a role word. ``email_prefix``: one word equal
+    to the local part of one of the row's own external ``emails``.
+    ``first_name``: any other single word. A title of two or more words that is
+    not a role word is a full name, a multi-person title such as ``A B & C D``
+    included.
+    """
+    raw = " ".join((name or "").split())
+    if not raw:
+        return "blank"
+    if is_role_word(raw):
+        return "role"
+    if len(raw.split(" ")) >= 2:
+        return None
+    if raw.casefold() in {address.split("@", 1)[0] for address in emails}:
+        return "email_prefix"
+    return "first_name"
+
+
+def email_prefix_title(name: str | None) -> str:
+    """``todd.antonick`` -> ``Todd Antonick``. Separators are ``.``, ``_`` and ``-``.
+
+    Only a title written in lower case, the way an address local part is, is
+    rewritten. A title with any capital (``AP``) was typed by a person and is
+    kept as written.
+    """
+    raw = (name or "").strip()
+    if raw != raw.lower():
+        return raw
+    words = [word for word in re.split(r"[._\-]+", raw) if word]
+    return " ".join(word[:1].upper() + word[1:].lower() for word in words)
+
+
+def first_word_key(name: str | None) -> str:
+    """The first word of a title, without case or punctuation."""
+    words = (name or "").split()
+    return _alnum(words[0]) if words else ""
+
+
 def job_position(tags: list[str]) -> str:
     """One Job Position from the tags already mapped for this person.
 
