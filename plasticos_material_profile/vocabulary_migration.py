@@ -16,17 +16,6 @@ from .vocabulary_retirement import confirms_pellets, plan_loose, plan_repro
 _logger = logging.getLogger(__name__)
 
 MIGRATION = "19.0.5.14.0"
-_PARTNER_COLUMNS = (
-    "id",
-    "parent_id",
-    "type",
-    "is_company",
-    "supplier_rank",
-    "customer_rank",
-    "commercial_partner_id",
-    "erp_address_label",
-    "company_role",
-)
 _LINE_TABLES = ("purchase_order_line", "sale_order_line", "account_move_line")
 _RELATION_CANDIDATES = (
     "plasticos_material_attribute_plasticos_material_profile_rel",
@@ -128,10 +117,26 @@ def _review(cr, profile_id, reason: str, detail: str) -> None:
 
 def _partner_facts(cr) -> dict:
     available = _columns(cr, "res_partner")
-    selected = [name for name in _PARTNER_COLUMNS if name in available]
-    if "id" not in selected:
+    if "id" not in available:
         return {}
-    cr.execute(f"SELECT {', '.join(selected)} FROM res_partner")  # noqa: S608 - names are a fixed allowlist
+    # Column names cannot be parameters. Each statement is a literal; the
+    # facility-profile columns are read only when that module has added them.
+    if {"erp_address_label", "company_role"} <= available:
+        cr.execute(
+            """
+            SELECT id, parent_id, type, is_company, supplier_rank, customer_rank,
+                   commercial_partner_id, erp_address_label, company_role
+              FROM res_partner
+            """
+        )
+    else:
+        cr.execute(
+            """
+            SELECT id, parent_id, type, is_company, supplier_rank, customer_rank,
+                   commercial_partner_id
+              FROM res_partner
+            """
+        )
     columns = [desc[0] for desc in cr.description]
     return {row[0]: dict(zip(columns, row, strict=True)) for row in cr.fetchall()}
 
@@ -222,17 +227,43 @@ def _profile_texts(cr, profiles: list[dict]) -> dict:
         columns = _columns(cr, table) if _table_exists(cr, table) else set()
         if "material_profile_id" not in columns or "name" not in columns:
             continue
+        _append_line_names(cr, table, texts)
+    return texts
+
+
+def _append_line_names(cr, table: str, texts: dict) -> None:
+    """Read product-line names. The table is one of three literals, never interpolated."""
+    if table == "purchase_order_line":
         cr.execute(
-            f"""
+            """
             SELECT material_profile_id, name
-              FROM {table}
+              FROM purchase_order_line
              WHERE material_profile_id IS NOT NULL
                AND name IS NOT NULL
-            """  # noqa: S608 - table is one of _LINE_TABLES
+            """
         )
-        for profile_id, name in cr.fetchall():
-            texts.setdefault(profile_id, []).append(name or "")
-    return texts
+    elif table == "sale_order_line":
+        cr.execute(
+            """
+            SELECT material_profile_id, name
+              FROM sale_order_line
+             WHERE material_profile_id IS NOT NULL
+               AND name IS NOT NULL
+            """
+        )
+    elif table == "account_move_line":
+        cr.execute(
+            """
+            SELECT material_profile_id, name
+              FROM account_move_line
+             WHERE material_profile_id IS NOT NULL
+               AND name IS NOT NULL
+            """
+        )
+    else:
+        return
+    for profile_id, name in cr.fetchall():
+        texts.setdefault(profile_id, []).append(name or "")
 
 
 def _attribute_link(cr) -> tuple[str, str, str] | None:
@@ -244,6 +275,44 @@ def _attribute_link(cr) -> tuple[str, str, str] | None:
             if profile_column in columns and attribute_column in columns:
                 return table, profile_column, attribute_column
     return None
+
+
+def _link_repro_attribute(cr, table: str, profile_id: int, attribute_id: int) -> None:
+    """Attach attr_repro once. The relation name is one of two literals."""
+    params = (profile_id, attribute_id, profile_id, attribute_id)
+    if table == "plasticos_material_attribute_plasticos_material_profile_rel":
+        cr.execute(
+            """
+            INSERT INTO plasticos_material_attribute_plasticos_material_profile_rel (
+                plasticos_material_profile_id, plasticos_material_attribute_id
+            )
+            SELECT %s, %s
+             WHERE NOT EXISTS (
+                SELECT 1
+                  FROM plasticos_material_attribute_plasticos_material_profile_rel
+                 WHERE plasticos_material_profile_id = %s
+                   AND plasticos_material_attribute_id = %s
+             )
+            """,
+            params,
+        )
+        return
+    if table == "plasticos_material_profile_plasticos_material_attribute_rel":
+        cr.execute(
+            """
+            INSERT INTO plasticos_material_profile_plasticos_material_attribute_rel (
+                plasticos_material_profile_id, plasticos_material_attribute_id
+            )
+            SELECT %s, %s
+             WHERE NOT EXISTS (
+                SELECT 1
+                  FROM plasticos_material_profile_plasticos_material_attribute_rel
+                 WHERE plasticos_material_profile_id = %s
+                   AND plasticos_material_attribute_id = %s
+             )
+            """,
+            params,
+        )
 
 
 def _attribute_id(cr, xml_name: str):
@@ -289,19 +358,7 @@ def _retire_repro(cr, profiles, forms, texts, counts) -> None:
         updated = cr.rowcount
         counts["repro_pellets"] += updated
         if updated and attribute_id and link:
-            table, profile_column, attribute_column = link
-            cr.execute(
-                f"""
-                INSERT INTO {table} ({profile_column}, {attribute_column})
-                SELECT %s, %s
-                 WHERE NOT EXISTS (
-                    SELECT 1 FROM {table}
-                     WHERE {profile_column} = %s
-                       AND {attribute_column} = %s
-                 )
-                """,  # noqa: S608 - table and columns come from the allowlist
-                (profile_id, attribute_id, profile_id, attribute_id),
-            )
+            _link_repro_attribute(cr, link[0], profile_id, attribute_id)
         if updated:
             for row in profiles:
                 if row["id"] == profile_id:
