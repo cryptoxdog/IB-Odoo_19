@@ -404,15 +404,30 @@ class ResPartner(models.Model):
         help="What Address Type means for this company.",
     )
 
-    @api.depends("type", "is_company", "parent_id", "company_role", "erp_address_label")
+    @api.depends(
+        "type",
+        "is_company",
+        "parent_id",
+        "company_role",
+        "erp_address_label",
+        "commercial_partner_id.customer_rank",
+        "commercial_partner_id.supplier_rank",
+        "parent_id.commercial_partner_id.customer_rank",
+        "parent_id.commercial_partner_id.supplier_rank",
+    )
     def _compute_address_type_meaning(self):
         for partner in self:
+            site = partner._plasticos_is_site()
+            # The site's company: the parent's commercial entity (a site with
+            # is_company is its own commercial partner in standard Odoo).
+            company = partner.parent_id.commercial_partner_id if site else partner.commercial_partner_id
             partner.address_type_meaning = address_type_meaning(
                 partner.type,
                 is_company=partner.is_company,
                 company_role=partner.company_role,
                 source_label=partner.erp_address_label,
-                site=partner._plasticos_is_site(),
+                site=site,
+                buyer_and_supplier=bool(company.customer_rank > 0 and company.supplier_rank > 0),
             )
 
     @api.depends("name", "is_company", "parent_id", "type")
