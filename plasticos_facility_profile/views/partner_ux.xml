@@ -106,13 +106,11 @@
                        options="{'color_field': 'color'}"
                        optional="show"/>
                 <field name="company_role"
-                       string="Trade Role"
                        widget="badge"
                        decoration-success="company_role == 'buyer'"
                        decoration-info="company_role == 'supplier'"
-                       decoration-primary="company_role == 'both'"
                        decoration-warning="company_role == 'prospect'"
-                       optional="show"/>
+                       optional="hide"/>
                 <field name="entity_status"
                        widget="badge"
                        decoration-danger="entity_status == 'blocked'"
@@ -154,8 +152,6 @@
                 <filter string="Sites" name="contact_type_site"
                         domain="[('company_type', '=', 'site')]"/>
                 <separator/>
-                <filter string="Trade Role" name="group_trade_role"
-                        context="{'group_by': 'company_role'}"/>
             </xpath>
         </field>
     </record>

@@ -7,8 +7,7 @@ from . import partner_phone
 from . import partner_type
 from . import res_partner
 from . import res_partner_category
-from . import res_partner_trade_role
-from . import res_partner_company_type_mirror
+from . import res_partner_classification
 from . import res_partner_delivery_term
 from . import res_partner_contact_format
 from . import partner_phone_contact_format

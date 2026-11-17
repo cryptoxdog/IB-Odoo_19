@@ -2,11 +2,15 @@
 <odoo>
     <!--
         Partner classification on native tags (ADR-131 Decision B).
-        Two tag groups: Company Type (VanillaSoft is the authority) and Status.
+        Three tag groups: Company Type (VanillaSoft is the authority), Trade Role
+        (Buyer / Supplier, kept from the native ranks) and Status.
     -->
     <data noupdate="1">
         <record id="partner_category_company_type" model="res.partner.category">
             <field name="name">Company Type</field>
+        </record>
+        <record id="partner_category_trade_role" model="res.partner.category">
+            <field name="name">Trade Role</field>
         </record>
         <record id="partner_category_status" model="res.partner.category">
             <field name="name">Status</field>
@@ -38,7 +42,7 @@
             <field name="parent_id" ref="partner_category_status"/>
         </record>
 
-        <!-- Same-name root tags join Company Type; nothing is duplicated. -->
-        <function model="res.partner.category" name="_plasticos_ensure_company_type_tags"/>
+        <!-- Same-name root tags join Company Type and Trade Role; nothing is duplicated. -->
+        <function model="res.partner.category" name="_plasticos_ensure_classification_tags"/>
     </data>
 </odoo>

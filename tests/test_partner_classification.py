@@ -27,32 +27,57 @@ def _load():
 CL = _load()
 
 
-# ── Trade role badge from native ranks ──────────────────────────────────
+# ── Trade Role tags from native ranks ───────────────────────────────────
+
+MEMBERS = {"Buyer": 11, "Supplier": 12}
 
 
 @pytest.mark.parametrize(
-    ("customer_rank", "supplier_rank", "current", "expected"),
+    ("customer_rank", "supplier_rank", "expected"),
     [
-        (1, 0, False, "buyer"),
-        (0, 3, False, "supplier"),
-        (2, 5, False, "both"),
-        (2, 5, "broker", "both"),
-        (1, 0, "supplier", "buyer"),
-        (0, 0, "carrier", "carrier"),
-        (0, 0, "broker", "broker"),
-        (0, 0, "other", "other"),
-        (0, 0, "prospect", "prospect"),
-        (0, 0, "buyer", False),
-        (0, 0, "both", False),
-        (None, None, None, False),
+        (1, 0, {"Buyer"}),
+        (0, 3, {"Supplier"}),
+        (2, 5, {"Buyer", "Supplier"}),
+        (0, 0, set()),
+        (None, None, set()),
     ],
 )
-def test_trade_role_badge_follows_the_native_ranks(customer_rank, supplier_rank, current, expected):
-    assert CL.trade_role(customer_rank, supplier_rank, current) == expected
+def test_trade_role_names_follow_the_native_ranks(customer_rank, supplier_rank, expected):
+    assert CL.trade_role_names(customer_rank, supplier_rank) == expected
 
 
-def test_a_buyer_and_supplier_is_both_never_broker():
-    assert CL.trade_role(1, 1, "broker") == "both"
+def test_a_buyer_and_supplier_gets_both_tags_and_no_both_or_broker_label():
+    assert CL.synced_trade_tag_ids({7}, MEMBERS, 1, 1) == {7, 11, 12}
+    assert "Both" not in CL.TRADE_ROLE_NAMES
+    assert "Broker" not in CL.TRADE_ROLE_NAMES
+
+
+def test_ranks_are_the_source_of_truth_for_trade_role_tags():
+    # A Supplier tag with no supplier rank is removed; other tags stay.
+    assert CL.synced_trade_tag_ids({7, 12}, MEMBERS, 1, 0) == {7, 11}
+    assert CL.synced_trade_tag_ids({7, 11, 12}, MEMBERS, 0, 0) == {7}
+
+
+def test_a_trade_role_tag_not_yet_in_the_group_is_skipped():
+    assert CL.synced_trade_tag_ids({7}, {"Buyer": 11}, 1, 1) == {7, 11}
+
+
+# ── Do Not Contact ──────────────────────────────────────────────────────
+
+
+def test_do_not_contact_triggers_only_when_newly_set():
+    assert CL.newly_tagged({1}, {1, 9}, 9)
+    assert not CL.newly_tagged({1, 9}, {1, 9}, 9)
+    assert not CL.newly_tagged({1, 9}, {1}, 9)
+
+
+def test_blacklists_are_only_added_to_never_removed():
+    code = (MODULE / "models/res_partner_classification.py").read_text(encoding="utf-8")
+    assert "mail_blacklist._add(" in code
+    assert "phone_blacklist.add(" in code
+    assert '"phone.blacklist" in self.env' in code
+    for removal in ("._remove(", ".remove(", "action_archive", "unlink("):
+        assert removal not in code
 
 
 # ── Company Type mirror ─────────────────────────────────────────────────
@@ -74,6 +99,11 @@ def test_mirror_keeps_erp_role_and_status_when_company_type_is_cleared():
 
 def test_mirror_does_not_copy_the_company_status_tags():
     assert STATUS not in CL.mirrored_tag_ids({ERP_ROLE}, {101, STATUS}, GROUP)
+
+
+def test_trade_role_mirror_uses_the_same_rule():
+    trade = {11, 12}
+    assert CL.mirrored_tag_ids({ERP_ROLE, STATUS}, {11, 12, 101}, trade) == {ERP_ROLE, STATUS, 11, 12}
 
 
 def test_mirror_is_idempotent():
@@ -112,8 +142,9 @@ def test_a_tag_under_another_parent_is_left_where_it_is():
     assert missing == ["Broker"]
 
 
-def test_the_twelve_company_type_names_and_four_status_names():
+def test_the_classification_names():
     assert len(CL.COMPANY_TYPE_NAMES) == len(set(CL.COMPANY_TYPE_NAMES)) == 12
+    assert CL.TRADE_ROLE_NAMES == ("Buyer", "Supplier")
     assert set(CL.STATUS_NAMES) == {"Needs Enrichment", "Do Not Contact", "Key Account", "Preferred Carrier"}
     crm_names = {
         node.findtext("field[@name='name']")
@@ -125,6 +156,7 @@ def test_the_twelve_company_type_names_and_four_status_names():
     }
     # Every Company Type name already exists in crm_bridge or base: re-parented, not created again.
     assert set(CL.COMPANY_TYPE_NAMES) <= crm_names | base_names
+    assert set(CL.TRADE_ROLE_NAMES) <= crm_names
     assert set(CL.STATUS_NAMES) <= base_names
 
 
@@ -159,21 +191,23 @@ def test_base_tags_join_the_groups_on_every_upgrade():
         "plasticos_base.tag_key_account": "partner_category_status",
         "plasticos_base.tag_preferred_carrier": "partner_category_status",
     }
-    assert root.find(".//function[@name='_plasticos_ensure_company_type_tags']") is not None
+    groups = {record.get("id") for record in root.iter("record") if "." not in record.get("id")}
+    assert groups == {"partner_category_company_type", "partner_category_trade_role", "partner_category_status"}
+    assert root.find(".//function[@name='_plasticos_ensure_classification_tags']") is not None
 
 
 def test_models_are_wired():
     init = (MODULE / "models/__init__.py").read_text(encoding="utf-8")
-    for name in ("res_partner_category", "res_partner_trade_role", "res_partner_company_type_mirror"):
+    for name in ("res_partner_category", "res_partner_classification"):
         assert f"from . import {name}\n" in init
-    # The trade-role class must load after res_partner, which defines the field it extends.
-    assert init.index("from . import res_partner\n") < init.index("from . import res_partner_trade_role\n")
+    # company_role is left as it is: no compute, no badge.
+    assert "company_role" not in (MODULE / "models/res_partner_classification.py").read_text(encoding="utf-8")
 
 
 def test_contacts_search_has_the_trade_role_filters_and_group_by():
     arch = (MODULE / "views/partner_ux.xml").read_text(encoding="utf-8")
     assert "[('customer_rank', '&gt;', 0), ('supplier_rank', '&gt;', 0)]" in arch
-    assert "{'group_by': 'company_role'}" in arch
+    assert "group_by': 'company_role'" not in arch
     assert "('category_id.parent_id.name', '=', 'Company Type')" in arch
 
 
