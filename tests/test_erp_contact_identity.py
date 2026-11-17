@@ -424,3 +424,43 @@ def test_weak_name_kinds():
     assert mapping.weak_name_kind("Kim Ek & Ray Ek", []) is None
     assert mapping.email_prefix_title("todd.antonick") == "Todd Antonick"
     assert mapping.email_prefix_title("AP") == "AP", "a typed title keeps its spelling"
+
+
+# Phone lines compare on digits ---------------------------------------------
+def _formatted(number):
+    digits = mapping.phone_digits(number)
+    return f"({digits[:3]}) {digits[3:6]}-{digits[6:]}"
+
+
+def test_a_formatted_phone_line_already_holds_the_raw_erp_number():
+    world = _World()
+    partner = world.partners.create({"name": "Pat Doe", "parent_id": world.company.id})
+    partner.phone_line_ids.append(types.SimpleNamespace(label="other", number="(732) 202-9500"))
+    world.service()._sync_phone_lines(partner, [("other", "732-202-9500"), ("other", "+1 732.202.9500")])
+    assert [(line.label, line.number) for line in partner.phone_line_ids] == [("other", "(732) 202-9500")]
+    assert partner.writes == [], "nothing new, so nothing is written"
+
+
+def test_the_same_digits_under_another_label_is_still_added():
+    world = _World()
+    partner = world.partners.create({"name": "Pat Doe", "parent_id": world.company.id})
+    partner.phone_line_ids.append(types.SimpleNamespace(label="other", number="(732) 202-9500"))
+    world.service()._sync_phone_lines(partner, [("mobile", "732-202-9500")])
+    assert [(line.label, line.number) for line in partner.phone_line_ids] == [
+        ("other", "(732) 202-9500"),
+        ("mobile", "732-202-9500"),
+    ]
+
+
+def test_a_replay_after_phone_lines_are_reformatted_adds_no_line():
+    world = _World(sites=SKY_SITES)
+    rows = [*_sky_rows(), _row("111", "Pat Doe", PhoneBusiness="732-202-9500", PhoneMobile="732-202-9501")]
+    world.run(rows, roles=SKY_ROLES)
+    for partner in world.partners.rows.values():
+        for line in partner.phone_line_ids:
+            line.number = _formatted(line.number)
+    before = {p.id: [(line.label, line.number) for line in p.phone_line_ids] for p in world.partners.rows.values()}
+    assert any(before.values()), "the fixture stores at least one phone line"
+    world.run(rows, roles=SKY_ROLES)
+    after = {p.id: [(line.label, line.number) for line in p.phone_line_ids] for p in world.partners.rows.values()}
+    assert after == before

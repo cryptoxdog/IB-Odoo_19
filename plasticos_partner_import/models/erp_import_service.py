@@ -1075,15 +1075,22 @@ class PlasticosErpImport(models.AbstractModel):
         )
 
     def _sync_phone_lines(self, partner, lines: list) -> None:
-        """Add labeled numbers that are not already on the partner."""
+        """Add labeled numbers that are not already on the partner.
+
+        A number is the same number when its digits match (``mapping.phone_digits``):
+        a line stored as ``(732) 202-9500`` already holds the raw ERP value
+        ``732-202-9500``, so a replay adds nothing and never trips the
+        ``unique(partner_id, label, number)`` rule after the number is reformatted.
+        """
         if "phone_line_ids" not in partner._fields:
             return
-        present = {(line.label, line.number) for line in partner.phone_line_ids}
+        present = {(line.label, _phone_key(line.number)) for line in partner.phone_line_ids}
         commands = []
         for label, number in lines:
-            if not number or (label, number) in present:
+            key = (label, _phone_key(number))
+            if not number or key in present:
                 continue
-            present.add((label, number))
+            present.add(key)
             commands.append(Command.create({"label": label, "number": number}))
         if commands:
             partner.with_context(**IMPORT_CONTEXT).write({"phone_line_ids": commands})
@@ -1415,6 +1422,13 @@ def _fold_weak_rows(groups: dict, order: list, weak_rows: list, report) -> tuple
             continue
         folded.setdefault(next(iter(candidates)), []).append((contact_id, row))
     return folded, unfolded
+
+
+def _phone_key(number) -> str:
+    """Comparison key of a stored or incoming phone number: its digits, else the text as written."""
+    from ..erp import mapping
+
+    return mapping.phone_digits(number) or (number or "").strip()
 
 
 def _row_phone_digits(row) -> list[str]:
