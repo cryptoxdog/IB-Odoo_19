@@ -865,12 +865,16 @@ class EnrichmentRun(models.Model):
         is left in place. A real request still rolls back, then writes on its
         own cursor.
         """
-        if type(self.env.cr).__name__ == "TestCursor":
+        cursor = self.env.cr
+        rollback = cursor.rollback
+        # A test replaces rollback on the cursor. A request cursor still has the
+        # class method, and that one is the rollback that must run.
+        if getattr(rollback, "__func__", rollback) is not type(cursor).rollback:
             run = self.env[self._name].browse(run_id).exists()
             if run:
                 run.write(vals)
             return
-        self.env.cr.rollback()
+        cursor.rollback()
         self._persist_operator_state_durable(run_id, vals)
 
     def _persist_operator_state_durable(self, run_id, vals):
