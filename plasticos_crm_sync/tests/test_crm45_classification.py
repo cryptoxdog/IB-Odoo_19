@@ -63,7 +63,9 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
         self.assertEqual(hot.stage_id, won)
         self.assertTrue(hot.stage_id.is_won)
 
-    def test_buyer_and_supplier_tags_do_not_touch_the_erp_partner(self):
+    def test_buyer_and_supplier_raise_ranks_on_the_linked_company_not_erp_categories(self):
+        # Operator D32/D33 (C1 C4): a Buyer at New becomes a partner; the existing company is
+        # linked (never duplicated) and its ranks rise. The ERP Buyer/Supplier categories stay untouched.
         company = self.env["res.partner"].create({"name": "CRM45 Maker", "is_company": True})
         orch = SyncOrchestrator(self.env)
         dto = self._lead(
@@ -75,14 +77,17 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
             },
         )
         lead = orch._upsert_lead(self.connection, dto)
-        lead.partner_id = company
-        ranks = (company.supplier_rank, company.customer_rank, company.company_role)
+        self.assertEqual(lead.partner_id, company)
+        role = company.company_role
         orch._upsert_lead(self.connection, dto)
-        self.assertEqual(set(lead.tag_ids.mapped("name")), {"Buyer", "Supplier"})
+        self.assertEqual(set(lead.tag_ids.mapped("name")) - {"Manufacturer"}, {"Buyer", "Supplier"})
         self.assertIn(self.env.ref("plasticos_crm_bridge.categ_manufacturer"), company.category_id)
         self.assertNotIn(self.env.ref("plasticos_crm_bridge.categ_buyer"), company.category_id)
         self.assertNotIn(self.env.ref("plasticos_crm_bridge.categ_supplier"), company.category_id)
-        self.assertEqual((company.supplier_rank, company.customer_rank, company.company_role), ranks)
+        self.assertGreaterEqual(company.supplier_rank, 1)
+        self.assertGreaterEqual(company.customer_rank, 1)
+        self.assertEqual(company.company_role, role)
+        self.assertEqual(self.env["res.partner"].search_count([("name", "=", "CRM45 Maker")]), 1)
         self.assertEqual(company.company_type, "company")
         tag_ids = set(lead.tag_ids.ids)
         orch._upsert_lead(self.connection, dto)
@@ -170,22 +175,37 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
         self.assertFalse(self.env["plasticos.facility.profile"].search([("partner_id", "=", facility.id)]))
         self.assertFalse(any("facility unresolved" in message for message in self._messages(orch)))
 
-    def test_person_material_lands_on_the_person_when_the_site_is_ambiguous(self):
+    def test_person_material_is_never_stored_on_the_person_when_the_site_is_ambiguous(self):
+        # Operator 2026-11-17 (material placement ADR): a material profile never lands on a person.
         company = self.env["res.partner"].create({"name": "CRM45 Two Sites", "is_company": True})
         for site in ("North", "South"):
             self.env["res.partner"].create({"name": f"CRM45 {site}", "is_company": True, "parent_id": company.id})
         person = self.env["res.partner"].create({"name": "CRM45 Two Sites Buyer", "parent_id": company.id})
         orch = self._approved_person_upsert(person, "crm45-two-sites", "4503")
-        profiles = self.env["plasticos.material.profile"].search([("partner_id", "=", person.id)])
-        self.assertEqual(profiles.mapped("polymer_id.code"), ["HDPE"])
-        self.assertEqual(profiles.material_grade_id.code, "DRUMS")
+        self.assertFalse(self.env["plasticos.material.profile"].search([("partner_id", "=", person.id)]))
         self.assertFalse(self.env["plasticos.material.profile"].search([("partner_id", "=", company.id)]))
-        self.assertFalse(any("facility unresolved" in message for message in self._messages(orch)))
-        replay = SyncOrchestrator(self.env)
-        replay._crosswalk = {"crm45-two-sites": "4503"}
-        replay._crosswalk_ready = True
-        replay._upsert_lead(self.connection, self._lead("crm45-two-sites", custom_fields={"Materials": "HDPE Drums"}))
-        self.assertEqual(self.env["plasticos.material.profile"].search_count([("partner_id", "=", person.id)]), 1)
+        self.assertTrue(any("facility unresolved" in message for message in self._messages(orch)))
+
+    def test_person_material_lands_on_the_linked_site_matching_the_address(self):
+        company = self.env["res.partner"].create({"name": "CRM45 Linked Sites", "is_company": True})
+        north = self.env["res.partner"].create(
+            {"name": "CRM45 Linked North", "is_company": True, "parent_id": company.id, "zip": "11111"}
+        )
+        south = self.env["res.partner"].create(
+            {"name": "CRM45 Linked South", "is_company": True, "parent_id": company.id, "zip": "22222"}
+        )
+        person = self.env["res.partner"].create({"name": "CRM45 Linked Buyer", "parent_id": company.id})
+        person.location_partner_ids = north | south
+        self._erp_marker(person, "4504")
+        orch = SyncOrchestrator(self.env)
+        orch._crosswalk = {"crm45-linked": "4504"}
+        orch._crosswalk_ready = True
+        orch._upsert_lead(
+            self.connection, self._lead("crm45-linked", custom_fields={"Materials": "HDPE Drums"}, zip="22222")
+        )
+        Profile = self.env["plasticos.material.profile"]
+        self.assertEqual(Profile.search([("partner_id", "=", south.id)]).mapped("polymer_id.code"), ["HDPE"])
+        self.assertFalse(Profile.search([("partner_id", "in", (person | north).ids)]))
 
     def test_section_materials_do_not_broadcast_type_or_guess_pe(self):
         orch = SyncOrchestrator(self.env)
@@ -209,7 +229,8 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
         )
         codes = set(self._profiles(mixed).mapped("polymer_id.code"))
         self.assertEqual(codes, {"HDPE", "LDPE"})
-        self.assertTrue(any("type hint is not contact-unique" in message for message in self._messages(orch)))
+        # Operator 2026-11-17: a record-level Type is the Material Type (a source type); "PE" is not one.
+        self.assertTrue(any("Material Type unresolved: PE" in message for message in self._messages(orch)))
         bare = orch._upsert_lead(
             self.connection,
             self._lead("crm45-pe", custom_fields={"Materials": "PE"}),
@@ -267,7 +288,7 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
             self.env["crm.tag"].create({"name": "Buyer"})
         self.assertEqual(self.env["crm.tag"].search_count([("name", "=", "Buyer")]), 1)
         company = self.env["res.partner"].create({"name": "CRM45 Tag Maker", "is_company": True})
-        ranks = (company.supplier_rank, company.customer_rank, company.category_id.ids)
+        supplier_rank, categories = company.supplier_rank, company.category_id.ids
         orch = SyncOrchestrator(self.env)
         lead = orch._upsert_lead(
             self.connection,
@@ -280,7 +301,9 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
         )
         self.assertEqual(self.env["crm.tag"].search_count([("name", "=", "Buyer")]), 1)
         self.assertEqual(lead.tag_ids.filtered(lambda tag: tag.name == "Buyer"), adopted)
-        self.assertEqual((company.supplier_rank, company.customer_rank, company.category_id.ids), ranks)
+        # C1 C4: the Buyer raises the linked company's customer rank; nothing else on it changes.
+        self.assertEqual(company.customer_rank, 1)
+        self.assertEqual((company.supplier_rank, company.category_id.ids), (supplier_rank, categories))
 
     def _buyer_binding(self):
         return self.env["ir.model.data"].search(
@@ -751,14 +774,14 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
         )
 
     def test_company_types_land_on_registered_categories_only(self):
-        self.assertEqual(len(COMPANY_TYPE_MAPPING), 10)
+        self.assertEqual(len(COMPANY_TYPE_MAPPING), 12)
         orch = SyncOrchestrator(self.env)
         for label, xmlid in COMPANY_TYPE_MAPPING.items():
             company = self.env["res.partner"].create({"name": f"CRM45 {label}", "is_company": True})
             external = f"crm45-type-{label}"
             lead = orch._upsert_lead(self.connection, self._lead(external, company=company.name))
             lead.partner_id = company
-            ranks = (company.supplier_rank, company.customer_rank, company.company_role)
+            supplier_rank, role = company.supplier_rank, company.company_role
             orch._upsert_lead(
                 self.connection,
                 self._lead(
@@ -767,7 +790,9 @@ class TestCrm45Classification(CrmSyncOrchestratorCase):
             )
             self.assertIn(self.env.ref(xmlid), company.category_id)
             self.assertNotIn(self.env.ref("plasticos_crm_bridge.categ_buyer"), company.category_id)
-            self.assertEqual((company.supplier_rank, company.customer_rank, company.company_role), ranks)
+            # C1 C4: the Buyer raises the customer rank; supplier rank and role are unchanged.
+            self.assertEqual(company.customer_rank, 1)
+            self.assertEqual((company.supplier_rank, company.company_role), (supplier_rank, role))
             orch._upsert_lead(
                 self.connection,
                 self._lead(external, company=company.name, custom_fields={"Company Type": label}),

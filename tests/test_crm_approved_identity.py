@@ -169,7 +169,7 @@ def test_approved_material_failure_rolls_back_and_is_recorded():
     orch, _connection, leads, _refs = _harness()
     lead = leads.create({"vanillasoft_id": "m1"})
 
-    def boom(_lead, *_maps):
+    def boom(_lead, *_maps, **_kwargs):
         leads.create({"vanillasoft_id": "partial"})
         raise RuntimeError("material constraint")
 
