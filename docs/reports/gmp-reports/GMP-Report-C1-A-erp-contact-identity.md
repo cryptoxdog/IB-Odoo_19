@@ -90,3 +90,23 @@ Residual risk: the fold is unproven against the restored SQL Server source; the
 `alias ambiguous` count on a real run is the evidence to review. Real restored-SQL →
 Odoo replay is required before claiming source accuracy (CLAUDE.md, ERP Historical
 Import Law).
+
+## Corrective run 2 (2026-11-17) — fold carries what names the superseded card
+
+Finding (CTO review): archiving a folded card left a VanillaSoft lead, its material profiles
+and facility profile on an archived partner.
+
+- `_retire_superseded_partner` now calls `_repoint_superseded` before archiving: it moves
+  `crm.lead.partner_id`, `plasticos.material.profile.partner_id` and
+  `plasticos.facility.profile.partner_id` (each guarded by `"<model>" in self.env`, no new
+  dependency) and adds the superseded card's `location_partner_ids` to the survivor. A profile
+  that would duplicate one the survivor holds is not moved; the old card then stays visible.
+  Never deletes. Moves and refusals are `fold re-pointed …` / `fold kept … visible` anomalies.
+- `_import_person` site sync is additive (`(4, id)`), so carried-over or hand-linked sites
+  survive replay.
+- Tests: lead + material + facility + hand-linked site end on the survivor and replay writes
+  nothing; a clashing material profile keeps the old card visible; without the CRM/profile
+  modules the fold still archives.
+
+Earlier on the same day, corrective run 1 made `_sync_phone_lines` compare `(label, phone
+digits)` so a reformatted number is not re-added.

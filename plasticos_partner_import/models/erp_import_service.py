@@ -810,8 +810,12 @@ class PlasticosErpImport(models.AbstractModel):
             if contact_id == anchor:
                 continue
             self._alias_xmlid(partner_model, f"legacy_erp_contact_{contact_id}", partner, report, "contacts")
-        if "location_partner_ids" in partner._fields and set(partner.location_partner_ids.ids) != set(location_ids):
-            partner.write({"location_partner_ids": [(6, 0, location_ids)]})
+        if "location_partner_ids" in partner._fields:
+            # Additive: a site linked by hand, or carried over from a folded
+            # card (_repoint_superseded), is kept on replay.
+            missing = [site_id for site_id in location_ids if site_id not in partner.location_partner_ids.ids]
+            if missing:
+                partner.write({"location_partner_ids": [(4, site_id) for site_id in missing]})
         self._sync_phone_lines(partner, phone_lines)
         self._append_comment_evidence(partner, email_evidence)
 
@@ -1180,25 +1184,99 @@ class PlasticosErpImport(models.AbstractModel):
         if data:
             superseded = model.browse(data.res_id).exists() if data.res_id else model.browse()
             data.write({"res_id": record.id, "model": model._name})
-            self._retire_superseded_partner(superseded, record)
+            self._retire_superseded_partner(superseded, record, report)
             report.bump(bucket, "updated")
             return
         self._write_identity_marker(model, xml_id, record)
         report.bump(bucket, "skipped")
 
-    def _retire_superseded_partner(self, superseded, record) -> None:
+    def _retire_superseded_partner(self, superseded, record, report=None) -> None:
         """Archive a person partner that the identity migration folded into ``record``.
 
         Its extra numbers move to ``record``. It is archived (never deleted)
         only once no ERP contact marker still points at it, so a partner that
         another CT_ID still names stays visible until that CT_ID moves too.
+        Before it is archived, the records that name it move to ``record``
+        (:meth:`_repoint_superseded`); when one cannot move, it stays visible.
         """
         if not superseded or superseded.id == record.id or not _is_person(superseded):
             return
         if "phone_line_ids" in superseded._fields:
             self._sync_phone_lines(record, [(line.label, line.number) for line in superseded.phone_line_ids])
         if superseded.active and not self._named_by_contact_marker(superseded.id):
-            superseded.write({"active": False})
+            if self._repoint_superseded(superseded, record, report):
+                superseded.write({"active": False})
+
+    def _repoint_superseded(self, superseded, record, report) -> bool:
+        """Move what names ``superseded`` onto ``record`` before it is archived. Never delete.
+
+        ``crm.lead.partner_id``, ``plasticos.material.profile.partner_id`` and
+        ``plasticos.facility.profile.partner_id`` move to ``record``; each model is
+        used only when installed (no manifest dependency). Its linked sites are
+        added to ``record``. A profile that would duplicate one ``record`` already
+        holds (one facility profile per partner; one material profile per
+        polymer, form and grade) is not moved: the result is False and the
+        superseded partner stays visible, so nothing is left on an archived card.
+        Moves and refusals are reported under the superseded partner.
+        """
+        moved: dict[str, int] = {}
+        blocked: list[str] = []
+        if "crm.lead" in self.env:
+            leads = (
+                self.env["crm.lead"]
+                .with_context(**IMPORT_CONTEXT, active_test=False)
+                .search([("partner_id", "=", superseded.id)])
+            )
+            if leads:
+                leads.write({"partner_id": record.id})
+                moved["crm.lead"] = len(leads)
+        if "plasticos.material.profile" in self.env:
+            Material = self.env["plasticos.material.profile"].with_context(**IMPORT_CONTEXT, active_test=False)
+            movable = Material.browse()
+            for profile in Material.search([("partner_id", "=", superseded.id)]):
+                duplicate = Material.search(
+                    [
+                        ("partner_id", "=", record.id),
+                        ("polymer_id", "=", profile.polymer_id.id),
+                        ("form_id", "=", profile.form_id.id or False),
+                        ("material_grade_id", "=", profile.material_grade_id.id or False),
+                    ],
+                    limit=1,
+                )
+                if duplicate:
+                    blocked.append(f"plasticos.material.profile {profile.id}")
+                else:
+                    movable |= profile
+            if movable:
+                movable.write({"partner_id": record.id})
+                moved["plasticos.material.profile"] = len(movable)
+        if "plasticos.facility.profile" in self.env:
+            Facility = self.env["plasticos.facility.profile"].with_context(**IMPORT_CONTEXT, active_test=False)
+            profiles = Facility.search([("partner_id", "=", superseded.id)])
+            if profiles and Facility.search([("partner_id", "=", record.id)], limit=1):
+                blocked.extend(f"plasticos.facility.profile {profile.id}" for profile in profiles)
+            elif profiles:
+                profiles.write({"partner_id": record.id})
+                moved["plasticos.facility.profile"] = len(profiles)
+        if "location_partner_ids" in superseded._fields:
+            sites = [
+                site_id
+                for site_id in superseded.location_partner_ids.ids
+                if site_id not in record.location_partner_ids.ids
+            ]
+            if sites:
+                record.write({"location_partner_ids": [(4, site_id) for site_id in sites]})
+                moved["location_partner_ids"] = len(sites)
+        if report is not None and moved:
+            detail = ", ".join(f"{name} {count}" for name, count in sorted(moved.items()))
+            report.anomaly("Contact", f"partner {superseded.id}", f"fold re-pointed to partner {record.id}: {detail}")
+        if report is not None and blocked:
+            report.anomaly(
+                "Contact",
+                f"partner {superseded.id}",
+                f"fold kept partner {superseded.id} visible: {record.id} already holds {', '.join(blocked)}",
+            )
+        return not blocked
 
     def _named_by_contact_marker(self, partner_id: int) -> bool:
         """True while any ``legacy_erp_contact_%`` marker still points at ``partner_id``."""

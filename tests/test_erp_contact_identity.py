@@ -46,6 +46,12 @@ class _TaggedPartner(contract._Partner):
                 if tag_id not in ids:
                     ids.append(tag_id)
             self.category_id = types.SimpleNamespace(ids=ids)
+        sites = vals.get("location_partner_ids")
+        if sites and sites[0][0] == 4:  # add-one-link commands; (6, 0, ids) is handled by the base fake
+            vals.pop("location_partner_ids")
+            ids = list(self.location_partner_ids.ids)
+            ids.extend(site_id for _cmd, site_id in sites if site_id not in ids)
+            self.location_partner_ids = types.SimpleNamespace(ids=ids)
         super()._apply(vals)
 
     def tags(self):
@@ -58,6 +64,57 @@ class _TaggedPartnerModel(contract._PartnerModel):
         record._model = self
         self.rows[record.id] = record
         return record
+
+
+class _Row(types.SimpleNamespace):
+    """One record of a stand-in model: ``partner_id`` and the material keys are ids."""
+
+    def __getattr__(self, name):
+        if name.endswith("_id"):  # an unset many2one reads as an empty record
+            return types.SimpleNamespace(id=False)
+        raise AttributeError(name)
+
+
+class _Rows(list):
+    def __init__(self, items=(), model=None):
+        super().__init__(items)
+        self.model = model
+
+    def __or__(self, other):
+        other = [other] if isinstance(other, _Row) else other  # Odoo iterates as one-record sets
+        return _Rows([*self, *(row for row in other if row not in self)], self.model)
+
+    def write(self, vals):
+        for row in self:
+            for key, value in vals.items():
+                setattr(row, key, types.SimpleNamespace(id=value) if key.endswith("_id") else value)
+        self.model.writes.append((len(self), dict(vals)))
+
+
+class _Model:
+    """A stand-in model searched by ``(field, '=', id)`` on many2one ids."""
+
+    def __init__(self):
+        self.rows: list[_Row] = []
+        self.writes: list = []
+
+    def with_context(self, **_ctx):
+        return self
+
+    def browse(self):
+        return _Rows((), self)
+
+    def add(self, **values):
+        row = _Row(id=len(self.rows) + 1, **{k: types.SimpleNamespace(id=v) for k, v in values.items()})
+        self.rows.append(row)
+        return row
+
+    def search(self, domain, limit=None):
+        hits = [row for row in self.rows if all(getattr(row, f).id == v for f, _op, v in domain)]
+        return _Rows(hits[:limit] if limit else hits, self)
+
+    def on(self, partner):
+        return [row.id for row in self.rows if row.partner_id.id == partner.id]
 
 
 class _Params:
@@ -73,6 +130,7 @@ class _World:
         self.partners = _TaggedPartnerModel()
         self.markers = contract._MarkerModel()
         self.company = self.partners.create({"name": "Synthetic Co", "is_company": True})
+        self.leads, self.materials, self.facilities = _Model(), _Model(), _Model()
         self.site_ids: dict[str, int] = {}
         for label in sites:
             site = self.partners.create({"name": label, "parent_id": self.company.id, "is_company": True})
@@ -96,7 +154,14 @@ class _World:
     def service(self):
         service = self.module.PlasticosErpImport()
         service.env = contract._ContactEnv(
-            {"res.partner": self.partners, "ir.model.data": self.markers, "ir.config_parameter": _Params()}
+            {
+                "res.partner": self.partners,
+                "ir.model.data": self.markers,
+                "ir.config_parameter": _Params(),
+                "crm.lead": self.leads,
+                "plasticos.material.profile": self.materials,
+                "plasticos.facility.profile": self.facilities,
+            }
         )
         catalog = [("C1", f"A{index}", label, pid) for index, (label, pid) in enumerate(self.site_ids.items())]
         service._address_catalog = lambda: catalog
@@ -464,3 +529,67 @@ def test_a_replay_after_phone_lines_are_reformatted_adds_no_line():
     world.run(rows, roles=SKY_ROLES)
     after = {p.id: [(line.label, line.number) for line in p.phone_line_ids] for p in world.partners.rows.values()}
     assert after == before
+
+
+# Fold carries what names the superseded card -------------------------------------
+def _ekman_rows():
+    return [
+        _row("1301", "Kim Ek & Ray Ek", PhoneBusiness="555-010-1301", Email="kim.ek@ekco.test", Location="Site A"),
+        _row("1302", "kim.ek", Email="kim.ek@ekco.test", Location="Site B"),
+    ]
+
+
+def test_a_folded_card_hands_its_lead_profiles_and_sites_to_the_survivor():
+    world = _World(sites=("Site A", "Site B", "Site C"), earlier={"Kim Ek & Ray Ek": ["1301"], "Kim Ek": ["1302"]})
+    survivor, old = world.resolve("1301"), world.resolve("1302")
+    old.location_partner_ids = types.SimpleNamespace(ids=[world.site_ids["Site C"]])  # linked by hand
+    lead = world.leads.add(partner_id=old.id)
+    material = world.materials.add(partner_id=old.id, polymer_id=7, form_id=8)
+    facility = world.facilities.add(partner_id=old.id)
+    report = world.run(_ekman_rows())
+    assert world.resolve("1302") is survivor and old.active is False and old.id in world.partners.rows
+    assert world.leads.on(survivor) == [lead.id]
+    assert world.materials.on(survivor) == [material.id]
+    assert world.facilities.on(survivor) == [facility.id]
+    assert set(survivor.location_partner_ids.ids) == set(world.site_ids.values()), "hand-linked Site C is kept"
+    (moved,) = [a for a in report.anomalies if a["detail"].startswith("fold re-pointed")]
+    assert moved["detail"] == (
+        f"fold re-pointed to partner {survivor.id}: crm.lead 1, location_partner_ids 1, "
+        "plasticos.facility.profile 1, plasticos.material.profile 1"
+    )
+    writes = (len(world.leads.writes), len(world.materials.writes), len(world.facilities.writes))
+    replay = world.run(_ekman_rows())
+    assert (len(world.leads.writes), len(world.materials.writes), len(world.facilities.writes)) == writes
+    assert not [a for a in replay.anomalies if a["detail"].startswith("fold")]
+    assert replay.counts["contacts"]["created"] == replay.counts["contacts"]["updated"] == 0
+    assert set(survivor.location_partner_ids.ids) == set(world.site_ids.values())
+
+
+def test_a_profile_the_survivor_already_holds_keeps_the_old_card_visible():
+    world = _World(sites=("Site A", "Site B"), earlier={"Kim Ek & Ray Ek": ["1301"], "Kim Ek": ["1302"]})
+    survivor, old = world.resolve("1301"), world.resolve("1302")
+    world.materials.add(partner_id=survivor.id, polymer_id=7, form_id=8)
+    clash = world.materials.add(partner_id=old.id, polymer_id=7, form_id=8)
+    lead = world.leads.add(partner_id=old.id)
+    report = world.run(_ekman_rows())
+    assert old.active is True, "never archive a card that still owns a record"
+    assert world.materials.on(old) == [clash.id], "never merged, never deleted"
+    assert world.leads.on(survivor) == [lead.id]
+    assert world.resolve("1302") is survivor
+    (kept,) = [a for a in report.anomalies if a["detail"].startswith("fold kept")]
+    assert f"plasticos.material.profile {clash.id}" in kept["detail"]
+
+
+def test_without_crm_or_profile_modules_the_fold_still_archives():
+    world = _World(sites=("Site A", "Site B"), earlier={"Kim Ek & Ray Ek": ["1301"], "Kim Ek": ["1302"]})
+    old = world.resolve("1302")
+    service = world.service
+    world.service = lambda: _strip(service())
+    world.run(_ekman_rows())
+    assert old.active is False
+
+
+def _strip(service):
+    for name in ("crm.lead", "plasticos.material.profile", "plasticos.facility.profile"):
+        service.env.pop(name)
+    return service
