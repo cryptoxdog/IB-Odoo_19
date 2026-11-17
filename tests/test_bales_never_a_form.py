@@ -109,4 +109,5 @@ def test_matrix_generator_sends_bale_words_to_packaging() -> None:
 
 def test_bale_form_records_are_archived() -> None:
     assert _inactive(PROFILE / "data" / "material_form_data.xml", "form_bale")
-    assert _inactive(ROOT / "plasticos_base" / "data" / "material_taxonomy.xml", "form_bale")
+    # The plasticos_base BALE partner tag was retired with every material-taxonomy tag (C1 G1, 19.0.1.1.15).
+    assert not (ROOT / "plasticos_base" / "data" / "material_taxonomy.xml").exists()
