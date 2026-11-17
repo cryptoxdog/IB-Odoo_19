@@ -52,32 +52,32 @@
                        string="Personal Intel"
                        widget="html"
                        placeholder="Personality, comms style, rapport hooks, motivators..."
-                       invisible="is_company"
+                       invisible="company_type != 'person'"
                        help="Internal broker notes: personality, communication style, rapport hooks, family context, hobbies, motivators. Never shared externally."/>
             </xpath>
 
             <!-- ── Tax ID is unused on the company-itself card ─────────── -->
             <xpath expr="//field[@name='vat']" position="attributes">
-                <attribute name="invisible">is_company and type == 'contact'</attribute>
+                <attribute name="invisible">company_type == 'company'</attribute>
             </xpath>
 
             <!-- ── Invoicing and Sales &amp; Purchase — companies only ─────── -->
             <xpath expr="//page[@name='accounting']" position="attributes">
-                <attribute name="invisible">not is_company</attribute>
+                <attribute name="invisible">company_type == 'person'</attribute>
             </xpath>
             <xpath expr="//page[@name='sales_purchases']" position="attributes">
-                <attribute name="invisible">not is_company</attribute>
+                <attribute name="invisible">company_type == 'person'</attribute>
             </xpath>
 
             <xpath expr="//field[@name='contact_header_name']" position="after">
-                <field name="first_name" invisible="is_company" readonly="1"/>
-                <field name="last_name" invisible="is_company" readonly="1"/>
+                <field name="first_name" invisible="company_type != 'person'" readonly="1"/>
+                <field name="last_name" invisible="company_type != 'person'" readonly="1"/>
             </xpath>
             <xpath expr="//field[@name='address_type_meaning']/parent::div" position="after">
                 <field name="company_role_tag_ids"
                        widget="many2many_tags"
                        options="{'color_field': 'color'}"
-                       invisible="not is_company"/>
+                       invisible="company_type == 'person'"/>
             </xpath>
 
         </field>
@@ -138,6 +138,35 @@
                 <filter string="Blocked" name="status_blocked"
                         domain="[('entity_status', '=', 'blocked')]"/>
                 <separator/>
+                <filter string="Companies" name="contact_type_company"
+                        domain="[('company_type', '=', 'company')]"/>
+                <filter string="People" name="contact_type_person"
+                        domain="[('company_type', '=', 'person')]"/>
+                <filter string="Sites" name="contact_type_site"
+                        domain="[('company_type', '=', 'site')]"/>
+                <separator/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         MATERIAL PROFILE SECTION — companies AND sites (ADR-131)
+         A site is either a company parented under a company or a native
+         delivery/invoice address; both carry material profiles.
+         ═══════════════════════════════════════════════════════════════ -->
+    <record id="partner_form_material_profile_sites" model="ir.ui.view">
+        <field name="name">res.partner.form.material.profiles.sites</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="plasticos_material_profile.view_partner_form_material_tab"/>
+        <field name="arch" type="xml">
+            <xpath expr="//separator[@string='Material Profile']" position="attributes">
+                <attribute name="invisible">company_type == 'person'</attribute>
+            </xpath>
+            <xpath expr="//div[@role='status'][contains(@invisible, 'material_profile_count')]" position="attributes">
+                <attribute name="invisible">company_type == 'person' or material_profile_count &gt; 0</attribute>
+            </xpath>
+            <xpath expr="//field[@name='material_profile_ids']" position="attributes">
+                <attribute name="invisible">company_type == 'person'</attribute>
             </xpath>
         </field>
     </record>
