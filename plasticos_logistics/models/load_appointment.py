@@ -202,6 +202,7 @@ class PlasticosLoadAppointment(models.Model):
         """
         self.ensure_one()
         previous.ensure_one()
+        # atomic: the one-accepted index is checked at the end of this statement
         self.env.cr.execute(
             """
             UPDATE plasticos_load_appointment
