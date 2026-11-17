@@ -38,6 +38,11 @@ _logger = logging.getLogger(__name__)
 
 CRM_LEAD = "crm.lead"
 CONTACT_PAGE_SIZE = 200
+
+# ADR-132 review rows: never fail the run, always printed in full after it.
+MATERIAL_PLACEMENT_REVIEW = "MATERIAL_PLACEMENT_REVIEW"
+MATERIAL_FIELD_IGNORED = "MATERIAL_FIELD_IGNORED"
+PLACEMENT_ACTIVITY_PREFIX = "Place materials:"
 CALL_BATCH_SIZE = 500
 
 # VanillaSoft custom fields with no approved native lead target. Each is kept
@@ -396,18 +401,22 @@ def _address_key(zip_code, city, street) -> tuple[str, str, str]:
     return digits, _collapse_ws(city).casefold(), _collapse_ws(street).casefold()
 
 
-def _site_matching_address(sites, address):
-    """The one site whose address matches the source record (zip, else city + street), or None."""
+def _sites_matching_address(sites, address) -> list:
+    """The sites whose address matches the source record (zip, else city + street)."""
     if not address:
-        return None
+        return []
     zip5, city, street = _address_key(*address)
     if zip5:
-        found = [site for site in sites if _address_key(site.zip, site.city, site.street)[0] == zip5]
-    elif city and street:
-        found = [site for site in sites if _address_key(site.zip, site.city, site.street)[1:] == (city, street)]
-    else:
-        found = []
-    return found[0] if len(found) == 1 else None
+        return [site for site in sites if _address_key(site.zip, site.city, site.street)[0] == zip5]
+    if city and street:
+        return [site for site in sites if _address_key(site.zip, site.city, site.street)[1:] == (city, street)]
+    return []
+
+
+def _linked_sites(partner):
+    """A person's linked sites (``location_partner_ids``, either ADR-131 shape)."""
+    linked = getattr(partner, "location_partner_ids", None) if partner else None
+    return linked.filtered(lambda site: site._plasticos_is_site()) if linked else linked
 
 
 def _material_owner(partner, address=None):
@@ -436,14 +445,13 @@ def _material_owner(partner, address=None):
         if len(children) > 1:
             return None, "facility unresolved: ambiguous child facilities"
         return None, "facility unresolved"
-    linked = getattr(partner, "location_partner_ids", None)
-    sites = linked.filtered(lambda site: site._plasticos_is_site()) if linked else linked
+    sites = _linked_sites(partner)
     if sites and len(sites) == 1:
         return sites, ""
     if sites and len(sites) > 1:
-        match = _site_matching_address(sites, address)
-        if match is not None:
-            return match, ""
+        matches = _sites_matching_address(sites, address)
+        if len(matches) == 1:
+            return matches[0], ""
         return None, f"facility ambiguous: {len(sites)} linked sites"
     company = parent
     if company and company.is_company and not company.child_ids.filtered(lambda child: child._plasticos_is_site()):
@@ -739,6 +747,7 @@ def _differs(record, field_name: str, value) -> bool:
 
 class SyncOrchestrator:
     def __init__(self, env):
+        self.placement_review: list[dict] = []
         self.env = env
         # Reset by every `_sync_contacts` pass; read by `run_full_import` as the
         # evidence that the requested historical floor was actually served.
@@ -1707,6 +1716,81 @@ class SyncOrchestrator:
                 REQUIRED_MAPPING,
             )
 
+    # ── ADR-132: unplaced materials are loud and reviewable after every run ──
+    def _report_unplaced_materials(self, lead, partner, address, phrases, reason, record_ref=None) -> None:
+        """One review row (and, with a lead, one native To Do) for materials not placed on any site."""
+        has_lead = bool(lead and getattr(lead, "id", False))
+        ref = record_ref or (lead.vanillasoft_id or str(lead.id) if has_lead else "")
+        sites = _linked_sites(partner)
+        sites = list(sites) if sites else []
+        matches = _sites_matching_address(sites, address)
+        why = "no address match" if not matches else f"{len(matches)} address matches"
+        zip_code, city, _street = address or ("", "", "")
+        row = {
+            "record_ref": ref,
+            "lead_id": lead.id if has_lead else False,
+            "partner_id": partner.id if partner else False,
+            "candidate_site_ids": [site.id for site in sites],
+            "candidate_site_cities": [site.city or "" for site in sites],
+            "source_zip": zip_code or "",
+            "source_city": city or "",
+            "phrases": list(phrases),
+            "reason": why,
+        }
+        self.__dict__.setdefault("placement_review", []).append(row)
+        self._append_classified_error(
+            ref,
+            (
+                f"{reason}: {why}; lead {row['lead_id'] or '-'}; partner {row['partner_id'] or '-'}; "
+                f"candidate sites {row['candidate_site_ids']} {row['candidate_site_cities']}; "
+                f"source zip {row['source_zip'] or '-'} city {row['source_city'] or '-'}; "
+                f"materials: {', '.join(phrases) or '-'}"
+            ),
+            OPTIONAL_CONTEXT,
+            MATERIAL_PLACEMENT_REVIEW,
+        )
+        if has_lead:
+            self._schedule_placement_activity(lead, sites, phrases)
+
+    def _placement_activities(self, lead):
+        if not self._env_has_model("mail.activity"):
+            return None
+        return self.env["mail.activity"].search(
+            [
+                ("res_model", "=", CRM_LEAD),
+                ("res_id", "=", lead.id),
+                ("summary", "=like", f"{PLACEMENT_ACTIVITY_PREFIX}%"),
+            ]
+        )
+
+    def _schedule_placement_activity(self, lead, sites, phrases) -> None:
+        """At most one open "Place materials" To Do per lead; its text follows the latest run."""
+        activities = self._placement_activities(lead)
+        if activities is None:
+            return
+        summary = f"{PLACEMENT_ACTIVITY_PREFIX} {len(sites)} candidate sites"
+        note = (
+            f"<p>Unplaced materials: {', '.join(phrases) or '-'}</p>"
+            f"<p>Candidate sites: {', '.join(site.display_name or site.name or str(site.id) for site in sites)}</p>"
+        )
+        if activities:
+            keep, extra = activities[:1], activities[1:]
+            if extra:
+                extra.unlink()
+            if keep.summary != summary or str(keep.note or "") != note:
+                keep.write({"summary": summary, "note": note})
+            return
+        user = lead.user_id or self.env.user
+        lead.activity_schedule("mail.mail_activity_data_todo", summary=summary, note=note, user_id=user.id)
+
+    def _close_placement_activity(self, lead) -> None:
+        """A later run that places the materials marks the open To Do done."""
+        if not (lead and getattr(lead, "id", False)):
+            return
+        activities = self._placement_activities(lead)
+        if activities:
+            activities.action_feedback(feedback="Materials placed by the VanillaSoft import.")
+
     def _apply_resolved_approved_materials(self, lead, *field_maps, address=None) -> None:
         sections = _parse_material_sections(*field_maps)
         if not sections or not lead.partner_id:
@@ -1729,12 +1813,14 @@ class SyncOrchestrator:
         # A material profile never lands on a person: an unresolved owner stores nothing.
         partner, reason = _facility_for_material(lead, address)
         if partner is None:
-            self._append_classified_error(
-                lead.vanillasoft_id or str(lead.id),
-                f"{reason}: {detail}",
-                OPTIONAL_CONTEXT if reason.startswith("facility ambiguous") else REQUIRED_MAPPING,
-            )
+            if reason.startswith("facility ambiguous"):
+                self._report_unplaced_materials(lead, lead.partner_id, address, phrases, reason)
+            else:
+                self._append_classified_error(
+                    lead.vanillasoft_id or str(lead.id), f"{reason}: {detail}", REQUIRED_MAPPING
+                )
             return
+        self._close_placement_activity(lead)
         profiles = self.env["plasticos.facility.profile"].search([("partner_id", "=", partner.id)])
         self._import_section_materials(
             lead, field_maps, partner=partner, facility_profile=profiles if len(profiles) == 1 else None
@@ -1905,9 +1991,16 @@ class SyncOrchestrator:
             return False
         return True
 
-    def _append_classified_error(self, record_ref: str, message: str, category: str) -> None:
-        """Record one typed row. Status reads ``category``, never the message text."""
-        self.error_rows.append({"record_ref": record_ref, "message": message, "category": category})
+    def _append_classified_error(self, record_ref: str, message: str, category: str, error_type: str = "") -> None:
+        """Record one typed row. Status reads ``category``, never the message text.
+
+        ``error_type`` marks rows the operator reviews after every run
+        (``MATERIAL_PLACEMENT_REVIEW``, ``MATERIAL_FIELD_IGNORED``); see ADR-132.
+        """
+        row = {"record_ref": record_ref, "message": message, "category": category}
+        if error_type:
+            row["error_type"] = error_type
+        self.error_rows.append(row)
 
     def _record_outcome(self, outcomes: dict[str, int] | None, outcome: str, record_ref: str, message: str) -> None:
         """Record a classified outcome + error detail (duplicate/failed rows).
@@ -2457,7 +2550,9 @@ class SyncOrchestrator:
         """The field's one value, or None. Several distinct values: ignored and reported."""
         distinct = _dedupe_phrases(values)
         if len(distinct) > 1:
-            self._append_classified_error(ref, f"{label} ignored: {len(distinct)} values", OPTIONAL_CONTEXT)
+            self._append_classified_error(
+                ref, f"{label} ignored: {len(distinct)} values", OPTIONAL_CONTEXT, MATERIAL_FIELD_IGNORED
+            )
             return None
         return distinct[0] if distinct else None
 
@@ -2600,11 +2695,17 @@ class SyncOrchestrator:
         owner, reason = _material_owner(partner, _dto_address(dto))
         if owner is None:
             # A material profile never lands on a person.
-            self._append_classified_error(
-                dto.external_id,
-                reason,
-                OPTIONAL_CONTEXT if reason.startswith("facility ambiguous") else REQUIRED_MAPPING,
-            )
+            if reason.startswith("facility ambiguous"):
+                phrases = _dedupe_phrases(
+                    phrase
+                    for section in _parse_material_sections(dto.custom_fields).values()
+                    for phrase in section["phrases"]
+                )
+                self._report_unplaced_materials(
+                    None, partner, _dto_address(dto), phrases, reason, record_ref=dto.external_id
+                )
+            else:
+                self._append_classified_error(dto.external_id, reason, REQUIRED_MAPPING)
             return
         profiles = self.env["plasticos.facility.profile"].search([("partner_id", "=", owner.id)])
         try:

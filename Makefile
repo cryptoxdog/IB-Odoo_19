@@ -1307,6 +1307,7 @@ import-vanillasoft:
 	ssh $$ssh_opts "$$ssh_target" "cd '$$work' && rm -f export.csv census.csv ledger.jsonl permit.json summary.json && cd .. && rmdir '$$work'" \
 		|| echo "⚠ import-vanillasoft: could not clear $$work on the production host; remove it by hand" >&2; \
 	echo "→ VanillaSoft import exit 0"
+	@python3 -c "import json; rows = [r for r in json.load(open('$(VANILLASOFT_REPORT_PATH)')).get('errors') or [] if r.get('error_type') == 'MATERIAL_PLACEMENT_REVIEW']; print(f'NEEDS REVIEW: {len(rows)} VanillaSoft records have unplaced materials (ADR-132; rows in $(VANILLASOFT_REPORT_PATH))')"
 
 # 2026-10-17 — Enterprise Docker tests. The fingerprint-template comment above
 # is historical. make test-env, test-db, test-odoo, test-module, and

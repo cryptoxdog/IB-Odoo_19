@@ -108,7 +108,11 @@ def main() -> int:
         return 2
     env = _odoo_env()
     from odoo.addons.plasticos_crm_sync.models.crm_connection import ICP_ROOT, ICP_VS_KEY_PARAM
-    from odoo.addons.plasticos_crm_sync.services.import_summary import build_run_summary, utc_now
+    from odoo.addons.plasticos_crm_sync.services.import_summary import (
+        build_run_summary,
+        review_report_lines,
+        utc_now,
+    )
     from odoo.addons.plasticos_crm_sync.services.orchestrator import SyncOrchestrator
 
     icp = env["ir.config_parameter"].sudo()
@@ -170,6 +174,9 @@ def main() -> int:
         print(f"errors      : {len(summary['errors'])} (first 10 below)")
         for row in summary["errors"][:10]:
             print(f"  - {row['record_ref']}: {row['message'][:160]}")
+    # ADR-132: always present, never truncated, after the summary.
+    for line in review_report_lines(summary):
+        print(line)
     if summary["final_status"] == "failed":
         print("IMPORT FAILED: material errors — see summary errors list")
         return 1

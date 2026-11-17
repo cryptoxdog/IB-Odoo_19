@@ -5,7 +5,7 @@
 **Applies to:** every importer that creates `plasticos.material.profile` records: the VanillaSoft sync (`plasticos_crm_sync`), the ERP material-profile loader (`plasticos_transaction`), and manual entry
 **Decision owner:** Operator (campaign C1)
 **Implementation owner:** `plasticos_crm_sync` (this PR)
-**Related:** ADR-004 (intake vs material profile), ADR-005 (intake / material profile bridge), ADR-131 (sites as native addresses)
+**Related:** ADR-004 (intake vs material profile), ADR-005 (intake / material profile bridge), ADR-131 (sites as native addresses), ADR-133 (which VanillaSoft records become partners)
 
 ## Context
 
@@ -24,7 +24,19 @@ Where a material profile goes, in this order:
 4. The person's company has no child sites: the top-level company.
 5. A material profile never lands on a person.
 
-Material Type and Material Form are two fields:
+### Material Type and Material Form
+
+| Field | Value | What happens |
+|---|---|---|
+| Materials | MRP, HDPE, PET, PP | 4 profiles |
+| Material Type | Post Consumer, Post Industrial | Ignored (2 values), reported |
+| Material Form | Bales | Packaging Bales on all 4 profiles |
+
+- One value applies to every profile from the record.
+- Several values: the field is ignored and listed in the run's review section.
+- Bales and other packaging names go to packaging type, never to form.
+
+In detail, Material Type and Material Form are two fields:
 
 - Material Type sets `source_type_id` (Post Consumer → `POST_CONSUMER`).
 - Material Form sets `form_id`.
@@ -42,6 +54,20 @@ Which importers follow this:
 
 ## Consequences
 
-- No new field.
+- No new field and no new model.
+- **Unplaced materials are loud and reviewable after every run.**
+  - **Summary rows:** each record whose person oversees several sites with no single address match is an error row with `error_type` `MATERIAL_PLACEMENT_REVIEW` and category `optional_context`.
+    - The row gives the record ref, lead id, matched partner id, candidate site ids and their cities, the source zip and city, the unplaced phrases, and the reason ("no address match" or "N address matches").
+    - The rows are kept ahead of other optional rows under the 1,000-row cap.
+    - They do not fail the run and do not enter the balance equation.
+    - A Material Type or Form ignored for several values is a row with `error_type` `MATERIAL_FIELD_IGNORED`.
+    - The shared summary contract (`contracts/schemas/draft/import-run-summary.schema.json`) allows no extra top-level keys. So these rows are the summary's own `errors` rows, typed by `error_type`, not a separate `material_placement_review` key.
+  - **Shell output:** `import_vanillasoft_shell.py` prints two sections after the summary, every row, never truncated. Both sections are printed even when N = 0.
+    - `=== NEEDS REVIEW: N VanillaSoft records have materials that were NOT placed (person oversees several sites) ===`
+    - `=== NEEDS REVIEW: N Material Type/Form fields ignored (several values) ===`
+  - **Make target:** `make import-vanillasoft` prints the placement count as its last line.
+  - **Odoo:** the lead gets one native To Do (`mail.activity`), "Place materials: N candidate sites". Its note lists the phrases and candidate site names. It is assigned to the lead's salesperson, else the import user.
+    - A replay keeps one activity and updates its text.
+    - A later run that places the materials marks it done.
 - Material profiles already held by a person are not moved by this PR. A follow-up, either a VanillaSoft replay or a separate migration, re-points them to the site or company.
 - This supersedes the AGENTS.md 2026-10-30 sentence "When that site cannot be resolved, they go on the matched ERP contact person." See the AGENTS.md 2026-11-17 correction.

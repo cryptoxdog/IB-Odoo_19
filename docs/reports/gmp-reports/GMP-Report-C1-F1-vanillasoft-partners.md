@@ -87,6 +87,19 @@ Materials follow the 2026-10-30 rule with no new code. The lead's `partner_id` i
   - The form is part of the profile identity, so it is passed in at creation and a replay finds the same profile.
 - **Section fields kept as they were:** section fields (`Type (LDPE)`, `Form (PP)`) keep their existing behaviour as that section's polymer hint. The census shows they carry polymer text ("LDPE Film"), and the conflict-detection tests depend on it.
 
+**Unplaced materials are reviewable after every run (ADR-132):**
+
+- **Summary rows:** `error_type` is `MATERIAL_PLACEMENT_REVIEW` (or `MATERIAL_FIELD_IGNORED`) and the category is `optional_context`. These rows never fail the run, stay out of the balance equation, and are kept ahead of other optional rows under the cap. The schema allows no extra summary keys, so they are typed `errors` rows rather than a separate key.
+- **Shell:** two NEEDS REVIEW sections, always present and never truncated.
+- **Make:** one added line in `import-vanillasoft` prints the count last. The Makefile is additive-only, and only that line is added.
+- **Odoo:** one native To Do per lead, idempotent, and closed when a later run places the materials.
+
+**ADRs:**
+
+- ADR-132: material placement, with the operator's worked example as a test.
+- ADR-133: which VanillaSoft records become partners.
+- Both are in the index and linked from the AGENTS.md 2026-11-17 correction.
+
 ### Matching (stated assumption)
 
 The repo has no general VanillaSoft-to-partner duplicate matcher; approved contacts match only through the ERP crosswalk. For the rest, `_existing_company` matches top-level companies, archived ones included:

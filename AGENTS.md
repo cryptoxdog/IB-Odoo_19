@@ -911,3 +911,4 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > reported. A person whose company has no sites puts it on that company. VanillaSoft Material Type sets `source_type_id`
 > and Material Form sets `form_id`. One value applies to every profile of the record, and several values are ignored and
 > reported. Only an empty field is filled. Bales (any packaging type) sets `packaging_type_id`, never `form_id`.
+> Which VanillaSoft records become partners is `docs/adr/ADR-133-vanillasoft-records-become-partners-selectively.md`.

@@ -518,6 +518,8 @@ class _Node:
         self._site = site
         self.location_partner_ids = _Set()
         self.child_ids = _Set()
+        self.zip = self.city = self.street = ""
+        self.display_name = name
 
     def _plasticos_is_site(self):
         return self._site
@@ -568,10 +570,10 @@ def test_person_with_two_linked_sites_stores_nothing_and_reports_ambiguity(mater
     person, _sites = _rds(2)
     orch._apply_resolved_approved_materials(_MaterialLead(person), {"Materials": "MRP,LDPE,PP Supersacs"})
     assert calls == []  # a material profile never lands on a person
-    assert [row["message"] for row in orch.error_rows] == [
-        "facility ambiguous: 2 linked sites: MRP, LDPE, PP Supersacs"
-    ]
-    assert [row["category"] for row in orch.error_rows] == ["optional_context"]
+    [row] = orch.error_rows
+    assert row["message"].startswith("facility ambiguous: 2 linked sites: no address match")
+    assert row["message"].endswith("materials: MRP, LDPE, PP Supersacs")
+    assert (row["category"], row["error_type"]) == ("optional_context", "MATERIAL_PLACEMENT_REVIEW")
 
 
 def test_person_with_two_sites_uses_the_one_whose_address_matches(materials):
@@ -716,3 +718,165 @@ def test_parser_keeps_type_and_form_apart():
     ]
     assert slot["types"] == ["Post Consumer"] and slot["forms"] == ["Bales"]
     assert "hints" not in slot
+
+
+# ── ADR-132: unplaced materials are loud and reviewable ─────────────────────
+class _Activity:
+    def __init__(self, store, aid, summary, note, user_id):
+        self.store, self.id, self.summary, self.note, self.user_id, self.done = (
+            store,
+            aid,
+            summary,
+            note,
+            user_id,
+            False,
+        )
+
+    def write(self, vals):
+        for key, value in vals.items():
+            setattr(self, key, value)
+
+
+class _Activities(_Set):
+    def unlink(self):
+        for activity in self:
+            activity.store.remove(activity)
+
+    def action_feedback(self, feedback=False):
+        for activity in self:
+            activity.done = True
+            activity.store.remove(activity)  # a done activity leaves the open list
+
+    def __getitem__(self, key):
+        result = list.__getitem__(self, key)
+        return _Activities(result) if isinstance(key, slice) else result
+
+
+class _ActivityModel:
+    def __init__(self):
+        self.open = []
+        self.closed = []
+
+    def search(self, domain):
+        return _Activities(self.open)
+
+
+class _ReviewLead(_MaterialLead):
+    def __init__(self, partner, store):
+        super().__init__(partner)
+        self.user_id = types.SimpleNamespace(id=7)
+        self.store = store
+
+    def activity_schedule(self, act_type_xmlid="", summary="", note="", **values):
+        self.store.open.append(_Activity(self.store.open, len(self.store.open) + 1, summary, note, values["user_id"]))
+
+
+@pytest.fixture
+def review(monkeypatch):
+    env = _Env()
+    env["plasticos.facility.profile"] = types.SimpleNamespace(search=lambda domain: _Set(), browse=lambda: _Set())
+    env["mail.activity"] = _ActivityModel()
+    orch = _Orch(env)
+    calls = []
+    monkeypatch.setattr(
+        orch, "_import_section_materials", lambda lead, maps, partner, facility_profile: calls.append(partner)
+    )
+    return env, orch, calls
+
+
+def _two_site_person():
+    person, sites = _rds(2)
+    for site, (zip_code, city) in zip(sites, (("11111", "Alpha"), ("22222", "Beta")), strict=True):
+        site.zip, site.city, site.street, site.display_name = zip_code, city, "1 Main St", f"Site {city}"
+    return person, sites
+
+
+def test_ambiguous_placement_gives_one_review_row_one_banner_line_and_one_activity(review):
+    from plasticos_crm_sync.services.import_summary import review_report_lines
+
+    env, orch, calls = review
+    person, sites = _two_site_person()
+    lead = _ReviewLead(person, env["mail.activity"])
+    fields = {"Materials": "MRP, LDPE"}
+    orch._apply_resolved_approved_materials(lead, fields, address=("33333", "Gamma", ""))
+    assert calls == []
+    assert len(orch.placement_review) == 1
+    row = orch.placement_review[0]
+    assert row["candidate_site_ids"] == [site.id for site in sites]
+    assert row["candidate_site_cities"] == ["Alpha", "Beta"]
+    assert (row["source_zip"], row["source_city"], row["reason"]) == ("33333", "Gamma", "no address match")
+    assert row["phrases"] == ["MRP", "LDPE"]
+    assert [r["error_type"] for r in orch.error_rows] == ["MATERIAL_PLACEMENT_REVIEW"]
+    assert [r["category"] for r in orch.error_rows] == ["optional_context"]
+    summary = {"errors": orch.error_rows}
+    lines = review_report_lines(summary)
+    assert lines[0].startswith("=== NEEDS REVIEW: 1 VanillaSoft records have materials that were NOT placed")
+    assert "MRP, LDPE" in lines[1]
+    assert len(env["mail.activity"].open) == 1
+    activity = env["mail.activity"].open[0]
+    assert activity.summary == "Place materials: 2 candidate sites" and activity.user_id == 7
+    assert "MRP, LDPE" in activity.note and "Site Alpha" in activity.note
+
+    orch._apply_resolved_approved_materials(lead, fields, address=("33333", "Gamma", ""))  # replay
+    assert len(env["mail.activity"].open) == 1
+
+
+def test_a_later_placement_closes_the_activity(review):
+    env, orch, calls = review
+    person, sites = _two_site_person()
+    lead = _ReviewLead(person, env["mail.activity"])
+    orch._apply_resolved_approved_materials(lead, {"Materials": "MRP"}, address=("33333", "", ""))
+    assert len(env["mail.activity"].open) == 1
+    orch._apply_resolved_approved_materials(lead, {"Materials": "MRP"}, address=("22222", "", ""))
+    assert [call.id for call in calls] == [sites[1].id]
+    assert env["mail.activity"].open == []
+
+
+def test_review_sections_are_always_printed_even_with_zero():
+    from plasticos_crm_sync.services.import_summary import review_report_lines
+
+    lines = review_report_lines({"errors": []})
+    assert lines[0].startswith("=== NEEDS REVIEW: 0 VanillaSoft records")
+    assert lines[1].startswith("=== NEEDS REVIEW: 0 Material Type/Form fields ignored")
+
+
+def test_review_rows_neither_fail_the_run_nor_break_the_balance():
+    from plasticos_crm_sync.services.import_summary import build_run_summary
+
+    run = types.SimpleNamespace(
+        status="done",
+        contacts_seen=3,
+        calls_seen=0,
+        orphans_buffered=0,
+        contacts_duplicate_rejected=0,
+        contacts_failed=0,
+        calls_failed=0,
+        contacts_created=2,
+        calls_created=0,
+        contacts_updated=1,
+        calls_updated=0,
+        contacts_unchanged=0,
+        calls_unchanged=0,
+    )
+    rows = [
+        {"record_ref": "a", "message": "x", "category": "optional_context", "error_type": "MATERIAL_PLACEMENT_REVIEW"},
+        {"record_ref": "b", "message": "y", "category": "optional_context", "error_type": "MATERIAL_FIELD_IGNORED"},
+    ]
+    summary = build_run_summary(run, error_rows=rows)
+    assert summary["final_status"] == "success"
+    seen = summary["records_seen"]
+    assert (
+        seen
+        == summary["records_created"]
+        + summary["records_updated"]
+        + summary["records_unchanged"]
+        + summary["records_rejected"]
+    )
+    assert [row["error_type"] for row in summary["errors"]] == ["MATERIAL_PLACEMENT_REVIEW", "MATERIAL_FIELD_IGNORED"]
+
+
+def test_ignored_type_is_a_review_row(typed):
+    orch, _stored, _post_consumer, _bales = typed
+    fields = {"Materials": "MRP, HDPE, PET, PP", "Material Type": "Post Consumer, Post Industrial"}
+    orch._import_section_materials(None, (fields,), partner=object(), external_id="VS-4")
+    assert [row["error_type"] for row in orch.error_rows] == ["MATERIAL_FIELD_IGNORED"]

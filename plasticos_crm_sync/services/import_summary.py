@@ -45,6 +45,7 @@ __all__ = [
     "business_acceptance",
     "informational_notices",
     "required_mapping_errors",
+    "review_rows",
     "utc_now",
 ]
 
@@ -52,6 +53,11 @@ SUMMARY_SOURCE = "vanillasoft"
 REQUIRED_MAPPING = "required_mapping"
 OPTIONAL_CONTEXT = "optional_context"
 ERROR_ROW_LIMIT = 1000
+# ADR-132: rows the operator reviews after every run. They are optional_context
+# (the run does not fail) and are kept ahead of other rows under the cap.
+MATERIAL_PLACEMENT_REVIEW = "MATERIAL_PLACEMENT_REVIEW"
+MATERIAL_FIELD_IGNORED = "MATERIAL_FIELD_IGNORED"
+REVIEW_ERROR_TYPES = (MATERIAL_PLACEMENT_REVIEW, MATERIAL_FIELD_IGNORED)
 ERROR_MESSAGE_LIMIT = 2000
 ERROR_TYPE_LIMIT = 200
 _ERROR_CATEGORIES = frozenset({REQUIRED_MAPPING, OPTIONAL_CONTEXT})
@@ -146,8 +152,36 @@ def project_error_rows(error_rows: list[dict] | None) -> list[dict]:
     if len(projected) <= ERROR_ROW_LIMIT:
         return projected
     required = [row for row in projected if row.get("category") == REQUIRED_MAPPING]
-    others = [row for row in projected if row.get("category") != REQUIRED_MAPPING]
-    return (required + others)[:ERROR_ROW_LIMIT]
+    review = [
+        row
+        for row in projected
+        if row.get("category") != REQUIRED_MAPPING and row.get("error_type") in REVIEW_ERROR_TYPES
+    ]
+    others = [
+        row
+        for row in projected
+        if row.get("category") != REQUIRED_MAPPING and row.get("error_type") not in REVIEW_ERROR_TYPES
+    ]
+    return (required + review + others)[:ERROR_ROW_LIMIT]
+
+
+def review_rows(summary: dict, error_type: str) -> list[dict]:
+    """The summary's review rows of one kind (``MATERIAL_PLACEMENT_REVIEW`` / ``MATERIAL_FIELD_IGNORED``)."""
+    return [row for row in summary.get("errors") or [] if row.get("error_type") == error_type]
+
+
+def review_report_lines(summary: dict) -> list[str]:
+    """The always-present NEEDS REVIEW sections the shell prints after the summary, untruncated."""
+    placement = review_rows(summary, MATERIAL_PLACEMENT_REVIEW)
+    ignored = review_rows(summary, MATERIAL_FIELD_IGNORED)
+    lines = [
+        f"=== NEEDS REVIEW: {len(placement)} VanillaSoft records have materials that were NOT placed "
+        "(person oversees several sites) ==="
+    ]
+    lines.extend(f"  - {row['record_ref']}: {row['message']}" for row in placement)
+    lines.append(f"=== NEEDS REVIEW: {len(ignored)} Material Type/Form fields ignored (several values) ===")
+    lines.extend(f"  - {row['record_ref']}: {row['message']}" for row in ignored)
+    return lines
 
 
 def business_acceptance(summary: dict) -> str:
