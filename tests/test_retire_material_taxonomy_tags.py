@@ -89,6 +89,8 @@ def test_no_reference_to_a_retired_tag_remains():
         "plasticos_base/migrations/19.0.1.1.15/post-migrate.py",
         # Archived the BALE tag earlier; raise_if_not_found=False keeps it safe once the tag is gone.
         "plasticos_base/migrations/19.0.1.1.14/post-migrate.py",
+        # This test names that call to prove it tolerates the missing tag.
+        "tests/test_retire_material_taxonomy_tags.py",
     }
     hits = []
     for rel in tracked:
