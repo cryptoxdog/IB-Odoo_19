@@ -326,7 +326,16 @@ the person; role mailboxes stay; sales-rep mailboxes never reach Odoo.
   rejected; a blank name that folds is not.
 - **Replay.** A partner an earlier run created for a now-folded `CT_ID` has that
   marker re-pointed to the person. It is archived, never deleted, once no other
-  `legacy_erp_contact_%` marker still points at it.
+  `legacy_erp_contact_%` marker still points at it. Before that, what names it moves
+  to the person: `crm.lead.partner_id`, `plasticos.material.profile.partner_id`,
+  `plasticos.facility.profile.partner_id` (each only when that model is installed),
+  and its linked sites (`location_partner_ids`). A profile the person already holds
+  (one facility profile per partner; one material profile per polymer, form and
+  grade) is not moved, and the old partner then stays visible. Moves and refusals
+  are reported as `fold re-pointed …` / `fold kept … visible` anomalies.
+- **Sites are added, never removed.** A person's `location_partner_ids` gains the
+  sites its rows name; a site linked by hand, or carried over from a folded card,
+  stays on replay.
 
 **E-mail cells.** Every importer e-mail write (counterparty `APEMail`, address
 `Email` / `BillingEmail`, contact `Email`, site mailbox, company fill) goes through
