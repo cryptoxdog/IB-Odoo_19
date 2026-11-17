@@ -50,10 +50,10 @@ def test_migration_copies_both_sides_and_is_a_no_op_on_replay():
     rows = [("fcfs", None), ("appointment", None), ("appointment", "fcfs"), (None, None)]
     copied, first = plan(rows)
     assert copied == [("fcfs", "fcfs"), ("appointment", "appointment"), ("appointment", "fcfs"), (None, None)]
-    assert first == {"seen": 4, "copied": 2, "already_set": 1, "blank": 1}
+    assert first == {"rows_seen": 4, "rows_copied": 2, "already_set": 1, "rows_blank": 1}
     again, second = plan(copied)
     assert again == copied
-    assert second["copied"] == 0
+    assert second["rows_copied"] == 0
     assert second["already_set"] == 3
     source = inspect.getsource(_dock_rule().copy_pickup_dock_rule)
     assert "pickup_dock_rule IS NULL" in source

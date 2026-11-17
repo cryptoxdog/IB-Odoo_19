@@ -55,7 +55,12 @@ def plan_copy(rows: list[tuple[str | None, str | None]]) -> tuple[list[tuple[str
         else:
             blank += 1
             planned.append((delivery, pickup))
-    return planned, {"seen": len(rows), "copied": copied, "already_set": already_set, "blank": blank}
+    return planned, {
+        "rows_seen": len(rows),
+        "rows_copied": copied,
+        "already_set": already_set,
+        "rows_blank": blank,
+    }
 
 
 def copy_pickup_dock_rule(cr, table: str) -> dict[str, int | str]:
@@ -68,12 +73,12 @@ def copy_pickup_dock_rule(cr, table: str) -> dict[str, int | str]:
         raise ValueError(f"refusing dock-rule copy for {table}")
     if not _has_column(cr, table, "pickup_dock_rule") or not _has_column(cr, table, "delivery_term"):
         return {
-            "table": table,
-            "status": "skipped",
-            "seen": 0,
-            "copied": 0,
+            "table_name": table,
+            "copy_status": "skipped",
+            "rows_seen": 0,
+            "rows_copied": 0,
             "already_set": 0,
-            "blank": 0,
+            "rows_blank": 0,
         }
     from psycopg2 import sql
 
@@ -102,13 +107,13 @@ def copy_pickup_dock_rule(cr, table: str) -> dict[str, int | str]:
         ).format(ident)
     )
     return {
-        "table": table,
-        "status": "copied",
-        "seen": seen,
-        "copied": cr.rowcount,
+        "table_name": table,
+        "copy_status": "copied",
+        "rows_seen": seen,
+        "rows_copied": cr.rowcount,
         "already_set": already_set,
-        "blank": blank,
-        "pending": pending,
+        "rows_blank": blank,
+        "rows_pending": pending,
     }
 
 
