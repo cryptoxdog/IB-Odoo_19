@@ -563,19 +563,156 @@ def test_person_with_one_linked_site_puts_all_three_materials_on_the_site(materi
     assert not orch.error_rows
 
 
-def test_person_with_two_linked_sites_keeps_the_person_and_reports_ambiguity(materials):
+def test_person_with_two_linked_sites_stores_nothing_and_reports_ambiguity(materials):
     orch, calls = materials
     person, _sites = _rds(2)
     orch._apply_resolved_approved_materials(_MaterialLead(person), {"Materials": "MRP,LDPE,PP Supersacs"})
-    assert [call.id for call in calls] == [person.id]
+    assert calls == []  # a material profile never lands on a person
     assert [row["message"] for row in orch.error_rows] == [
         "facility ambiguous: 2 linked sites: MRP, LDPE, PP Supersacs"
     ]
+    assert [row["category"] for row in orch.error_rows] == ["optional_context"]
 
 
-def test_person_with_no_linked_site_keeps_todays_behaviour(materials):
+def test_person_with_two_sites_uses_the_one_whose_address_matches(materials):
+    orch, calls = materials
+    person, sites = _rds(2)
+    sites[0].zip, sites[0].city, sites[0].street = "23701", "Portsmouth", "1 Dock Rd"
+    sites[1].zip, sites[1].city, sites[1].street = "23502", "Norfolk", "9 Yard Ln"
+    orch._apply_resolved_approved_materials(_MaterialLead(person), {"Materials": "MRP"}, address=("23502-1234", "", ""))
+    assert [call.id for call in calls] == [sites[1].id]
+    calls.clear()
+    orch._apply_resolved_approved_materials(
+        _MaterialLead(person), {"Materials": "MRP"}, address=("", "Portsmouth", "1 DOCK  rd")
+    )
+    assert [call.id for call in calls] == [sites[0].id]
+
+
+def test_person_with_two_sites_and_no_matching_address_stores_nothing(materials):
+    orch, calls = materials
+    person, sites = _rds(2)
+    for site in sites:
+        site.zip, site.city, site.street = "11111", "Elsewhere", "2 Other St"
+    orch._apply_resolved_approved_materials(_MaterialLead(person), {"Materials": "MRP"}, address=("23502", "", ""))
+    assert calls == []
+    assert orch.error_rows[0]["message"].startswith("facility ambiguous: 2 linked sites")
+
+
+def test_person_whose_company_has_no_sites_stores_on_the_company(materials):
     orch, calls = materials
     person, _sites = _rds(0)
     orch._apply_resolved_approved_materials(_MaterialLead(person), {"Materials": "MRP"})
-    assert [call.id for call in calls] == [person.id]
+    assert [call.id for call in calls] == [person.parent_id[0].id]
     assert not orch.error_rows
+
+
+def test_person_unlinked_whose_company_has_sites_stores_nothing(materials):
+    orch, calls = materials
+    person, _sites = _rds(0)
+    company = person.parent_id[0]
+    company.child_ids = _Set([_Node(30, "Plant", parent=company, site=True, facility=True)])
+    orch._apply_resolved_approved_materials(_MaterialLead(person), {"Materials": "MRP"})
+    assert calls == []
+    assert orch.error_rows and orch.error_rows[0]["category"] == "required_mapping"
+
+
+# ── Material Type / Material Form: one value applies to all, several are ignored ──
+class _Lookup(_Set):
+    def search(self, domain):
+        return self
+
+
+class _Profile:
+    def __init__(self, phrase, form):
+        self.phrase = phrase
+        self.form = form
+        self.source_type_id = None
+        self.packaging_type_id = None
+
+
+def _named(rid, name, code):
+    return types.SimpleNamespace(id=rid, name=name, code=code)
+
+
+@pytest.fixture
+def typed(monkeypatch):
+    env = _Env()
+    post_consumer = _named(1, "Post-Consumer", "POST_CONSUMER")
+    env["plasticos.source.type"] = _Lookup([post_consumer, _named(2, "Post-Industrial", "POST_INDUSTRIAL")])
+    bales = _named(11, "Bales", "bales")
+    env["plasticos.packaging.type"] = _Lookup([bales, _named(12, "Gaylords", "gaylords")])
+    env["plasticos.material.form"] = _Lookup([_named(21, "Film", "FILM")])  # form_bale is archived: not active
+    orch = _Orch(env)
+    stored = []
+
+    def store(lead, phrases, partner=None, facility_profile=None, structured=None, record_form=None, external_id=None):
+        made = [_Profile(phrase, record_form) for phrase in phrases]
+        stored.extend(made)
+        return made
+
+    monkeypatch.setattr(orch, "_store_normalized_materials", store)
+    monkeypatch.setattr(orch, "_profiles_for_material", lambda partner, facility_profile: _Set())
+    monkeypatch.setattr(orch, "_apply_section_specs", lambda *args: None)
+    return orch, stored, post_consumer, bales
+
+
+def test_one_type_and_bales_apply_to_every_profile_and_bales_is_packaging(typed):
+    orch, stored, post_consumer, bales = typed
+    fields = {"Materials": "MRP, LDPE, PP Supersacs", "Material Type": "Post Consumer", "Material Form": "Bales"}
+    orch._import_section_materials(None, (fields,), partner=object(), external_id="VS-RDS")
+    assert [profile.phrase for profile in stored] == ["MRP", "LDPE", "PP Supersacs"]
+    assert all(profile.source_type_id.id == post_consumer.id for profile in stored)
+    assert all(profile.packaging_type_id.id == bales.id for profile in stored)
+    assert all(profile.form is None for profile in stored)  # Bales never becomes a form
+    assert orch.error_rows == []
+
+
+def test_two_type_values_are_ignored_and_reported_packaging_still_applies(typed):
+    orch, stored, _post_consumer, bales = typed
+    fields = {
+        "Materials": "MRP, HDPE, PET, PP",
+        "Material Type": "Post Consumer, Post Industrial",
+        "Material Form": "Bales",
+    }
+    orch._import_section_materials(None, (fields,), partner=object(), external_id="VS-4")
+    assert len(stored) == 4
+    assert all(profile.source_type_id is None for profile in stored)
+    assert all(profile.packaging_type_id.id == bales.id for profile in stored)
+    assert [(row["message"], row["category"]) for row in orch.error_rows] == [
+        ("Material Type ignored: 2 values", "optional_context")
+    ]
+
+
+def test_one_real_form_is_the_record_form(typed):
+    orch, stored, _post_consumer, _bales = typed
+    orch._import_section_materials(None, ({"Materials": "MRP, LDPE", "Material Form": "Film"},), partner=object())
+    assert [profile.form.code for profile in stored] == ["FILM", "FILM"]
+
+
+def test_a_stored_source_is_kept(typed, monkeypatch):
+    orch, _stored, _post_consumer, _bales = typed
+    kept = types.SimpleNamespace(id=99, code="PRIME")
+    profile = _Profile("MRP", None)
+    profile.source_type_id = kept
+    monkeypatch.setattr(orch, "_store_normalized_materials", lambda *args, **kwargs: [profile])
+    orch._import_section_materials(None, ({"Materials": "MRP", "Material Type": "Post Consumer"},), partner=object())
+    assert profile.source_type_id is kept
+
+
+def test_unknown_type_is_reported_and_not_guessed(typed):
+    orch, stored, _post_consumer, _bales = typed
+    orch._import_section_materials(
+        None, ({"Materials": "MRP", "Material Type": "PE"},), partner=object(), external_id="X"
+    )
+    assert stored[0].source_type_id is None
+    assert orch.error_rows[0]["message"] == "Material Type unresolved: PE"
+
+
+def test_parser_keeps_type_and_form_apart():
+    from plasticos_crm_sync.services.orchestrator import _parse_material_sections
+
+    slot = _parse_material_sections({"Materials": "MRP", "Material Type": "Post Consumer", "Material Form": "Bales"})[
+        ""
+    ]
+    assert slot["types"] == ["Post Consumer"] and slot["forms"] == ["Bales"]
+    assert "hints" not in slot

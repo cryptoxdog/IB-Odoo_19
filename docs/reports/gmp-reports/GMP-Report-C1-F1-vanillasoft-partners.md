@@ -4,7 +4,7 @@
 - Branch: `feat/c1-f1-vanillasoft-partners`, stacked on `feat/c1-d2-site-consumers` (#528)
 - Modules:
   - `plasticos_crm_bridge` `19.0.3.7.6` → `19.0.3.7.7`
-  - `plasticos_crm_sync` `19.0.1.9.31` → `19.0.1.9.32`
+  - `plasticos_crm_sync` `19.0.1.9.31` → `19.0.1.9.33` (`.32` carries the backfill migration)
 - Production facts (probe 2026-11-17): 4,088 CRM leads, 4,084 of them with no partner; CRM tags Buyer 980 and Supplier 3,010; no Company Type CRM tags.
 - No Production run from this lane. `make import-vanillasoft` stays operator-run and Production-only (AGENTS.md, 2026-11-10).
 
@@ -72,13 +72,20 @@ Counts the backfill returns:
 
 Materials follow the 2026-10-30 rule with no new code. The lead's `partner_id` is the company. A standalone company is its own facility (`is_facility`), so `_apply_contact_materials` puts the materials on the resolved partner through the existing `_facility_for_material` path.
 
-**Materials on a person's one linked site** (CTO directive, case RDS of Virginia / Ekman):
+**Material placement and Material Type / Form (operator, 2026-11-17; ADR-132):**
 
-- When the lead's partner is a person, `_facility_for_material` now uses the person's linked sites (`location_partner_ids` filtered with `_plasticos_is_site()`).
-- **Exactly one site:** that site. For example, `Materials: MRP,LDPE,PP Supersacs` on Todd Antonick puts all three on PORTSMOUTH, VA.
-- **Several sites:** the approved path keeps today's behaviour (the person) and reports `facility ambiguous: N linked sites`.
-- **None:** unchanged.
-- The rest of the 2026-10-30 rule is unchanged.
+- **Placement:** `_material_owner` decides where a profile goes. A material profile never lands on a person.
+  1. The lead's partner, if it is a site.
+  2. Else the person's one linked site.
+  3. Else, of several linked sites, the one whose address matches the source record (zip, else city + street). If none matches, nothing is stored and `facility ambiguous: N linked sites` is reported (OPTIONAL_CONTEXT).
+  4. Else, when the person's company has no sites, the company.
+  5. Otherwise nothing is stored and the owner is reported unresolved.
+- **The person fallback is gone** from `_apply_resolved_approved_materials` and from `_apply_person_materials` (approved contact with no lead).
+- **Type and Form are separate:** the record-level Material Type and Material Form, plus bare `Type`/`Form`, are two separate slots. One value applies to every profile of the record; several values are ignored with `<field> ignored: N values`. Only an empty field is filled.
+  - Material Type resolves to `plasticos.source.type` by name or code (Post Consumer → POST_CONSUMER).
+  - Material Form resolves first to `plasticos.packaging.type` (Bales → packaging, never a form), then to an active `plasticos.material.form`.
+  - The form is part of the profile identity, so it is passed in at creation and a replay finds the same profile.
+- **Section fields kept as they were:** section fields (`Type (LDPE)`, `Form (PP)`) keep their existing behaviour as that section's polymer hint. The census shows they carry polymer text ("LDPE Film"), and the conflict-detection tests depend on it.
 
 ### Matching (stated assumption)
 

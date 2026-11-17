@@ -902,3 +902,12 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > at a time on a database; a second run started meanwhile is refused and does not wait. The phrase sheet
 > `material_mapping.csv` is unchanged by the loader, and the ERP order-line import
 > (`plasticos_transaction/models/native_document_import.py`) still classifies order lines through that sheet.
+
+> **2026-11-17 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the 2026-10-30 sentence "When that site cannot be resolved, they go on the matched ERP contact person." is
+> superseded by `docs/adr/ADR-132-material-profile-belongs-to-the-site.md`. A material profile never lands on a person.
+> It goes on the lead's site; else the person's one linked site; else, among several linked sites, the one whose
+> address matches the source record (zip, else city and street). If none matches, nothing is stored and the record is
+> reported. A person whose company has no sites puts it on that company. VanillaSoft Material Type sets `source_type_id`
+> and Material Form sets `form_id`. One value applies to every profile of the record, and several values are ignored and
+> reported. Only an empty field is filled. Bales (any packaging type) sets `packaging_type_id`, never `form_id`.

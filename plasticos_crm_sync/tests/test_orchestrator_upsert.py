@@ -487,7 +487,8 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(profiles["HDPE"].material_grade_id.code, "DRUMS")
         self.assertFalse(profiles["HDPE"].quality_tier_id)
         self.assertFalse(profiles["HDPE"].material_attribute_ids)
-        self.assertFalse(profiles["PC_ABS"].form_id)
+        # Operator 2026-11-17: the record's one Material Form (Film) applies to every profile without a form.
+        self.assertEqual(profiles["PC_ABS"].form_id.code, "FILM")
         self.assertEqual(profiles["PC_ABS"].source_type_id.code, "POST_INDUSTRIAL")
         notes = film.freeform_notes
         attributes = set(film.material_attribute_ids.ids)
@@ -2057,7 +2058,9 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         )
         slot = sections[""]
         self.assertEqual(slot["phrases"], ["LDPE", "HDPE Drums"])
-        self.assertEqual(slot["hints"], ["Roll, Film"])
+        # Operator 2026-11-17: Material Form is its own field and each comma value counts.
+        self.assertEqual(slot["forms"], ["Roll", "Film"])
+        self.assertEqual(slot["types"], [])
         self.assertEqual(slot["notes"], [("Notes", "keep, this note")])
         self.assertIn("_split_commas", inspect.getsource(_parse_material_sections))
 
@@ -2076,7 +2079,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual({profile.polymer_id.code: profile.id for profile in replayed}, ids)
         self.assertEqual(len(replayed), 2)
 
-    def test_form_hint_comma_stays_one_hint(self):
+    def test_material_form_with_two_values_is_ignored(self):
         orch = SyncOrchestrator(self.env)
         lead = orch._upsert_lead(
             self.connection,
@@ -2096,7 +2099,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(
             profiles.filtered(lambda profile: profile.polymer_id.code == "HDPE").material_grade_id.code, "DRUMS"
         )
-        self.assertTrue(any("type hint is not contact-unique" in row["message"] for row in orch.error_rows))
+        self.assertTrue(any(row["message"] == "Material Form ignored: 2 values" for row in orch.error_rows))
         self.assertFalse(any("Roll" == row["message"] or "Film" == row["message"] for row in orch.error_rows))
 
     def test_section_hint_does_not_broadcast_across_comma_phrases(self):
@@ -2158,7 +2161,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
             self._lead("vs-comma-hint-only", custom_fields={"Material Form": "Roll, Film"}),
         )
         self.assertFalse(self._lead_profiles(hinted))
-        self.assertTrue(any("BLOCKED_UNRESOLVED: Roll, Film" in row["message"] for row in orch.error_rows))
+        self.assertTrue(any(row["message"] == "Material Form ignored: 2 values" for row in orch.error_rows))
         noted = orch._upsert_lead(
             self.connection,
             self._lead("vs-comma-notes-only", custom_fields={"Notes": "roll, film was mentioned"}),

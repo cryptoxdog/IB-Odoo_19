@@ -34,6 +34,7 @@ Former copies under `reports/adr/` were consolidated here (2026-06-04). The root
 | [ADR-129](ADR-129-rate-memory-reconciliation-ownership.md) | Rate-memory reconciliation ownership follows the historical evidence | Accepted |
 | [ADR-130](ADR-130-export-physical-evidence-and-owner-contracts.md) | Export physical evidence and owner contracts (load company, J1/J2, release guard, actual clocks) | Accepted for S2 Logistics; Export parts planned |
 | [ADR-131](ADR-131-partner-sites-native-addresses-and-native-classification.md) | Partner sites as native addresses; partner classification on native fields | Accepted (operator, 2026-11-17) |
+| [ADR-132](ADR-132-material-profile-belongs-to-the-site.md) | A material profile belongs to the site, never to a person | Accepted (operator, 2026-11-17) |
 | [ADR-003 (single)](ADR-003-single-external-intelligence-authority.md) | Single external intelligence authority (Gate → CEG/EIE) | Accepted |
 
 ## Namespaced ADR packs
