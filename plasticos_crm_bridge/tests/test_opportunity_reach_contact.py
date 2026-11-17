@@ -51,7 +51,7 @@ class TestOpportunityReachContact(TransactionCase):
         self.assertEqual(lead.email_from, "dnoz2004@bellsouth.net")
         self.assertEqual(lead.function, "Buyer")
         self.assertEqual(lead.phone, "(704) 555-0100")
-        self.assertEqual(lead.mobile, "9803225266")
+        self.assertEqual(lead.mobile, "(980) 322-5266")
         self.assertFalse(self.location.email)
 
     def test_a_stored_contact_and_email_are_kept(self):

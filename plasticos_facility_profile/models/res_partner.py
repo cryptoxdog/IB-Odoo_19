@@ -323,6 +323,11 @@ class ResPartner(models.Model):
             "context": {"default_partner_id": self.id},
         }
 
+    def _fields_sync(self, values):
+        if self.env.context.get("plasticos_keep_site_address"):
+            return
+        return super()._fields_sync(values)
+
     @api.model_create_multi
     def create(self, vals_list):
         records = super().create(vals_list)
@@ -342,7 +347,10 @@ class ResPartner(models.Model):
                 if vals[name] != current_value:
                     restore[name] = vals[name]
             if restore:
-                super(ResPartner, record).write(restore)
+                # A contact-type write would copy this address onto the company and
+                # every other contact child. The caller's address stays on this site.
+                kept = record.with_context(plasticos_keep_site_address=True)
+                super(ResPartner, kept).write(restore)
         return records
 
     erp_address_label = fields.Char(

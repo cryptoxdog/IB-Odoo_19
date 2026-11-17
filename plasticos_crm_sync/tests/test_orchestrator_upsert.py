@@ -1530,7 +1530,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         orch._upsert_lead(self.connection, dto)
         self.assertEqual(person.phone, "(215) 555-0101")
         lines = [(line.label, line.number) for line in person.phone_line_ids]
-        self.assertEqual(lines, [("mobile", "215-555-0102"), ("fax", "215-555-0101")])
+        self.assertEqual(lines, [("mobile", "(215) 555-0102"), ("fax", "(215) 555-0101")])
         self.assertNotIn("215-555-0106", [number for _label, number in lines])
         self.assertEqual(self.env["crm.lead"].with_context(active_test=False).search_count([]), leads_before)
         orch._upsert_lead(self.connection, dto)

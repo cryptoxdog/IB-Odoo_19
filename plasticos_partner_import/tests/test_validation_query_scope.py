@@ -196,6 +196,8 @@ class TestValidationQueryScope(TransactionCase):
 
     def test_missing_role_stays_informational(self):
         report = self.validation.audit_import_integrity()
-        self.assertTrue(
-            "enrichment pending; not an error" in report["summary"] or report["summary"] == "No issues found."
-        )
+        summary = report["summary"]
+        if report["facilities_missing_role"]:
+            self.assertIn("enrichment pending; not an error", summary)
+        else:
+            self.assertNotIn("facility_role", summary)
