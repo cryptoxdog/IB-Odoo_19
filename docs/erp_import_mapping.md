@@ -324,6 +324,35 @@ the person; role mailboxes stay; sales-rep mailboxes never reach Odoo.
   lower case is title-cased (`todd.antonick` → `Todd Antonick`), and a title
   typed with capitals (`AP`) keeps its spelling. A blank name that does not fold is
   rejected; a blank name that folds is not.
+- **Tie-breaks before "ambiguous" (probe 3, 2026-11-17).** (a) a plain first name
+  only counts persons whose first word is that name; (b) an e-mail prefix with
+  several candidates folds into the one whose name produces the local part
+  (`first.last`, `firstlast`, `flast`, `firstl`, `first`, `last`; case-folded,
+  alphanumeric only); (c) a role word whose own address has a generic local part
+  (`ap`, `ar`, `accounting`, `accounts`, `invoices`, `invoice`, `billing`,
+  `payables`, `receivables`, `office`, `orders`, `customerservice`, `info`,
+  `sales`, `purchasing`, `shipping`, `receiving`) never becomes or joins a person:
+  its phone and e-mail go to the one site of the company they match, else to the
+  company, and its role tags stay with the person who already holds them (nothing
+  is added); (d) phone to one person and e-mail to another does not fold. What
+  remains is listed under NEEDS REVIEW.
+- **R2b — one matching site.** A weak row that matches no person but exactly one
+  site of the same company by phone or e-mail: a blank, role-word or e-mail-prefix
+  row creates no person and puts its phone and e-mail on that site (filling empty
+  fields, as for a site mailbox); a plain first name stays a person and gets that
+  site among its sites. Several matching sites: as before, listed under NEEDS
+  REVIEW.
+- **Phone match key.** Two numbers match when their digits match, or, when the
+  `phonenumbers` library is installed (it ships with Odoo), when their E.164 forms
+  (with `x<extension>`) match. The region is the partner's country, else its
+  company's, else `US`, so `+44 20 …` and `020 …` of a UK company match. The same
+  keys decide whether a phone line is already present.
+- **NEEDS REVIEW.** Every ERP import ends with an always-present review block, ids
+  only, every entry in full: contact rows left ambiguous (CT_ID, kind, reason,
+  candidate CT_IDs and partner ids), rows matching several sites, phones the parser
+  could not read (partner id, digit-masked shape), and people the retire rule kept
+  visible. Its last line, `NEEDS REVIEW: <n>`, is the last line of
+  `make import-erp`. These are diagnostics: the balance equation is unchanged.
 - **Replay.** A partner an earlier run created for a now-folded `CT_ID` has that
   marker re-pointed to the person. It is archived, never deleted, once no other
   `legacy_erp_contact_%` marker still points at it. Before that, what names it moves

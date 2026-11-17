@@ -123,3 +123,29 @@ names is archived exactly as before. Report lines now name each move's target
 (`… re-pointed: <model> <n> -> partner <id>`). Tests: one test per branch (one site,
 company without sites, company with sites and no link, several sites, equivalent profile,
 nothing names the person, stale non-person row) plus replay. Partner-import suite: 489 passed.
+
+## Corrective run 4 (2026-11-17) — probe-3 tuning
+
+Input: CTO directive from Production probe 3 (counts only; 62 ambiguous weak rows, 275 with
+no person, 48 of those matching one site).
+
+- Tie-breaks (a) first-name restriction (already enforced before counting), (b) e-mail
+  prefix → the one candidate whose name produces the local part, (c) generic role mailbox
+  (`ap@`, `orders@`, …) never a person: channel → its one matching site, else the company;
+  its role tags are not added to anyone (the only permitted target already holds them),
+  (d) conflict → no fold.
+- R2b: no person + exactly one matching site → blank/role/e-mail-prefix rows put their
+  channel on the site; a first name stays a person linked to the site; several sites →
+  listed.
+- Phone keys: digits always, plus E.164 (with extension) when `phonenumbers` imports;
+  region = partner country → company country → `US`. Used by the fold and by phone-line
+  de-duplication. `phonenumbers` is not in this repo's requirements: Odoo ships it at
+  runtime; without it the key is digits only (as before). Tests use a stand-in module.
+- NEEDS REVIEW: `ImportReport.review` (ambiguous contacts, site-ambiguous contacts,
+  unparsed phones, retire-kept), `erp.summary.review_lines`, printed last by
+  `scripts/import_erp_shell.py` so `NEEDS REVIEW: <n>` is the final line. Not counted.
+- Scope widened to `erp/report.py`, `erp/summary.py`, `scripts/import_erp_shell.py` for the
+  review block (all in this module). No Makefile change.
+- Tests: 21 new (tie-break forms, generic mailbox → site / company, R2b three kinds,
+  first name + site, several sites, E.164 + extension + region, digits-only fallback,
+  unparsed listing, review lines and last line, balance unchanged).

@@ -18,7 +18,9 @@ Rules under test (``docs/erp_import_mapping.md`` §5):
 
 from __future__ import annotations
 
+import sys
 import types
+from pathlib import Path
 
 import pytest
 from erp import mapping
@@ -27,6 +29,7 @@ from erp.summary import import_run_summary
 
 from tests import test_erp_import_contract as contract
 
+ROOT_SHELL = Path(__file__).resolve().parents[1] / "plasticos_partner_import" / "scripts" / "import_erp_shell.py"
 _TAG_IDS = {"Decision Maker": 901, "AR/AP": 902, "Logistics": 903, "Admin": 904}
 _TAG_NAMES = {value: key for key, value in _TAG_IDS.items()}
 
@@ -704,3 +707,223 @@ def test_a_stale_non_person_row_retires_through_the_same_rule():
     assert person.active is False
     assert world.leads.on(world.company) == [lead.id]
     assert world.resolve("1501") is None
+
+
+# Probe-3 tie-breaks, R2b sites, E.164 matching, review ----------------------------------
+def _site(world, label, **channels):
+    site = world.partners.rows[world.site_ids[label]]
+    for field, value in channels.items():
+        setattr(site, field, value)
+    return site
+
+
+@pytest.mark.parametrize("local", ["pat.doe", "patdoe", "pdoe", "patd", "pat", "doe"])
+def test_an_email_prefix_with_two_candidates_folds_into_the_name_that_produces_it(local):
+    world = _World()
+    report = world.run(
+        [
+            _row("1601", "Pat Doe", PhoneBusiness="704-555-1600"),
+            _row("1602", "Lee Roe", PhoneBusiness="704-555-1600"),
+            _row("1603", local, PhoneBusiness="704-555-1600", Email=f"{local}@cust.test"),
+        ]
+    )
+    assert world.resolve("1603") is world.resolve("1601")
+    assert report.review["ambiguous_contacts"] == []
+
+
+def test_an_email_prefix_that_no_candidate_name_produces_stays_ambiguous_and_is_listed():
+    world = _World()
+    report = world.run(
+        [
+            _row("1611", "Pat Doe", PhoneBusiness="704-555-1610"),
+            _row("1612", "Lee Roe", PhoneBusiness="704-555-1610"),
+            _row("1613", "frontdesk", PhoneBusiness="704-555-1610", Email="frontdesk@cust.test"),
+        ]
+    )
+    assert world.resolve("1613").name == "Frontdesk"
+    (entry,) = report.review["ambiguous_contacts"]
+    assert entry == {
+        "ct_id": "1613",
+        "kind": "email_prefix",
+        "reason": "shared phone",
+        "candidate_ct_ids": ["1611", "1612"],
+        "candidate_partner_ids": sorted([world.resolve("1611").id, world.resolve("1612").id]),
+    }
+
+
+def test_a_generic_role_mailbox_never_folds_and_lands_on_its_one_site():
+    world = _World(sites=("Site A", "Site B"))
+    site_a = _site(world, "Site A", phone="704-555-1700")
+    report = world.run(
+        [
+            _row("1701", "Pat Doe", Email="billing@cust.test"),  # a person sharing the mailbox
+            _row("1702", "BILLING", PhoneBusiness="704-555-1700", Email="billing@cust.test"),
+        ],
+        roles={"1702": ["Billing"]},
+    )
+    assert world.resolve("1702") is None, "no person, no marker"
+    assert site_a.email == "billing@cust.test"
+    (pat,) = world.people()
+    assert pat.name == "Pat Doe" and pat.tags() == set(), "the mailbox's role tag goes to nobody new"
+    assert report.counts["contacts"]["rejected"] == 0
+
+
+def test_a_generic_role_mailbox_with_no_matching_site_lands_on_the_company():
+    world = _World(sites=("Site A",))
+    world.run([_row("1711", "COLLECTIONS", PhoneBusiness="704-555-1711", Email="ar@cust.test")])
+    assert world.people() == []
+    assert (world.company.phone, world.company.email) == ("704-555-1711", "ar@cust.test")
+
+
+@pytest.mark.parametrize(("name", "email"), [("", "dock@cust.test"), ("dock", "dock@cust.test"), ("SALES", "")])
+def test_r2b_an_unnamed_row_matching_one_site_gives_the_site_its_channel_and_makes_no_person(name, email):
+    world = _World(sites=("Site A", "Site B"))
+    site_a = _site(world, "Site A", phone="704-555-1800")
+    report = world.run(
+        [
+            _row("1801", "Pat Doe", PhoneBusiness="704-555-1899"),
+            _row("1802", name, PhoneBusiness="704-555-1800", Email=email),
+        ]
+    )
+    assert world.resolve("1802") is None
+    assert [p.name for p in world.people()] == ["Pat Doe"]
+    assert site_a.email == (email or False)
+    assert report.counts["contacts"]["rejected"] == 0
+
+
+def test_r2b_a_first_name_matching_one_site_stays_a_person_linked_to_that_site():
+    world = _World(sites=("Site A", "Site B"))
+    _site(world, "Site A", email="dock@cust.test")
+    world.run([_row("1811", "Pat Doe", PhoneBusiness="704-555-1811"), _row("1812", "Sam", Email="dock@cust.test")])
+    sam = world.resolve("1812")
+    assert sam.name == "Sam"
+    assert sam.location_partner_ids.ids == [world.site_ids["Site A"]]
+
+
+def test_r2b_a_row_matching_several_sites_keeps_todays_behaviour_and_is_listed():
+    world = _World(sites=("Site A", "Site B"))
+    _site(world, "Site A", phone="704-555-1820")
+    _site(world, "Site B", phone="704-555-1820")
+    report = world.run(
+        [_row("1821", "Pat Doe", PhoneBusiness="704-555-1829"), _row("1822", "Sam", PhoneBusiness="704-555-1820")]
+    )
+    assert world.resolve("1822").name == "Sam"
+    assert report.review["site_ambiguous_contacts"] == [
+        {"ct_id": "1822", "kind": "first_name", "site_partner_ids": sorted(world.site_ids.values())}
+    ]
+
+
+class _FakePhonenumbers(types.ModuleType):
+    """Stand-in for the ``phonenumbers`` library: US and GB national and +international forms."""
+
+    COUNTRY = {"US": "1", "GB": "44"}
+
+    class NumberParseException(Exception):
+        pass
+
+    PhoneNumberFormat = types.SimpleNamespace(E164=0)
+
+    def __init__(self):
+        super().__init__("phonenumbers")
+
+    def parse(self, text, region):
+        import re
+
+        extension = None
+        match = re.search(r"\s*(?:x|ext\.?)\s*(\d+)\s*$", text, re.IGNORECASE)
+        if match:
+            extension, text = match.group(1), text[: match.start()]
+        digits = "".join(char for char in text if char.isdigit())
+        if text.strip().startswith("+"):
+            for code in sorted(self.COUNTRY.values(), key=len, reverse=True):
+                if digits.startswith(code):
+                    return types.SimpleNamespace(code=code, national=digits[len(code) :], extension=extension)
+            raise self.NumberParseException(text)
+        code = self.COUNTRY.get(region)
+        if not code:
+            raise self.NumberParseException(region)
+        if code == "1" and len(digits) == 11 and digits.startswith("1"):
+            digits = digits[1:]
+        if code == "44":
+            digits = digits.removeprefix("0")
+        return types.SimpleNamespace(code=code, national=digits, extension=extension)
+
+    def is_possible_number(self, number):
+        return len(number.national) == 10 if number.code == "1" else 9 <= len(number.national) <= 10
+
+    def format_number(self, number, _fmt):
+        return f"+{number.code}{number.national}"
+
+
+@pytest.fixture
+def phonenumbers_lib(monkeypatch):
+    fake = _FakePhonenumbers()
+    monkeypatch.setitem(sys.modules, "phonenumbers", fake)
+    return fake
+
+
+def test_parse_phone_uses_e164_with_the_extension_and_the_region(phonenumbers_lib):
+    assert mapping.parse_phone("(980) 555-0100 x12") == "+19805550100x12"
+    assert mapping.parse_phone("020 7946 0958", "GB") == "+442079460958"
+    assert mapping.parse_phone("12-34-56-78", "US") is None, "not a possible US number"
+    assert mapping.phone_keys("+44 20 7946 0958") & mapping.phone_keys("020 7946 0958", "GB")
+
+
+def test_without_the_library_phone_keys_are_digits_only(monkeypatch):
+    monkeypatch.setitem(sys.modules, "phonenumbers", None)  # import fails
+    assert mapping.parse_phone("+44 20 7946 0958") is None
+    assert mapping.phone_keys("+44 20 7946 0958") == {"442079460958"}
+    assert not mapping.phone_parser_available()
+
+
+def test_an_international_and_a_national_form_of_one_number_fold_in_the_company_region(phonenumbers_lib):
+    world = _World()
+    world.company.country_id = types.SimpleNamespace(code="GB")
+    world.run(
+        [_row("1901", "Pat Doe", PhoneBusiness="+44 20 7946 0958"), _row("1902", "Pat", PhoneBusiness="020 7946 0958")]
+    )
+    assert world.resolve("1902") is world.resolve("1901")
+
+
+def test_a_phone_the_parser_cannot_read_is_listed_masked(phonenumbers_lib):
+    world = _World()
+    report = world.run([_row("1911", "Pat Doe", PhoneBusiness="12-34-56-78")])
+    person = world.resolve("1911")
+    assert report.review["unparsed_phones"] == [{"partner_id": person.id, "shape": "##-##-##-##"}]
+
+
+def test_review_lines_list_every_entry_and_end_with_the_count():
+    from erp.summary import review_lines
+
+    world, person = _retire_world(site_labels=("Site A",))
+    world.materials.add(partner_id=person.id, polymer_id=7, form_id=8)
+    report = _retire(world)
+    report.review["ambiguous_contacts"].append({"ct_id": "1", "kind": "first_name", "reason": "shared phone"})
+    lines = review_lines(report.as_dict())
+    assert lines[0] == "NEEDS REVIEW"
+    assert lines[-1] == "NEEDS REVIEW: 2"
+    assert any(f'"partner_id": {person.id}' in line for line in lines)
+    summary = import_run_summary(report.as_dict())
+    assert summary["records_seen"] == (
+        summary["records_created"]
+        + summary["records_updated"]
+        + summary["records_unchanged"]
+        + summary["records_rejected"]
+    ), "review entries are diagnostics, not rows"
+
+
+def test_review_lines_are_present_with_nothing_to_review():
+    from erp.summary import review_lines
+
+    assert review_lines(ImportReport().as_dict())[-1] == "NEEDS REVIEW: 0"
+
+
+def test_make_import_erp_prints_the_review_block_last():
+    import ast
+
+    shell = ROOT_SHELL.read_text(encoding="utf-8")
+    tree = ast.parse(shell)
+    main = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "main")
+    tail = main.body[-2:]
+    assert "review_lines" in ast.dump(tail[0]), "the review block is printed after every other line"
+    assert isinstance(tail[1], ast.Return)

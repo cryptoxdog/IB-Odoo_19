@@ -63,6 +63,9 @@ LAYER_TABLE = {
     "roles": "ContactRoleAssignment",
     "salesreps": "SalesReps",
 }
+# Re-point verbs: the label of a fold (a surviving person) or a retire (no survivor).
+REPOINT_FOLD = "fold"
+REPOINT_RETIRE = "retire"
 PARTNER_COUNT_PARAM = "plasticos_partner_import.partner_count_after_contacts"
 UNRESOLVED_RR_PARAM = "plasticos_partner_import.unresolved_rr"
 # Every historical-import write carries this context: no chatter, no tracking,
@@ -604,9 +607,21 @@ class PlasticosErpImport(models.AbstractModel):
                     groups[key] = []
                 groups[key].append((contact_id, row))
 
-            folded, unfolded = _fold_weak_rows(groups, order, weak_rows, report)
+            company = Partner.browse(company_partner_id) if company_partner_id else Partner.browse()
+            region = _region_of(company) if company else "US"
+            plan = _fold_weak_rows(
+                groups,
+                order,
+                weak_rows,
+                report,
+                region,
+                self._site_channels(Partner, partner_by_address, company, region),
+            )
+            self._route_channel_rows(Partner, plan, company, index, report, dry_run)
+            folded = plan.folded
             display_names: dict[str, str] = {}
-            for contact_id, row, kind in unfolded:
+            extra_sites: dict[str, list[int]] = {}
+            for contact_id, row, kind in plan.unfolded:
                 name = _text(row, "ContactNm")
                 if kind == mapping.WEAK_BLANK:
                     report.anomaly("Contact", contact_id, "blank ContactNm")
@@ -619,12 +634,15 @@ class PlasticosErpImport(models.AbstractModel):
                     if kind == mapping.WEAK_EMAIL_PREFIX:
                         display_names[key] = mapping.email_prefix_title(name)
                 groups[key].append((contact_id, row))
+                if contact_id in plan.extra_sites:
+                    extra_sites.setdefault(key, []).append(plan.extra_sites[contact_id])
 
             label_to_partner = {
                 label: partner_id for item_cp, _address_id, label, partner_id in catalog if item_cp == cp_id and label
             }
+            people: dict[str, int] = {}
             for key in order:
-                self._import_person(
+                person = self._import_person(
                     Partner,
                     groups[key],
                     company_partner_id,
@@ -634,9 +652,51 @@ class PlasticosErpImport(models.AbstractModel):
                     mapping,
                     folded=folded.get(key, ()),
                     name=display_names.get(key),
+                    extra_location_ids=extra_sites.get(key, ()),
+                    region=region,
                 )
+                if person:
+                    people[key] = person.id
+            for entry in plan.ambiguous:
+                keys = entry.pop("candidate_keys")
+                entry["candidate_ct_ids"] = sorted(
+                    (min(groups[key], key=_contact_sort_key)[0] for key in keys), key=_ct_order
+                )
+                entry["candidate_partner_ids"] = sorted(people[key] for key in keys if key in people)
+                report.review["ambiguous_contacts"].append(entry)
             if excluded_ids and not dry_run:
                 self._retire_inactive_contacts(Partner, excluded_ids, report)
+
+    def _route_channel_rows(self, partner_model, plan, company, index, report, dry_run: bool) -> None:
+        """Rows that are no person: the channel lands on their one site, or on the company."""
+        routes = [(contact_id, row, partner_model.browse(site_id)) for contact_id, row, site_id in plan.to_site]
+        routes += [(contact_id, row, company) for contact_id, row in plan.to_company]
+        for contact_id, row, target in routes:
+            index.omitted_contact_ids.add(contact_id)
+            retired = False
+            if not dry_run and target:
+                self._apply_non_person(target, row)
+                retired = self._retire_stale_contact(partner_model, contact_id, report)
+            report.bump("contacts", "updated" if retired else "skipped")
+
+    def _site_channels(self, partner_model, partner_by_address: dict, company, region: str) -> list:
+        """``[(site partner id, phone keys, emails)]`` for the stored sites of one company (R2b)."""
+        from ..erp import mapping
+
+        channels = []
+        seen: set[int] = set()
+        for partner_id in partner_by_address.values():
+            if not partner_id or partner_id in seen or (company and partner_id == company.id):
+                continue
+            seen.add(partner_id)
+            site = partner_model.browse(partner_id)
+            if not site:
+                continue
+            phones = set(mapping.phone_keys(site.phone, region)) if "phone" in site._fields else set()
+            emails = set(mapping.clean_emails(site.email)) if "email" in site._fields else set()
+            if phones or emails:
+                channels.append((partner_id, phones, emails))
+        return channels
 
     def _retire_inactive_contacts(self, partner_model, contact_ids: list[str], report=None) -> None:
         """Remove the marker an earlier run stored for each excluded CT_ID.
@@ -688,7 +748,9 @@ class PlasticosErpImport(models.AbstractModel):
         mapping,
         folded=(),
         name: str | None = None,
-    ) -> None:
+        extra_location_ids=(),
+        region: str = "US",
+    ):
         """One person per company plus first and last name. Every CT_ID aliases that person.
 
         ``members`` holds explicitly active rows only; ``_import_contacts``
@@ -717,9 +779,12 @@ class PlasticosErpImport(models.AbstractModel):
             if partner_id and partner_id != company_partner_id and partner_id not in location_ids:
                 location_ids.append(partner_id)
 
+        for site_id in extra_location_ids:  # R2b: a first-name row that matched one site
+            if site_id != company_partner_id and site_id not in location_ids:
+                location_ids.append(site_id)
         if dry_run:
             report.skip("contacts", len(members))
-            return
+            return None
 
         anchor = self._anchor_contact_id(partner_model, own)
         partner = self._upsert(partner_model, f"legacy_erp_contact_{anchor}", values, report, "contacts")
@@ -735,6 +800,23 @@ class PlasticosErpImport(models.AbstractModel):
                 partner.write({"location_partner_ids": [(4, site_id) for site_id in missing]})
         self._sync_phone_lines(partner, phone_lines)
         self._append_comment_evidence(partner, email_evidence)
+        self._review_unparsed_phones(
+            partner, [values.get("phone"), *(number for _label, number in phone_lines)], region, report
+        )
+        return partner
+
+    def _review_unparsed_phones(self, partner, numbers, region: str, report) -> None:
+        """List each dialable number of ``partner`` that ``phonenumbers`` cannot parse (ids and shape only)."""
+        from ..erp import mapping
+
+        if not mapping.phone_parser_available():
+            return
+        listed = report.review["unparsed_phones"]
+        for number in numbers:
+            if mapping.real_phone(number) and mapping.parse_phone(number, region) is None:
+                entry = {"partner_id": partner.id, "shape": mapping.masked_phone(number)}
+                if entry not in listed:
+                    listed.append(entry)
 
     def _append_comment_evidence(self, partner, lines: list) -> None:
         """Append each labelled line to ``comment`` as its own paragraph, once.
@@ -1050,20 +1132,24 @@ class PlasticosErpImport(models.AbstractModel):
     def _sync_phone_lines(self, partner, lines: list) -> None:
         """Add labeled numbers that are not already on the partner.
 
-        A number is the same number when its digits match (``mapping.phone_digits``):
-        a line stored as ``(732) 202-9500`` already holds the raw ERP value
-        ``732-202-9500``, so a replay adds nothing and never trips the
-        ``unique(partner_id, label, number)`` rule after the number is reformatted.
+        A number is the same number when its phone keys meet (``mapping.phone_keys``:
+        digits, and E.164 in the partner's region): a line stored as
+        ``(732) 202-9500`` already holds the raw ERP value ``732-202-9500``, and a
+        ``+44`` line holds the national form of the same number, so a replay adds
+        nothing and never trips ``unique(partner_id, label, number)``.
         """
         if "phone_line_ids" not in partner._fields:
             return
-        present = {(line.label, _phone_key(line.number)) for line in partner.phone_line_ids}
+        region = _region_of(partner)
+        present: dict[str, set[str]] = {}
+        for line in partner.phone_line_ids:
+            present.setdefault(line.label, set()).update(_phone_line_keys(line.number, region))
         commands = []
         for label, number in lines:
-            key = (label, _phone_key(number))
-            if not number or key in present:
+            keys = _phone_line_keys(number, region)
+            if not number or keys & present.get(label, set()):
                 continue
-            present.add(key)
+            present.setdefault(label, set()).update(keys)
             commands.append(Command.create({"label": label, "number": number}))
         if commands:
             partner.with_context(**IMPORT_CONTEXT).write({"phone_line_ids": commands})
@@ -1132,7 +1218,7 @@ class PlasticosErpImport(models.AbstractModel):
         sites are added to ``record`` (:meth:`_repoint_records`).
         """
         return self._repoint_records(
-            superseded, lead_to=record, profile_to=record, sites_to=record, verb="fold", report=report
+            superseded, lead_to=record, profile_to=record, sites_to=record, verb=REPOINT_FOLD, report=report
         )
 
     def _repoint_retired(self, person, report) -> bool:
@@ -1154,7 +1240,7 @@ class PlasticosErpImport(models.AbstractModel):
         else:
             profile_to = None
         return self._repoint_records(
-            person, lead_to=company, profile_to=profile_to, sites_to=None, verb="retire", report=report
+            person, lead_to=company, profile_to=profile_to, sites_to=None, verb=REPOINT_RETIRE, report=report
         )
 
     def _named_by_records(self, partner) -> bool:
@@ -1245,6 +1331,8 @@ class PlasticosErpImport(models.AbstractModel):
             report.anomaly(
                 "Contact", f"partner {source.id}", f"{verb} kept partner {source.id} visible: {'; '.join(blocked)}"
             )
+            if verb == REPOINT_RETIRE:
+                report.review["retire_kept"].append({"partner_id": source.id, "reason": "; ".join(blocked)})
         return not blocked
 
     def _named_by_contact_marker(self, partner_id: int) -> bool:
@@ -1469,59 +1557,142 @@ def _row_emails(row) -> list[str]:
     return value.split(", ") if value else []
 
 
-def _fold_weak_rows(groups: dict, order: list, weak_rows: list, report) -> tuple[dict, list]:
-    """Resolve each weak-name contact row of one company to at most one full-name person.
+class _FoldPlan:
+    """Where each weak-name row of one company goes (R2, R2b, probe-3 tie-breaks)."""
 
-    R2: a weak row folds into the full-name group whose phone digits
-    (``PhoneBusiness`` / ``PhoneMobile``) or external email match it, when
-    exactly one group matches. A plain first name is only checked against the
-    groups whose first word is that name. R3: phone to one group and email to
-    another is a conflict; zero or several groups are ambiguous. Neither folds.
+    def __init__(self):
+        self.folded: dict[str, list] = {}  # group key -> extra (contact_id, row) members
+        self.unfolded: list = []  # (contact_id, row, kind): own person, or rejected when blank
+        self.to_site: list = []  # (contact_id, row, site partner id): channel on the site, no person
+        self.to_company: list = []  # (contact_id, row): channel on the company, no person
+        self.extra_sites: dict[str, int] = {}  # contact_id -> site partner id for an unfolded first name
+        self.ambiguous: list[dict] = []  # review entries; candidate keys resolved after the people exist
 
-    Returns ``(folded, unfolded)``: ``folded`` maps a group key to its extra
-    ``(contact_id, row)`` members; ``unfolded`` keeps ``(contact_id, row, kind)``.
+
+def _fold_weak_rows(groups: dict, order: list, weak_rows: list, report, region="US", sites=()) -> _FoldPlan:
+    """Resolve each weak-name contact row of one company. Returns a :class:`_FoldPlan`.
+
+    Candidates are the full-name groups whose phone keys (``PhoneBusiness`` /
+    ``PhoneMobile``, :func:`mapping.phone_keys`) or external email match the row.
+    Applied in order:
+
+    a. a plain first name only considers groups whose first word is that name;
+    c. a role word whose own address is a generic mailbox (``ap@``, ``orders@``)
+       never becomes a person: its channel goes to the one matching site, else to
+       the company;
+    b. an e-mail prefix with several candidates folds into the one whose name
+       produces that local part (``first.last``, ``firstlast``, ``flast``,
+       ``firstl``, ``first``, ``last``);
+    d. phone to one group and email to another is a conflict and does not fold;
+    then exactly one candidate folds; several are ambiguous and reported. With
+    no candidate (R2b), exactly one matching site of the company takes the
+    channel of a blank, role-word or e-mail-prefix row (no person), and is added
+    to the sites of a first-name row (a person); several matching sites are
+    reported. ``sites`` is ``[(site partner id, phone keys, emails)]``.
     """
     from ..erp import mapping
 
     by_phone: dict[str, set[str]] = {}
     by_email: dict[str, set[str]] = {}
     first_word: dict[str, str] = {}
+    titles: dict[str, str] = {}
     for key in order:
         members = groups[key]
-        first_word[key] = mapping.first_word_key(_text(sorted(members, key=_contact_sort_key)[0][1], "ContactNm"))
+        titles[key] = _text(sorted(members, key=_contact_sort_key)[0][1], "ContactNm")
+        first_word[key] = mapping.first_word_key(titles[key])
         for _contact_id, row in members:
-            for digits in _row_phone_digits(row):
-                by_phone.setdefault(digits, set()).add(key)
+            for phone in _row_phone_keys(row, region):
+                by_phone.setdefault(phone, set()).add(key)
             for address in _row_emails(row):
                 by_email.setdefault(address, set()).add(key)
 
-    folded: dict[str, list] = {}
-    unfolded: list = []
+    def matching_sites(row) -> list[int]:
+        phones, emails = _row_phone_keys(row, region), set(_row_emails(row))
+        return [site_id for site_id, site_phones, site_emails in sites if phones & site_phones or emails & site_emails]
+
+    plan = _FoldPlan()
     for contact_id, row, kind in weak_rows:
+        name = _text(row, "ContactNm")
+        emails = _row_emails(row)
         allowed = set(order)
-        if kind == mapping.WEAK_FIRST_NAME:
-            wanted = mapping.first_word_key(_text(row, "ContactNm"))
+        if kind == mapping.WEAK_FIRST_NAME:  # a
+            wanted = mapping.first_word_key(name)
             allowed = {key for key in order if first_word[key] == wanted}
-        phone_hits = set().union(*(by_phone.get(d, set()) for d in _row_phone_digits(row))) & allowed
-        email_hits = set().union(*(by_email.get(a, set()) for a in _row_emails(row))) & allowed
-        if phone_hits and email_hits and phone_hits.isdisjoint(email_hits):
-            report.anomaly("Contact", contact_id, "alias conflict: phone and email name different people")
-            unfolded.append((contact_id, row, kind))
-            continue
+        phone_hits = set().union(*(by_phone.get(p, set()) for p in _row_phone_keys(row, region))) & allowed
+        email_hits = set().union(*(by_email.get(a, set()) for a in emails)) & allowed
         candidates = phone_hits | email_hits
-        if len(candidates) != 1:
-            report.anomaly("Contact", contact_id, f"alias ambiguous: {len(candidates)} full-name candidates")
-            unfolded.append((contact_id, row, kind))
+
+        if kind == mapping.WEAK_ROLE and mapping.is_generic_mailbox(emails):  # c
+            site_ids = matching_sites(row)
+            if len(site_ids) == 1:
+                plan.to_site.append((contact_id, row, site_ids[0]))
+            else:
+                plan.to_company.append((contact_id, row))
             continue
-        folded.setdefault(next(iter(candidates)), []).append((contact_id, row))
-    return folded, unfolded
+        if kind == mapping.WEAK_EMAIL_PREFIX and len(candidates) > 1:  # b
+            local = "".join(char for char in name.casefold() if char.isalnum())
+            named = [key for key in candidates if local in mapping.name_local_forms(titles[key])]
+            if len(named) == 1:
+                plan.folded.setdefault(named[0], []).append((contact_id, row))
+                continue
+        if phone_hits and email_hits and phone_hits.isdisjoint(email_hits):  # d
+            report.anomaly("Contact", contact_id, "alias conflict: phone and email name different people")
+            plan.ambiguous.append(
+                _ambiguous_entry(contact_id, kind, "phone and email point to different people", candidates)
+            )
+            plan.unfolded.append((contact_id, row, kind))
+            continue
+        if len(candidates) == 1:
+            plan.folded.setdefault(next(iter(candidates)), []).append((contact_id, row))
+            continue
+        report.anomaly("Contact", contact_id, f"alias ambiguous: {len(candidates)} full-name candidates")
+        if candidates:
+            shared = " and ".join(
+                part for part, hits in (("phone", phone_hits), ("email", email_hits)) if len(hits) > 1
+            )
+            plan.ambiguous.append(
+                _ambiguous_entry(contact_id, kind, f"shared {shared or 'phone or email'}", candidates)
+            )
+            plan.unfolded.append((contact_id, row, kind))
+            continue
+        site_ids = matching_sites(row)  # R2b
+        if len(site_ids) == 1 and kind != mapping.WEAK_FIRST_NAME:
+            plan.to_site.append((contact_id, row, site_ids[0]))
+            continue
+        if len(site_ids) == 1:
+            plan.extra_sites[contact_id] = site_ids[0]
+        elif len(site_ids) > 1:
+            report.anomaly("Contact", contact_id, f"site ambiguous: {len(site_ids)} sites match")
+            report.review["site_ambiguous_contacts"].append(
+                {"ct_id": contact_id, "kind": kind, "site_partner_ids": sorted(site_ids)}
+            )
+        plan.unfolded.append((contact_id, row, kind))
+    return plan
 
 
-def _phone_key(number) -> str:
-    """Comparison key of a stored or incoming phone number: its digits, else the text as written."""
+def _ct_order(contact_id):
+    return _contact_sort_key((contact_id, None))
+
+
+def _ambiguous_entry(contact_id: str, kind: str, reason: str, candidates: set) -> dict:
+    return {"ct_id": contact_id, "kind": kind, "reason": reason, "candidate_keys": sorted(candidates)}
+
+
+def _row_phone_keys(row, region="US") -> set[str]:
+    """Phone keys of a contact row's business and mobile numbers."""
     from ..erp import mapping
 
-    return mapping.phone_digits(number) or (number or "").strip()
+    keys: set[str] = set()
+    for column in ("PhoneBusiness", "PhoneMobile"):
+        keys |= mapping.phone_keys(row.get(column), region)
+    return keys
+
+
+def _phone_line_keys(number, region="US") -> frozenset[str]:
+    """Comparison keys of a stored or incoming phone line: digits and E.164, else the text as written."""
+    from ..erp import mapping
+
+    return mapping.phone_keys(number, region) or frozenset({(number or "").strip()})
 
 
 # ADR-131 site predicate, local to this module (the D1 model method is not a
@@ -1534,6 +1705,18 @@ def _is_site_partner(partner) -> bool:
     return bool(partner.parent_id) and (partner.type in _SITE_ADDRESS_TYPES or bool(partner.is_company))
 
 
+def _region_of(partner) -> str:
+    """Phone region of a partner: its country, else its company's, else ``US``."""
+    node = partner
+    while node:
+        country = getattr(node, "country_id", None)
+        code = getattr(country, "code", None) if country else None
+        if code:
+            return code
+        node = getattr(node, "parent_id", None)
+    return "US"
+
+
 def _owning_company(partner):
     """The first ancestor-or-self that is a company and not a site; empty when none."""
     node = partner
@@ -1542,17 +1725,6 @@ def _owning_company(partner):
             return node
         node = node.parent_id
     return node
-
-
-def _row_phone_digits(row) -> list[str]:
-    from ..erp import mapping
-
-    found = []
-    for column in ("PhoneBusiness", "PhoneMobile"):
-        digits = mapping.phone_digits(row.get(column))
-        if digits and digits not in found:
-            found.append(digits)
-    return found
 
 
 def _sales_rep_row_key(cp_id: str, row) -> str:

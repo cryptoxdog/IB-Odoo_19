@@ -466,10 +466,12 @@ def main() -> int:
     if status:
         if not result.get("failures"):
             print("IMPORT FAILED: material errors — see summary errors list")
-        return status
-    if layer:
+    elif layer:
         print(f"layer {layer} validated and committed")
-    return 0
+    # Always printed, always last: its final line is the review count.
+    for line in import_summary.review_lines(result):
+        print(line)
+    return status
 
 
 if __name__ == "__main__":

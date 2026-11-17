@@ -607,6 +607,107 @@ def phone_digits(value: str | None) -> str:
     return digits
 
 
+def phone_keys(value: str | None, region: str | None = "US") -> frozenset[str]:
+    """Comparison keys of one phone value. Two numbers are the same when their keys meet.
+
+    Always the digit key (:func:`phone_digits`). When the ``phonenumbers`` library
+    is installed (it ships with Odoo) and parses the value as a possible number in
+    ``region`` (the partner's country, else its company's, else ``US``), the E.164
+    form too, with ``x<extension>`` when the number has one. A ``+44`` number and
+    the same number written nationally then match. Blank or not dialable: empty.
+    """
+    digits = phone_digits(value)
+    if not digits:
+        return frozenset()
+    keys = {digits}
+    parsed = parse_phone(value, region)
+    if parsed:
+        keys.add(parsed)
+    return frozenset(keys)
+
+
+def parse_phone(value: str | None, region: str | None = "US") -> str | None:
+    """E.164 (plus ``x<extension>``) of a dialable value, or ``None``.
+
+    ``None`` when the value is not dialable, when ``phonenumbers`` is not
+    installed, or when it does not parse as a possible number.
+    """
+    text = real_phone(value)
+    if not text:
+        return None
+    try:
+        import phonenumbers
+    except ImportError:
+        return None
+    try:
+        number = phonenumbers.parse(text, (region or "US").upper())
+    except phonenumbers.NumberParseException:
+        return None
+    if not phonenumbers.is_possible_number(number):
+        return None
+    key = phonenumbers.format_number(number, phonenumbers.PhoneNumberFormat.E164)
+    return f"{key}x{number.extension}" if number.extension else key
+
+
+def phone_parser_available() -> bool:
+    """True when ``phonenumbers`` can be imported (then an unparsed value is reportable)."""
+    try:
+        import phonenumbers  # noqa: F401
+    except ImportError:
+        return False
+    return True
+
+
+def masked_phone(value: str | None) -> str:
+    """The shape of a phone value with every digit replaced by ``#`` (review output, no number)."""
+    return "".join("#" if char.isdigit() else char for char in (value or "").strip())
+
+
+# Mailbox local parts that name a function, not a person (C1 probe 3). A role-word
+# contact whose address starts with one of these is a shared mailbox.
+GENERIC_MAILBOX_LOCALS: frozenset[str] = frozenset(
+    {
+        "ap",
+        "ar",
+        "accounting",
+        "accounts",
+        "invoices",
+        "invoice",
+        "billing",
+        "payables",
+        "receivables",
+        "office",
+        "orders",
+        "customerservice",
+        "info",
+        "sales",
+        "purchasing",
+        "shipping",
+        "receiving",
+    }
+)
+
+
+def is_generic_mailbox(emails: list[str]) -> bool:
+    """True when one of the addresses has a generic function local part (``ap@``, ``orders@``)."""
+    return any(_alnum(address.split("@", 1)[0]).casefold() in GENERIC_MAILBOX_LOCALS for address in emails)
+
+
+def name_local_forms(name: str | None) -> frozenset[str]:
+    """The mailbox local parts a person's name produces, case-folded and alphanumeric only.
+
+    ``first.last`` and ``firstlast`` (the same once punctuation is dropped),
+    ``flast``, ``firstl``, ``first`` and ``last``. First and last are the first
+    and last words of the title.
+    """
+    words = [_alnum(word).casefold() for word in (name or "").split()]
+    words = [word for word in words if word]
+    if not words:
+        return frozenset()
+    first, last = words[0], words[-1]
+    return frozenset({first + last, first[:1] + last, first + last[:1], first, last})
+
+
 def is_role_word(name: str | None) -> bool:
     """True when a contact title is an ERP role word (``BILLING``, ``COLLECTIONS``)."""
     return normalize_contact_role(name).casefold() in CONTACT_ROLE_TAGS

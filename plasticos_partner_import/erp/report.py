@@ -9,6 +9,10 @@ from __future__ import annotations
 __all__ = ["ImportReport"]
 
 
+# Sections of the always-present review list, in print order.
+REVIEW_SECTIONS = ("ambiguous_contacts", "site_ambiguous_contacts", "unparsed_phones", "retire_kept")
+
+
 class ImportReport:
     """Result accounting for one import run."""
 
@@ -43,6 +47,10 @@ class ImportReport:
         # (order links, price precision, payables routing). Filled by the
         # historical extension; empty for a partner-only run.
         self.census: dict = {}
+        # Rows a person must look at (C1 lane A). Diagnostics only: never a
+        # counter, so ``seen == created + updated + unchanged + rejected`` is
+        # unchanged. Ids only, never a name, number or address.
+        self.review: dict[str, list] = {key: [] for key in REVIEW_SECTIONS}
 
     def bump(self, bucket: str, outcome: str, amount: int = 1) -> None:
         self.counts[bucket][outcome] += amount
@@ -80,4 +88,5 @@ class ImportReport:
             "errors": self.errors,
             "failures": self.failures,
             "census": self.census,
+            "review": self.review,
         }
