@@ -36,9 +36,14 @@
     <record id="rule_logistics_partner_confirmed_po" model="ir.rule">
       <field name="name">Logistics: only partners with confirmed POs</field>
       <field name="model_id" ref="base.model_res_partner"/>
+      <!-- Logistics sees every site (operator decision, ADR-131 / plan D16):
+           a site stored as a company child (company_type 'site') is visible
+           even without its own purchase orders. A native delivery or invoice
+           address is not a company and was already visible. -->
       <field name="domain_force">[
-        '|',
+        '|', '|',
         ('is_company', '=', False),
+        ('company_type', '=', 'site'),
         ('purchase_order_count', '>', 0)
       ]</field>
       <field name="groups" eval="[(4, ref('group_logistics_team'))]"/>

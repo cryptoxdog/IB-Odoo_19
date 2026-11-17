@@ -64,7 +64,7 @@ class FacilityProfileCrmOwnership(models.Model):
         The same facility profile and material profile rows are kept.
         """
         self.ensure_one()
-        if not partner or not partner.is_company or not partner.is_facility:
+        if not partner or not (partner.is_company or partner._plasticos_is_site()) or not partner.is_facility:
             raise ValidationError("A verified facility location is required.")
         if self.partner_id and self.partner_id != partner:
             raise ValidationError("This facility profile is already linked to a different location.")

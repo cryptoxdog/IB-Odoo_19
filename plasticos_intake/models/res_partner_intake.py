@@ -13,6 +13,17 @@ class ResPartnerIntake(models.Model):
 
     _inherit = "res.partner"
 
+    def _plasticos_site_company(self):
+        """The company that owns this partner, past persons and sites (ADR-131).
+
+        Unlike ``commercial_partner_id``, a site stored as a company parented
+        under a company resolves to that parent company.
+        """
+        self.ensure_one()
+        from ..partner_site import site_company
+
+        return site_company(self)
+
     # ── Navigation: Intake Count ──────────────────────────────────
     intake_count = fields.Integer(
         string="Intakes",

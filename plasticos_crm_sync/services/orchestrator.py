@@ -378,13 +378,15 @@ def _notes_only_sections(*field_maps) -> bool:
 def _verified_company(lead, partner):
     """The one company this source may classify, or None."""
     found = []
+    # The commercial entity, never a site: a site in either ADR-131 shape, a
+    # person, or a person at a site resolves to the company that owns it.
     if lead and getattr(lead, "id", False) and lead.partner_id:
-        company = lead.partner_id if lead.partner_id.is_company else lead.partner_id.parent_id
-        if company and company.is_company:
+        company = lead.partner_id._plasticos_site_company()
+        if company:
             found.append(company)
     if partner:
-        company = partner if partner.is_company else partner.parent_id
-        if company and company.is_company and all(company.id != item.id for item in found):
+        company = partner._plasticos_site_company()
+        if company and all(company.id != item.id for item in found):
             found.append(company)
     if len(found) == 1:
         return found[0]
@@ -403,9 +405,9 @@ def _facility_for_material(lead):
     if partner.is_facility:
         return partner, ""
     parent = partner.parent_id
-    if parent and parent.is_company and parent.parent_id:
+    if parent and parent._plasticos_is_site():
         return parent, ""
-    children = partner.child_ids.filtered(lambda child: child.is_company)
+    children = partner.child_ids.filtered(lambda child: child._plasticos_is_site())
     if len(children) == 1:
         return children, ""
     if len(children) > 1:
@@ -1488,8 +1490,8 @@ class SyncOrchestrator:
         )  # archived ERP people are hidden by the default active test
         if len(partner) != 1:
             return None, f"ERP marker {marker} does not point at one partner"
-        if partner.is_company:
-            return None, f"ERP marker {marker} points at a company"
+        if partner.is_company or partner._plasticos_is_site():
+            return None, f"ERP marker {marker} points at a company or a site"
         return partner, ""
 
     def _add_approved_phones(self, partner, dto: CanonicalLead) -> bool:
