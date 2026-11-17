@@ -1087,7 +1087,7 @@ class CrmLeadPlastOS(models.Model):
             return
         side_field = "pickup_dock_rule" if self._plasticos_delivery_term_side() == "pickup" else "delivery_term"
         transaction.write({side_field: self.delivery_term})
-        if side_field == "pickup_dock_rule" and transaction.purchase_order_ids:
+        if self._plasticos_delivery_term_side() == "pickup" and transaction.purchase_order_ids:
             transaction.purchase_order_ids._compute_pickup_dock_rule_from_transaction()
 
     def action_submit_release(self):
