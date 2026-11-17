@@ -500,7 +500,7 @@ def _env(tmp_path: Path, **extra: str) -> dict[str, str]:
     env.pop("GH_HOST", None)
     # Surface-neutral by default (a Cursor or local terminal): a test that
     # models a Claude Code cloud session sets CLAUDE_CODE_REMOTE itself.
-    for surface_knob in ("CLAUDE_CODE_REMOTE", "PR_SMOKE", "PR_SMOKE_BYPASS", "PR_TEMPLATE_OWNER"):
+    for surface_knob in ("CLAUDE_CODE_REMOTE", "PR_SMOKE", "PR_SMOKE_BYPASS", "PR_TEMPLATE_OWNER", "PR_TEMPLATE_FILE"):
         env.pop(surface_knob, None)
     env["FAKE_COMPOSER_LOG"] = str(tmp_path / "composer.log")
     env["FAKE_GH_STATE"] = str(tmp_path / "gh-state.json")
@@ -1590,6 +1590,37 @@ def test_unreadable_template_refuses_before_push(tmp_path: Path) -> None:
     assert "the org PR template is not readable" in proc.stderr
     _assert_no_push(seq)
     assert not [call for call in _gh_calls(tmp_path) if call["method"] == "POST"]
+
+
+def test_unreadable_org_template_falls_back_to_repo_template(tmp_path: Path) -> None:
+    """Org template unreadable, repo copy present: publish composes from the repo copy and says so."""
+    repo, _seq = _init_repo(tmp_path)
+    _behind_staging(repo)
+    (repo / ".github").mkdir()
+    (repo / ".github" / "pull_request_template.md").write_text("## Files touched\n", encoding="utf-8")
+    subprocess.run([REAL_GIT, "add", ".github"], cwd=repo, check=True, capture_output=True)
+    _commit(repo, "fix: repo template fallback")
+    proc = _run(repo, tmp_path, "fix/example", "Staging", "1", "0", FAKE_TEMPLATE_RC="1")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "using the repo template .github/pull_request_template.md" in proc.stdout
+    composed = [call for call in _composer_calls(tmp_path) if "--check-template" not in call]
+    template = os.path.realpath(repo / ".github" / "pull_request_template.md")
+    assert composed and all(os.path.realpath(call[call.index("--template") + 1]) == template for call in composed)
+    assert all("--org-owner" not in call for call in composed)
+    assert any(call["method"] == "POST" and call["path"].endswith("/pulls") for call in _gh_calls(tmp_path))
+
+
+def test_inherited_template_file_does_not_bypass_a_readable_org_template(tmp_path: Path) -> None:
+    repo, _seq = _init_repo(tmp_path)
+    _behind_staging(repo)
+    _commit(repo, "fix: org template wins")
+    stray = tmp_path / "stray_template.md"
+    stray.write_text("## Stray\n", encoding="utf-8")
+    proc = _run(repo, tmp_path, "fix/example", "Staging", "1", "0", PR_TEMPLATE_FILE=str(stray))
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "using the repo template" not in proc.stdout
+    composed = [call for call in _composer_calls(tmp_path) if "--check-template" not in call]
+    assert composed and all("--template" not in call and "--org-owner" in call for call in composed)
 
 
 def test_cloud_session_skips_smoke_by_default_and_says_so(tmp_path: Path) -> None:
