@@ -612,6 +612,13 @@ def is_role_word(name: str | None) -> bool:
     return normalize_contact_role(name).casefold() in CONTACT_ROLE_TAGS
 
 
+# ``weak_name_kind`` results. Plain constants, not a Selection.
+WEAK_BLANK = "blank"
+WEAK_ROLE = "role"
+WEAK_EMAIL_PREFIX = "email_prefix"
+WEAK_FIRST_NAME = "first_name"
+
+
 def weak_name_kind(name: str | None, emails: list[str]) -> str | None:
     """Why a contact title does not name a person by itself, or ``None`` for a full name.
 
@@ -623,14 +630,14 @@ def weak_name_kind(name: str | None, emails: list[str]) -> str | None:
     """
     raw = " ".join((name or "").split())
     if not raw:
-        return "blank"
+        return WEAK_BLANK
     if is_role_word(raw):
-        return "role"
+        return WEAK_ROLE
     if len(raw.split(" ")) >= 2:
         return None
     if raw.casefold() in {address.split("@", 1)[0] for address in emails}:
-        return "email_prefix"
-    return "first_name"
+        return WEAK_EMAIL_PREFIX
+    return WEAK_FIRST_NAME
 
 
 def email_prefix_title(name: str | None) -> str:

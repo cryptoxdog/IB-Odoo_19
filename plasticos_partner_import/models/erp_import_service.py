@@ -575,7 +575,7 @@ class PlasticosErpImport(models.AbstractModel):
                 if not name:
                     # A blank title may still be a known person's row (R2).
                     # It is rejected only when it does not fold.
-                    weak_rows.append((contact_id, row, "blank"))
+                    weak_rows.append((contact_id, row, mapping.WEAK_BLANK))
                     continue
                 if not mapping.is_person_name(name):
                     index.omitted_contact_ids.add(contact_id)
@@ -608,7 +608,7 @@ class PlasticosErpImport(models.AbstractModel):
             display_names: dict[str, str] = {}
             for contact_id, row, kind in unfolded:
                 name = _text(row, "ContactNm")
-                if kind == "blank":
+                if kind == mapping.WEAK_BLANK:
                     report.anomaly("Contact", contact_id, "blank ContactNm")
                     report.reject("contacts")
                     continue
@@ -616,7 +616,7 @@ class PlasticosErpImport(models.AbstractModel):
                 if key not in groups:
                     order.append(key)
                     groups[key] = []
-                    if kind == "email_prefix":
+                    if kind == mapping.WEAK_EMAIL_PREFIX:
                         display_names[key] = mapping.email_prefix_title(name)
                 groups[key].append((contact_id, row))
 
@@ -1360,7 +1360,7 @@ def _fold_weak_rows(groups: dict, order: list, weak_rows: list, report) -> tuple
     unfolded: list = []
     for contact_id, row, kind in weak_rows:
         allowed = set(order)
-        if kind == "first_name":
+        if kind == mapping.WEAK_FIRST_NAME:
             wanted = mapping.first_word_key(_text(row, "ContactNm"))
             allowed = {key for key in order if first_word[key] == wanted}
         phone_hits = set().union(*(by_phone.get(d, set()) for d in _row_phone_digits(row))) & allowed
