@@ -79,7 +79,11 @@ class PlasticosLogisticsRequestSchedule(models.Model):
     def _export_installed(self):
         if "plasticos.export.booking" not in self.env:
             return False
-        module = self.env["ir.module.module"].sudo().search([("name", "=", "plasticos_export")], limit=1)
+        module = (
+            self.env["ir.module.module"]
+            .sudo()  # sudo: module install state is not a logistics right
+            .search([("name", "=", "plasticos_export")], limit=1)
+        )
         return bool(module) and module.state == "installed"
 
     @api.model
@@ -211,7 +215,7 @@ class PlasticosLogisticsRequestSchedule(models.Model):
     def _open_activity(self, load, summary, body):
         existing = (
             self.env["mail.activity"]
-            .sudo()
+            .sudo()  # sudo: the sweep deduplicates activities the cron user may not own
             .search([("res_model", "=", load._name), ("res_id", "=", load.id), ("summary", "=", summary)], limit=1)
         )
         if existing:
@@ -225,7 +229,7 @@ class PlasticosLogisticsRequestSchedule(models.Model):
         """Linda once her mode is live; Logistics before that."""
         if self._linda_mode() == LINDA_MODE_LIVE:
             linda = linda_user(self.env)
-            if linda and linda.sudo().active:
+            if linda and linda.sudo().active:  # sudo: any caller may learn whether Linda is stopped
                 return linda
         group = self.env.ref("plasticos_security_base.group_logistics", raise_if_not_found=False)
         users = self.env["res.users"]
@@ -257,7 +261,7 @@ class PlasticosLogisticsRequestSchedule(models.Model):
         if existing:
             return existing
         snapshot = {"reference": load.name or "", "paragraphs": [flag.body], "subject": _SUMMARIES[flag.code]}
-        return self.sudo().create(
+        return self.sudo().create(  # sudo: the sweep files shadow evidence and holds no request ACL
             {
                 "company_id": load.company_id.id,
                 "purpose": flag.code,

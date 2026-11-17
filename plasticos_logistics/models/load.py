@@ -2167,7 +2167,7 @@ class PlasticosLoad(models.Model):
         summary = "Rebook pickup appointment"
         existing = (
             self.env["mail.activity"]
-            .sudo()
+            .sudo()  # sudo: rebook dedup reads activities the caller may not own
             .search([("res_model", "=", self._name), ("res_id", "=", self.id), ("summary", "=", summary)], limit=1)
         )
         if existing:
