@@ -79,6 +79,7 @@ class _TaggedPartner(contract._Partner):
 class _TaggedPartnerModel(contract._PartnerModel):
     def create(self, vals):
         record = _TaggedPartner(len(self.rows) + 1, vals, registry=self)
+        record._model = self
         self.rows[record.id] = record
         return record
 

@@ -70,6 +70,9 @@ PARTNER_COUNT_PARAM = "plasticos_partner_import.partner_count_after_contacts"
 UNRESOLVED_RR_PARAM = "plasticos_partner_import.unresolved_rr"
 # Every historical-import write carries this context: no chatter, no tracking,
 # no business automation reacting to a bulk load.
+# Native address types of a site (ADR-131); the D1 predicate lives in plasticos_facility_profile.
+SITE_ADDRESS_TYPES = ("delivery", "invoice")
+
 IMPORT_CONTEXT = {
     "import_mode": True,
     "tracking_disable": True,
@@ -347,11 +350,28 @@ class PlasticosErpImport(models.AbstractModel):
             if canonical_id:
                 ordered.append(next(pair for pair in billing_rows if pair[0] == canonical_id))
             ordered.extend(pair for pair in (*billing_rows, *location_rows) if pair[0] != canonical_id)
+            site_rows = []
             for address_id, row in ordered:
                 if dry_run:
                     report.skip("locations")
                     continue
                 if parent and (address_id == canonical_id or _same_party_name(_text(row, "Addr1"), parent_name)):
+                    if address_id != canonical_id and _is_other_street(parent, row):
+                        # A site that carries the company's name (F12). It is a
+                        # location only: its street never fills the company.
+                        site_rows.append(row)
+                        self._create_location(
+                            Partner,
+                            row,
+                            address_id,
+                            parent.id,
+                            parent_name,
+                            partner_by_address,
+                            report,
+                            dry_run,
+                            child_name=_location_title(row, parent_name),
+                        )
+                        continue
                     wrote = self._apply_billing_address(parent, row)
                     company_street = (parent.street or "").casefold()
                     row_street = _text(row, "Addr2").casefold()
@@ -376,11 +396,73 @@ class PlasticosErpImport(models.AbstractModel):
                         self._ensure_identity_marker(Partner, f"legacy_erp_address_{address_id}", parent)
                         report.bump("locations", "updated" if wrote else "skipped")
                     continue
+                site_rows.append(row)
                 self._create_location(
                     Partner, row, address_id, parent_id, parent_name, partner_by_address, report, dry_run
                 )
+            if parent and canonical_id and not dry_run:
+                canonical_row = next(row for address_id, row in billing_rows if address_id == canonical_id)
+                self._clear_leaked_site_street(parent, canonical_row, site_rows)
 
+        if not dry_run:
+            self._convert_unmarked_sites(Partner)
         return partner_by_address
+
+    def _clear_leaked_site_street(self, company, canonical_row, site_rows: list) -> None:
+        """Remove a site street an earlier run wrote into the company's street2 (F12).
+
+        Before F12 a site row that carries the company's name filled the
+        company's blank street2 from its own Addr3. The company's address is
+        its canonical billing row, so when that row has no Addr3 and street2
+        equals a street of one of the company's sites, street2 is that leak
+        and is cleared. Any other street2 is kept.
+        """
+        current = (company.street2 or "").strip().casefold()
+        if not current or _text(canonical_row, "Addr3"):
+            return
+        site_streets = {
+            _text(row, column).casefold() for row in site_rows for column in ("Addr2", "Addr3") if _text(row, column)
+        }
+        if current in site_streets:
+            company.write({"street2": False})
+
+    def _convert_unmarked_sites(self, partner_model) -> None:
+        """Convert an old-shape site that no ERP AddressID names (ADR-131).
+
+        A company with a parent and a delivery or invoice ``type`` is a site in
+        the old shape; it becomes a native address in place and takes its
+        company's commercial values. Any other company with a parent is left as
+        it is. Each case is logged by record id. A company child that carries
+        an ``legacy_erp_address_*`` marker is converted by its own address row.
+        """
+        marked = {
+            row.res_id
+            for row in self.env["ir.model.data"].search(
+                [
+                    ("module", "=", XMLID_MODULE),
+                    ("name", "=like", "legacy_erp_address_%"),
+                    ("model", "=", RES_PARTNER),
+                ]
+            )
+        }
+        children = partner_model.with_context(active_test=False).search(
+            [("is_company", "=", True), ("parent_id", "!=", False)]
+        )
+        for partner in children:
+            if partner.id in marked:
+                continue
+            if partner.type in SITE_ADDRESS_TYPES:
+                partner.write({"is_company": False})
+                partner.sudo()._commercial_sync_from_company()  # sudo: as Odoo _fields_sync, writes company-dependent properties
+                _logger.info(
+                    "ERP import: converted unmarked old-shape site %s to a native %s address", partner.id, partner.type
+                )
+            else:
+                _logger.info(
+                    "ERP import: left company child %s as a company (type %s is not a site address type)",
+                    partner.id,
+                    partner.type,
+                )
 
     def _create_location(
         self,
@@ -394,7 +476,14 @@ class PlasticosErpImport(models.AbstractModel):
         dry_run,
         child_name: str | None = None,
     ) -> None:
-        """A location under the company. It is a company, not a second counterparty."""
+        """A site under the company: a native delivery or invoice address (ADR-131).
+
+        The site is not a company and not a second counterparty; the parent is
+        its commercial partner. A replay rewrites a site an earlier run stored
+        as a company with a parent into this shape in place: the record and its
+        ``legacy_erp_address_<AddressID>`` marker are kept, so material and
+        facility profiles and person links stay attached.
+        """
         from ..erp import mapping
 
         kind = mapping.address_kind(row)
@@ -402,7 +491,7 @@ class PlasticosErpImport(models.AbstractModel):
         values = {
             "name": child_name or _location_title(row, parent_name),
             "parent_id": parent_id,
-            "is_company": True,
+            "is_company": False,
             "type": mapping.ODOO_ADDRESS_TYPE[kind],
         }
         values.update(self._copied_role(parent))
@@ -412,7 +501,15 @@ class PlasticosErpImport(models.AbstractModel):
         if dry_run:
             report.skip("locations")
             return
+        prior = self._partner_by_xmlid(partner_model, f"legacy_erp_address_{address_id}")
+        was_company = bool(prior and prior.is_company)
         partner = self._upsert(partner_model, f"legacy_erp_address_{address_id}", values, report, "locations")
+        if was_company and not partner.is_company:
+            # An old-shape site converted in place. Odoo copies the company's
+            # commercial fields (terms, accounts, fiscal position, credit
+            # limit) only when parent_id is written, which an unchanged parent
+            # never is, so the copy runs here: the parent wins (ADR-131).
+            partner.sudo()._commercial_sync_from_company()  # sudo: as Odoo _fields_sync, writes company-dependent properties
         partner_by_address[address_id] = partner.id
         self._sync_address_phones(partner, row)
 
@@ -482,6 +579,31 @@ class PlasticosErpImport(models.AbstractModel):
                 break
         if values:
             partner.write(values)
+
+    def _fill_sites_from_person(self, site_ids: list[int]) -> None:
+        """Fill a site's blank phone and email from its one linked person (ADR-131 D12).
+
+        Runs after the counterparty's people and their site links are stored.
+        A site linked to exactly one active person takes that person's phone
+        and email where its own is blank. A value the site already has is never
+        replaced, and a site with no person or with several is left as it is.
+        """
+        from ..erp import mapping
+
+        if not site_ids:
+            return
+        sites = self.env[RES_PARTNER].with_context(**IMPORT_CONTEXT).browse(sorted(set(site_ids))).exists()
+        for site in sites:
+            if not site._plasticos_is_site():
+                continue
+            people = site.site_person_ids
+            values = mapping.site_contact_fill(
+                site_phone=site.phone,
+                site_email=site.email,
+                people=[(person.phone, person.email) for person in people],
+            )
+            if values:
+                site.write(values)
 
     def _address_values(self, values: dict, row) -> None:
         """ERP: Addr2 is the street, Addr3 is the second street line."""
@@ -670,6 +792,10 @@ class PlasticosErpImport(models.AbstractModel):
                 report.review["ambiguous_contacts"].append(entry)
             if excluded_ids and not dry_run:
                 self._retire_inactive_contacts(Partner, excluded_ids, report)
+            if not dry_run:
+                self._fill_sites_from_person(
+                    [pid for pid in partner_by_address.values() if pid and pid != company_partner_id]
+                )
 
     def _route_channel_rows(self, partner_model, plan, company, index, report, dry_run: bool) -> None:
         """Rows that are no person: the channel lands on their one site, or on the company."""
@@ -751,9 +877,7 @@ class PlasticosErpImport(models.AbstractModel):
             ]
         )
         orphans = sorted(affected - {row.res_id for row in still_named})
-        people = (
-            partner_model.browse(orphans).exists().filtered(lambda partner: not partner.is_company and partner.active)
-        )
+        people = partner_model.browse(orphans).exists().filtered(lambda partner: _is_person(partner) and partner.active)
         for person in people:
             # What names the person moves first; a person whose records cannot move stays visible.
             if self._repoint_retired(person, report):
@@ -927,7 +1051,7 @@ class PlasticosErpImport(models.AbstractModel):
         if not data:
             return False
         partner = partner_model.browse(data.res_id).exists() if data.res_id else partner_model.browse()
-        if partner and not partner.is_company and partner.active and self._repoint_retired(partner, report):
+        if partner and _is_person(partner) and partner.active and self._repoint_retired(partner, report):
             partner.write({"active": False})
         data.unlink()
         return True
@@ -1244,7 +1368,7 @@ class PlasticosErpImport(models.AbstractModel):
         Before it is archived, the records that name it move to ``record``
         (:meth:`_repoint_superseded`); when one cannot move, it stays visible.
         """
-        if not superseded or superseded.id == record.id or superseded.is_company:
+        if not superseded or superseded.id == record.id or not _is_person(superseded):
             return
         if "phone_line_ids" in superseded._fields:
             self._sync_phone_lines(record, [(line.label, line.number) for line in superseded.phone_line_ids])
@@ -1571,6 +1695,18 @@ class PlasticosErpImport(models.AbstractModel):
 # ---------------------------------------------------------------------------
 # Module-level helpers
 # ---------------------------------------------------------------------------
+def _is_other_street(company, row) -> bool:
+    """True when the row has a street and the company already has a different one."""
+    company_street = (company.street or "").casefold()
+    row_street = _text(row, "Addr2").casefold()
+    return bool(row_street and company_street and row_street != company_street)
+
+
+def _is_person(partner) -> bool:
+    """A person partner: neither a company nor a site (either site shape)."""
+    return not partner.is_company and not partner._plasticos_is_site()
+
+
 def _text(row, column: str) -> str:
     return (row.get(column) or "").strip()
 

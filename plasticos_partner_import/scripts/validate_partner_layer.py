@@ -275,7 +275,7 @@ def check_addresses(env, failures: list[str]) -> None:
     people = (
         env["res.partner"]
         .with_context(active_test=False)
-        .search([("is_company", "=", False), ("parent_id", "!=", False)])
+        .search([("company_type", "=", "person"), ("parent_id", "!=", False)])
     )
     imported_people = people.filtered(lambda partner: partner.parent_id.id in _imported_companies(env).ids)
     if imported_people and not _replaying(env):
@@ -331,11 +331,16 @@ def check_addresses(env, failures: list[str]) -> None:
         _fail(failures, f"{want['park_name']} child with street {want['park_street']} is missing")
 
 
+def _is_person(partner) -> bool:
+    """A person: neither a company nor a site (either shape, ADR-131 predicate)."""
+    return not partner.is_company and not partner._plasticos_is_site()
+
+
 def _people_under(env, cp_id: str, name: str):
     company = _partner(env, f"legacy_erp_cp_{cp_id}")
     if not company:
         return env["res.partner"]
-    return company.child_ids.filtered(lambda partner: not partner.is_company and partner.name == name)
+    return company.child_ids.filtered(lambda partner: _is_person(partner) and partner.name == name)
 
 
 def _check_contact_sites(env, expect: dict, failures: list[str]) -> None:
@@ -384,7 +389,7 @@ def check_contacts(env, failures: list[str]) -> None:
     for person in (
         env["res.partner"]
         .with_context(active_test=False)
-        .search([("is_company", "=", False), ("parent_id", "in", companies.ids)])
+        .search([("company_type", "=", "person"), ("parent_id", "in", companies.ids)])
     ):
         if person.name and not mapping.is_person_name(person.name):
             _fail(failures, f"partner {person.id} name is only digits: {person.name}")
@@ -437,7 +442,7 @@ def check_contacts(env, failures: list[str]) -> None:
         _fail(failures, f"CpID {want['cp_id']} name is {tuckahoe.name if tuckahoe else 'missing'}")
     elif want["phone"] not in _digits(tuckahoe.phone or ""):
         _fail(failures, f"{want['name']} phone is {tuckahoe.phone}")
-    elif tuckahoe.child_ids.filtered(lambda partner: not partner.is_company):
+    elif tuckahoe.child_ids.filtered(_is_person):
         _fail(failures, f"{want['name']} has a person child")
 
 
