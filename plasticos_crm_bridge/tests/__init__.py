@@ -10,3 +10,4 @@ from . import test_web_lead_http_hot
 from . import test_opportunity_reach_contact
 from . import test_manual_offers
 from . import test_crm_lead_personal_intel_view
+from . import test_dock_rule_side

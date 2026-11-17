@@ -9,28 +9,27 @@ _logger = logging.getLogger(__name__)
 class PurchaseOrder(models.Model):
     _inherit = "purchase.order"
 
-    delivery_term = fields.Selection(
+    pickup_dock_rule = fields.Selection(
         [
             ("fcfs", "First Come First Served"),
             ("appointment", "Appointment Required"),
         ],
-        string="Delivery Term",
-        compute="_compute_delivery_term_from_transaction",
+        string="Pickup Dock Rule",
+        compute="_compute_pickup_dock_rule_from_transaction",
         store=True,
-        help="Delivery term from linked transaction.",
+        help="Pickup dock rule from the linked transaction. The purchase order has no delivery-side rule.",
     )
 
     @api.depends("origin")
-    def _compute_delivery_term_from_transaction(self):
-        """Compute delivery term from linked transaction.
+    def _compute_pickup_dock_rule_from_transaction(self):
+        """Copy the pickup dock rule from the transaction that contains this order.
 
-        Transactions are linked via purchase_order_ids Many2many, so we do
-        a reverse lookup to find the transaction that contains this PO.
+        Transactions are linked via purchase_order_ids Many2many, so this is a
+        reverse lookup. search() order is id, which is what limit=1 selected
+        when several transactions contain one purchase order. The first match wins.
         """
         po_tx = {}
         if self.ids:
-            # Membership stays purchase_order_ids. search() order is id, which
-            # is what limit=1 selected when several transactions contain one PO.
             transactions = self.env["plasticos.transaction"].search([("purchase_order_ids", "in", list(self.ids))])
             order_ids = set(self.ids)
             for tx in transactions:
@@ -39,7 +38,7 @@ class PurchaseOrder(models.Model):
                         po_tx.setdefault(po.id, tx)
         for order in self:
             tx = po_tx.get(order.id)
-            order.delivery_term = tx.delivery_term if tx else False
+            order.pickup_dock_rule = tx.pickup_dock_rule if tx else False
 
     def _origin_sale_orders(self):
         """Sale orders named by each purchase order's origin, per ``(company id, name)``."""

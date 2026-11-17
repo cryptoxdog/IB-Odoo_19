@@ -99,7 +99,12 @@ class PlasticosSalesDashboard(models.Model):
     trailer_number = fields.Char(string="Trailer #", readonly=True)
     delivery_term = fields.Selection(
         [("fcfs", "FCFS"), ("appointment", "Appointment")],
-        string="Delivery Term",
+        string="Delivery Dock Rule",
+        readonly=True,
+    )
+    pickup_dock_rule = fields.Selection(
+        [("fcfs", "FCFS"), ("appointment", "Appointment")],
+        string="Pickup Dock Rule",
         readonly=True,
     )
 
@@ -183,7 +188,8 @@ class PlasticosSalesDashboard(models.Model):
                 COALESCE(l.delivery_datetime, lc.latest_delivery) AS delivery_datetime,
                 COALESCE(l.delivered_at, lc.latest_delivered) AS delivered_at,
                 l.trailer_number                              AS trailer_number,
-                l.delivery_term                               AS delivery_term,
+                COALESCE(l.delivery_term, t.delivery_term)    AS delivery_term,
+                COALESCE(l.pickup_dock_rule, t.pickup_dock_rule) AS pickup_dock_rule,
                 COALESCE(rp.name, lc.carrier_names)           AS carrier_name
             FROM plasticos_transaction t
             LEFT JOIN (

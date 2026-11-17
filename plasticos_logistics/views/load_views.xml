@@ -232,7 +232,12 @@
                     </group>
 
                     <group>
-                        <group string="Delivery Terms">
+                        <group string="Dock Rules">
+                            <field name="pickup_dock_rule"/>
+                            <field name="pickup_dock_rule_overridden" invisible="1"/>
+                            <field name="pickup_dock_rule_override_reason"
+                                   invisible="not pickup_dock_rule_overridden"
+                                   required="pickup_dock_rule_overridden"/>
                             <field name="delivery_term"/>
                             <field name="delivery_term_overridden" invisible="1"/>
                             <field name="delivery_term_override_reason"
