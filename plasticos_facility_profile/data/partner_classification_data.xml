@@ -32,7 +32,9 @@
         <record id="plasticos_base.tag_needs_enrichment" model="res.partner.category">
             <field name="parent_id" ref="partner_category_status"/>
         </record>
+        <!-- Displayed as DNC; the record (external id) stays the one the logic keys on. -->
         <record id="plasticos_base.tag_do_not_contact" model="res.partner.category">
+            <field name="name">DNC</field>
             <field name="parent_id" ref="partner_category_status"/>
         </record>
         <record id="plasticos_base.tag_key_account" model="res.partner.category">

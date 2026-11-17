@@ -28,7 +28,7 @@ COMPANY_TYPE_NAMES = (
     "Exporter",
     "Toll Processor",
 )
-STATUS_NAMES = ("Needs Enrichment", "Do Not Contact", "Key Account", "Preferred Carrier")
+STATUS_NAMES = ("Needs Enrichment", "DNC", "Key Account", "Preferred Carrier")
 BUYER = "Buyer"
 SUPPLIER = "Supplier"
 TRADE_ROLE_NAMES = (BUYER, SUPPLIER)

@@ -145,7 +145,7 @@ def test_a_tag_under_another_parent_is_left_where_it_is():
 def test_the_classification_names():
     assert len(CL.COMPANY_TYPE_NAMES) == len(set(CL.COMPANY_TYPE_NAMES)) == 12
     assert CL.TRADE_ROLE_NAMES == ("Buyer", "Supplier")
-    assert set(CL.STATUS_NAMES) == {"Needs Enrichment", "Do Not Contact", "Key Account", "Preferred Carrier"}
+    assert set(CL.STATUS_NAMES) == {"Needs Enrichment", "DNC", "Key Account", "Preferred Carrier"}
     crm_names = {
         node.findtext("field[@name='name']")
         for node in ET.parse(ROOT / "plasticos_crm_bridge/data/partner_category_data.xml").iter("record")
@@ -157,7 +157,8 @@ def test_the_classification_names():
     # Every Company Type name already exists in crm_bridge or base: re-parented, not created again.
     assert set(CL.COMPANY_TYPE_NAMES) <= crm_names | base_names
     assert set(CL.TRADE_ROLE_NAMES) <= crm_names
-    assert set(CL.STATUS_NAMES) <= base_names
+    # DNC is plasticos_base "Do Not Contact" renamed in place (same record, same external id).
+    assert set(CL.STATUS_NAMES) - {"DNC"} | {"Do Not Contact"} <= base_names
 
 
 # ── Wiring ──────────────────────────────────────────────────────────────
@@ -193,6 +194,8 @@ def test_base_tags_join_the_groups_on_every_upgrade():
     }
     groups = {record.get("id") for record in root.iter("record") if "." not in record.get("id")}
     assert groups == {"partner_category_company_type", "partner_category_trade_role", "partner_category_status"}
+    dnc = root.find(".//record[@id='plasticos_base.tag_do_not_contact']")
+    assert dnc.findtext("field[@name='name']") == "DNC"
     assert root.find(".//function[@name='_plasticos_ensure_classification_tags']") is not None
 
 

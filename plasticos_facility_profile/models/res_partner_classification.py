@@ -10,7 +10,7 @@ The one owner of three rules:
   Company Type tags, and its sites get its Trade Role tags. Every other tag a
   child carries (ERP Contact Role, Status, ...) is left as it is. Child writes
   carry a context key, so they do not mirror again.
-* **Do Not Contact.** When the Status tag Do Not Contact is set on a record, its
+* **DNC.** When the Status tag DNC (``plasticos_base.tag_do_not_contact``) is set on a record, its
   email address(es) go to ``mail.blacklist`` and its phone numbers to
   ``phone.blacklist`` (when ``phone_validation`` is installed). Nothing is ever
   removed from a blacklist here.
@@ -64,16 +64,16 @@ class ResPartner(models.Model):
                 if target != current:
                     child.write({"category_id": [Command.set(sorted(target))]})
 
-    # ── Do Not Contact -> blacklists ────────────────────────────────────
+    # ── DNC -> blacklists ────────────────────────────────────
     def _plasticos_blacklist_contact_points(self):
-        # The blacklists are restricted to mail/phone admins; tagging Do Not Contact must still record it.
+        # The blacklists are restricted to mail/phone admins; tagging DNC must still record it.
         mail_blacklist = self.env["mail.blacklist"].sudo()  # sudo: blacklist ACL is admin-only; add-only use here
         phone_blacklist = (
             self.env["phone.blacklist"].sudo()  # sudo: blacklist ACL is admin-only; add-only use here
             if "phone.blacklist" in self.env
             else None
         )
-        message = self.env._("Added by PlasticOS: the contact is tagged Do Not Contact.")
+        message = self.env._("Added by PlasticOS: the contact is tagged DNC.")
         for partner in self:
             for email in tools.email_split(partner.email or ""):
                 if tools.email_normalize(email):
