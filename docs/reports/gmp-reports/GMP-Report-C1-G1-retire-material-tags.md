@@ -85,6 +85,26 @@ that still exists:
   new test file.
 - Not touched: `partner_tags.xml` and every other module.
 
+## Remediation (operator 2026-11-17)
+
+The same migration (`19.0.1.1.15`, unreleased) also retires 14 more records:
+
+- **From `partner_tags.xml`:** Needs Enrichment, Key Account and Preferred Carrier.
+- **The Material Focus group and its 10 tags:** Pallets, HDPE Drums, AG Film, LDPE Film, Baled PET, Baled HDPE, Mixed Rigid, PP Supersacks, PVC Pipe, Stretch Wrap / Pallet Film.
+
+Facts and reasons:
+
+- Production probe 2 shows 0 partners on each.
+- Enrichment chooses its targets by its own policy, logistics uses the carrier and rate history, and Key Account is replaced by the Status tag "Current".
+- No code reads these records by external id or by name; I searched the repo.
+
+What stays:
+
+- The Operational group keeps only Do Not Contact.
+- Exporter and Toll Processor are not touched. They are Company Types (D25), and #525 moves them.
+
+Test: `partner_tags.xml` now holds exactly the Operational group, Do Not Contact, Exporter and Toll Processor, and the migration names all 122 retired records once.
+
 ## Phase 6 — Finalize
 
 Residual risk: none for Production data, since usage is 0. A database where

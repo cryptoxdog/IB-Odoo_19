@@ -43,10 +43,29 @@ def test_taxonomy_file_is_gone_and_not_loaded():
     assert manifest["version"] == "19.0.1.1.15"
 
 
-def test_migration_names_the_108_retired_tags_once():
+PARTNER_TAGS_RETIRED = (
+    "tag_needs_enrichment",
+    "tag_key_account",
+    "tag_preferred_carrier",
+    "category_material_focus",
+    "tag_mf_pallets",
+    "tag_mf_hdpe_drums",
+    "tag_mf_ag_film",
+    "tag_mf_ldpe_film",
+    "tag_mf_baled_pet",
+    "tag_mf_baled_hdpe",
+    "tag_mf_mixed_rigid",
+    "tag_mf_pp_supersacks",
+    "tag_mf_pvc_pipe",
+    "tag_mf_stretch_wrap",
+)
+
+
+def test_migration_names_the_108_taxonomy_and_14_partner_tags_once():
     ids = _retired_ids()
-    assert len(ids) == 108
-    assert len(set(ids)) == 108
+    assert len(ids) == 108 + len(PARTNER_TAGS_RETIRED)
+    assert len(set(ids)) == len(ids)
+    assert set(PARTNER_TAGS_RETIRED) <= set(ids)
     for group in (
         "category_polymers",
         "category_material_types",
@@ -69,9 +88,11 @@ def test_migration_removes_only_plasticos_base_partner_tags():
     assert source.index("res_partner_res_partner_category_rel") < source.index("tags.unlink()")
 
 
-def test_operational_and_material_focus_tags_are_untouched():
+def test_partner_tags_keep_only_do_not_contact_and_the_two_company_types():
     kept = set(re.findall(r'id="([^"]+)"', (BASE / "data" / "partner_tags.xml").read_text(encoding="utf-8")))
-    assert {"category_operational", "category_material_focus"} <= kept
+    # Operational keeps only Do Not Contact. Exporter and Toll Processor stay as records for
+    # plasticos_facility_profile to move into Company Type (operator D25); this PR does not touch them.
+    assert kept == {"category_operational", "tag_do_not_contact", "tag_exporter", "tag_toll_processor"}
     assert not kept & set(_retired_ids())
 
 

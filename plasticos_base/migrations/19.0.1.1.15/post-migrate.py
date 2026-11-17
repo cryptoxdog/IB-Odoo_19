@@ -1,4 +1,4 @@
-"""Retire the material-taxonomy partner tags (C1 lane G1).
+"""Retire the material-taxonomy and unused operational partner tags (C1 lane G1).
 
 ``data/material_taxonomy.xml`` loaded 108 ``res.partner.category`` records
 (groups Polymers, Material Types, Forms, Source Types, Colors, Grades) that
@@ -6,11 +6,17 @@ copied the material vocabulary owned by ``plasticos_material_profile``. No code
 read them. 19.0.1.1.15 stops loading the file; this removes the records by their
 ``plasticos_base`` external ids, which also removes their links from partners.
 
+Operator 2026-11-17 adds the Material Focus group and its 10 tags, and the
+Needs Enrichment, Key Account and Preferred Carrier tags of ``partner_tags.xml``
+(Production holds 0 partners on each). Enrichment chooses its targets by its own
+policy, logistics uses the carrier and rate history, and Key Account is replaced
+by the Status tag "Current".
+
 Before removal it logs, per tag, how many partners carried it (archived partners
 and archived tags included). Only records whose external id is in
-``RETIRED_TAG_XMLIDS`` under module ``plasticos_base`` are removed; the
-Operational and Material Focus tags of ``partner_tags.xml`` are untouched. A
-second run finds nothing and changes nothing.
+``RETIRED_TAG_XMLIDS`` under module ``plasticos_base`` are removed. Kept in
+``partner_tags.xml``: the Operational group with Do Not Contact, and Exporter
+and Toll Processor (Company Types). A second run finds nothing and changes nothing.
 """
 
 import logging
@@ -131,6 +137,21 @@ RETIRED_TAG_XMLIDS = (
     "material_type_with_metal",
     "material_type_with_print",
     "material_type_reusable",
+    # partner_tags.xml (operator 2026-11-17)
+    "tag_needs_enrichment",
+    "tag_key_account",
+    "tag_preferred_carrier",
+    "category_material_focus",
+    "tag_mf_pallets",
+    "tag_mf_hdpe_drums",
+    "tag_mf_ag_film",
+    "tag_mf_ldpe_film",
+    "tag_mf_baled_pet",
+    "tag_mf_baled_hdpe",
+    "tag_mf_mixed_rigid",
+    "tag_mf_pp_supersacks",
+    "tag_mf_pvc_pipe",
+    "tag_mf_stretch_wrap",
 )
 
 
