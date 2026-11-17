@@ -411,7 +411,7 @@ class PlasticosErpImport(models.AbstractModel):
                 continue
             if partner.type in SITE_ADDRESS_TYPES:
                 partner.write({"is_company": False})
-                partner.sudo()._commercial_sync_from_company()
+                partner.sudo()._commercial_sync_from_company()  # sudo: as Odoo _fields_sync, writes company-dependent properties
                 _logger.info(
                     "ERP import: converted unmarked old-shape site %s to a native %s address", partner.id, partner.type
                 )
@@ -467,7 +467,7 @@ class PlasticosErpImport(models.AbstractModel):
             # commercial fields (terms, accounts, fiscal position, credit
             # limit) only when parent_id is written, which an unchanged parent
             # never is, so the copy runs here: the parent wins (ADR-131).
-            partner.sudo()._commercial_sync_from_company()
+            partner.sudo()._commercial_sync_from_company()  # sudo: as Odoo _fields_sync, writes company-dependent properties
         partner_by_address[address_id] = partner.id
         self._sync_address_phones(partner, row)
 
