@@ -58,6 +58,7 @@ class ResPartnerCategory(models.Model):
         """
         module = self.env["ir.module.module"].search([("name", "=", CRM_BRIDGE)], limit=1)
         bridge = module.state in BRIDGE_LOADING_STATES
+        to_create = []
         for xmlid, names in GROUPS.items():
             group = self.env.ref(xmlid, raise_if_not_found=False)
             if not group:
@@ -67,8 +68,8 @@ class ResPartnerCategory(models.Model):
             reparent, missing = reparent_plan(rows, group.id, names)
             if reparent:
                 self.browse(reparent).write({"parent_id": group.id})
-            if missing and not bridge:
-                self.create([{"name": name, "parent_id": group.id} for name in missing])
+            if not bridge:
+                to_create.extend({"name": name, "parent_id": group.id} for name in missing)
             _logger.info(
                 "%s tags: %d moved into the group, %d created, %d left to %s",
                 group.name,
@@ -77,3 +78,5 @@ class ResPartnerCategory(models.Model):
                 len(missing) if bridge else 0,
                 CRM_BRIDGE,
             )
+        if to_create:
+            self.create(to_create)

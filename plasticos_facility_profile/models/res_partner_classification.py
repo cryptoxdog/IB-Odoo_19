@@ -66,8 +66,13 @@ class ResPartner(models.Model):
 
     # ── Do Not Contact -> blacklists ────────────────────────────────────
     def _plasticos_blacklist_contact_points(self):
-        mail_blacklist = self.env["mail.blacklist"].sudo()
-        phone_blacklist = self.env["phone.blacklist"].sudo() if "phone.blacklist" in self.env else None
+        # The blacklists are restricted to mail/phone admins; tagging Do Not Contact must still record it.
+        mail_blacklist = self.env["mail.blacklist"].sudo()  # sudo: blacklist ACL is admin-only; add-only use here
+        phone_blacklist = (
+            self.env["phone.blacklist"].sudo()  # sudo: blacklist ACL is admin-only; add-only use here
+            if "phone.blacklist" in self.env
+            else None
+        )
         message = self.env._("Added by PlasticOS: the contact is tagged Do Not Contact.")
         for partner in self:
             for email in tools.email_split(partner.email or ""):
