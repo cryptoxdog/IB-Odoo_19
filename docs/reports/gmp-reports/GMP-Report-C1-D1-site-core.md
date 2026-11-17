@@ -83,6 +83,14 @@ Two deviations from the assignment, made so a chosen Contact type round-trips:
   `tests/`, updated because the operator-approved labels and view conditions changed.
 - No file of any other module was changed.
 
+## Remediation (operator 2026-11-17)
+
+- **New label:** a site of a company that is both buyer and supplier now shows one label, "Pick-Up / Delivery Address". The company here is the parent's commercial entity, with `customer_rank > 0` and `supplier_rank > 0`.
+- **Order of rules:** a PICK-UP source label still wins, and an invoice site stays "Mailing Address".
+- **Code:** `address_type_meaning(..., buyer_and_supplier=)` takes the new input, and `_compute_address_type_meaning` reads the company's ranks.
+- **Version:** 19.0.5.4.18.
+- **Tests:** in `tests/test_partner_site_core.py`.
+
 ## Phase 6 — Finalize
 
 Residual risk:
