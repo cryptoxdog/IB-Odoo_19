@@ -558,7 +558,8 @@ def test_person_with_one_linked_site_puts_all_three_materials_on_the_site(materi
 
     assert _parse_material_sections(fields)[""]["phrases"] == ["MRP", "LDPE", "PP Supersacs"]
     orch._apply_resolved_approved_materials(_MaterialLead(person), fields)
-    assert [call.id for call in calls] == [sites[0].id]  # every phrase of the call lands on the site, none on the person
+    # Every phrase of the call lands on the site, none on the person.
+    assert [call.id for call in calls] == [sites[0].id]
     assert not orch.error_rows
 
 
