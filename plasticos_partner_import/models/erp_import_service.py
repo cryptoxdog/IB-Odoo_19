@@ -347,11 +347,28 @@ class PlasticosErpImport(models.AbstractModel):
             if canonical_id:
                 ordered.append(next(pair for pair in billing_rows if pair[0] == canonical_id))
             ordered.extend(pair for pair in (*billing_rows, *location_rows) if pair[0] != canonical_id)
+            site_rows = []
             for address_id, row in ordered:
                 if dry_run:
                     report.skip("locations")
                     continue
                 if parent and (address_id == canonical_id or _same_party_name(_text(row, "Addr1"), parent_name)):
+                    if address_id != canonical_id and _is_other_street(parent, row):
+                        # A site that carries the company's name (F12). It is a
+                        # location only: its street never fills the company.
+                        site_rows.append(row)
+                        self._create_location(
+                            Partner,
+                            row,
+                            address_id,
+                            parent.id,
+                            parent_name,
+                            partner_by_address,
+                            report,
+                            dry_run,
+                            child_name=_location_title(row, parent_name),
+                        )
+                        continue
                     wrote = self._apply_billing_address(parent, row)
                     company_street = (parent.street or "").casefold()
                     row_street = _text(row, "Addr2").casefold()
@@ -376,13 +393,35 @@ class PlasticosErpImport(models.AbstractModel):
                         self._ensure_identity_marker(Partner, f"legacy_erp_address_{address_id}", parent)
                         report.bump("locations", "updated" if wrote else "skipped")
                     continue
+                site_rows.append(row)
                 self._create_location(
                     Partner, row, address_id, parent_id, parent_name, partner_by_address, report, dry_run
                 )
+            if parent and canonical_id and not dry_run:
+                canonical_row = next(row for address_id, row in billing_rows if address_id == canonical_id)
+                self._clear_leaked_site_street(parent, canonical_row, site_rows)
 
         if not dry_run:
             self._convert_unmarked_sites(Partner)
         return partner_by_address
+
+    def _clear_leaked_site_street(self, company, canonical_row, site_rows: list) -> None:
+        """Remove a site street an earlier run wrote into the company's street2 (F12).
+
+        Before F12 a site row that carries the company's name filled the
+        company's blank street2 from its own Addr3. The company's address is
+        its canonical billing row, so when that row has no Addr3 and street2
+        equals a street of one of the company's sites, street2 is that leak
+        and is cleared. Any other street2 is kept.
+        """
+        current = (company.street2 or "").strip().casefold()
+        if not current or _text(canonical_row, "Addr3"):
+            return
+        site_streets = {
+            _text(row, column).casefold() for row in site_rows for column in ("Addr2", "Addr3") if _text(row, column)
+        }
+        if current in site_streets:
+            company.write({"street2": False})
 
     def _convert_unmarked_sites(self, partner_model) -> None:
         """Convert an old-shape site that no ERP AddressID names (ADR-131).
@@ -1473,6 +1512,13 @@ class PlasticosErpImport(models.AbstractModel):
 # ---------------------------------------------------------------------------
 # Module-level helpers
 # ---------------------------------------------------------------------------
+def _is_other_street(company, row) -> bool:
+    """True when the row has a street and the company already has a different one."""
+    company_street = (company.street or "").casefold()
+    row_street = _text(row, "Addr2").casefold()
+    return bool(row_street and company_street and row_street != company_street)
+
+
 def _is_person(partner) -> bool:
     """A person partner: neither a company nor a site (either site shape)."""
     return not partner.is_company and not partner._plasticos_is_site()

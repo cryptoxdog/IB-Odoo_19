@@ -333,3 +333,116 @@ def test_an_unmarked_old_shape_site_is_converted_and_other_company_children_are_
     assert marked.is_company is True, "a marked site is converted by its own address row"
     assert f"converted unmarked old-shape site {unmarked_site.id}" in caplog.text
     assert f"left company child {division.id}" in caplog.text
+
+
+# 6 F12 --------------------------------------------------------------------
+_ADDRESS_FIELDS = {
+    **contract._PARTNER_FIELDS,
+    **{name: types.SimpleNamespace(type="char") for name in ("street", "street2", "city", "zip")},
+    **{name: types.SimpleNamespace(type="many2one") for name in ("country_id", "state_id")},
+}
+
+
+class _AddressPartner(contract._Partner):
+    _fields = _ADDRESS_FIELDS
+
+    def __init__(self, rec_id, vals):
+        self.street = self.street2 = self.city = self.zip = False
+        self.country_id = self.state_id = False
+        super().__init__(rec_id, vals)
+
+
+class _AddressPartners(_SearchablePartners):
+    _fields = _ADDRESS_FIELDS
+
+    def create(self, vals):
+        record = _AddressPartner(len(self.rows) + 1, vals)
+        record._model = self
+        self.rows[record.id] = record
+        return record
+
+
+def _f12_run(partners, markers, company, rows):
+    _module, service = _service(partners, markers)
+    index = types.SimpleNamespace(
+        addresses={row["AddressID"]: row for row in rows},
+        addresses_by_cp={"C1": [row["AddressID"] for row in rows]},
+    )
+    return service._import_addresses(index, ImportReport(), {"C1": company.id}, dry_run=False)
+
+
+def _f12_rows():
+    remit = {
+        "AddressID": "B1",
+        "CpID": "C1",
+        "Type": "PRIMARY",
+        "Addr1": "SYNTHETIC RECYCLING",
+        "Addr2": "P.O. Box 100",
+        "Addr3": "",
+        "City": "Billtown",
+        "InvoiceAddr": "Y",
+    }
+    # A site row that carries the company's name, with its street in Addr3.
+    site = {
+        "AddressID": "S1",
+        "CpID": "C1",
+        "Type": "HARBOR, VA",
+        "Addr1": "SYNTHETIC RECYCLING",
+        "Addr2": "Plant Gate",
+        "Addr3": "1 Harbor Rd",
+        "City": "Harbor",
+        "InvoiceAddr": "N",
+    }
+    return remit, site
+
+
+def test_f12_a_site_named_like_its_company_never_fills_the_company_address():
+    partners, markers = _AddressPartners(), contract._MarkerModel()
+    company = partners.create({"name": "Synthetic Recycling", "is_company": True})
+    remit, site_row = _f12_rows()
+
+    by_address = _f12_run(partners, markers, company, [remit, site_row])
+
+    assert company.street == "P.O. Box 100"
+    assert company.street2 is False, "the site's street is not the company's"
+    assert company.city == "Billtown"
+    site = partners.rows[by_address["S1"]]
+    assert site.id != company.id and site.parent_id == company.id
+    assert site.street == "Plant Gate" and site.street2 == "1 Harbor Rd" and site.city == "Harbor"
+
+
+def test_f12_a_replay_removes_a_site_street_an_earlier_run_leaked_into_the_company():
+    partners, markers = _AddressPartners(), contract._MarkerModel()
+    company = partners.create({"name": "Synthetic Recycling", "is_company": True})
+    remit, site_row = _f12_rows()
+    _f12_run(partners, markers, company, [remit, site_row])
+    company.street2 = "1 Harbor Rd"  # what the pre-F12 importer wrote
+
+    _f12_run(partners, markers, company, [remit, site_row])
+
+    assert company.street2 is False
+    assert company.street == "P.O. Box 100"
+
+
+def test_f12_a_company_street2_that_is_no_site_street_is_kept():
+    partners, markers = _AddressPartners(), contract._MarkerModel()
+    company = partners.create({"name": "Synthetic Recycling", "is_company": True})
+    remit, site_row = _f12_rows()
+    _f12_run(partners, markers, company, [remit, site_row])
+    company.street2 = "Suite 4"
+
+    _f12_run(partners, markers, company, [remit, site_row])
+
+    assert company.street2 == "Suite 4"
+
+
+def test_f12_a_same_address_row_still_folds_into_the_company():
+    partners, markers = _AddressPartners(), contract._MarkerModel()
+    company = partners.create({"name": "Synthetic Recycling", "is_company": True})
+    remit, _site_row = _f12_rows()
+    same = {**remit, "AddressID": "B2", "InvoiceAddr": "N", "Type": "MAIN", "Addr3": "Dock 2"}
+
+    by_address = _f12_run(partners, markers, company, [remit, same])
+
+    assert by_address["B2"] == company.id, "same street: the company itself"
+    assert company.street2 == "Dock 2", "a blank company value is still filled from its own address"

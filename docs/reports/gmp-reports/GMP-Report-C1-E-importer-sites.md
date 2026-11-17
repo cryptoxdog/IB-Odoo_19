@@ -20,6 +20,8 @@ Branch `feat/c1-e-importer-sites` from `origin/fix/c1-erp-contact-identity` (#52
 | 10 | `models/erp_import_service.py` `_create_location` | Insert | A site converted in place calls Odoo's `_commercial_sync_from_company()`, so it takes the company's commercial values (`credit_limit`, payment terms, accounts, fiscal position). Odoo 19 copies them only when `parent_id` is written, and an unchanged parent never is. Operator decision: the parent wins, and no site credit limit is copied anywhere (908 differ in Production). |
 | 11 | `models/erp_import_service.py` `_convert_unmarked_sites` (new) | Insert | After the address stage, a company child with no `legacy_erp_address_*` marker becomes a native address when its `type` is delivery or invoice, otherwise it is left as a company. Each case is logged by id. Production holds exactly one such record. |
 
+| 12 | `models/erp_import_service.py` `_import_addresses`, `_clear_leaked_site_street` (new), `_is_other_street` (new) | Replace / Insert | F12: a site row whose `Addr1` equals the company name, or is blank, was passed to `_apply_billing_address`, which filled the company's blank `street2` from the site's `Addr3`. Example: a counterparty whose canonical remit is a P.O. Box with an empty `Addr3`, and a site row `Addr1` = company name, `Addr2` = "AMP", `Addr3` = the site street (read in the frozen grid, `Address.csv` AddressID 405699). Such a row with a street different from the company's now becomes a site only. On replay, a company `street2` that equals a site street, when the canonical row has no `Addr3`, is cleared. Any other `street2` is kept. |
+
 `_copied_role` is unchanged: a site still takes the parent's ranks, Company Role and role tags. With `is_company` False, Odoo now also syncs the commercial fields from the parent, as ADR-131 intends.
 
 ## Phase 1 — Baseline
@@ -35,7 +37,7 @@ As planned. Not touched: `wizards/partner_import_wizard.py` `action_view_partner
 
 - `ruff 0.16.0` format + check: clean.
 - `python3 scripts/check_module_wiring.py`: passed.
-- `tests/test_c1_importer_sites.py`: 22 passed (adds: converted site takes the company credit limit and re-syncs only once; unmarked company child converted or left, each logged).
+- `tests/test_c1_importer_sites.py`: 26 passed (F12: a site named like its company never fills the company address; a replay clears a leaked site street; another street2 is kept; a same-address row still folds. The first two fail on the pre-F12 code.) Earlier count: 22 passed (adds: converted site takes the company credit limit and re-syncs only once; unmarked company child converted or left, each logged).
 - Fixture fix in `tests/test_erp_import_contract.py` / `tests/test_erp_contact_identity.py`: their fake `res.partner` lacked `_plasticos_is_site()`, `site_person_ids`, `sudo()` and `_commercial_sync_from_company()`. The real model has both through the `plasticos_facility_profile` dependency. The fakes now mirror D1's predicate and the site–person link. No assertion changed. Before the fix 7 tests errored with `AttributeError`. After it, the import-contract, contact-identity, source-layer, site-core, contact-hierarchy and mapping-status suites pass (253).
 - Full `pytest tests/`: see the commit's PR evidence.
 - Not run: Odoo runtime / Enterprise install-smoke (Cursor lane T). `plasticos_partner_import/tests/test_validation_query_scope.py` (Odoo runtime) still creates old-shape sites, and the D1 domain still matches them.
