@@ -241,10 +241,11 @@ def test_csv_importer_writes_sites_in_the_native_shape():
     assert text.count('"company_type": "site"') == 2
 
 
-def test_validation_audit_reads_sites_through_the_d1_domain():
+def test_validation_audit_uses_the_company_child_predicate():
+    """A site is company_type ``site``. The missing-role report lists company children only."""
     text = _source(VALIDATION)
-    assert "_plasticos_site_domain()" in text
-    assert '("company_type", "=", "company"),\n                ("parent_id", "!=", False)' not in text
+    compact = " ".join(text.split())
+    assert '("company_type", "=", "company"), ("parent_id", "!=", False)' in compact
 
 
 def test_bulk_wizard_and_layer_validator_use_the_d1_predicate():

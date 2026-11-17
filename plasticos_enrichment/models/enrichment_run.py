@@ -874,7 +874,7 @@ class EnrichmentRun(models.Model):
             if run:
                 run.write(vals)
             return
-        cursor.rollback()
+        self.env.cr.rollback()
         self._persist_operator_state_durable(run_id, vals)
 
     def _persist_operator_state_durable(self, run_id, vals):
