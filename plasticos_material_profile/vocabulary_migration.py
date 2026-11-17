@@ -231,37 +231,34 @@ def _profile_texts(cr, profiles: list[dict]) -> dict:
     return texts
 
 
+_LINE_SQL = {
+    "purchase_order_line": """
+        SELECT material_profile_id, name
+          FROM purchase_order_line
+         WHERE material_profile_id IS NOT NULL
+           AND name IS NOT NULL
+    """,
+    "sale_order_line": """
+        SELECT material_profile_id, name
+          FROM sale_order_line
+         WHERE material_profile_id IS NOT NULL
+           AND name IS NOT NULL
+    """,
+    "account_move_line": """
+        SELECT material_profile_id, name
+          FROM account_move_line
+         WHERE material_profile_id IS NOT NULL
+           AND name IS NOT NULL
+    """,
+}
+
+
 def _append_line_names(cr, table: str, texts: dict) -> None:
-    """Read product-line names. The table is one of three literals, never interpolated."""
-    if table == "purchase_order_line":
-        cr.execute(
-            """
-            SELECT material_profile_id, name
-              FROM purchase_order_line
-             WHERE material_profile_id IS NOT NULL
-               AND name IS NOT NULL
-            """
-        )
-    elif table == "sale_order_line":
-        cr.execute(
-            """
-            SELECT material_profile_id, name
-              FROM sale_order_line
-             WHERE material_profile_id IS NOT NULL
-               AND name IS NOT NULL
-            """
-        )
-    elif table == "account_move_line":
-        cr.execute(
-            """
-            SELECT material_profile_id, name
-              FROM account_move_line
-             WHERE material_profile_id IS NOT NULL
-               AND name IS NOT NULL
-            """
-        )
-    else:
+    """Read product-line names. The statement is a literal chosen from a fixed map."""
+    statement = _LINE_SQL.get(table)
+    if not statement:
         return
+    cr.execute(statement)
     for profile_id, name in cr.fetchall():
         texts.setdefault(profile_id, []).append(name or "")
 
@@ -277,42 +274,40 @@ def _attribute_link(cr) -> tuple[str, str, str] | None:
     return None
 
 
+_ATTRIBUTE_LINK_SQL = {
+    "plasticos_material_attribute_plasticos_material_profile_rel": """
+        INSERT INTO plasticos_material_attribute_plasticos_material_profile_rel (
+            plasticos_material_profile_id, plasticos_material_attribute_id
+        )
+        SELECT %s, %s
+         WHERE NOT EXISTS (
+            SELECT 1
+              FROM plasticos_material_attribute_plasticos_material_profile_rel
+             WHERE plasticos_material_profile_id = %s
+               AND plasticos_material_attribute_id = %s
+         )
+    """,
+    "plasticos_material_profile_plasticos_material_attribute_rel": """
+        INSERT INTO plasticos_material_profile_plasticos_material_attribute_rel (
+            plasticos_material_profile_id, plasticos_material_attribute_id
+        )
+        SELECT %s, %s
+         WHERE NOT EXISTS (
+            SELECT 1
+              FROM plasticos_material_profile_plasticos_material_attribute_rel
+             WHERE plasticos_material_profile_id = %s
+               AND plasticos_material_attribute_id = %s
+         )
+    """,
+}
+
+
 def _link_repro_attribute(cr, table: str, profile_id: int, attribute_id: int) -> None:
-    """Attach attr_repro once. The relation name is one of two literals."""
-    params = (profile_id, attribute_id, profile_id, attribute_id)
-    if table == "plasticos_material_attribute_plasticos_material_profile_rel":
-        cr.execute(
-            """
-            INSERT INTO plasticos_material_attribute_plasticos_material_profile_rel (
-                plasticos_material_profile_id, plasticos_material_attribute_id
-            )
-            SELECT %s, %s
-             WHERE NOT EXISTS (
-                SELECT 1
-                  FROM plasticos_material_attribute_plasticos_material_profile_rel
-                 WHERE plasticos_material_profile_id = %s
-                   AND plasticos_material_attribute_id = %s
-             )
-            """,
-            params,
-        )
+    """Attach attr_repro once. The statement is a literal chosen from a fixed map."""
+    statement = _ATTRIBUTE_LINK_SQL.get(table)
+    if not statement:
         return
-    if table == "plasticos_material_profile_plasticos_material_attribute_rel":
-        cr.execute(
-            """
-            INSERT INTO plasticos_material_profile_plasticos_material_attribute_rel (
-                plasticos_material_profile_id, plasticos_material_attribute_id
-            )
-            SELECT %s, %s
-             WHERE NOT EXISTS (
-                SELECT 1
-                  FROM plasticos_material_profile_plasticos_material_attribute_rel
-                 WHERE plasticos_material_profile_id = %s
-                   AND plasticos_material_attribute_id = %s
-             )
-            """,
-            params,
-        )
+    cr.execute(statement, (profile_id, attribute_id, profile_id, attribute_id))
 
 
 def _attribute_id(cr, xml_name: str):
