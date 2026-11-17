@@ -199,3 +199,32 @@ def test_material_profile_section_shows_on_sites():
     assert 'ref="plasticos_material_profile.view_partner_form_material_tab"' in PARTNER_UX
     section = PARTNER_UX[PARTNER_UX.index("partner_form_material_profile_sites") :]
     assert section.count("company_type == 'person'") == 3
+
+
+@pytest.mark.parametrize("role", ("supplier", "buyer", "carrier", None))
+def test_buyer_and_supplier_company_site_is_pick_up_and_delivery(role):
+    meaning = AM.address_type_meaning(
+        "delivery", is_company=False, company_role=role, source_label=None, site=True, buyer_and_supplier=True
+    )
+    assert meaning == "Pick-Up / Delivery Address"
+
+
+def test_pick_up_source_label_still_wins_for_a_buyer_and_supplier_company():
+    meaning = AM.address_type_meaning(
+        "delivery", is_company=True, company_role=None, source_label="PICK-UP", site=True, buyer_and_supplier=True
+    )
+    assert meaning == "Pick-Up Address"
+
+
+def test_invoice_site_of_a_buyer_and_supplier_company_stays_mailing():
+    meaning = AM.address_type_meaning(
+        "invoice", is_company=False, company_role=None, source_label=None, site=True, buyer_and_supplier=True
+    )
+    assert meaning == "Mailing Address"
+
+
+def test_company_itself_is_not_relabelled_by_both_ranks():
+    meaning = AM.address_type_meaning(
+        "contact", is_company=True, company_role=None, source_label=None, buyer_and_supplier=True
+    )
+    assert meaning == "This record is the company itself."

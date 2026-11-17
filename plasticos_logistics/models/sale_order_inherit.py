@@ -1,5 +1,6 @@
-from odoo import fields, models
+from odoo import api, fields, models
 
+from .delivery_address_default import HistoryRow, last_used_delivery, latest_row_per_customer
 from .linda_request import LINDA_MODE_LIVE, MATERIAL_SO_FIELDS
 
 LOGISTICS_REQUEST = "plasticos.logistics.request"
@@ -16,6 +17,57 @@ class SaleOrderInherit(models.Model):
         readonly=True,
         help="Order-scoped Linda issuance evidence for this sale order.",
     )
+
+    @api.depends("partner_id")
+    def _compute_partner_shipping_id(self):
+        """Default the delivery address to the customer's last-used one (C1 operator decision).
+
+        Native Odoo 19 computes ``partner_shipping_id`` (stored, editable,
+        precomputed) from ``partner_id.address_get(['delivery'])``. This keeps that
+        result unless the customer's most recent non-cancelled order carries an
+        active delivery address of the same commercial partner and a compatible
+        company. A value given explicitly at create, or chosen by the user, is
+        never recomputed here: the compute only runs when the customer changes.
+        History is read with one search for the whole batch.
+        """
+        super()._compute_partner_shipping_id()
+        orders = self.filtered("partner_id")
+        if not orders:
+            return
+        commercial_ids = orders.partner_id.commercial_partner_id.ids
+        own_ids = [order_id for order_id in self._origin.ids if order_id]
+        domain = [
+            ("partner_id.commercial_partner_id", "in", commercial_ids),
+            ("state", "!=", ORDER_CANCEL),
+        ]
+        if own_ids:
+            domain.append(("id", "not in", own_ids))
+        history = self.env["sale.order"].search_fetch(
+            domain,
+            ["partner_id", "partner_shipping_id", "date_order"],
+            order="date_order desc, id desc",
+            limit=1 if len(commercial_ids) == 1 else None,
+        )
+        rows = (
+            HistoryRow(
+                commercial_partner_id=prior.partner_id.commercial_partner_id.id,
+                shipping_id=prior.partner_shipping_id.id,
+                shipping_active=bool(prior.partner_shipping_id.active),
+                shipping_commercial_partner_id=prior.partner_shipping_id.commercial_partner_id.id,
+                shipping_company_id=prior.partner_shipping_id.company_id.id or None,
+            )
+            for prior in history
+        )
+        latest = latest_row_per_customer(rows, commercial_ids)
+        shipping_model = self.env["res.partner"]
+        for order in orders:
+            shipping_id = last_used_delivery(
+                order.partner_id.commercial_partner_id.id,
+                order.company_id.id or None,
+                latest,
+            )
+            if shipping_id:
+                order.partner_shipping_id = shipping_model.browse(shipping_id)
 
     def action_create_load(self):
         """Open load form with this sale order set as default."""
