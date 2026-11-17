@@ -165,7 +165,17 @@ gov_py="${GOV_ROOT}/.venv/bin/python"
 [[ -x "${gov_py}" ]] || gov_py="python3"
 if ! "${gov_py}" "${GOV_ROOT}/ops/scripts/compose_pr_body.py" --workspace "${ROOT}" --check-template \
     --org-owner "${PR_TEMPLATE_OWNER:-Quantum-L9}" --repo-name "IB-Odoo_19"; then
-  refuse "the org PR template is not readable by the SSOT composer"
+  # Fallback: the repo's own copy of the org template (seeded from it). The
+  # composer's --check-template resolves only the org template, so the repo
+  # copy is proven here by reading it; git_open_pr.sh then composes with
+  # --template. The org path stays first, so nothing changes where it works.
+  repo_template="${ROOT}/.github/pull_request_template.md"
+  if [[ -s "${repo_template}" && -r "${repo_template}" ]]; then
+    export PR_TEMPLATE_FILE="${repo_template}"
+    echo "→ PR template: org template not readable; using the repo template .github/pull_request_template.md"
+  else
+    refuse "the org PR template is not readable by the SSOT composer, and the repo template .github/pull_request_template.md is missing or empty"
+  fi
 fi
 
 # Install-smoke needs Docker and the Enterprise checkout. A Claude Code cloud

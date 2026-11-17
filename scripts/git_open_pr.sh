@@ -73,7 +73,8 @@ fi
 # repo's owner as the template owner, and cryptoxdog has no .github template, so
 # the owner here is Quantum-L9 (PR_TEMPLATE_OWNER overrides). Odoo builds no body
 # of its own; .github/pull_request_template.md is the org template's byte copy for
-# the GitHub web page, and the composer never reads it.
+# the GitHub web page. The composer reads it only as the fallback when the org
+# template check in make_push_pipeline.sh fails (PR_TEMPLATE_FILE).
 ssot_compose() {
   local resolver="${HOME}/.cursor-governance/ops/scripts/resolve_governance_paths.sh"
   local root py touched
@@ -88,8 +89,14 @@ ssot_compose() {
   [[ -x "${py}" ]] || py="python3"
   root="$(git rev-parse --show-toplevel)"
   mkdir -p "${root}/.l9/pr"
-  local args=(--workspace "${root}" --pr-base "origin/${BASE}"
-    --org-owner "${PR_TEMPLATE_OWNER:-Quantum-L9}" --repo-name "IB-Odoo_19")
+  local args=(--workspace "${root}" --pr-base "origin/${BASE}")
+  # PR_TEMPLATE_FILE is exported by make_push_pipeline.sh only when the org
+  # template check failed and the repo copy was proven readable.
+  if [[ -n "${PR_TEMPLATE_FILE:-}" ]]; then
+    args+=(--template "${PR_TEMPLATE_FILE}" --repo-name "IB-Odoo_19")
+  else
+    args+=(--org-owner "${PR_TEMPLATE_OWNER:-Quantum-L9}" --repo-name "IB-Odoo_19")
+  fi
   [[ -f "${root}/.l9/pr/pr-intent.json" ]] && args+=(--intent-file "${root}/.l9/pr/pr-intent.json")
   if [[ "${1:-}" != "--print-title" ]]; then
     # Protected-root, measured as open_pr_after_gate.sh measures it: a measured
