@@ -16,6 +16,7 @@
     ],
     "data": [
         "security/ir.model.access.csv",
+        "data/company_role_tag_data.xml",
         "data/equipment_type_data.xml",
         "data/utm_source_data.xml",
         "data/partner_type_data.xml",

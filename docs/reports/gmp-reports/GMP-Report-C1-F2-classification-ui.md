@@ -27,6 +27,10 @@ No new fields. `plasticos_crm_bridge`, `plasticos_crm_sync` and `plasticos_base`
 4. **DNC.** When the tag (`plasticos_base.tag_do_not_contact`; logic keys on the record, not the name) is newly on a record (any card type), each valid address in `email` goes to `mail.blacklist._add`, and `phone` / `mobile` (when the field exists and the number formats) go to `phone.blacklist.add` when `phone_validation` is installed. Both checked against the Odoo 19 source (`mail/models/mail_blacklist.py`, `phone_validation/models/phone_blacklist.py`): both reactivate an existing entry and never duplicate it. Nothing removes an entry.
 5. **Views.** One `category_id` under the name for every card type; the base Tags row is hidden and the company-only Tags row removed. Contacts list shows the base Tags column (`optional="show"`). Search adds Buyer & Supplier (both ranks) and Has Company Type. Locations list gets `contact_header_name` as Contact.
 
+6. **Company Roles data (remediation).** `data/company_role_tag_data.xml` (the four `plasticos.company.role.tag` records buyer, supplier, service, carrier) was never in the manifest `data` list, so no install or upgrade created them; Production holds 0 records and 0 companies with Company Roles, while `plasticos_gate` `derive_subject_role` and the ERP importer (`plasticos_partner_import/erp/mapping.py`) read them. It now loads right after the security CSV. A test fails when any XML/CSV under `data/` is missing from the manifest.
+
+**Release order:** upgrade `plasticos_facility_profile` before the partner replay, so the ERP import can set Company Roles.
+
 ## Phase 4 — Validation
 
 | Check | Result |

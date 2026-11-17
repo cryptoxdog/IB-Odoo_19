@@ -219,3 +219,26 @@ def test_locations_list_has_a_contact_column():
     locations = arch[arch.index('name="location_child_ids"') :]
     locations = locations[: locations.index("</list>")]
     assert '<field name="contact_header_name" string="Contact"/>' in locations
+
+
+def test_every_data_file_is_loaded_by_the_manifest():
+    """A data file left out of the manifest is never loaded (Company Roles were never created that way)."""
+    listed = set(_manifest()["data"])
+    on_disk = {
+        path.relative_to(MODULE).as_posix() for path in (MODULE / "data").rglob("*") if path.suffix in {".xml", ".csv"}
+    }
+    assert on_disk - listed == set()
+
+
+def test_company_role_tags_load_before_anything_else_in_the_module_data():
+    data = _manifest()["data"]
+    assert data.index("data/company_role_tag_data.xml") == data.index("security/ir.model.access.csv") + 1
+    root = ET.parse(MODULE / "data/company_role_tag_data.xml").getroot()
+    records = {record.get("id"): record.findtext("field[@name='code']") for record in root.iter("record")}
+    assert records == {
+        "company_role_buyer": "buyer",
+        "company_role_supplier": "supplier",
+        "company_role_service": "service",
+        "company_role_carrier": "carrier",
+    }
+    assert {record.get("model") for record in root.iter("record")} == {"plasticos.company.role.tag"}
