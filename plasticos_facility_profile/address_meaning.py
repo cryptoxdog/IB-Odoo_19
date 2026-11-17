@@ -23,6 +23,7 @@ _PICKUP_TOKENS = ("PICK-UP", "PICK UP", "PICKUP")
 COMPANY_ITSELF = "This record is the company itself."
 PICK_UP_ADDRESS = "Pick-Up Address"
 DELIVERY_ADDRESS = "Delivery Address"
+PICK_UP_DELIVERY_ADDRESS = "Pick-Up / Delivery Address"
 MAILING_ADDRESS = "Mailing Address"
 SITE_ADDRESS = "Site Address"
 OTHER_ADDRESS = "Neither a mailing address nor a pickup or ship-to."
@@ -73,14 +74,22 @@ def address_type_meaning(
     company_role: str | None,
     source_label: str | None,
     site: bool = False,
+    buyer_and_supplier: bool = False,
 ) -> str:
-    """The one label shown for an address. Empty when the raw type needs no gloss."""
+    """The one label shown for an address. Empty when the raw type needs no gloss.
+
+    ``buyer_and_supplier`` is true when the site's company has both a customer
+    and a supplier rank: its site is "Pick-Up / Delivery Address" (operator
+    2026-11-17). A PICK-UP source label still wins.
+    """
     if site:
         if partner_type == "invoice":
             return MAILING_ADDRESS
         label = (source_label or "").upper()
         if any(token in label for token in _PICKUP_TOKENS):
             return PICK_UP_ADDRESS
+        if buyer_and_supplier:
+            return PICK_UP_DELIVERY_ADDRESS
         role = company_role or ""
         if role == "supplier":
             return PICK_UP_ADDRESS
