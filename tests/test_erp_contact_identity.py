@@ -32,10 +32,25 @@ _TAG_NAMES = {value: key for key, value in _TAG_IDS.items()}
 
 
 class _TaggedPartner(contract._Partner):
-    def __init__(self, rec_id, vals):
+    def __init__(self, rec_id, vals, registry=None):
+        self.registry = registry
         self.category_id = types.SimpleNamespace(ids=[])
         self.function = False
         super().__init__(rec_id, vals)
+
+    # parent_id and child_ids read as records, as under Odoo; parent_id is written as an id.
+    @property
+    def parent_id(self):
+        parent = self.registry.rows.get(self._parent_ref) if self.registry and self._parent_ref else None
+        return parent or contract._Empty()
+
+    @parent_id.setter
+    def parent_id(self, value):
+        self._parent_ref = getattr(value, "id", value) or False
+
+    @property
+    def child_ids(self):
+        return [row for row in self.registry.rows.values() if row._parent_ref == self.id]
 
     def _apply(self, vals):
         vals = dict(vals)
@@ -60,7 +75,7 @@ class _TaggedPartner(contract._Partner):
 
 class _TaggedPartnerModel(contract._PartnerModel):
     def create(self, vals):
-        record = _TaggedPartner(len(self.rows) + 1, vals)
+        record = _TaggedPartner(len(self.rows) + 1, vals, registry=self)
         self.rows[record.id] = record
         return record
 
@@ -552,9 +567,10 @@ def test_a_folded_card_hands_its_lead_profiles_and_sites_to_the_survivor():
     assert world.facilities.on(survivor) == [facility.id]
     assert set(survivor.location_partner_ids.ids) == set(world.site_ids.values()), "hand-linked Site C is kept"
     (moved,) = [a for a in report.anomalies if a["detail"].startswith("fold re-pointed")]
+    to = f"-> partner {survivor.id}"
     assert moved["detail"] == (
-        f"fold re-pointed to partner {survivor.id}: crm.lead 1, location_partner_ids 1, "
-        "plasticos.facility.profile 1, plasticos.material.profile 1"
+        f"fold re-pointed: crm.lead 1 {to}, plasticos.material.profile 1 {to}, "
+        f"plasticos.facility.profile 1 {to}, location_partner_ids 1 {to}"
     )
     writes = (len(world.leads.writes), len(world.materials.writes), len(world.facilities.writes))
     replay = world.run(_ekman_rows())
@@ -592,3 +608,99 @@ def _strip(service):
     for name in ("crm.lead", "plasticos.material.profile", "plasticos.facility.profile"):
         service.env.pop(name)
     return service
+
+
+# Retire without a surviving person (ADR in #530: a profile never ends on a person) ------
+def _retire_world(site_labels=("Site A",), linked=()):
+    """An earlier run stored ``Pat Doe`` for CT_ID 1401; the source row is now inactive."""
+    world = _World(sites=site_labels, earlier={"Pat Doe": ["1401"]})
+    person = world.resolve("1401")
+    person.location_partner_ids = types.SimpleNamespace(ids=[world.site_ids[label] for label in linked])
+    return world, person
+
+
+def _retire(world):
+    return world.run([_row("1401", "Pat Doe", IsActive="N")])
+
+
+def _notes(report, prefix):
+    return [a["detail"] for a in report.anomalies if a["detail"].startswith(prefix)]
+
+
+def test_retire_moves_the_lead_to_the_company_and_profiles_to_the_one_linked_site():
+    world, person = _retire_world(site_labels=("Site A", "Site B"), linked=("Site A",))
+    lead = world.leads.add(partner_id=person.id)
+    material = world.materials.add(partner_id=person.id, polymer_id=7, form_id=8)
+    facility = world.facilities.add(partner_id=person.id)
+    report = _retire(world)
+    site_a = world.site_ids["Site A"]
+    assert person.active is False and person.id in world.partners.rows
+    assert world.leads.on(world.company) == [lead.id]
+    assert [r.id for r in world.materials.rows if r.partner_id.id == site_a] == [material.id]
+    assert [r.id for r in world.facilities.rows if r.partner_id.id == site_a] == [facility.id]
+    assert _notes(report, "retire re-pointed") == [
+        f"retire re-pointed: crm.lead 1 -> partner {world.company.id}, "
+        f"plasticos.material.profile 1 -> partner {site_a}, plasticos.facility.profile 1 -> partner {site_a}"
+    ]
+    writes = (len(world.leads.writes), len(world.materials.writes), len(world.facilities.writes))
+    replay = _retire(world)
+    assert (len(world.leads.writes), len(world.materials.writes), len(world.facilities.writes)) == writes
+    assert not _notes(replay, "retire")
+
+
+def test_retire_with_no_linked_site_puts_profiles_on_a_company_without_sites():
+    world, person = _retire_world(site_labels=())
+    material = world.materials.add(partner_id=person.id, polymer_id=7, form_id=8)
+    _retire(world)
+    assert person.active is False
+    assert world.materials.on(world.company) == [material.id]
+
+
+def test_retire_with_no_linked_site_but_company_sites_keeps_the_person_visible():
+    world, person = _retire_world(site_labels=("Site A",))
+    lead = world.leads.add(partner_id=person.id)
+    material = world.materials.add(partner_id=person.id, polymer_id=7, form_id=8)
+    report = _retire(world)
+    assert person.active is True
+    assert world.materials.on(person) == [material.id], "never on a guessed site, never deleted"
+    assert world.leads.on(world.company) == [lead.id], "the lead still reaches the company"
+    assert _notes(report, "retire kept") == [f"retire kept partner {person.id} visible: profiles need a site"]
+
+
+def test_retire_with_several_linked_sites_keeps_the_person_visible():
+    world, person = _retire_world(site_labels=("Site A", "Site B"), linked=("Site A", "Site B"))
+    world.facilities.add(partner_id=person.id)
+    report = _retire(world)
+    assert person.active is True
+    assert _notes(report, "retire kept") == [f"retire kept partner {person.id} visible: profiles need a site"]
+
+
+def test_retire_keeps_the_person_visible_when_the_site_already_holds_the_profile():
+    world, person = _retire_world(linked=("Site A",))
+    site_a = world.site_ids["Site A"]
+    world.materials.add(partner_id=site_a, polymer_id=7, form_id=8)
+    clash = world.materials.add(partner_id=person.id, polymer_id=7, form_id=8)
+    report = _retire(world)
+    assert person.active is True
+    assert world.materials.on(person) == [clash.id]
+    assert _notes(report, "retire kept") == [
+        f"retire kept partner {person.id} visible: partner {site_a} already holds plasticos.material.profile {clash.id}"
+    ]
+
+
+def test_retire_of_a_person_nothing_names_archives_as_before():
+    world, person = _retire_world(site_labels=("Site A", "Site B"), linked=("Site A", "Site B"))
+    report = _retire(world)
+    assert person.active is False
+    assert not _notes(report, "retire")
+
+
+def test_a_stale_non_person_row_retires_through_the_same_rule():
+    world = _World(sites=("Site A",), earlier={"Pat Doe": ["1501"]})
+    person = world.resolve("1501")
+    person.location_partner_ids = types.SimpleNamespace(ids=[world.site_ids["Site A"]])
+    lead = world.leads.add(partner_id=person.id)
+    world.run([_row("1501", "704-555-1501", PhoneBusiness="704-555-1501")])  # a number, not a person
+    assert person.active is False
+    assert world.leads.on(world.company) == [lead.id]
+    assert world.resolve("1501") is None
