@@ -94,16 +94,14 @@ class SaleOrderAutomation(models.Model):
         orders = self.filtered(lambda order: order.state == "sale" and order.delivery_term == "appointment")
         if not orders:
             return self.env["mail.activity"]
-        existing = (
-            self.env["mail.activity"]
-            .sudo()
-            .search(
-                [
-                    ("res_model", "=", "sale.order"),
-                    ("res_id", "in", orders.ids),
-                    ("summary", "=", summary),
-                ]
-            )
+        # The search is elevated because the activity belongs to Logistics.
+        mail_activity = self.env["mail.activity"].sudo()  # sudo: Logistics assignee is not readable by the confirmer
+        existing = mail_activity.search(
+            [
+                ("res_model", "=", "sale.order"),
+                ("res_id", "in", orders.ids),
+                ("summary", "=", summary),
+            ]
         )
         already = set(existing.mapped("res_id"))
         created = self.env["mail.activity"]
