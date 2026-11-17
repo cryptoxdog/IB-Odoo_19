@@ -190,18 +190,20 @@
         <field name="partner_type_id" options="{'no_create': True}" invisible="not is_facility"/>
         <field name="facility_profile_ids" nolabel="1" invisible="not is_facility"
                context="{'default_partner_id': id, 'form_view_ref': 'plasticos_facility_profile.view_facility_profile_form'}">
-          <list editable="bottom">
+          <!-- Same row behaviour as the Material Profile lines: the built-in open
+               button saves the row, then opens the full profile form. The class
+               reuses that list's external-link icon styling (material_profile_lines.css). -->
+          <list editable="bottom" open_form_view="1" delete="0" class="o_material_profile_lines">
             <field name="process_type"/>
             <field name="feedstock_type"/>
             <field name="capacity_lbs_month" sum="Total Capacity"/>
             <field name="has_horizontal_baler"/>
             <field name="has_wash_line"/>
             <field name="handles_bales"/>
-            <button name="action_open_profile_form"
-                    type="object"
-                    icon="fa-external-link"
-                    title="Open Full Profile"
-                    class="btn-link p-0"/>
+            <button name="action_remove_profile" type="object" icon="fa-trash"
+                    title="Remove facility profile"
+                    confirm="Remove this facility profile? A profile whose partner has an open sale order cannot be removed."
+                    class="btn-link text-danger p-0"/>
           </list>
         </field>
         <separator string="Locations" invisible="not is_company or parent_id"/>
@@ -223,14 +225,17 @@
                     class="btn-link text-danger p-0"/>
           </list>
         </field>
-        <group string="Sites" invisible="is_company">
-          <field name="location_partner_ids" nolabel="1">
-            <list>
-              <field name="name"/>
-              <field name="city"/>
-            </list>
-          </field>
-        </group>
+        <separator string="Sites" invisible="is_company"/>
+        <field name="location_partner_ids" nolabel="1" invisible="is_company">
+          <list>
+            <field name="name"/>
+            <field name="street"/>
+            <field name="city"/>
+            <field name="state_id"/>
+            <field name="zip"/>
+            <field name="phone"/>
+          </list>
+        </field>
         <separator string="People" invisible="not is_company or not parent_id"/>
         <field name="site_person_ids" nolabel="1" invisible="not is_company or not parent_id">
           <list>
