@@ -29,7 +29,7 @@ from ..schedule_window import (
     staging_deadline,
 )
 from .linda_approval import LINDA_STOPPED_REASON, linda_stopped, linda_user
-from .linda_request import LINDA_MODE_LIVE, SOURCE_LOAD
+from .linda_request import LINDA_MODE_LIVE, LINDA_MODE_OFF, SOURCE_LOAD
 
 _logger = logging.getLogger(__name__)
 
@@ -62,6 +62,9 @@ class PlasticosLogisticsRequestSchedule(models.Model):
     def _run_load_obligations(self, loads=None):
         results = super()._run_load_obligations(loads=loads)
         if isinstance(results, list) and len(results) == 1 and results[0].get("reason") == LINDA_STOPPED_REASON:
+            return results
+        # Off records nothing: the same gate the acknowledgement writer uses.
+        if self._linda_mode() == LINDA_MODE_OFF:
             return results
         target = loads
         if target is None:
