@@ -517,11 +517,13 @@ class TestConvergeV2ProfileTargets(PlasticosTestCase):
         self._execute(run, gate)
         self.assertEqual(run.state, "review")
         profile.write({"contamination_tolerance_pct": 1.25})
-        with self.assertRaises(UserError):
-            run.action_inject()
+        run.action_inject()
         self.assertEqual(run.state, "review")
         self.assertAlmostEqual(profile.contamination_tolerance_pct, 1.25)
         self.assertFalse(run.injected_at)
+        row = self._provenance(run)["contamination_tolerance_pct"]
+        self.assertEqual(row.status, "skipped_immutable")
+        self.assertEqual(row.previous_value, "1.25")
 
     # ── run target integrity ─────────────────────────────────────────────
 

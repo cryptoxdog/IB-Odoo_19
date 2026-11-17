@@ -21,6 +21,19 @@ def _join_chips(profiles):
     return " | ".join(chip for chip in (_material_chip(profile) for profile in profiles) if chip)
 
 
+class _KeyProperties(fields.Properties):
+    """A selection detail reads back as its stored key.
+
+    Odoo otherwise returns the selection label (``HRB``) from ``details[name]``.
+    The migration and the form both identify the baler by the key ``hrb``.
+    """
+
+    def __get__(self, record, owner):
+        if record is not None and not record.env.context.get("property_selection_get_key"):
+            record = record.with_context(property_selection_get_key=True)
+        return super().__get__(record, owner)
+
+
 class PlasticosCapability(models.Model):
     """One machine or one line on a site. Three shredders are three rows."""
 
@@ -53,7 +66,7 @@ class PlasticosCapability(models.Model):
         string="Rated lb/hr",
         help="The machine's rated throughput in pounds per hour.",
     )
-    details = fields.Properties(
+    details = _KeyProperties(
         string="Details",
         definition="capability_type_id.details_definition",
         help="Only this type's detail fields. A type change drops the values.",
