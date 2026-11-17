@@ -6,6 +6,8 @@ from . import lead_source
 from . import partner_phone
 from . import partner_type
 from . import res_partner
+from . import res_partner_category
+from . import res_partner_classification
 from . import res_partner_delivery_term
 from . import res_partner_contact_format
 from . import partner_phone_contact_format

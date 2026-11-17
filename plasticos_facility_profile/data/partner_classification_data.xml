@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Partner classification on native tags (ADR-131 Decision B).
+        Three tag groups: Company Type (VanillaSoft is the authority), Trade Role
+        (Buyer / Supplier, kept from the native ranks) and Status (the VanillaSoft
+        lead status, plus DNC).
+    -->
+    <data noupdate="1">
+        <record id="partner_category_company_type" model="res.partner.category">
+            <field name="name">Company Type</field>
+        </record>
+        <record id="partner_category_trade_role" model="res.partner.category">
+            <field name="name">Trade Role</field>
+        </record>
+        <record id="partner_category_status" model="res.partner.category">
+            <field name="name">Status</field>
+        </record>
+    </data>
+
+    <!--
+        A same-name root tag that already exists becomes the Status tag below
+        (moved into the group, given its external id), so no duplicate is made.
+        Runs before the records, which then create only what is still missing.
+    -->
+    <function model="res.partner.category" name="_plasticos_bind_status_tags"/>
+
+    <!-- VanillaSoft lead status. -->
+    <data noupdate="1">
+        <!-- VanillaSoft 1, Currently Working With -->
+        <record id="status_current" model="res.partner.category">
+            <field name="name">Current</field>
+            <field name="parent_id" ref="partner_category_status"/>
+        </record>
+        <!-- VanillaSoft 2 -->
+        <record id="status_open" model="res.partner.category">
+            <field name="name">Open</field>
+            <field name="parent_id" ref="partner_category_status"/>
+        </record>
+        <!-- VanillaSoft 2a -->
+        <record id="status_hot" model="res.partner.category">
+            <field name="name">Hot</field>
+            <field name="parent_id" ref="partner_category_status"/>
+        </record>
+        <!-- VanillaSoft 2b -->
+        <record id="status_warm" model="res.partner.category">
+            <field name="name">Warm</field>
+            <field name="parent_id" ref="partner_category_status"/>
+        </record>
+        <!-- VanillaSoft 2c -->
+        <record id="status_cold" model="res.partner.category">
+            <field name="name">Cold</field>
+            <field name="parent_id" ref="partner_category_status"/>
+        </record>
+        <!-- VanillaSoft 3 -->
+        <record id="status_resist" model="res.partner.category">
+            <field name="name">Resist</field>
+            <field name="parent_id" ref="partner_category_status"/>
+        </record>
+        <!-- VanillaSoft 4 -->
+        <record id="status_unqualified" model="res.partner.category">
+            <field name="name">Unqualified</field>
+            <field name="parent_id" ref="partner_category_status"/>
+        </record>
+    </data>
+
+    <!--
+        Tags plasticos_base owns join the groups here. plasticos_base loads
+        them with a parent of its own on every upgrade, and this module upgrades
+        after it, so these lines are not noupdate.
+    -->
+    <data noupdate="0">
+        <record id="plasticos_base.tag_exporter" model="res.partner.category">
+            <field name="parent_id" ref="partner_category_company_type"/>
+        </record>
+        <record id="plasticos_base.tag_toll_processor" model="res.partner.category">
+            <field name="parent_id" ref="partner_category_company_type"/>
+        </record>
+        <!-- Displayed as DNC; the record (external id) stays the one the logic keys on. -->
+        <record id="plasticos_base.tag_do_not_contact" model="res.partner.category">
+            <field name="name">DNC</field>
+            <field name="parent_id" ref="partner_category_status"/>
+        </record>
+
+        <!-- Same-name root tags join Company Type and Trade Role; nothing is duplicated. -->
+        <function model="res.partner.category" name="_plasticos_ensure_classification_tags"/>
+    </data>
+</odoo>
