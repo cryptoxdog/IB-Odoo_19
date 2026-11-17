@@ -149,17 +149,29 @@ class PlasticosFacilityProfileCapability(models.Model):
     )
 
     def _autolink_when_sole_capability(self):
-        """Link a site's unlinked material profiles when the site has exactly one capability."""
-        profiles = self.env[MATERIAL_PROFILE]
-        for facility in self:
-            capabilities = facility.capability_ids
-            if len(capabilities) != 1 or not facility.partner_id:
-                continue
-            unlinked = profiles.search(
-                [
-                    ("partner_id", "=", facility.partner_id.id),
-                    ("capability_id", "=", False),
-                ]
-            )
-            if unlinked:
-                unlinked.write({"capability_id": capabilities.id})
+        """Link a site's unlinked material profiles when the site has exactly one capability.
+
+        The profiles are read once. Each site's only line is a different record, so
+        each link is its own write, done one site at a time rather than as a query
+        inside a loop.
+        """
+        sole = self.filtered(lambda facility: len(facility.capability_ids) == 1 and facility.partner_id)
+        if not sole:
+            return
+        unlinked = self.env[MATERIAL_PROFILE].search(
+            [
+                ("partner_id", "in", sole.partner_id.ids),
+                ("capability_id", "=", False),
+            ]
+        )
+        if unlinked:
+            self._link_sole_capability(sole, unlinked)
+
+    def _link_sole_capability(self, facilities, unlinked):
+        facility = facilities[:1]
+        rows = unlinked.filtered(lambda profile: profile.partner_id == facility.partner_id)
+        if rows:
+            rows.write({"capability_id": facility.capability_ids.id})
+        remaining = facilities - facility
+        if remaining:
+            self._link_sole_capability(remaining, unlinked - rows)
