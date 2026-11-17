@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Facility Profile",
-    "version": "19.0.5.4.17",
+    "version": "19.0.5.5.0",
     "summary": "Facility capability profiles — equipment, tolerances, BCP fields, company_role, and templates",
     "license": "LGPL-3",
     "author": "Igor Beylin",
@@ -11,6 +11,7 @@
         "mail",
         "sale_management",
         "utm",
+        "plasticos_base",
         "plasticos_material_profile",
     ],
     "data": [
@@ -19,6 +20,7 @@
         "data/utm_source_data.xml",
         "data/partner_type_data.xml",
         "data/facility_template_data.xml",
+        "data/partner_classification_data.xml",
         "views/partner_type_views.xml",
         "views/facility_template_views.xml",
         "views/facility_profile_views.xml",

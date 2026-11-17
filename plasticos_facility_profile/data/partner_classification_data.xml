@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Partner classification on native tags (ADR-131 Decision B).
+        Two tag groups: Company Type (VanillaSoft is the authority) and Status.
+    -->
+    <data noupdate="1">
+        <record id="partner_category_company_type" model="res.partner.category">
+            <field name="name">Company Type</field>
+        </record>
+        <record id="partner_category_status" model="res.partner.category">
+            <field name="name">Status</field>
+        </record>
+    </data>
+
+    <!--
+        Tags plasticos_base owns join the groups here. plasticos_base loads
+        them with a parent of its own on every upgrade, and this module upgrades
+        after it, so these lines are not noupdate.
+    -->
+    <data noupdate="0">
+        <record id="plasticos_base.tag_exporter" model="res.partner.category">
+            <field name="parent_id" ref="partner_category_company_type"/>
+        </record>
+        <record id="plasticos_base.tag_toll_processor" model="res.partner.category">
+            <field name="parent_id" ref="partner_category_company_type"/>
+        </record>
+        <record id="plasticos_base.tag_needs_enrichment" model="res.partner.category">
+            <field name="parent_id" ref="partner_category_status"/>
+        </record>
+        <record id="plasticos_base.tag_do_not_contact" model="res.partner.category">
+            <field name="parent_id" ref="partner_category_status"/>
+        </record>
+        <record id="plasticos_base.tag_key_account" model="res.partner.category">
+            <field name="parent_id" ref="partner_category_status"/>
+        </record>
+        <record id="plasticos_base.tag_preferred_carrier" model="res.partner.category">
+            <field name="parent_id" ref="partner_category_status"/>
+        </record>
+
+        <!-- Same-name root tags join Company Type; nothing is duplicated. -->
+        <function model="res.partner.category" name="_plasticos_ensure_company_type_tags"/>
+    </data>
+</odoo>
