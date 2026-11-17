@@ -1495,7 +1495,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(person.parent_id, company)
         self.assertEqual(person.email, "erp-person@example.test")
         self.assertEqual(person.phone, "555-0100")
-        self.assertEqual(person.mobile, "215-555-0140")
+        self.assertEqual(person.mobile, "(215) 555-0140")
         self.assertEqual(person.street, "1 ERP Way")
         self.assertEqual(person.city, "Philadelphia")
         self.assertEqual(person.zip, "19103")
@@ -1528,7 +1528,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         )
         leads_before = self.env["crm.lead"].with_context(active_test=False).search_count([])
         orch._upsert_lead(self.connection, dto)
-        self.assertEqual(person.phone, "215-555-0101")
+        self.assertEqual(person.phone, "(215) 555-0101")
         lines = [(line.label, line.number) for line in person.phone_line_ids]
         self.assertEqual(lines, [("mobile", "215-555-0102"), ("fax", "215-555-0101")])
         self.assertNotIn("215-555-0106", [number for _label, number in lines])
@@ -1578,7 +1578,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertFalse(bound)
         self.assertEqual(self.env["crm.lead"].with_context(active_test=False).search_count([]), leads_before)
         self.assertEqual(self.env["res.partner"].with_context(active_test=False).search_count([]), partners_before)
-        self.assertEqual(person.phone, "215-555-0101")
+        self.assertEqual(person.phone, "(215) 555-0101")
         self.assertIn("ERP manual", person.comment or "")
 
         resolved = orch._resolve_orphans(self.connection, MagicMock(), run)

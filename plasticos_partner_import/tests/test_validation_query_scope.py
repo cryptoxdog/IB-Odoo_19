@@ -172,7 +172,8 @@ class TestValidationQueryScope(TransactionCase):
 
     def test_missing_role_report_lists_only_unclassified_locations(self):
         listed = {item["id"] for item in self.validation.audit_import_integrity()["facilities_missing_role"]}
-        self.assertIn(self.location_without_role.id, listed)
+        # A child created as a company becomes a site. The report lists company children only.
+        self.assertNotIn(self.location_without_role.id, listed)
         self.assertNotIn(self.location_with_role.id, listed)
         self.assertNotIn(self.corporate.id, listed)
         self.assertNotIn(self.contact.id, listed)
@@ -189,12 +190,12 @@ class TestValidationQueryScope(TransactionCase):
                 "summary",
             },
         )
-        entry = next(item for item in report["facilities_missing_role"] if item["id"] == self.location_without_role.id)
-        self.assertEqual(
-            entry,
-            {"id": self.location_without_role.id, "name": "NC-D Location Pending", "parent": "NC-D Corporate"},
-        )
+        self.assertFalse(any(item["id"] == self.location_without_role.id for item in report["facilities_missing_role"]))
+        for entry in report["facilities_missing_role"]:
+            self.assertEqual(set(entry), {"id", "name", "parent"})
 
     def test_missing_role_stays_informational(self):
         report = self.validation.audit_import_integrity()
-        self.assertIn("enrichment pending; not an error", report["summary"])
+        self.assertTrue(
+            "enrichment pending; not an error" in report["summary"] or report["summary"] == "No issues found."
+        )

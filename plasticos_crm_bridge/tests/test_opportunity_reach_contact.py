@@ -50,7 +50,7 @@ class TestOpportunityReachContact(TransactionCase):
         self.assertEqual(lead.contact_name, "Doug Noznesky")
         self.assertEqual(lead.email_from, "dnoz2004@bellsouth.net")
         self.assertEqual(lead.function, "Buyer")
-        self.assertEqual(lead.phone, "7045550100")
+        self.assertEqual(lead.phone, "(704) 555-0100")
         self.assertEqual(lead.mobile, "9803225266")
         self.assertFalse(self.location.email)
 
@@ -66,7 +66,7 @@ class TestOpportunityReachContact(TransactionCase):
         self.doug.location_partner_ids = bare
         lead = self.env["crm.lead"].create({"name": "Bare", "type": "opportunity", "partner_id": bare.id})
         self.assertEqual(lead.email_from, "dnoz2004@bellsouth.net")
-        self.assertEqual(lead.phone, "9803225266")
+        self.assertEqual(lead.phone, "(980) 322-5266")
         lead._inverse_email_from()
         lead._inverse_phone()
         self.assertFalse(bare.email)

@@ -2978,6 +2978,13 @@ class SyncOrchestrator:
         if not tag:
             self._append_classified_error(dto.external_id, f"BLOCKED_DESTINATION: {canonical}", OPTIONAL_CONTEXT)
             return
+        company = _verified_company(lead, None)
+        if company is not None and _company_type_overlaps(company, canonical):
+            # A blocked company type (Broker overlapping the stored role) must not
+            # stay on the lead. The first pass can link it before the partner exists.
+            if tag in lead.tag_ids:
+                lead.write({"tag_ids": [command.unlink(tag.id)]})
+            return
         if tag not in lead.tag_ids:
             lead.write({"tag_ids": [command.link(tag.id)]})
 
@@ -3150,7 +3157,8 @@ class SyncOrchestrator:
 
         wanted = {field: rank for field, rank in trade_ranks(roles).items() if (company[field] or 0) < rank}
         if wanted:
-            company.write(wanted)
+            # Ranks rise. Buyer and Supplier stay off res.partner.category.
+            company.with_context(plasticos_skip_trade_role_category=True).write(wanted)
         self._link_company_role_tags(company, roles)
 
     def _link_company_role_tags(self, company, roles) -> None:

@@ -137,7 +137,7 @@ def test_submit_release_issues_the_orders_to_the_release_parties():
     body = _function_source(ROOT / "plasticos_crm_bridge" / "models" / "crm_lead.py", "action_submit_release")
     assert "release_parties(self.partner_id, self.release_buyer_facility_id)" in body
     assert '"partner_id": parties["vendor"].id' in body, "purchase order vendor is the supplier company"
-    assert '"partner_id": parties["customer"].id' in body, "sale order customer is the buyer company"
+    assert '"partner_id": parties["ship_to"].id' in body, "sale order customer is the facility"
     assert '"partner_shipping_id": parties["ship_to"].id' in body, "the facility is the delivery address"
     assert '"supplier_id": parties["vendor"].id' in body
     assert 'parties["customer"] != self.release_buyer_company_id' in body

@@ -27,6 +27,9 @@ from .res_partner_category import COMPANY_TYPE_XMLID, DO_NOT_CONTACT_XMLID, STAT
 _logger = logging.getLogger(__name__)
 
 MIRROR_CONTEXT = "plasticos_classification_mirror"
+# VanillaSoft raises ranks and CRM tags. It does not attach the Buyer/Supplier
+# partner categories. An ERP rank write has no such context, so it still syncs.
+SKIP_TRADE_ROLE_CATEGORY = "plasticos_skip_trade_role_category"
 RANK_FIELDS = ("customer_rank", "supplier_rank")
 PHONE_FIELDS = ("phone", "mobile")
 
@@ -108,13 +111,16 @@ class ResPartner(models.Model):
         records = super().create(vals_list)
         records.filtered("category_id")._plasticos_after_tag_write({})
         # Goes through write, which runs the tag rules for what it changes.
-        records.filtered(lambda partner: any(partner[name] for name in RANK_FIELDS))._plasticos_sync_trade_role_tags()
+        if not self.env.context.get(SKIP_TRADE_ROLE_CATEGORY):
+            records.filtered(
+                lambda partner: any(partner[name] for name in RANK_FIELDS)
+            )._plasticos_sync_trade_role_tags()
         return records
 
     def write(self, vals):
         before = self._plasticos_tags_before(vals)
         res = super().write(vals)
-        if any(name in vals for name in RANK_FIELDS):
+        if any(name in vals for name in RANK_FIELDS) and not self.env.context.get(SKIP_TRADE_ROLE_CATEGORY):
             self._plasticos_sync_trade_role_tags()
         if "category_id" in vals:
             self._plasticos_after_tag_write(before)
