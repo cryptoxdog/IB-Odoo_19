@@ -163,6 +163,8 @@ source "${gov_resolver}"
 resolve_governance_paths || refuse "governance paths did not resolve"
 gov_py="${GOV_ROOT}/.venv/bin/python"
 [[ -x "${gov_py}" ]] || gov_py="python3"
+# Only this script decides the fallback: an inherited value must not bypass the org template.
+unset PR_TEMPLATE_FILE
 if ! "${gov_py}" "${GOV_ROOT}/ops/scripts/compose_pr_body.py" --workspace "${ROOT}" --check-template \
     --org-owner "${PR_TEMPLATE_OWNER:-Quantum-L9}" --repo-name "IB-Odoo_19"; then
   # Fallback: the repo's own copy of the org template (seeded from it). The
