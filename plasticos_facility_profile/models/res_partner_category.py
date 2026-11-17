@@ -17,6 +17,8 @@ _logger = logging.getLogger(__name__)
 COMPANY_TYPE_XMLID = "plasticos_facility_profile.partner_category_company_type"
 STATUS_XMLID = "plasticos_facility_profile.partner_category_status"
 CRM_BRIDGE = "plasticos_crm_bridge"
+# ir.module.module states in which that module loads its own tags.
+BRIDGE_LOADING_STATES = frozenset({"installed", "to install", "to upgrade"})
 
 
 class ResPartnerCategory(models.Model):
@@ -50,9 +52,8 @@ class ResPartnerCategory(models.Model):
         reparent, missing = reparent_plan(rows, group.id, COMPANY_TYPE_NAMES)
         if reparent:
             self.browse(reparent).write({"parent_id": group.id})
-        bridge = self.env["ir.module.module"].search(
-            [("name", "=", CRM_BRIDGE), ("state", "in", ("installed", "to install", "to upgrade"))], limit=1
-        )
+        module = self.env["ir.module.module"].search([("name", "=", CRM_BRIDGE)], limit=1)
+        bridge = module.state in BRIDGE_LOADING_STATES
         if missing and not bridge:
             self.create([{"name": name, "parent_id": group.id} for name in missing])
         _logger.info(
