@@ -72,6 +72,14 @@ Counts the backfill returns:
 
 Materials follow the 2026-10-30 rule with no new code. The lead's `partner_id` is the company. A standalone company is its own facility (`is_facility`), so `_apply_contact_materials` puts the materials on the resolved partner through the existing `_facility_for_material` path.
 
+**Materials on a person's one linked site** (CTO directive, case RDS of Virginia / Ekman):
+
+- When the lead's partner is a person, `_facility_for_material` now uses the person's linked sites (`location_partner_ids` filtered with `_plasticos_is_site()`).
+- **Exactly one site:** that site. For example, `Materials: MRP,LDPE,PP Supersacs` on Todd Antonick puts all three on PORTSMOUTH, VA.
+- **Several sites:** the approved path keeps today's behaviour (the person) and reports `facility ambiguous: N linked sites`.
+- **None:** unchanged.
+- The rest of the 2026-10-30 rule is unchanged.
+
 ### Matching (stated assumption)
 
 The repo has no general VanillaSoft-to-partner duplicate matcher; approved contacts match only through the ERP crosswalk. For the rest, `_existing_company` matches top-level companies, archived ones included:

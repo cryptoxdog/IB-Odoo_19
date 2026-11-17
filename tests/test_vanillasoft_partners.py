@@ -505,3 +505,76 @@ def test_company_role_xmlids():
         "Buyer": "plasticos_facility_profile.company_role_buyer",
         "Supplier": "plasticos_facility_profile.company_role_supplier",
     }
+
+
+# ── Materials on the person's one linked site (case RDS of Virginia) ────────
+class _Node:
+    def __init__(self, pid, name, *, is_company=False, parent=None, site=False, facility=False):
+        self.id = pid
+        self.name = name
+        self.is_company = is_company
+        self.parent_id = _Set([parent]) if parent else _Set()
+        self.is_facility = facility
+        self._site = site
+        self.location_partner_ids = _Set()
+        self.child_ids = _Set()
+
+    def _plasticos_is_site(self):
+        return self._site
+
+
+class _MaterialLead:
+    def __init__(self, partner):
+        self.id = 5
+        self.vanillasoft_id = "vs-rds"
+        self.partner_id = _Set([partner])
+
+
+def _rds(site_count):
+    company = _Node(1, "RDS of Virginia", is_company=True)
+    person = _Node(2, "Todd Antonick", parent=company)
+    sites = [_Node(10 + i, f"PORTSMOUTH, VA {i}", parent=company, site=True, facility=True) for i in range(site_count)]
+    person.location_partner_ids = _Set(sites)
+    return person, sites
+
+
+@pytest.fixture
+def materials(monkeypatch):
+    env = _Env()
+    env["plasticos.facility.profile"] = types.SimpleNamespace(search=lambda domain: _Set(), browse=lambda: _Set())
+    orch = _Orch(env)
+    calls = []
+    monkeypatch.setattr(
+        orch, "_import_section_materials", lambda lead, maps, partner, facility_profile: calls.append(partner)
+    )
+    return orch, calls
+
+
+def test_person_with_one_linked_site_puts_all_three_materials_on_the_site(materials):
+    orch, calls = materials
+    person, sites = _rds(1)
+    fields = {"Materials": "MRP,LDPE,PP Supersacs"}
+    from plasticos_crm_sync.services.orchestrator import _parse_material_sections
+
+    assert _parse_material_sections(fields)[""]["phrases"] == ["MRP", "LDPE", "PP Supersacs"]
+    orch._apply_resolved_approved_materials(_MaterialLead(person), fields)
+    assert [call.id for call in calls] == [sites[0].id]  # every phrase of the call lands on the site, none on the person
+    assert not orch.error_rows
+
+
+def test_person_with_two_linked_sites_keeps_the_person_and_reports_ambiguity(materials):
+    orch, calls = materials
+    person, _sites = _rds(2)
+    orch._apply_resolved_approved_materials(_MaterialLead(person), {"Materials": "MRP,LDPE,PP Supersacs"})
+    assert [call.id for call in calls] == [person.id]
+    assert [row["message"] for row in orch.error_rows] == [
+        "facility ambiguous: 2 linked sites: MRP, LDPE, PP Supersacs"
+    ]
+
+
+def test_person_with_no_linked_site_keeps_todays_behaviour(materials):
+    orch, calls = materials
+    person, _sites = _rds(0)
+    orch._apply_resolved_approved_materials(_MaterialLead(person), {"Materials": "MRP"})
+    assert [call.id for call in calls] == [person.id]
+    assert not orch.error_rows

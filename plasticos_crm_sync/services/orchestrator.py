@@ -398,6 +398,8 @@ def _facility_for_material(lead):
 
     A standalone company is a facility when the partner model says so. A parent
     with one child facility resolves to that child. Several children stay unresolved.
+    A person resolves to the one site they are linked to (``location_partner_ids``);
+    several linked sites are reported as ambiguous (C1, case RDS of Virginia).
     """
     partner = lead.partner_id
     if not partner:
@@ -407,6 +409,13 @@ def _facility_for_material(lead):
     parent = partner.parent_id
     if parent and parent._plasticos_is_site():
         return parent, ""
+    if not partner.is_company:
+        linked = getattr(partner, "location_partner_ids", None)
+        sites = linked.filtered(lambda site: site._plasticos_is_site()) if linked else linked
+        if sites and len(sites) == 1:
+            return sites, ""
+        if sites and len(sites) > 1:
+            return None, f"facility ambiguous: {len(sites)} linked sites"
     children = partner.child_ids.filtered(lambda child: child._plasticos_is_site())
     if len(children) == 1:
         return children, ""
@@ -1682,6 +1691,11 @@ class SyncOrchestrator:
         partner, reason = _facility_for_material(lead)
         if partner is None and lead.partner_id.parent_id:
             partner = lead.partner_id
+            if reason.startswith("facility ambiguous"):
+                # Today's behaviour (the person) is kept, and the ambiguity is reported.
+                self._append_classified_error(
+                    lead.vanillasoft_id or str(lead.id), f"{reason}: {detail}", OPTIONAL_CONTEXT
+                )
         if partner is None:
             self._append_classified_error(
                 lead.vanillasoft_id or str(lead.id),
