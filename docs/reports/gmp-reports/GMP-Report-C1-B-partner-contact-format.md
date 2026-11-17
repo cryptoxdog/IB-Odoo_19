@@ -90,11 +90,9 @@ Changes:
 1. **Country:** the partner's country, else its commercial company's (for a child, the parent's commercial company), else US.
    - One pure helper, `country_for`, holds the rule.
    - The partner create/write path (ERP import, VanillaSoft sync, manual save), the phone-line path and the post-migrate all use it.
-2. **Trailing extension without a marker:** a valid NANP main part followed by a space and 1 to 6 digits becomes an extension. "1-800-555-0100 2" becomes "(800) 555-0100 x2". An invalid main part is left unchanged.
-3. **No country guessed:** a number with no "+" that would parse only under another region (for example 49…) is left unchanged and reported. No "+" is added and no country is guessed.
-4. **Unparsed values:** unchanged and reported, as before.
+2. **Everything else is unchanged.** No trailing-extension handling and no special case for a foreign number with no country (CTO correction 2026-11-17: the 7 values involved are not worth code). An unparsed value stays unchanged, as before.
 
-Tests: each case above, plus idempotence. 54 pass in `tests/test_partner_contact_format.py`.
+Tests: the country rule. `tests/test_partner_contact_format.py`: 41 passed (39 + 2 country tests).
 
 Version: kept at 19.0.5.4.16. That version is unreleased, and its post-migrate imports the formatter, so the tuned rules run on upgrade. The stacked #524 already uses 19.0.5.4.17 (version and migration folder), so a bump here would collide when the stack merges bottom-up.
 

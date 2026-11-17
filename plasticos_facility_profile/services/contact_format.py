@@ -60,9 +60,6 @@ NANP_COUNTRIES = frozenset(
 )
 
 _EXTENSION = re.compile(r"\s*(?:x|ext\.?|extension|#)\s*(\d{1,6})\s*$", re.IGNORECASE)
-# A valid NANP number followed by a lone group of 1-6 digits and no marker:
-# the trailing group is an extension ("1-800-555-0100 2" -> "(800) 555-0100 x2").
-_TRAILING_DIGITS = re.compile(r"^(.*\d)\s+(\d{1,6})\s*$")
 _ALLOWED_PHONE_CHARS = re.compile(r"^[\d\s().+\-/]+$")
 _EMAIL = re.compile(r"^[^@\s,;<>]+@[^@\s,;<>]+\.[^@\s,;<>.]+$")
 _ANGLE_ADDRESS = re.compile(r"<\s*([^<>]+?)\s*>")
@@ -83,9 +80,7 @@ def country_for(*codes: str | None) -> str:
     """The first country code given, else US.
 
     Callers pass the partner's own country, then its commercial company's (for
-    a child, the parent's commercial company). No country is guessed from the
-    number itself: a number written without "+" that parses only under another
-    region is left unchanged and reported (operator, 2026-11-17).
+    a child, the parent's commercial company).
     """
     for code in codes:
         if code:
@@ -142,10 +137,6 @@ def format_phone_result(raw: str | None, country_code: str | None = "US") -> Pho
     plus = body.startswith("+")
     if (plus and digits.startswith("1")) or (not plus and country in NANP_COUNTRIES):
         formatted = _nanp(digits, extension)
-        if formatted is None and not extension:
-            trailing = _TRAILING_DIGITS.match(body)
-            if trailing:
-                formatted = _nanp(re.sub(r"\D", "", trailing.group(1)), trailing.group(2))
         return PhoneResult(formatted, True) if formatted else PhoneResult(text, False)
     international = _international(body, country)
     if international:
