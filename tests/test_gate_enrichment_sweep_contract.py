@@ -286,14 +286,8 @@ def _fd(name, ftype, **kw):
 
 FACILITY_FIELD_DEFS = (
     _fd("partner_id", "many2one", relation="res.partner"),
-    _fd("accepted_polymer_ids", "many2many", relation="plasticos.polymer", relation_has_code=True),
-    _fd("density_min", "float"),
-    _fd("density_max", "float"),
-    _fd("melt_index_min", "float"),
-    _fd("melt_index_max", "float"),
     _fd("contamination_tolerance_pct", "float"),
     _fd("capacity_lbs_month", "integer"),
-    _fd("process_type", "selection", selection_keys=("recycler", "compounder")),
     _fd("freeform_notes", "text"),
 )
 
@@ -334,8 +328,8 @@ def _evidence(entity_id, specs):
 
 def _converge_body(entity_id=E1, pin=PIN, node="Facility", specs=None):
     specs = specs or {
-        "min_density": {"state": "external_claim", "admitted": True, "value": 0.94, "unit": "g/cm3"},
-        "max_mfi": {"state": "unknown"},
+        "contamination_tolerance": {"state": "external_claim", "admitted": True, "value": 2.0, "unit": "percent"},
+        "freeform_notes": {"state": "unknown"},
     }
     evidence = _evidence(entity_id, specs)
     admitted = {n: s["value"] for n, s in specs.items() if s.get("admitted")}
@@ -367,7 +361,8 @@ def test_union_target_covers_every_subject_with_the_interactive_rows():
         single = allow.derive_facility_profile_target(FACILITY_FIELD_DEFS, subject=subject, version="0.6.0")[0]
         for row in single.rows:
             assert spec.row(row.cartridge_field) == row
-    assert spec.row("min_density") and spec.row("capacity_tons_month")
+    assert spec.row("min_density") is None
+    assert spec.row("contamination_tolerance") and spec.row("capacity_tons_month")
 
 
 def test_sweep_result_is_validated_against_its_resolution_echo_and_the_candidate():
@@ -377,8 +372,9 @@ def test_sweep_result_is_validated_against_its_resolution_echo_and_the_candidate
     plan = plan_sweep_converge_v2_writeback(parsed, spec, unmapped)
     assert plan.rejection is None
     by = {d.cartridge_field: d for d in plan.decisions}
-    assert by["min_density"].action == V2_PLAN_WRITE and by["min_density"].odoo_field == "density_min"
-    assert by["max_mfi"].skip_reason == "unknown"
+    assert by["contamination_tolerance"].action == V2_PLAN_WRITE
+    assert by["contamination_tolerance"].odoo_field == "contamination_tolerance_pct"
+    assert by["freeform_notes"].skip_reason == "unknown"
 
 
 @pytest.mark.parametrize(
@@ -411,6 +407,7 @@ def test_a_sweep_result_needs_a_sha256_pin():
 
 def test_undeclared_or_unmapped_fields_are_skipped_and_recorded():
     specs = {
+        "contamination_tolerance": {"state": "external_claim", "admitted": True, "value": 2.0, "unit": "percent"},
         "min_density": {"state": "external_claim", "admitted": True, "value": 0.94, "unit": "g/cm3"},
         "tier": {"state": "external_claim", "admitted": True, "value": "gold"},
     }
@@ -420,8 +417,9 @@ def test_undeclared_or_unmapped_fields_are_skipped_and_recorded():
     plan = plan_sweep_converge_v2_writeback(parsed, spec, unmapped)
     by = {d.cartridge_field: d for d in plan.decisions}
     assert by["tier"].skip_reason == V2_SKIP_UNMAPPED and by["tier"].odoo_field == ""
-    assert by["tier"].detail
-    assert [d.cartridge_field for d in plan.writes] == ["min_density"]
+    assert by["min_density"].skip_reason == V2_SKIP_UNMAPPED
+    assert by["min_density"].detail == allow.ADR134_RETIRED_REASON
+    assert [d.cartridge_field for d in plan.writes] == ["contamination_tolerance"]
 
 
 def test_a_non_completed_or_v1_result_writes_nothing():
@@ -450,7 +448,9 @@ class _Rec:
 
 def test_candidate_entity_holds_the_current_values_of_every_subject():
     spec, _unmapped = _union()
-    cand = build_sweep_candidate(_Rec(density_max=0.97, capacity_lbs_month=2000, freeform_notes="x"), spec)
+    cand = build_sweep_candidate(
+        _Rec(contamination_tolerance_pct=2.0, capacity_lbs_month=2000, freeform_notes="x"), spec
+    )
     assert cand.entity_id == E1 and cand.node_label == "Facility"
-    assert cand.entity["max_density"] == 0.97
-    assert "min_density" not in cand.entity, "an empty field is left for EIE to target"
+    assert cand.entity["contamination_tolerance"] == 2.0
+    assert "min_density" not in cand.entity, "a retired field is not sent"

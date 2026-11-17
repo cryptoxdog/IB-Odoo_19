@@ -729,7 +729,7 @@ buyer_profiles:
       quality_tier_required: [2, 3]
       cross_polymer_max:    { value: 5.0, unit: "%" }    # PE contamination for PP buyer
       color_preference: ["black", "gray", "automotive colors"]
-      form_preference: "pellets"
+      in_form: "pellets"
 
     quality_specifications:
       melt_flow_rate:       { value: [5, 35],  unit: "g/10min" }
@@ -794,7 +794,7 @@ buyer_profiles:
       quality_tier_required: [2, 3]
       cross_polymer_max:    { value: 3.0, unit: "%" }
       color_preference: ["any"]
-      form_preference: "pellets"
+      in_form: "pellets"
 
     quality_specifications:
       melt_flow_rate:       { value: [2, 30],  unit: "g/10min" }
@@ -848,7 +848,7 @@ buyer_profiles:
       quality_tier_required: [1]
       cross_polymer_max:    { value: 1.0, unit: "%" }
       color_preference: ["natural", "clear"]
-      form_preference: "pellets"
+      in_form: "pellets"
 
     quality_specifications:
       melt_flow_rate:       { value: null,  unit: "g/10min" }
@@ -906,7 +906,7 @@ buyer_profiles:
       quality_tier_required: [3, 4]
       cross_polymer_max:    { value: 8.0, unit: "%" }
       color_preference: ["any"]
-      form_preference: "pellets or regrind"
+      in_form: "pellets or regrind"
 
     quality_specifications:
       melt_flow_rate:       { value: null,  unit: "g/10min" }
@@ -957,7 +957,7 @@ buyer_profiles:
       quality_tier_required: [2, 3]
       cross_polymer_max:    { value: 5.0, unit: "%" }
       color_preference: ["any"]
-      form_preference: "pellets"
+      in_form: "pellets"
 
     quality_specifications:
       melt_flow_rate:       { value: [2, 5], unit: "g/10min" }
@@ -1007,7 +1007,7 @@ buyer_profiles:
       quality_tier_required: [1, 2]
       cross_polymer_max:    { value: 2.0, unit: "%" }
       color_preference: ["natural", "consistent"]
-      form_preference: "pellets"
+      in_form: "pellets"
 
     quality_specifications:
       melt_flow_rate:       { value: [0.5, 7], unit: "g/10min" }

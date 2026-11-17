@@ -10,6 +10,7 @@ from types import MappingProxyType
 from typing import Any
 
 from .gate_allowlists import (
+    ADR134_RETIRED_REASON,
     PARTNER_WRITEBACK_FIELD_ALLOWLIST,
     V2_CARTRIDGE_NODE,
     V2_KIND_BOOLEAN,
@@ -21,6 +22,7 @@ from .gate_allowlists import (
     V2_NUMERIC_KINDS,
     WEB_LEAD_WRITEBACK_FIELD_MAP,
     is_never_target,
+    is_retired_converge_field,
     resolve_v2_target,
 )
 from .gate_contracts import (
@@ -823,6 +825,21 @@ def plan_converge_v2_writeback(
     decisions = []
     try:
         for requested in request.targets:
+            if is_retired_converge_field(requested["field"]):
+                entry = response.field_evidence.get(requested["field"])
+                decisions.append(
+                    V2WritebackDecision(
+                        cartridge_field=requested["field"],
+                        odoo_field="",
+                        kind="",
+                        action=V2_PLAN_SKIP,
+                        skip_reason=V2_SKIP_UNMAPPED,
+                        detail=ADR134_RETIRED_REASON,
+                        evidence_state=entry.state if entry else None,
+                        confidence=entry.confidence if entry else None,
+                    )
+                )
+                continue
             row = spec.row(requested["field"])
             _need(row is not None, f"requested field {requested['field']!r} has no mapping row")
             _need(not is_never_target(row.odoo_field), f"{row.odoo_field} is never a converge target")
@@ -889,8 +906,12 @@ def plan_sweep_converge_v2_writeback(response: ConvergeResponseV2, spec, unmappe
         for name in sorted(response.field_evidence):
             entry = response.field_evidence[name]
             row = spec.row(name)
-            if row is None or is_never_target(row.odoo_field):
-                detail = unmapped.get(name) or "no reviewed facility-profile mapping"
+            if is_retired_converge_field(name) or row is None or is_never_target(row.odoo_field):
+                detail = (
+                    ADR134_RETIRED_REASON
+                    if is_retired_converge_field(name)
+                    else unmapped.get(name) or "no reviewed facility-profile mapping"
+                )
                 decisions.append(
                     V2WritebackDecision(
                         cartridge_field=name,

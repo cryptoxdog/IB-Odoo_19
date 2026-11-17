@@ -112,9 +112,9 @@
                         <setting id="plasticos_sweep_cooldown_setting" string="Cooldown (days)">
                             <field name="plasticos_sweep_cooldown_days"/>
                         </setting>
-                        <setting id="plasticos_sweep_process_setting" string="Process Types"
-                                 help="Comma list of keys; empty = any buyer.">
-                            <field name="plasticos_sweep_process_types" placeholder="injection, compounding"/>
+                        <setting id="plasticos_sweep_process_setting" string="Capability Types"
+                                 help="Comma list of capability-type codes; empty = any buyer.">
+                            <field name="plasticos_sweep_process_types" placeholder="injection_molding, compounding"/>
                         </setting>
                         <setting id="plasticos_sweep_application_setting" string="Application Classes">
                             <field name="plasticos_sweep_application_classes" placeholder="packaging, automotive"/>
@@ -122,10 +122,10 @@
                         <setting id="plasticos_sweep_feedstock_setting" string="Feedstock Types">
                             <field name="plasticos_sweep_feedstock_types" placeholder="post_industrial"/>
                         </setting>
-                        <setting id="plasticos_sweep_equipment_setting" string="Equipment (any of)">
-                            <field name="plasticos_sweep_equipment_type_ids" widget="many2many_tags"/>
+                        <setting id="plasticos_sweep_equipment_setting" string="Capabilities (any of)">
+                            <field name="plasticos_sweep_capability_type_ids" widget="many2many_tags"/>
                         </setting>
-                        <setting id="plasticos_sweep_polymer_setting" string="Accepted Polymers (any of)">
+                        <setting id="plasticos_sweep_polymer_setting" string="Inbound Polymers (any of)">
                             <field name="plasticos_sweep_accepted_polymer_ids" widget="many2many_tags"/>
                         </setting>
                         <setting id="plasticos_sweep_capacity_setting" string="Min Capacity (lbs/month)">

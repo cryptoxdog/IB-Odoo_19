@@ -563,23 +563,18 @@ class PlasticosIntakeNormalizer(models.Model):
             "partner_name": target.name,
         }
 
-        # Capability fields from PR #5
-        if hasattr(profile, "process_type"):
-            block["process_type"] = profile.process_type or None
+        # Capabilities replace the retired process type and equipment flags (ADR-134).
+        if hasattr(profile, "capability_ids"):
+            block["capabilities"] = [
+                {"id": line.id, "code": line.capability_type_id.code, "name": line.capability_type_id.name}
+                for line in profile.capability_ids
+            ]
         if hasattr(profile, "feedstock_type"):
             block["feedstock_type"] = profile.feedstock_type or None
         if hasattr(profile, "capacity_lbs_month"):
             block["capacity_lbs_month"] = profile.capacity_lbs_month or None
         if hasattr(profile, "contamination_tolerance_pct"):
             block["contamination_tolerance_pct"] = profile.contamination_tolerance_pct or None
-
-        # Accepted polymers (M2M from PR #5)
-        if hasattr(profile, "accepted_polymer_ids") and profile.accepted_polymer_ids:
-            block["accepted_polymers"] = [
-                {"id": p.id, "code": p.code, "name": p.name} for p in profile.accepted_polymer_ids
-            ]
-        else:
-            block["accepted_polymers"] = []
 
         return block
 

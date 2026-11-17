@@ -1,7 +1,7 @@
 ---
 id: plasticos.rule.equipment-policy
-version: 1.0.0
-description: Require complete downstream wiring when PlasticOS equipment types change.
+version: 1.1.0
+description: Require complete downstream wiring when PlasticOS capability types change.
 scope: repository
 domain: plasticos
 activation: auto_attached
@@ -10,20 +10,20 @@ context_cost: minimal
 alwaysApply: false
 globs:
   - "plasticos_facility_profile/**/*"
-  - "**/equipment_type*.xml"
+  - "**/capability_type*.xml"
 ---
-# PlasticOS Equipment Type Policy
+# PlasticOS Capability Type Policy
 
 **Scope:** `plasticos_facility_profile`. Facility evidence and projections stay in Odoo. Scoring semantics stay with CEG/EIE through Gate.
 
-## Rule: equipment changes stay inside the Odoo projection
+## Rule: capability changes stay inside the Odoo projection
 
-Adding equipment types to `equipment_type_data.xml` without the Odoo projection is prohibited.
+Adding capability types to `capability_type_data.xml` without the Odoo projection is prohibited. `plasticos.equipment.type` and the facility `has_*` flags are retired (ADR-134).
 
-### Required steps for a new equipment type
+### Required steps for a new capability type
 
-1. Add seed data in `data/equipment_type_data.xml`.
-2. Add the computed capability flag in `facility_profile.py`.
+1. Add seed data in `data/capability_type_data.xml`.
+2. Add the type's detail fields on `plasticos.capability` when the type carries details.
 3. Add the capability to the emitted facility packet.
 4. Add a test of that Odoo projection.
 
@@ -31,7 +31,7 @@ Adding equipment types to `equipment_type_data.xml` without the Odoo projection 
 
 ```xml
 <!-- WRONG: data-only addition creates an orphaned capability -->
-<record id="equip_new_machine" model="plasticos.equipment.type">
+<record id="cap_new_machine" model="plasticos.capability.type">
   <field name="name">New Machine</field>
   <field name="code">new_machine</field>
 </record>
@@ -40,15 +40,15 @@ Adding equipment types to `equipment_type_data.xml` without the Odoo projection 
 ### Correct wiring pattern
 
 ```python
-# facility_profile.py - computed flag
-rec.has_new_machine = "new_machine" in codes
+# capability.py — one line of the new type on the facility profile
+{"capability_type_id": new_type.id, "details": {"line_count": 1}}
 
-# facility_profile.py - capability packet
-"new_machine": rec.has_new_machine,
+# intake facility packet
+{"code": line.capability_type_id.code, "name": line.capability_type_id.name}
 ```
 
 ## Rationale
 
-- The facility packet is the Odoo projection of equipment.
-- Orphaned equipment creates a flag the packet does not emit.
+- The facility packet is the Odoo projection of what the site can do.
+- An unseeded code never becomes a capability line.
 - Data-only additions skip that projection.

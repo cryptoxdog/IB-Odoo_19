@@ -38,8 +38,8 @@ class ResConfigSettings(models.TransientModel):
         help="Skip a facility with a converge v2 enrichment run inside this many days. 0 = no cooldown.",
     )
     plasticos_sweep_process_types = fields.Char(
-        string="Process Types",
-        help="Comma list of facility process-type keys (e.g. injection, compounding). Empty = any.",
+        string="Capability Types",
+        help="Comma list of capability-type codes (e.g. injection_molding, compounding). Empty = any.",
     )
     plasticos_sweep_application_classes = fields.Char(
         string="Application Classes",
@@ -49,15 +49,15 @@ class ResConfigSettings(models.TransientModel):
         string="Feedstock Types",
         help="Comma list of feedstock keys (post_industrial, post_consumer, mixed, virgin, unknown). Empty = any.",
     )
-    plasticos_sweep_equipment_type_ids = fields.Many2many(
-        "plasticos.equipment.type",
-        string="Equipment (any of)",
-        help="Sweep facilities having any of these equipment types. Empty = any.",
+    plasticos_sweep_capability_type_ids = fields.Many2many(
+        "plasticos.capability.type",
+        string="Capabilities (any of)",
+        help="Sweep facilities that have any of these capability types. Empty = any.",
     )
     plasticos_sweep_accepted_polymer_ids = fields.Many2many(
         "plasticos.polymer",
-        string="Accepted Polymers (any of)",
-        help="Sweep facilities accepting any of these polymers. Empty = any.",
+        string="Inbound Polymers (any of)",
+        help="Sweep facilities whose partner has an inbound material profile for any of these polymers. Empty = any.",
     )
     plasticos_sweep_min_capacity_lbs_month = fields.Integer(
         string="Min Capacity (lbs/month)",
@@ -66,13 +66,13 @@ class ResConfigSettings(models.TransientModel):
     )
 
     _SWEEP_KEY_FIELDS = (
-        ("plasticos_sweep_process_types", policy.ICP_PROCESS_TYPES, "process_types"),
+        ("plasticos_sweep_process_types", policy.ICP_CAPABILITY_TYPE_CODES, "capability_type_codes"),
         ("plasticos_sweep_application_classes", policy.ICP_APPLICATION_CLASSES, "application_classes"),
         ("plasticos_sweep_feedstock_types", policy.ICP_FEEDSTOCK_TYPES, "feedstock_types"),
     )
     _SWEEP_ID_FIELDS = (
-        ("plasticos_sweep_equipment_type_ids", policy.ICP_EQUIPMENT_TYPE_IDS, "plasticos.equipment.type"),
-        ("plasticos_sweep_accepted_polymer_ids", policy.ICP_ACCEPTED_POLYMER_IDS, "plasticos.polymer"),
+        ("plasticos_sweep_capability_type_ids", policy.ICP_CAPABILITY_TYPE_IDS, "plasticos.capability.type"),
+        ("plasticos_sweep_accepted_polymer_ids", policy.ICP_POLYMER_IDS, "plasticos.polymer"),
     )
 
     @api.model

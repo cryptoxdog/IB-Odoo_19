@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_facility_profile
 component_name: PlasticOS Facility Profile
-module_version: 19.0.5.6.0
+module_version: 19.0.5.7.0
 layer: 2
 installable: true
 auto_install: true
@@ -18,8 +18,6 @@ depends:
   - plasticos_material_profile
 models_owned:
   - plasticos.facility.profile
-  - plasticos.facility.template
-  - plasticos.equipment.type
   - plasticos.capability
   - plasticos.capability.type
   - plasticos.partner.type
@@ -37,14 +35,12 @@ The front matter above is a derived index. `__manifest__.py` and the `_name` / `
 
 ## What it does
 
-Records what a facility can physically handle: equipment, forms and processes, tolerances, and operating details. It also owns several partner-level fields: the facility flag, the trade-facing company role, the partner type, extra phone numbers, and the dock rule.
+Records what a facility can physically handle: capabilities, tolerances, and operating details. It also owns several partner-level fields: the facility flag, the trade-facing company role, the partner type, extra phone numbers, and the dock rule.
 
 ## How it works
 
-- **Capability profile.** `plasticos.facility.profile` (`models/facility_profile.py`) belongs to one partner (`partner_id`, `ondelete="cascade"`). The field's domain offers partners that have a parent. `_check_partner_is_facility` refuses a save when the partner's `is_facility` is false. Further constraints check density and melt-index ranges.
-- **Selections from material profile.** Form and process selections are imported lazily, inside functions, from `plasticos_material_profile.form_codes` and `plasticos_material_profile.process_codes`.
-- **Templates.** `plasticos.facility.template` holds a preset. `get_template_values()` returns the equipment and capability flags to copy onto a profile and counts its use. Presets load from `data/facility_template_data.xml`.
-- **Reference data.** `plasticos.equipment.type` and `plasticos.partner.type` are master lists seeded in `data/equipment_type_data.xml` and `data/partner_type_data.xml`.
+- **Capability profile.** `plasticos.facility.profile` (`models/facility_profile.py`) belongs to one partner (`partner_id`, `ondelete="cascade"`). The field's domain offers partners that have a parent. `_check_partner_is_facility` refuses a save when the partner's `is_facility` is false. What the site can do is `plasticos.capability` lines, not equipment flags.
+- **Reference data.** `plasticos.partner.type` is a master list seeded in `data/partner_type_data.xml`.
 - **Partner fields.** The `res.partner` extension (`models/res_partner.py`):
   - stores `company_type` so it can be searched;
   - recomputes `is_facility` as a stored field: a child company, or a standalone company with no company children;
@@ -63,8 +59,6 @@ Records what a facility can physically handle: equipment, forms and processes, t
 | Model                         | Kind            | File                                             |
 | ----------------------------- | --------------- | ------------------------------------------------ |
 | `plasticos.facility.profile`  | owned           | `models/facility_profile.py`                     |
-| `plasticos.facility.template` | owned           | `models/facility_template.py`                    |
-| `plasticos.equipment.type`    | owned           | `models/equipment_type.py`                       |
 | `plasticos.capability`        | owned           | `models/capability.py`                           |
 | `plasticos.capability.type`   | owned           | `models/capability_type.py`                      |
 | `plasticos.partner.type`      | owned           | `models/partner_type.py`                         |
@@ -77,7 +71,8 @@ Records what a facility can physically handle: equipment, forms and processes, t
 
 - No cron, no install hook.
 - `auto_install` is true. `category` is `Hidden`.
-- Views: partner types, templates, capability profile forms, and partner form changes under `views/`.
+- Views: partner types, capability profile forms, and partner form changes under `views/`.
+- Upgrade `19.0.5.7.0` moves stored equipment, process and accepted-polymer values onto capabilities and inbound material profiles, then drops those columns. The review list is `plasticos_facility_capability_migration_review`.
 
 ## Boundaries
 

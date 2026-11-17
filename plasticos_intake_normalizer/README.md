@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_intake_normalizer
 component_name: Plasticos Intake Normalizer
-module_version: 19.0.1.0.6
+module_version: 19.0.1.0.7
 layer: 2
 installable: true
 auto_install: true

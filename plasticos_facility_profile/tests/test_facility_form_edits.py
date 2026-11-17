@@ -1,6 +1,5 @@
-"""Equipment toggles edit the equipment list, and the full form opens from a line."""
+"""Capability lines edit the site, and the full form opens from a line."""
 
-from odoo import Command
 from odoo.tests import TransactionCase, tagged
 
 
@@ -14,26 +13,30 @@ class TestFacilityFormEdits(TransactionCase):
             {"name": "Form Edit Plant", "is_company": True, "parent_id": parent.id}
         )
         cls.profile = cls.env["plasticos.facility.profile"].create({"partner_id": cls.plant.id})
-        equipment = cls.env["plasticos.equipment.type"]
-        cls.shredder = equipment.search([("code", "=", "shredder")], limit=1)
-        cls.pelletizer = equipment.search([("code", "=", "pelletizer")], limit=1)
-        cls.horizontal_baler = equipment.search([("code", "=", "horizontal_baler")], limit=1)
-        cls.assertTrue(cls.shredder, "equipment type shredder is missing from seed data")
-        cls.assertTrue(cls.pelletizer, "equipment type pelletizer is missing from seed data")
-        cls.assertTrue(cls.horizontal_baler, "equipment type horizontal_baler is missing from seed data")
+        types = cls.env["plasticos.capability.type"]
+        cls.shredding = types.search([("code", "=", "shredding")], limit=1)
+        cls.pelletizing = types.search([("code", "=", "pelletizing")], limit=1)
+        cls.baling = types.search([("code", "=", "baling")], limit=1)
+        cls.assertTrue(cls.shredding, "capability type shredding is missing from seed data")
+        cls.assertTrue(cls.pelletizing, "capability type pelletizing is missing from seed data")
+        cls.assertTrue(cls.baling, "capability type baling is missing from seed data")
 
-    def test_shredder_toggle_keeps_unrelated_equipment(self):
-        self.profile.write({"equipment_type_ids": [Command.link(self.pelletizer.id)]})
-        self.profile.has_shredder = True
-        self.assertIn(self.shredder, self.profile.equipment_type_ids)
-        self.assertIn(self.pelletizer, self.profile.equipment_type_ids)
-        self.profile.has_shredder = False
-        self.assertNotIn(self.shredder, self.profile.equipment_type_ids)
-        self.assertIn(self.pelletizer, self.profile.equipment_type_ids)
+    def _line(self, cap_type, **vals):
+        return self.env["plasticos.capability"].create(
+            {"facility_profile_id": self.profile.id, "capability_type_id": cap_type.id, **vals}
+        )
 
-    def test_equipment_type_still_sets_horizontal_baler_flag(self):
-        self.profile.write({"equipment_type_ids": [Command.link(self.horizontal_baler.id)]})
-        self.assertTrue(self.profile.has_horizontal_baler)
+    def test_adding_shredding_keeps_pelletizing(self):
+        pelletizing = self._line(self.pelletizing)
+        shredding = self._line(self.shredding)
+        self.assertEqual(set(self.profile.capability_ids), {pelletizing, shredding})
+        shredding.unlink()
+        self.assertEqual(self.profile.capability_ids, pelletizing)
+
+    def test_baling_line_keeps_its_baler_detail(self):
+        baling = self._line(self.baling, details={"baler": "hrb"})
+        self.assertEqual(baling.capability_type_id, self.baling)
+        self.assertEqual(baling.details["baler"], "hrb")
 
     def test_action_open_profile_form(self):
         action = self.profile.action_open_profile_form()

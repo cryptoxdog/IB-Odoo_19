@@ -136,15 +136,24 @@ class TestEnrichmentSweep(PlasticosTestCase):
 
     # ── selection ───────────────────────────────────────────────────────
 
+    def _capability(self, profile, code):
+        cap_type = self.env["plasticos.capability.type"].search([("code", "=", code)], limit=1)
+        self.assertTrue(cap_type, f"capability type {code} is missing from seed data")
+        return self.env["plasticos.capability"].create(
+            {"facility_profile_id": profile.id, "capability_type_id": cap_type.id}
+        )
+
     def test_selects_buyers_only_and_honours_filters(self):
-        buyer = self._buyer_profile("Sweep Buyer A", process_type="injection")
-        other = self._buyer_profile("Sweep Buyer B", process_type="compounding")
+        buyer = self._buyer_profile("Sweep Buyer A")
+        other = self._buyer_profile("Sweep Buyer B")
+        self._capability(buyer, "injection_molding")
+        self._capability(other, "compounding")
         supplier = self._supplier_profile("Sweep Supplier")
         selected = self._selected()
         self.assertIn(buyer, selected)
         self.assertIn(other, selected)
         self.assertNotIn(supplier, selected, "a supplier-only partner is never swept")
-        self._set_param("plasticos.gate.sweep_process_types", "injection")
+        self._set_param("plasticos.gate.sweep_process_types", "injection_molding")
         selected = self._selected()
         self.assertIn(buyer, selected)
         self.assertNotIn(other, selected)
@@ -188,7 +197,7 @@ class TestEnrichmentSweep(PlasticosTestCase):
         self.assertFalse(gate.calls)
 
     def test_send_builds_res_partner_candidates_and_records_the_sweep(self):
-        profile = self._buyer_profile("Sweep Send", accepted_polymer_ids=[(6, 0, self.hdpe.ids)])
+        profile = self._buyer_profile("Sweep Send", contamination_tolerance_pct=3.0)
         gate = _SweepGate()
         with self._gate(gate):
             sweep = self.env[SWEEP]._cron_send_sweep()
@@ -198,7 +207,8 @@ class TestEnrichmentSweep(PlasticosTestCase):
         entity_id = f"res.partner:{profile.partner_id.id}"
         candidate = next(c for c in payload["candidates"] if c["entity_id"] == entity_id)
         self.assertEqual(candidate["node_label"], "Facility")
-        self.assertEqual(candidate["entity"].get("processed_polymers"), [{"code": "hdpe"}])
+        self.assertEqual(candidate["entity"].get("contamination_tolerance"), 3.0)
+        self.assertNotIn("processed_polymers", candidate["entity"])
         self.assertEqual(payload["daily_budget_usd"], 5.0)
         self.assertEqual(payload["idempotency_key"], key)
         self.assertEqual(sweep.state, "sent")
@@ -242,7 +252,15 @@ class TestEnrichmentSweep(PlasticosTestCase):
         def results(env):
             reply = _sweep_reply(
                 entity_id,
-                {"min_density": {"state": "external_claim", "admitted": True, "value": 0.94, "unit": "g/cm3"}},
+                {
+                    "contamination_tolerance": {
+                        "state": "external_claim",
+                        "admitted": True,
+                        "value": 4.0,
+                        "unit": "percent",
+                    },
+                    "min_density": {"state": "external_claim", "admitted": True, "value": 0.94, "unit": "g/cm3"},
+                },
             )
             return [{"entity_id": entity_id, "response": reply}]
 
@@ -253,7 +271,7 @@ class TestEnrichmentSweep(PlasticosTestCase):
         self.assertEqual(len(runs), 1)
         self.assertEqual(runs.state, "review")
         self.assertEqual(runs.partner_id, profile.partner_id)
-        self.assertFalse(profile.density_min, "nothing is written before human review")
+        self.assertFalse(profile.contamination_tolerance_pct, "nothing is written before human review")
         self.assertEqual(sweep.state, "done")
         self.assertEqual(sweep.ingested, {entity_id: runs.id})
 
@@ -263,7 +281,14 @@ class TestEnrichmentSweep(PlasticosTestCase):
         self.assertEqual(self.env[RUN].search_count([("facility_profile_id", "=", profile.id)]), 1)
 
         runs.action_inject()
-        self.assertAlmostEqual(profile.density_min, 0.94, msg="the approved sweep run writes through review")
+        self.assertAlmostEqual(
+            profile.contamination_tolerance_pct, 4.0, msg="the approved sweep run writes through review"
+        )
+        retired = self.env["plasticos.enrichment.provenance"].search(
+            [("run_id", "=", runs.id), ("target_field", "=", "cartridge:min_density")]
+        )
+        self.assertTrue(retired)
+        self.assertEqual(retired.value_written, "retired by ADR-134; awaiting the follow-up vocabulary")
 
     def test_unusable_result_becomes_a_degraded_run_with_the_reason(self):
         profile, sweep, entity_id = self._send_one("Sweep Degraded Buyer")
@@ -273,7 +298,7 @@ class TestEnrichmentSweep(PlasticosTestCase):
         run = self.env[RUN].search([("facility_profile_id", "=", profile.id)])
         self.assertEqual(run.state, "degraded")
         self.assertIn("rejected", run.validation_issues[0])
-        self.assertFalse(profile.density_min)
+        self.assertFalse(profile.contamination_tolerance_pct)
 
     def test_result_for_an_entity_never_sent_creates_no_run(self):
         _profile, sweep, entity_id = self._send_one("Sweep Stranger Buyer")

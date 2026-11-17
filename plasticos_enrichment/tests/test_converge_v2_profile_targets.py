@@ -231,9 +231,12 @@ class TestConvergeV2ProfileTargets(PlasticosTestCase):
             lambda body: _v2_reply(
                 body,
                 {
-                    "min_density": {"state": "external_claim", "admitted": True, "value": 0.94, "unit": "g/cm3"},
-                    "max_density": {"state": "inferred", "admitted": True, "value": 0.96, "unit": "g/cm3"},
-                    "max_mfi": {"state": "external_claim", "admitted": False, "value": 0.7, "unit": "g/10min"},
+                    "contamination_tolerance": {
+                        "state": "external_claim",
+                        "admitted": True,
+                        "value": 4.0,
+                        "unit": "percent",
+                    },
                 },
             )
         )
@@ -245,38 +248,31 @@ class TestConvergeV2ProfileTargets(PlasticosTestCase):
         self.assertEqual(body["subject"], {"type": "material", "role": "supplier"})
         self.assertEqual(body["entity"]["id"], f"res.partner:{profile.partner_id.id}")
         self.assertNotIn("schema", body)
+        self.assertNotIn("min_density", [t["field"] for t in body["targets"]])
         self.assertEqual(run.state, "review")
-        self.assertFalse(profile.density_min, "nothing is written before approval")
+        self.assertFalse(profile.contamination_tolerance_pct, "nothing is written before approval")
 
         run.action_inject()
         self.assertEqual(run.state, "injected")
-        self.assertAlmostEqual(profile.density_min, 0.94)
-        self.assertAlmostEqual(profile.density_max, 0.96)
-        self.assertFalse(profile.melt_index_max, "an unadmitted claim is never written")
-        self.assertFalse(other.density_min, "only the targeted profile is written")
-        self.assertEqual(run.fields_written, 2)
+        self.assertAlmostEqual(profile.contamination_tolerance_pct, 4.0)
+        self.assertFalse(other.contamination_tolerance_pct, "only the targeted profile is written")
+        self.assertEqual(run.fields_written, 1)
         rows = self._provenance(run)
-        self.assertLessEqual({"density_min", "density_max", "melt_index_min", "melt_index_max"}, set(rows))
-        for row in rows.values():
-            self.assertEqual((row.target_model, row.target_res_id), ("plasticos.facility.profile", profile.id))
-        self.assertEqual(rows["density_min"].status, "written")
-        self.assertEqual(rows["melt_index_max"].status, "skipped_not_admitted")
-        self.assertEqual(rows["melt_index_min"].status, "skipped_unknown")
+        self.assertEqual(rows["contamination_tolerance_pct"].status, "written")
+        self.assertEqual(
+            (rows["contamination_tolerance_pct"].target_model, rows["contamination_tolerance_pct"].target_res_id),
+            ("plasticos.facility.profile", profile.id),
+        )
 
     # ── (2) buyer facility profile ───────────────────────────────────────
 
-    def test_buyer_facility_profile_run_writes_codes_and_percent(self):
-        profile = self._buyer_facility_profile("V2 Buyer Site", density_max=0.97)
+    def test_buyer_facility_profile_run_writes_percent(self):
+        profile = self._buyer_facility_profile("V2 Buyer Site")
         run = self._start(profile)
         gate = _Gate(
             lambda body: _v2_reply(
                 body,
                 {
-                    "processed_polymers": {
-                        "state": "external_claim",
-                        "admitted": True,
-                        "value": [{"code": "HDPE"}, {"code": "NOT-A-POLYMER"}],
-                    },
                     "contamination_tolerance": {
                         "state": "external_claim",
                         "admitted": True,
@@ -289,21 +285,14 @@ class TestConvergeV2ProfileTargets(PlasticosTestCase):
         self._execute(run, gate)
         body = gate.bodies[0]
         self.assertEqual(body["subject"], {"type": "material", "role": "buyer"})
-        self.assertNotIn("max_density", [t["field"] for t in body["targets"]], "a filled field is not requested")
-        self.assertIn("max_density", [o["field"] for o in body["observations"]])
+        self.assertNotIn("processed_polymers", [t["field"] for t in body["targets"]])
+        self.assertIn("contamination_tolerance", [t["field"] for t in body["targets"]])
 
         run.action_inject()
-        self.assertEqual(profile.accepted_polymer_ids, self.hdpe)
         self.assertAlmostEqual(profile.contamination_tolerance_pct, 4.0)
-        self.assertAlmostEqual(profile.density_max, 0.97)
         rows = self._provenance(run)
-        self.assertEqual(rows["accepted_polymer_ids"].status, "written")
-        self.assertIn("NOT-A-POLYMER", rows["accepted_polymer_ids"].value_written)
-        self.assertEqual(rows["accepted_polymer_ids"].target_res_id, profile.id)
-        self.assertFalse(
-            self.env["plasticos.polymer"].search([("code", "=ilike", "NOT-A-POLYMER")]),
-            "no master record is created",
-        )
+        self.assertEqual(rows["contamination_tolerance_pct"].status, "written")
+        self.assertEqual(rows["contamination_tolerance_pct"].target_res_id, profile.id)
 
     # ── (3) unknown and conflicting ──────────────────────────────────────
 
@@ -314,19 +303,18 @@ class TestConvergeV2ProfileTargets(PlasticosTestCase):
             lambda body: _v2_reply(
                 body,
                 {
-                    "max_density": {"state": "conflicting"},
-                    "min_mfi": {"state": "external_claim", "admitted": True, "value": 0.5, "unit": "g/10min"},
+                    "contamination_tolerance": {"state": "conflicting"},
+                    "freeform_notes": {"state": "external_claim", "admitted": True, "value": "kept"},
                 },
             )
         )
-        self._execute(run, gate)
-        run.action_inject()
-        self.assertFalse(profile.density_min)
-        self.assertFalse(profile.density_max)
-        self.assertAlmostEqual(profile.melt_index_min, 0.5)
+        with self._with_declarations(freeform_notes={"type": "string"}):
+            self._execute(run, gate)
+            run.action_inject()
+        self.assertFalse(profile.contamination_tolerance_pct)
+        self.assertEqual(profile.freeform_notes, "kept")
         rows = self._provenance(run)
-        self.assertEqual(rows["density_min"].status, "skipped_unknown")
-        self.assertEqual(rows["density_max"].status, "skipped_conflicting")
+        self.assertEqual(rows["contamination_tolerance_pct"].status, "skipped_conflicting")
 
     # ── (4) merge-not-overwrite ──────────────────────────────────────────
 
@@ -337,19 +325,22 @@ class TestConvergeV2ProfileTargets(PlasticosTestCase):
             lambda body: _v2_reply(
                 body,
                 {
-                    "min_density": {"state": "external_claim", "admitted": True, "value": 0.94, "unit": "g/cm3"},
-                    "max_density": {"state": "external_claim", "admitted": True, "value": 0.96, "unit": "g/cm3"},
+                    "contamination_tolerance": {
+                        "state": "external_claim",
+                        "admitted": True,
+                        "value": 4.0,
+                        "unit": "percent",
+                    },
                 },
             )
         )
         self._execute(run, gate)
-        profile.write({"density_min": 0.91})
+        profile.write({"contamination_tolerance_pct": 1.5})
         run.action_inject()
-        self.assertAlmostEqual(profile.density_min, 0.91)
-        self.assertAlmostEqual(profile.density_max, 0.96)
-        row = self._provenance(run)["density_min"]
+        self.assertAlmostEqual(profile.contamination_tolerance_pct, 1.5)
+        row = self._provenance(run)["contamination_tolerance_pct"]
         self.assertEqual(row.status, "skipped_immutable")
-        self.assertEqual(row.previous_value, "0.91")
+        self.assertEqual(row.previous_value, "1.5")
 
     # ── (5) units ────────────────────────────────────────────────────────
 
@@ -360,20 +351,20 @@ class TestConvergeV2ProfileTargets(PlasticosTestCase):
             lambda body: _v2_reply(
                 body,
                 {
-                    "min_density": {"state": "external_claim", "admitted": True, "value": 940.0, "unit": "kg/m3"},
-                    "max_density": {"state": "external_claim", "admitted": True, "value": 0.96},
-                    "max_mfi": {"state": "external_claim", "admitted": True, "value": 0.7, "unit": "g/10min"},
+                    "contamination_tolerance": {
+                        "state": "external_claim",
+                        "admitted": True,
+                        "value": 4.0,
+                        "unit": "kg/m3",
+                    },
                 },
             )
         )
         self._execute(run, gate)
         run.action_inject()
-        self.assertFalse(profile.density_min)
-        self.assertFalse(profile.density_max)
-        self.assertAlmostEqual(profile.melt_index_max, 0.7)
+        self.assertFalse(profile.contamination_tolerance_pct)
         rows = self._provenance(run)
-        self.assertEqual(rows["density_min"].status, "skipped_unit")
-        self.assertEqual(rows["density_max"].status, "skipped_unit")
+        self.assertEqual(rows["contamination_tolerance_pct"].status, "skipped_unit")
 
     # ── (6) v1-shaped reply to a v2 request ──────────────────────────────
 
@@ -384,7 +375,7 @@ class TestConvergeV2ProfileTargets(PlasticosTestCase):
             lambda body: {
                 "state": "completed",
                 "failure_reason": None,
-                "fields": {"min_density": 0.94},
+                "fields": {"contamination_tolerance": 4.0},
                 "confidence": 0.9,
             }
         )
@@ -397,7 +388,7 @@ class TestConvergeV2ProfileTargets(PlasticosTestCase):
         self.assertIn("v1_reply", " ".join(run.validation_issues or []))
         self.assertEqual(run.gate_packet_id, "pkt-v2-1", "the rejected reply's packet id is kept on the run")
         self.assertEqual(run.gate_correlation_id, "corr-v2-1")
-        self.assertFalse(profile.density_min)
+        self.assertFalse(profile.contamination_tolerance_pct)
         self.assertFalse(self.env[PROVENANCE].search([("run_id", "=", run_id)]))
 
     # ── (7) the v1 partner run is unchanged ──────────────────────────────
@@ -513,16 +504,23 @@ class TestConvergeV2ProfileTargets(PlasticosTestCase):
         gate = _Gate(
             lambda body: _v2_reply(
                 body,
-                {"min_density": {"state": "external_claim", "admitted": True, "value": 0.94, "unit": "g/cm3"}},
+                {
+                    "contamination_tolerance": {
+                        "state": "external_claim",
+                        "admitted": True,
+                        "value": 4.0,
+                        "unit": "percent",
+                    }
+                },
             )
         )
         self._execute(run, gate)
         self.assertEqual(run.state, "review")
-        profile.write({"density_min": 0.92})
+        profile.write({"contamination_tolerance_pct": 1.25})
         with self.assertRaises(UserError):
             run.action_inject()
         self.assertEqual(run.state, "review")
-        self.assertAlmostEqual(profile.density_min, 0.92)
+        self.assertAlmostEqual(profile.contamination_tolerance_pct, 1.25)
         self.assertFalse(run.injected_at)
 
     # ── run target integrity ─────────────────────────────────────────────

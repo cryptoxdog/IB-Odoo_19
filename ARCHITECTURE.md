@@ -118,10 +118,11 @@ PlasticOS implements a 5-layer architecture for plastics recycling brokerage ope
 
 **plasticos_facility_profile**
 - **Depends**: `base`, `contacts`, `mail`, `sale_management`, `plasticos_material_profile`
-- **Provides**: Equipment types, tolerances, BCP fields
+- **Provides**: Site capabilities, tolerances, and partner role fields
 - **Models**:
   - `plasticos.facility.profile`
-  - `plasticos.equipment.type`
+  - `plasticos.capability`
+  - `plasticos.capability.type`
   - `plasticos.partner.type`
 - **Partner Extension**: Adds `facility_profile_id` to `res.partner`
 
