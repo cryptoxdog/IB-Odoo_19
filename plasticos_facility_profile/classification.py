@@ -28,7 +28,19 @@ COMPANY_TYPE_NAMES = (
     "Exporter",
     "Toll Processor",
 )
-STATUS_NAMES = ("Needs Enrichment", "DNC", "Key Account", "Preferred Carrier")
+# VanillaSoft lead status: (external id in this module, tag name). The Status
+# group holds these and DNC (``plasticos_base.tag_do_not_contact``), nothing else.
+LEAD_STATUS_TAGS = (
+    ("status_current", "Current"),  # VanillaSoft 1, Currently Working With
+    ("status_open", "Open"),  # VanillaSoft 2
+    ("status_hot", "Hot"),  # VanillaSoft 2a
+    ("status_warm", "Warm"),  # VanillaSoft 2b
+    ("status_cold", "Cold"),  # VanillaSoft 2c
+    ("status_resist", "Resist"),  # VanillaSoft 3
+    ("status_unqualified", "Unqualified"),  # VanillaSoft 4
+)
+DNC = "DNC"
+STATUS_NAMES = (*(name for _xmlid, name in LEAD_STATUS_TAGS), DNC)
 BUYER = "Buyer"
 SUPPLIER = "Supplier"
 TRADE_ROLE_NAMES = (BUYER, SUPPLIER)
@@ -102,3 +114,32 @@ def reparent_plan(
             held.add(name)
     missing = [name for name in wanted if name not in held]
     return reparent, missing
+
+
+def bind_plan(
+    tags: Iterable[tuple[int, str, int | bool | None]],
+    group_id: int,
+    bound_xmlids: Iterable[str],
+    pairs: Iterable[tuple[str, str]],
+) -> list[tuple[str, int]]:
+    """Existing tags that become the given external ids, so none is duplicated.
+
+    ``tags`` are ``(id, name, parent_id)``; ``pairs`` are ``(xmlid, name)``. For an
+    xmlid not bound yet, a same-name tag already in the group is taken first,
+    else the oldest same-name root tag. A tag is bound to one xmlid at most.
+    Returns ``[(xmlid, tag_id)]``; a name with no candidate is left for the data
+    record to create.
+    """
+    bound = set(bound_xmlids)
+    rows = sorted(tags, key=lambda row: (row[2] != group_id, row[0]))
+    used: set[int] = set()
+    plan: list[tuple[str, int]] = []
+    for xmlid, name in pairs:
+        if xmlid in bound:
+            continue
+        for tag_id, tag_name, parent in rows:
+            if tag_name == name and tag_id not in used and (not parent or parent == group_id):
+                plan.append((xmlid, tag_id))
+                used.add(tag_id)
+                break
+    return plan

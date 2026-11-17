@@ -145,7 +145,7 @@ def test_a_tag_under_another_parent_is_left_where_it_is():
 def test_the_classification_names():
     assert len(CL.COMPANY_TYPE_NAMES) == len(set(CL.COMPANY_TYPE_NAMES)) == 12
     assert CL.TRADE_ROLE_NAMES == ("Buyer", "Supplier")
-    assert set(CL.STATUS_NAMES) == {"Needs Enrichment", "DNC", "Key Account", "Preferred Carrier"}
+    assert CL.STATUS_NAMES == ("Current", "Open", "Hot", "Warm", "Cold", "Resist", "Unqualified", "DNC")
     crm_names = {
         node.findtext("field[@name='name']")
         for node in ET.parse(ROOT / "plasticos_crm_bridge/data/partner_category_data.xml").iter("record")
@@ -158,7 +158,7 @@ def test_the_classification_names():
     assert set(CL.COMPANY_TYPE_NAMES) <= crm_names | base_names
     assert set(CL.TRADE_ROLE_NAMES) <= crm_names
     # DNC is plasticos_base "Do Not Contact" renamed in place (same record, same external id).
-    assert set(CL.STATUS_NAMES) - {"DNC"} | {"Do Not Contact"} <= base_names
+    assert "Do Not Contact" in base_names
 
 
 # ── Wiring ──────────────────────────────────────────────────────────────
@@ -173,7 +173,7 @@ def test_manifest_loads_the_classification_data_after_its_dependency():
     assert "plasticos_base" in manifest["depends"]
     assert "data/partner_classification_data.xml" in manifest["data"]
     assert tuple(int(part) for part in manifest["version"].split(".")) > (19, 0, 5, 4, 17)
-    assert (MODULE / "migrations" / manifest["version"] / "post-migrate.py").is_file()
+    assert (MODULE / "migrations" / "19.0.5.5.0" / "post-migrate.py").is_file()
 
 
 def test_base_tags_join_the_groups_on_every_upgrade():
@@ -187,12 +187,9 @@ def test_base_tags_join_the_groups_on_every_upgrade():
     assert overrides == {
         "plasticos_base.tag_exporter": "partner_category_company_type",
         "plasticos_base.tag_toll_processor": "partner_category_company_type",
-        "plasticos_base.tag_needs_enrichment": "partner_category_status",
         "plasticos_base.tag_do_not_contact": "partner_category_status",
-        "plasticos_base.tag_key_account": "partner_category_status",
-        "plasticos_base.tag_preferred_carrier": "partner_category_status",
     }
-    groups = {record.get("id") for record in root.iter("record") if "." not in record.get("id")}
+    groups = {record.get("id") for record in root.iter("record") if record.get("id").startswith("partner_category_")}
     assert groups == {"partner_category_company_type", "partner_category_trade_role", "partner_category_status"}
     dnc = root.find(".//record[@id='plasticos_base.tag_do_not_contact']")
     assert dnc.findtext("field[@name='name']") == "DNC"
@@ -242,3 +239,72 @@ def test_company_role_tags_load_before_anything_else_in_the_module_data():
         "company_role_carrier": "carrier",
     }
     assert {record.get("model") for record in root.iter("record")} == {"plasticos.company.role.tag"}
+
+
+# ── Status group: VanillaSoft lead status + DNC, nothing else ───────────
+
+
+def _status_records():
+    root = ET.parse(MODULE / "data/partner_classification_data.xml").getroot()
+    out = {}
+    for data in root.iter("data"):
+        for record in data.iter("record"):
+            parent = record.find("field[@name='parent_id']")
+            if parent is not None and parent.get("ref") == "partner_category_status":
+                out[record.get("id")] = (record.findtext("field[@name='name']"), data.get("noupdate"))
+    return root, out
+
+
+def test_status_group_members_and_external_ids():
+    root, records = _status_records()
+    assert records == {
+        "status_current": ("Current", "1"),
+        "status_open": ("Open", "1"),
+        "status_hot": ("Hot", "1"),
+        "status_warm": ("Warm", "1"),
+        "status_cold": ("Cold", "1"),
+        "status_resist": ("Resist", "1"),
+        "status_unqualified": ("Unqualified", "1"),
+        "plasticos_base.tag_do_not_contact": ("DNC", "0"),
+    }
+    assert dict(CL.LEAD_STATUS_TAGS) == {xmlid: name for xmlid, (name, _nu) in records.items() if "." not in xmlid}
+    # The binding runs before the Status records, so an existing same-name tag is reused.
+    children = list(root)
+    bind = next(i for i, node in enumerate(children) if node.get("name") == "_plasticos_bind_status_tags")
+    first_status = next(i for i, node in enumerate(children) if node.find("record[@id='status_current']") is not None)
+    assert bind < first_status
+
+
+def test_retired_status_tags_appear_nowhere_in_the_module():
+    retired = ("tag_needs_enrichment", "tag_key_account", "tag_preferred_carrier")
+    for path in MODULE.rglob("*"):
+        if path.is_file() and path.suffix in {".py", ".xml", ".csv", ".js"}:
+            text = path.read_text(encoding="utf-8")
+            for name in retired:
+                assert name not in text, f"{name} referenced in {path.relative_to(ROOT)}"
+    for name in ("Needs Enrichment", "Key Account", "Preferred Carrier"):
+        assert name not in CL.STATUS_NAMES
+
+
+def test_dnc_is_still_the_renamed_do_not_contact_tag():
+    _root, records = _status_records()
+    assert records["plasticos_base.tag_do_not_contact"] == ("DNC", "0")
+    code = (MODULE / "models/res_partner_category.py").read_text(encoding="utf-8")
+    assert 'DO_NOT_CONTACT_XMLID = "plasticos_base.tag_do_not_contact"' in code
+
+
+def test_existing_same_name_status_tags_are_bound_not_duplicated():
+    group = 50
+    tags = [(3, "Hot", False), (4, "Hot", False), (9, "Cold", group), (10, "Cold", False), (12, "Open", 77)]
+    plan = CL.bind_plan(tags, group, {"status_warm"}, CL.LEAD_STATUS_TAGS)
+    # Oldest root "Hot"; the "Cold" already in the group; "Open" under another parent is left alone.
+    assert plan == [("status_hot", 3), ("status_cold", 9)]
+    assert CL.bind_plan(tags, group, {xmlid for xmlid, _name in CL.LEAD_STATUS_TAGS}, CL.LEAD_STATUS_TAGS) == []
+
+
+def test_lead_status_mirrors_to_sites_but_dnc_stays_per_record():
+    code = (MODULE / "models/res_partner_classification.py").read_text(encoding="utf-8")
+    assert "lead_status = set(categories._plasticos_group_members(STATUS_XMLID).values()) - {" in code
+    assert "mirrored_tag_ids(target, company_ids, lead_status)" in code
+    arch = (MODULE / "views/partner_ux.xml").read_text(encoding="utf-8")
+    assert "('category_id.parent_id.name', '=', 'Status')" in arch

@@ -140,6 +140,8 @@
                         domain="[('customer_rank', '&gt;', 0), ('supplier_rank', '&gt;', 0)]"/>
                 <filter string="Has Company Type" name="has_company_type"
                         domain="[('category_id.parent_id.name', '=', 'Company Type')]"/>
+                <filter string="Has Status" name="has_status"
+                        domain="[('category_id.parent_id.name', '=', 'Status')]"/>
                 <filter string="Prospects" name="role_prospect"
                         domain="[('company_role', '=', 'prospect')]"/>
                 <filter string="Blocked" name="status_blocked"

@@ -3,7 +3,8 @@
     <!--
         Partner classification on native tags (ADR-131 Decision B).
         Three tag groups: Company Type (VanillaSoft is the authority), Trade Role
-        (Buyer / Supplier, kept from the native ranks) and Status.
+        (Buyer / Supplier, kept from the native ranks) and Status (the VanillaSoft
+        lead status, plus DNC).
     -->
     <data noupdate="1">
         <record id="partner_category_company_type" model="res.partner.category">
@@ -14,6 +15,52 @@
         </record>
         <record id="partner_category_status" model="res.partner.category">
             <field name="name">Status</field>
+        </record>
+    </data>
+
+    <!--
+        A same-name root tag that already exists becomes the Status tag below
+        (moved into the group, given its external id), so no duplicate is made.
+        Runs before the records, which then create only what is still missing.
+    -->
+    <function model="res.partner.category" name="_plasticos_bind_status_tags"/>
+
+    <!-- VanillaSoft lead status. -->
+    <data noupdate="1">
+        <!-- VanillaSoft 1, Currently Working With -->
+        <record id="status_current" model="res.partner.category">
+            <field name="name">Current</field>
+            <field name="parent_id" ref="partner_category_status"/>
+        </record>
+        <!-- VanillaSoft 2 -->
+        <record id="status_open" model="res.partner.category">
+            <field name="name">Open</field>
+            <field name="parent_id" ref="partner_category_status"/>
+        </record>
+        <!-- VanillaSoft 2a -->
+        <record id="status_hot" model="res.partner.category">
+            <field name="name">Hot</field>
+            <field name="parent_id" ref="partner_category_status"/>
+        </record>
+        <!-- VanillaSoft 2b -->
+        <record id="status_warm" model="res.partner.category">
+            <field name="name">Warm</field>
+            <field name="parent_id" ref="partner_category_status"/>
+        </record>
+        <!-- VanillaSoft 2c -->
+        <record id="status_cold" model="res.partner.category">
+            <field name="name">Cold</field>
+            <field name="parent_id" ref="partner_category_status"/>
+        </record>
+        <!-- VanillaSoft 3 -->
+        <record id="status_resist" model="res.partner.category">
+            <field name="name">Resist</field>
+            <field name="parent_id" ref="partner_category_status"/>
+        </record>
+        <!-- VanillaSoft 4 -->
+        <record id="status_unqualified" model="res.partner.category">
+            <field name="name">Unqualified</field>
+            <field name="parent_id" ref="partner_category_status"/>
         </record>
     </data>
 
@@ -29,18 +76,9 @@
         <record id="plasticos_base.tag_toll_processor" model="res.partner.category">
             <field name="parent_id" ref="partner_category_company_type"/>
         </record>
-        <record id="plasticos_base.tag_needs_enrichment" model="res.partner.category">
-            <field name="parent_id" ref="partner_category_status"/>
-        </record>
         <!-- Displayed as DNC; the record (external id) stays the one the logic keys on. -->
         <record id="plasticos_base.tag_do_not_contact" model="res.partner.category">
             <field name="name">DNC</field>
-            <field name="parent_id" ref="partner_category_status"/>
-        </record>
-        <record id="plasticos_base.tag_key_account" model="res.partner.category">
-            <field name="parent_id" ref="partner_category_status"/>
-        </record>
-        <record id="plasticos_base.tag_preferred_carrier" model="res.partner.category">
             <field name="parent_id" ref="partner_category_status"/>
         </record>
 

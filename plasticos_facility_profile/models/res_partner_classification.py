@@ -7,8 +7,9 @@ The one owner of three rules:
   the source of truth. The first rank increase is an ORM write
   (``account`` ``_increase_rank``), so ``write`` sees it.
 * **Mirror.** When a company's tags change, its sites and people get its
-  Company Type tags, and its sites get its Trade Role tags. Every other tag a
-  child carries (ERP Contact Role, Status, ...) is left as it is. Child writes
+  Company Type tags, and its sites get its Trade Role and lead-status tags
+  (the Status group without DNC, which stays per record). Every other tag a
+  child carries (ERP Contact Role, DNC, ...) is left as it is. Child writes
   carry a context key, so they do not mirror again.
 * **DNC.** When the Status tag DNC (``plasticos_base.tag_do_not_contact``) is set on a record, its
   email address(es) go to ``mail.blacklist`` and its phone numbers to
@@ -21,7 +22,7 @@ import logging
 from odoo import Command, api, models, tools
 
 from ..classification import mirrored_tag_ids, newly_tagged, synced_trade_tag_ids
-from .res_partner_category import COMPANY_TYPE_XMLID, DO_NOT_CONTACT_XMLID, TRADE_ROLE_XMLID
+from .res_partner_category import COMPANY_TYPE_XMLID, DO_NOT_CONTACT_XMLID, STATUS_XMLID, TRADE_ROLE_XMLID
 
 _logger = logging.getLogger(__name__)
 
@@ -51,7 +52,10 @@ class ResPartner(models.Model):
         categories = self.env["res.partner.category"]
         company_type = set(categories._plasticos_group_members(COMPANY_TYPE_XMLID).values())
         trade_role = set(categories._plasticos_group_members(TRADE_ROLE_XMLID).values())
-        if not company_type and not trade_role:
+        # DNC is set per record (its blacklist rule); the mirror never adds or removes it.
+        dnc = self.env.ref(DO_NOT_CONTACT_XMLID, raise_if_not_found=False)
+        lead_status = set(categories._plasticos_group_members(STATUS_XMLID).values()) - {dnc.id if dnc else 0}
+        if not company_type and not trade_role and not lead_status:
             return
         quiet = self.with_context(**{MIRROR_CONTEXT: True})
         for company in self.filtered(lambda partner: partner.company_type == "company"):
@@ -61,6 +65,7 @@ class ResPartner(models.Model):
                 target = mirrored_tag_ids(current, company_ids, company_type)
                 if child._plasticos_is_site():
                     target = mirrored_tag_ids(target, company_ids, trade_role)
+                    target = mirrored_tag_ids(target, company_ids, lead_status)
                 if target != current:
                     child.write({"category_id": [Command.set(sorted(target))]})
 
