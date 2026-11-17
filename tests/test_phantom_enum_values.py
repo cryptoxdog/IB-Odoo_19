@@ -541,6 +541,48 @@ GLOBAL_ALLOWLIST = frozenset(
         "loose_supply",
         "balanced",
         # ─────────────────────────────────────────────────────────────────────
+        # ENRICHMENT NORMALIZER CODES (plasticos_enrichment/models/enrichment_service.py)
+        # Input words and intermediate short codes of FORM_NORMALIZE,
+        # SOURCE_TYPE_NORMALIZE and POLYMER_NORMALIZE; FORM_CODE_TO_MASTER maps
+        # them onto plasticos_material_profile master codes. They are not
+        # Selection values. Until C1 G1 they were accepted only because the
+        # retired plasticos_base material-taxonomy partner tags carried the same
+        # names. "sweep" is also the Gate proposal origin (enrichment_run.py).
+        # ─────────────────────────────────────────────────────────────────────
+        "BAG",
+        "CHOP",
+        "CONT",
+        "DENS",
+        "GAY",
+        "HMW HDPE",
+        "LOG",
+        "No-Value",
+        "OFF",
+        "PA",
+        "PAL",
+        "PART",
+        "PATTY",
+        "PELL",
+        "PI",
+        "PP-PE",
+        "PURG",
+        "REUSE",
+        "RG",
+        "ROLL",
+        "SWEEP",
+        "bag",
+        "chop",
+        "dens",
+        "log",
+        "no-value",
+        "off-grade",
+        "part",
+        "patty",
+        "pcr",
+        "pir",
+        "roll",
+        "sweep",
+        # ─────────────────────────────────────────────────────────────────────
         # WEB LEADS SYNONYM MAPPINGS (normalize external input)
         # These are intentionally NOT in the registry — they're input synonyms
         # that get normalized to canonical values
@@ -1391,7 +1433,13 @@ class TestRegistrySanity:
             assert polymer in XML_NAMES, f"Expected polymer '{polymer}' not found in XML names"
 
     def test_known_forms_in_registry(self):
-        for form in ["BALE", "FILM", "FLAKE", "PELL"]:
+        """Spot-check the form master (plasticos_material_profile/data/material_form_data.xml).
+
+        Until C1 G1 this checked the short codes of the retired plasticos_base
+        material-taxonomy partner tags (BALE, PELL); the form vocabulary now
+        lives only on the master.
+        """
+        for form in ["Bales", "Film", "Flake", "Pellets"]:
             assert form in XML_NAMES, f"Expected form '{form}' not found in XML names"
 
     def test_known_selection_keys_in_registry(self):
@@ -1840,13 +1888,16 @@ class TestXmlSelectionAlignment:
             }
         )
 
+        # Until C1 G1 this read the names of the retired plasticos_base
+        # material-taxonomy partner tags; polymer codes now live only on the
+        # polymer master, so check its codes.
         polymer_names = {
             s.value
             for s in ALL_SOURCES
-            if "taxonomy" in s.source_file.lower()
-            and s.source_type == "xml_name"
-            and any(cat in s.source_file for cat in ["material_taxonomy", "polymer"])
+            if s.source_file.endswith("plasticos_material_profile/data/polymer_data.xml")
+            and s.source_type == "xml_code"
         }
+        assert polymer_names, "No polymer codes found in plasticos_material_profile/data/polymer_data.xml"
         # Filter to things that look like polymer codes:
         # - Short (≤8 chars)
         # - Alphabetic
