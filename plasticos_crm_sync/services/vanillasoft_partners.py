@@ -14,6 +14,12 @@ Operator decisions D32/D33 (C1 lane C4):
 * **7 Do Not Call** never creates a partner. When the company already exists
   as a partner, it gets the DNC status tag and the lead's email and phones are
   blacklisted.
+
+Status tags (C1 F1+C4, ADR-133 "Status"): the Lead Status writes one Status
+tag on the matched company (``plasticos_facility_profile`` mirrors it onto the
+sites). One Status tag at a time. DNC is sticky. 5, 6 and 8 clear the
+VanillaSoft Status tag. Within one run the most advanced status of all records
+of a company wins; DNC from any record wins over every status.
 """
 
 from __future__ import annotations
@@ -53,6 +59,25 @@ _COMPANY_TYPE_PARAGRAPH = re.compile(r"^VanillaSoft (?:ContactID \S+ )?Company T
 _NAME_SUFFIXES = frozenset(
     {"inc", "incorporated", "llc", "co", "corp", "corporation", "company", "ltd", "limited", "lp", "llp"}
 )
+
+
+_STATUS_PREFIX = "plasticos_facility_profile."
+# VanillaSoft Lead Status code -> Status tag external id.
+LEAD_STATUS_TAG_XMLIDS = {
+    "1": _STATUS_PREFIX + "status_current",
+    "2": _STATUS_PREFIX + "status_open",
+    "2a": _STATUS_PREFIX + "status_hot",
+    "2b": _STATUS_PREFIX + "status_warm",
+    "2c": _STATUS_PREFIX + "status_cold",
+    "3": _STATUS_PREFIX + "status_resist",
+    "4": _STATUS_PREFIX + "status_unqualified",
+}
+STATUS_CODE_DNC = "7"
+# 5 Dead Lead, 6 Wrong #, 8 Duplicate: the VanillaSoft Status tag is removed, nothing is set.
+STATUS_CLEARING_CODES = frozenset({"5", "6", "8"})
+# Most advanced first: Current > Hot > Warm > Resist > Open > Unqualified > Cold.
+STATUS_PRECEDENCE = ("1", "2a", "2b", "3", "2", "4", "2c")
+_STATUS_CODE = re.compile(r"^\s*(\d+[a-z]?)\s*=", re.IGNORECASE)
 
 
 def _squash(value: str | None) -> str:
@@ -159,3 +184,51 @@ def backfill_company_type_tags(leads, tag_for, link) -> dict[str, int]:
         link(lead, tag_id)
         counts["set"] += 1
     return counts
+
+
+def lead_status_code(raw: str | None) -> str:
+    """The code a Lead Status starts with (``"2a=Qualified/HOT"`` -> ``"2a"``). Empty when none."""
+    match = _STATUS_CODE.match(_squash(raw))
+    return match.group(1).casefold() if match else ""
+
+
+def status_acts(code: str) -> bool:
+    """True when this code sets, clears or locks a Status tag."""
+    return code in LEAD_STATUS_TAG_XMLIDS or code in STATUS_CLEARING_CODES or code == STATUS_CODE_DNC
+
+
+def _status_rank(code: str) -> int:
+    if code == STATUS_CODE_DNC:
+        return -1
+    if code in STATUS_PRECEDENCE:
+        return STATUS_PRECEDENCE.index(code)
+    # A clearing code loses to every status: a Dead record never erases another record's Hot.
+    return len(STATUS_PRECEDENCE)
+
+
+def stronger_status(first: str | None, second: str) -> str:
+    """The status that wins when two records of one run name the same company."""
+    if not first:
+        return second
+    return first if _status_rank(first) <= _status_rank(second) else second
+
+
+def status_tag_ids_after(
+    current_ids: Iterable[int], lead_status_ids: dict[str, int], dnc_id: int | None, code: str
+) -> set[int]:
+    """A company's tags after one Lead Status.
+
+    ``lead_status_ids`` maps each Lead Status code to its tag id (the tags that
+    exist). Only Status tags change: one at a time; DNC is never removed and,
+    while present, no other Status tag is kept or added.
+    """
+    current = set(current_ids)
+    status_tags = set(lead_status_ids.values())
+    if code == STATUS_CODE_DNC or (dnc_id and dnc_id in current):
+        return (current - status_tags) | ({dnc_id} if dnc_id else set())
+    if code in STATUS_CLEARING_CODES:
+        return current - status_tags
+    tag_id = lead_status_ids.get(code)
+    if tag_id is None:
+        return current
+    return (current - status_tags) | {tag_id}

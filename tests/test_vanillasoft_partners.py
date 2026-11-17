@@ -239,7 +239,10 @@ class _Partner:
         for key, value in vals.items():
             if key in ("category_id", "company_role_tag_ids"):
                 for command in value:
-                    getattr(self, key).append(self.env.tags[command[1]])
+                    if command[0] == 6:
+                        setattr(self, key, _Set(self.env.tags[tag_id] for tag_id in command[2]))
+                    else:
+                        getattr(self, key).append(self.env.tags[command[1]])
             else:
                 setattr(self, key, value)
 
@@ -880,3 +883,175 @@ def test_ignored_type_is_a_review_row(typed):
     fields = {"Materials": "MRP, HDPE, PET, PP", "Material Type": "Post Consumer, Post Industrial"}
     orch._import_section_materials(None, (fields,), partner=object(), external_id="VS-4")
     assert [row["error_type"] for row in orch.error_rows] == ["MATERIAL_FIELD_IGNORED"]
+
+
+# ── Lead Status -> one Status tag (ADR-133 "Status") ──────────────────────────
+STATUS_TAGS = {
+    "status_current": (701, "Current"),
+    "status_open": (702, "Open"),
+    "status_hot": (703, "Hot"),
+    "status_warm": (704, "Warm"),
+    "status_cold": (705, "Cold"),
+    "status_resist": (706, "Resist"),
+    "status_unqualified": (707, "Unqualified"),
+}
+OTHER_TAG = 950  # a tag of another group (an ERP Contact Role, say): never touched
+
+
+@pytest.fixture
+def status_harness(harness):
+    env, orch, lead = harness
+    for xmlid, (tag_id, name) in STATUS_TAGS.items():
+        env.tags[tag_id] = types.SimpleNamespace(id=tag_id, _name="res.partner.category", name=name)
+        env.refs[f"plasticos_facility_profile.{xmlid}"] = tag_id
+    env.tags[OTHER_TAG] = types.SimpleNamespace(id=OTHER_TAG, _name="res.partner.category", name="Broker Contact")
+    return env, orch, lead
+
+
+def _status_names(partner):
+    return sorted(tag.name for tag in partner.category_id)
+
+
+@pytest.mark.parametrize(
+    ("status", "tag"),
+    [
+        ("1= Currently Working With", "Current"),
+        ("2=Qualified/Open", "Open"),
+        (vp.STATUS_HOT, "Hot"),
+        (vp.STATUS_WARM, "Warm"),
+        (vp.STATUS_COLD, "Cold"),
+        (vp.STATUS_RESIST, "Resist"),
+        ("4=Unqualified", "Unqualified"),
+        (vp.STATUS_DO_NOT_CALL, "DNC"),
+    ],
+)
+def test_each_lead_status_writes_its_one_status_tag_on_an_existing_company(status_harness, status, tag):
+    env, orch, lead = status_harness
+    company = env["res.partner"].create({"name": "Acme Plastics", "is_company": True})
+    orch._resolve_vanillasoft_partner_body(lead, _dto(status, "Buyer"))
+    assert _status_names(company) == [tag]
+
+
+def test_status_codes_and_mapping_cover_the_seven_tags():
+    assert vp.lead_status_code("2a=Qualified/HOT") == "2a"
+    assert vp.lead_status_code("1= Currently Working With") == "1"
+    assert vp.lead_status_code("New") == ""
+    assert sorted(x.split(".", 1)[1] for x in vp.LEAD_STATUS_TAG_XMLIDS.values()) == sorted(STATUS_TAGS)
+    assert not vp.status_acts("") and vp.status_acts("5") and vp.status_acts("7") and vp.status_acts("2c")
+
+
+def test_a_new_status_replaces_the_old_one_and_keeps_other_tags(status_harness):
+    env, orch, lead = status_harness
+    company = env["res.partner"].create({"name": "Acme Plastics", "is_company": True})
+    company.category_id = _Set([env.tags[OTHER_TAG], env.tags[703]])  # Broker Contact + Hot
+    orch._apply_lead_status_tag(company, _dto(vp.STATUS_COLD))
+    assert _status_names(company) == ["Broker Contact", "Cold"]
+
+
+def test_dnc_is_sticky_and_no_status_is_added_while_it_is_present(status_harness):
+    env, orch, lead = status_harness
+    company = env["res.partner"].create({"name": "Acme Plastics", "is_company": True})
+    company.category_id = _Set([env.tags[704]])  # Warm
+    orch._resolve_vanillasoft_partner_body(lead, _dto(vp.STATUS_DO_NOT_CALL, "Buyer"))
+    assert _status_names(company) == ["DNC"]  # one Status tag at a time
+    later = _Orch(env)  # a later run: no precedence carried over
+    later._resolve_vanillasoft_partner_body(lead, _dto(vp.STATUS_HOT, "Buyer"))
+    later._apply_lead_status_tag(company, _dto(vp.STATUS_DEAD))
+    assert _status_names(company) == ["DNC"]
+
+
+@pytest.mark.parametrize("status", [vp.STATUS_DEAD, vp.STATUS_WRONG_NUMBER, vp.STATUS_DUPLICATE])
+def test_dead_wrong_number_and_duplicate_clear_the_status_and_set_nothing(status_harness, status):
+    env, orch, lead = status_harness
+    company = env["res.partner"].create({"name": "Acme Plastics", "is_company": True})
+    company.category_id = _Set([env.tags[OTHER_TAG], env.tags[703]])
+    orch._resolve_vanillasoft_partner_body(lead, _dto(status, "Buyer"))
+    assert _status_names(company) == ["Broker Contact"]
+    assert not lead.partner_id  # still no partner link
+
+
+def test_dead_never_clears_dnc(status_harness):
+    env, orch, lead = status_harness
+    company = env["res.partner"].create({"name": "Acme Plastics", "is_company": True})
+    company.category_id = _Set([env.tags[900]])
+    orch._apply_lead_status_tag(company, _dto(vp.STATUS_DEAD))
+    assert _status_names(company) == ["DNC"]
+
+
+@pytest.mark.parametrize(
+    ("statuses", "expected"),
+    [
+        ((vp.STATUS_COLD, vp.STATUS_HOT), "Hot"),
+        ((vp.STATUS_HOT, vp.STATUS_COLD), "Hot"),
+        (("1= Currently Working With", vp.STATUS_HOT), "Current"),
+        ((vp.STATUS_WARM, vp.STATUS_RESIST), "Warm"),
+        ((vp.STATUS_RESIST, "2=Qualified/Open"), "Resist"),
+        (("2=Qualified/Open", "4=Unqualified"), "Open"),
+        (("4=Unqualified", vp.STATUS_COLD), "Unqualified"),
+        ((vp.STATUS_HOT, vp.STATUS_DEAD), "Hot"),
+        ((vp.STATUS_DEAD, vp.STATUS_WARM), "Warm"),
+        (("1= Currently Working With", vp.STATUS_DO_NOT_CALL), "DNC"),
+    ],
+)
+def test_most_advanced_status_of_one_run_wins(status_harness, statuses, expected):
+    env, orch, lead = status_harness
+    company = env["res.partner"].create({"name": "Acme Plastics", "is_company": True})
+    for status in statuses:
+        orch._apply_lead_status_tag(company, _dto(status))
+    assert _status_names(company) == [expected]
+
+
+def test_precedence_order():
+    order = ["1", "2a", "2b", "3", "2", "4", "2c"]
+    for stronger, weaker in itertools.pairwise(order):
+        assert vp.stronger_status(weaker, stronger) == stronger
+        assert vp.stronger_status(stronger, weaker) == stronger
+    assert vp.stronger_status("2c", "7") == "7" and vp.stronger_status("7", "1") == "7"
+    assert vp.stronger_status("5", "2c") == "2c"
+
+
+def test_erp_partner_matched_by_a_cold_lead_gets_cold_and_no_new_partner(status_harness):
+    env, orch, lead = status_harness
+    erp = env["res.partner"].create({"name": "ACME PLASTICS, INC.", "is_company": True})
+    env.erp_ids.add(erp.id)
+    orch._resolve_vanillasoft_partner_body(lead, _dto(vp.STATUS_COLD, "Supplier"))
+    assert _status_names(erp) == ["Cold"]
+    assert len(env.partners) == 1 and not lead.partner_id  # COLD creates and links nothing
+
+
+def test_cold_without_a_partner_creates_nothing(status_harness):
+    env, orch, lead = status_harness
+    orch._resolve_vanillasoft_partner_body(lead, _dto(vp.STATUS_COLD, "Buyer"))
+    assert not env.partners and not lead.partner_id
+
+
+def test_created_company_gets_its_status(status_harness):
+    env, orch, lead = status_harness
+    orch._resolve_vanillasoft_partner_body(lead, _dto(vp.STATUS_HOT, "Supplier"))
+    assert _status_names(lead.partner_id[0]) == ["Hot"]
+
+
+def test_status_goes_to_the_commercial_company_not_the_site_or_person(status_harness):
+    env, orch, lead = status_harness
+    company = env["res.partner"].create({"name": "Acme Plastics", "is_company": True})
+    site = env["res.partner"].create({"name": "Acme Plant", "is_company": True, "parent_id": company.id})
+    lead.partner_id = _Set([site])
+    orch._resolve_vanillasoft_partner_body(lead, _dto(vp.STATUS_WARM, "Buyer"))
+    assert _status_names(company) == ["Warm"] and not site.category_id  # the facility mirror owns the sites
+
+
+def test_approved_contact_status_lands_on_its_erp_company(status_harness):
+    env, orch, lead = status_harness
+    company = env["res.partner"].create({"name": "ERP Co", "is_company": True})
+    person = env["res.partner"].create({"name": "Ada Byron", "parent_id": company.id})
+    lead.id = False
+    orch._apply_existing_partner_rules(lead, _dto("1= Currently Working With", ""), person)
+    assert _status_names(company) == ["Current"] and not person.category_id
+
+
+def test_new_status_changes_nothing(status_harness):
+    env, orch, lead = status_harness
+    company = env["res.partner"].create({"name": "Acme Plastics", "is_company": True})
+    company.category_id = _Set([env.tags[704]])
+    orch._apply_lead_status_tag(company, _dto("New"))
+    assert _status_names(company) == ["Warm"]

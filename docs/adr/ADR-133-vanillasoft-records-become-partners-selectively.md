@@ -27,6 +27,31 @@
 4. 7 Do Not Call on an existing partner sets the DNC status tag, and adds the record's emails and phones to the native mail and phone blacklists. Nothing is removed.
 5. The trade role is shown as the Buyer and Supplier tags synced from the native ranks, with no Both or Broker label. Broker is a Company Type.
 
+## Status
+
+The VanillaSoft Lead Status is also written as one tag of the Status group (`plasticos_facility_profile`, ADR-131 Decision B) on the matched company. The facility mirror copies it onto the company's sites. This covers every matched or created company, including an ERP company matched by a COLD lead; COLD still creates and links no partner.
+
+| Lead Status | Status tag |
+|---|---|
+| 1 Currently Working With | Current |
+| 2 Qualified/Open | Open |
+| 2a Qualified/HOT | Hot |
+| 2b Qualified/WARM | Warm |
+| 2c Qualified/COLD | Cold |
+| 3 Qualified/Resist | Resist |
+| 4 Unqualified | Unqualified |
+| 7 Do Not Call | DNC |
+| 5 Dead Lead, 6 Wrong #, 8 Duplicate | none: the VanillaSoft Status tag is removed |
+
+- One Status tag at a time: a new status replaces the old one. Tags of other groups are kept.
+- DNC is sticky. It is never removed, and no other Status tag is added while it is present.
+- 5, 6 and 8 remove the VanillaSoft Status tag and set nothing. DNC stays.
+- Several records naming one company in one run: the most advanced status wins, Current > Hot > Warm > Resist > Open > Unqualified > Cold. DNC from any record wins over all. A 5, 6 or 8 record never removes another record's status in the same run.
+- Across runs the latest run's status is written, so a company can move down as well as up (except out of DNC).
+- A status with no tag (`New`) changes nothing.
+- Key Account was retired as a tag (C1 G1): it said the same as Current.
+- Code: `LEAD_STATUS_TAG_XMLIDS`, `STATUS_PRECEDENCE`, `status_tag_ids_after()` in `vanillasoft_partners.py`; `SyncOrchestrator._apply_lead_status_tag`.
+
 ## Consequences
 
 - No new field or model.

@@ -149,3 +149,18 @@ Residual risk:
 
 - **Name matching misses:** with no stronger matcher, a company whose name differs in more than case, punctuation or legal suffix is created as a new partner. Ambiguous matches are refused, never guessed.
 - **Production volume:** by the counts above, a first Production run may create several thousand partners.
+
+## Addendum 2026-11-17 — Lead Status as one Status tag (CTO directive)
+
+- Merged `origin/feat/c1-f2-classification-ui` (#525, seven Status tags) into this branch with a merge commit. No rebase.
+- `plasticos_crm_sync` `19.0.1.9.33` → `19.0.1.9.34`. No migration: the tag is written by the next import.
+- Rule (ADR-133 "Status"):
+  - 1 → Current, 2 → Open, 2a → Hot, 2b → Warm, 2c → Cold, 3 → Resist, 4 → Unqualified, 7 → DNC.
+  - Written on the matched commercial company. The `plasticos_facility_profile` mirror copies it onto the sites; this lane does not write sites itself.
+  - One Status tag at a time. DNC is sticky. 5, 6 and 8 remove the VanillaSoft Status tag and set nothing.
+  - In one run, the most advanced status of all records of a company wins: Current > Hot > Warm > Resist > Open > Unqualified > Cold. DNC from any record wins.
+  - An ERP company matched by a COLD lead gets Cold. COLD still creates and links no partner.
+- Code: `lead_status_code`, `status_acts`, `stronger_status` and `status_tag_ids_after` (pure) in `vanillasoft_partners.py`; `SyncOrchestrator._apply_lead_status_tag`, called from the create, DNC, non-qualified and approved paths.
+- Tests: `tests/test_vanillasoft_partners.py` 148 passed (52 new). They cover each mapping, the replace that keeps other tags, DNC sticky, 5/6/8 clear, Dead never clears DNC, run precedence, an ERP company matched by COLD, the created company, the company rather than site or person, the approved path, and `New` changing nothing.
+- Not run: Odoo runtime. The mirror onto sites is #525's code and is proven there, not here.
+- Assumption: across runs the latest status is written, so a company can move down. Only one run's records are compared for precedence.

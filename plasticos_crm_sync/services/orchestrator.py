@@ -748,6 +748,8 @@ def _differs(record, field_name: str, value) -> bool:
 class SyncOrchestrator:
     def __init__(self, env):
         self.placement_review: list[dict] = []
+        # Lead Status code per company id for this run: the most advanced wins (ADR-133).
+        self.status_by_company: dict[int, str] = {}
         self.env = env
         # Reset by every `_sync_contacts` pass; read by `run_full_import` as the
         # evidence that the requested historical floor was actually served.
@@ -2837,7 +2839,13 @@ class SyncOrchestrator:
             self._append_classified_error(dto.external_id, f"partner resolution failed: {exc}", REQUIRED_MAPPING)
 
     def _resolve_vanillasoft_partner_body(self, lead, dto) -> None:
-        from .vanillasoft_partners import is_do_not_call, parse_roles, partner_allowed  # noqa: PLC0415
+        from .vanillasoft_partners import (  # noqa: PLC0415
+            is_do_not_call,
+            lead_status_code,
+            parse_roles,
+            partner_allowed,
+            status_acts,
+        )
 
         custom = dto.custom_fields or {}
         roles = parse_roles(custom.get("Buyer/Supplier"))
@@ -2845,8 +2853,15 @@ class SyncOrchestrator:
             company = _verified_company(lead, None) or self._existing_company(dto, create_allowed=False)
             if company:
                 self._apply_do_not_call(company, lead, dto)
+                self._apply_lead_status_tag(company, dto)
             return
         if not partner_allowed(dto.lead_status_raw, roles, approved=False):
+            # No partner is created, but a company that already exists (an ERP
+            # partner matched by a COLD lead, say) still gets its Status tag.
+            if status_acts(lead_status_code(dto.lead_status_raw)):
+                company = _verified_company(lead, None) or self._existing_company(dto, create_allowed=False)
+                if company:
+                    self._apply_lead_status_tag(company, dto)
             return
         company = _verified_company(lead, None)
         if company is None:
@@ -2860,14 +2875,15 @@ class SyncOrchestrator:
             lead.write({"partner_id": company.id})
         self._ensure_contact_person(company, dto)
         self._raise_trade_ranks(company, roles)
+        self._apply_lead_status_tag(company, dto)
 
     def _apply_existing_partner_rules(self, lead, dto, partner) -> None:
-        """Approved contacts already have an ERP person: ranks and DNC on its company only."""
-        from .vanillasoft_partners import is_do_not_call, parse_roles  # noqa: PLC0415
+        """Approved contacts already have an ERP person: ranks, DNC and Status on its company only."""
+        from .vanillasoft_partners import is_do_not_call, lead_status_code, parse_roles, status_acts  # noqa: PLC0415
 
         do_not_call = is_do_not_call(dto.lead_status_raw)
         roles = parse_roles((dto.custom_fields or {}).get("Buyer/Supplier"))
-        if not do_not_call and not roles:
+        if not do_not_call and not roles and not status_acts(lead_status_code(dto.lead_status_raw)):
             return
         try:
             with self.env.cr.savepoint():
@@ -2876,8 +2892,9 @@ class SyncOrchestrator:
                     return
                 if do_not_call:
                     self._apply_do_not_call(company, lead, dto)
-                else:
+                elif roles:
                     self._raise_trade_ranks(company, roles)
+                self._apply_lead_status_tag(company, dto)
         except Exception as exc:  # noqa: BLE001 - partner rules must not drop the bound contact
             _logger.warning("VanillaSoft partner rules failed for %s: %s", dto.external_id, exc)
             self._append_classified_error(dto.external_id, f"partner rules failed: {exc}", REQUIRED_MAPPING)
@@ -3021,6 +3038,41 @@ class SyncOrchestrator:
                 sanitized = self.env.user._phone_format(number=number)
                 if sanitized:
                     Blacklist._add([sanitized], message=message)
+
+    def _apply_lead_status_tag(self, company, dto) -> None:
+        """The Lead Status as the company's one Status tag (ADR-133 "Status").
+
+        Written on the company only; ``plasticos_facility_profile`` mirrors the
+        lead-status tags onto its sites. Within this run the most advanced
+        status of all records naming the company wins, and DNC from any record
+        wins over every status. A status with no tag (``New``) changes nothing.
+        """
+        from odoo.addons.plasticos_crm_bridge.models.crm_mapping import DNC_PARTNER_TAG_XMLID  # noqa: PLC0415
+
+        from .vanillasoft_partners import (  # noqa: PLC0415
+            LEAD_STATUS_TAG_XMLIDS,
+            lead_status_code,
+            status_acts,
+            status_tag_ids_after,
+            stronger_status,
+        )
+
+        code = lead_status_code(dto.lead_status_raw)
+        if not company or not status_acts(code):
+            return
+        code = stronger_status(self.status_by_company.get(company.id), code)
+        self.status_by_company[company.id] = code
+        tag_ids = {}
+        for status, xmlid in LEAD_STATUS_TAG_XMLIDS.items():
+            tag = self.env.ref(xmlid, raise_if_not_found=False)
+            if tag and tag._name == "res.partner.category":
+                tag_ids[status] = tag.id
+        dnc = self.env.ref(DNC_PARTNER_TAG_XMLID, raise_if_not_found=False)
+        dnc_id = dnc.id if dnc and dnc._name == "res.partner.category" else None
+        current = set(company.category_id.ids)
+        target = status_tag_ids_after(current, tag_ids, dnc_id, code)
+        if target != current:
+            company.write({"category_id": [(6, 0, sorted(target))]})
 
     def _apply_company_type(self, lead, dto, partner, custom, command, mapping, aliases) -> None:
         raw = _collapse_ws(custom.get("Company Type"))
