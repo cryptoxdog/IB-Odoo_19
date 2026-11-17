@@ -57,9 +57,10 @@ class TestDeliveryAppointmentActivity(TransactionCase):
         activity = activities
         self.assertTrue(activity.user_id.has_group("plasticos_security_base.group_logistics"))
         note = activity.note or ""
-        self.assertIn("North Receiving Site", note)
-        self.assertIn("Expected ready date:", note)
-        self.assertIsNone(re.search(r"Expected ready date:\s*\S", note))
+        plain = re.sub(r"<[^>]*>", "", note)
+        self.assertIn("North Receiving Site", plain)
+        self.assertIn("Expected ready date:", plain)
+        self.assertIsNone(re.search(r"Expected ready date:\s*\S", plain))
         self.assertFalse(order.appointment_requested)
         self.assertFalse(order.appointment_requested_on)
         self.assertFalse(
