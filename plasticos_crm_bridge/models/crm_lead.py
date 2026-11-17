@@ -9,6 +9,7 @@ from odoo.tools import float_compare
 _REACH_PERSON_DEPENDS = (
     "partner_id",
     "partner_id.is_company",
+    "partner_id.type",
     "partner_id.parent_id",
     "partner_id.email",
     "partner_id.phone",
@@ -43,6 +44,11 @@ _REACH_PERSON_DEPENDS = (
     "partner_id.parent_id.child_ids.function",
     "partner_id.parent_id.child_ids.mobile",
 )
+
+
+def _is_location(partner):
+    """A company or one of its sites (either ADR-131 shape): a place with a reach person, not a person."""
+    return partner.is_company or partner._plasticos_is_site()
 
 
 class CrmLeadPlastOS(models.Model):
@@ -434,7 +440,7 @@ class CrmLeadPlastOS(models.Model):
                 lead.contact_name = kept[lead.id]
                 continue
             partner = lead.partner_id
-            if not partner or not partner.is_company:
+            if not partner or not _is_location(partner):
                 continue
             person = partner._plasticos_reach_person()
             if person.name:
@@ -445,7 +451,7 @@ class CrmLeadPlastOS(models.Model):
         """Keep a stored or location email. Fill an empty one from the reached person."""
         super()._compute_email_from()
         for lead in self:
-            if lead.email_from or not lead.partner_id or not lead.partner_id.is_company:
+            if lead.email_from or not lead.partner_id or not _is_location(lead.partner_id):
                 continue
             person = lead.partner_id._plasticos_reach_person()
             if person.email:
@@ -456,7 +462,7 @@ class CrmLeadPlastOS(models.Model):
         """Keep a stored job title. Fill an empty one from the reached person."""
         super()._compute_function()
         for lead in self:
-            if lead.function or not lead.partner_id or not lead.partner_id.is_company:
+            if lead.function or not lead.partner_id or not _is_location(lead.partner_id):
                 continue
             person = lead.partner_id._plasticos_reach_person()
             if person.function:
@@ -467,7 +473,7 @@ class CrmLeadPlastOS(models.Model):
         """Keep a location or stored phone. Copy the person's phone only when both are empty."""
         super()._compute_phone()
         for lead in self:
-            if lead.phone or not lead.partner_id or not lead.partner_id.is_company:
+            if lead.phone or not lead.partner_id or not _is_location(lead.partner_id):
                 continue
             person = lead.partner_id._plasticos_reach_person()
             if person.phone:
@@ -493,7 +499,7 @@ class CrmLeadPlastOS(models.Model):
         """The reached person's value when the location's own field is empty."""
         self.ensure_one()
         partner = self.partner_id
-        if not partner or not partner.is_company or partner[field_name]:
+        if not partner or not _is_location(partner) or partner[field_name]:
             return False
         person = partner._plasticos_reach_person()
         return person[field_name] if person else False
@@ -507,7 +513,7 @@ class CrmLeadPlastOS(models.Model):
     def _plasticos_fill_mobile_from_person(self):
         """Copy a valid US mobile from the reached person when the lead has none."""
         for lead in self:
-            if lead.mobile or not lead.partner_id or not lead.partner_id.is_company:
+            if lead.mobile or not lead.partner_id or not _is_location(lead.partner_id):
                 continue
             person = lead.partner_id._plasticos_reach_person()
             number = person.mobile if person else False
@@ -672,7 +678,7 @@ class CrmLeadPlastOS(models.Model):
 
         for key, value in crm_lead_source_address(self.street, self.city, self.zip).items():
             intake_vals.setdefault(key, value)
-        if partner and partner.is_company and partner.parent_id:
+        if partner and partner._plasticos_is_site():
             intake_vals["facility_id"] = partner.id
         if partner:
             person = partner._plasticos_reach_person()
@@ -1099,9 +1105,24 @@ class CrmLeadPlastOS(models.Model):
         sale_spec = material._line_specification("sale.order.line")
         label = material.display_name or product.display_name
         qty = offer.quantity_lbs or 0.0
+        from ..release_parties import ReleasePartyError, release_parties
+
+        try:
+            parties = release_parties(self.partner_id, self.release_buyer_facility_id)
+        except ReleasePartyError as error:
+            raise UserError(_("Submit needs a company on each side: %(reason)s.", reason=error)) from error
+        if parties["customer"] != self.release_buyer_company_id:
+            raise UserError(
+                _(
+                    "Buyer facility %(facility)s belongs to %(owner)s, not to the buyer company %(company)s.",
+                    facility=self.release_buyer_facility_id.display_name,
+                    owner=parties["customer"].display_name,
+                    company=self.release_buyer_company_id.display_name,
+                )
+            )
         purchase = self.env["purchase.order"].create(
             {
-                "partner_id": self.partner_id.id,
+                "partner_id": parties["vendor"].id,
                 "origin": offer.name,
                 "order_line": [
                     Command.create(
@@ -1118,7 +1139,8 @@ class CrmLeadPlastOS(models.Model):
         )
         sale = self.env["sale.order"].create(
             {
-                "partner_id": self.release_buyer_facility_id.id,
+                "partner_id": parties["customer"].id,
+                "partner_shipping_id": parties["ship_to"].id,
                 "opportunity_id": self.id,
                 "origin": offer.name,
                 "order_line": [
@@ -1139,7 +1161,7 @@ class CrmLeadPlastOS(models.Model):
                 "sale_order_id": sale.id,
                 "purchase_order_ids": [Command.link(purchase.id)],
                 "buyer_id": self.release_buyer_company_id.id,
-                "supplier_id": self.partner_id.id,
+                "supplier_id": parties["vendor"].id,
                 "user_id": self.user_id.id or self.env.uid,
                 "product_id": product.id,
             }

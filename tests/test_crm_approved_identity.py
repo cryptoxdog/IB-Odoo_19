@@ -223,6 +223,10 @@ class _Person:
     def __len__(self):
         return 1
 
+    def _plasticos_is_site(self):
+        """The D1 predicate (ADR-131): an ERP person is not a site."""
+        return False
+
     def write(self, vals):
         self.writes.append(dict(vals))
         self.__dict__.update(vals)

@@ -70,8 +70,10 @@ class PlasticosIntake(models.Model):
         string="Facility",
         tracking=True,
         index=True,
-        domain="['|', ('id', '=', partner_id), ('parent_id', '=', partner_id)]",
-        help="The facility (child location) or the company itself when it is also the processing site.",
+        # The company itself, or one of its sites in either ADR-131 shape (stored
+        # company_type 'site'). A person under the company is not a facility.
+        domain="['|', ('id', '=', partner_id), '&', ('parent_id', '=', partner_id), ('company_type', '=', 'site')]",
+        help="The facility (a site of the company) or the company itself when it is also the processing site.",
         ondelete="restrict",
     )
     contact_id = fields.Many2one(
@@ -80,7 +82,7 @@ class PlasticosIntake(models.Model):
         tracking=True,
         index=True,
         domain=(
-            "[('is_company', '=', False), '|', '|', "
+            "[('is_company', '=', False), ('company_type', '!=', 'site'), '|', '|', "
             "('parent_id', '=', facility_id), ('parent_id', '=', partner_id), "
             "('location_partner_ids', 'in', facility_id)]"
         ),
@@ -559,12 +561,8 @@ class PlasticosIntake(models.Model):
             return
 
         partner = self.partner_id
-        children = self.env["res.partner"].search(
-            [
-                ("parent_id", "=", partner.id),
-                ("is_company", "=", True),
-            ]
-        )
+        Partner = self.env["res.partner"]
+        children = Partner.search([("parent_id", "=", partner.id), *Partner._plasticos_site_domain()])
 
         if not children:
             self.facility_id = partner.id
