@@ -125,3 +125,15 @@ def test_no_domain_is_removed():
 def test_email_format_is_idempotent(raw):
     once = CF.format_emails(raw)
     assert CF.format_emails(once) == once
+
+
+# ── Production probe 3 tuning: country rule (operator, 2026-11-17) ──────────
+def test_country_is_own_then_commercial_company_then_us():
+    assert CF.country_for("CA", "US") == "CA"
+    assert CF.country_for(None, "ca") == "CA"
+    assert CF.country_for(False, None, "DE") == "DE"
+    assert CF.country_for(None, None) == "US"
+
+
+def test_commercial_company_country_formats_a_child_number():
+    assert CF.format_phone("416-555-0199", CF.country_for(None, "CA")) == "(416) 555-0199"

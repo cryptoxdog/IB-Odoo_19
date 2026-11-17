@@ -608,6 +608,89 @@ def phone_digits(value: str | None) -> str:
     return digits
 
 
+def phone_keys(value: str | None, region: str | None = "US") -> frozenset[str]:
+    """Comparison keys of one phone value. Two numbers are the same when their keys meet.
+
+    Always the digit key (:func:`phone_digits`). When the ``phonenumbers`` library
+    is installed (it ships with Odoo) and parses the value as a possible number in
+    ``region`` (the partner's country, else its company's, else ``US``), the E.164
+    form too, with ``x<extension>`` when the number has one. A ``+44`` number and
+    the same number written nationally then match. Blank or not dialable: empty.
+    """
+    digits = phone_digits(value)
+    if not digits:
+        return frozenset()
+    keys = {digits}
+    parsed = parse_phone(value, region)
+    if parsed:
+        keys.add(parsed)
+    return frozenset(keys)
+
+
+def parse_phone(value: str | None, region: str | None = "US") -> str | None:
+    """E.164 (plus ``x<extension>``) of a dialable value, or ``None``.
+
+    ``None`` when the value is not dialable, when ``phonenumbers`` is not
+    installed, or when it does not parse as a possible number.
+    """
+    text = real_phone(value)
+    if not text:
+        return None
+    try:
+        import phonenumbers
+    except ImportError:
+        return None
+    try:
+        number = phonenumbers.parse(text, (region or "US").upper())
+    except phonenumbers.NumberParseException:
+        return None
+    if not phonenumbers.is_possible_number(number):
+        return None
+    key = phonenumbers.format_number(number, phonenumbers.PhoneNumberFormat.E164)
+    return f"{key}x{number.extension}" if number.extension else key
+
+
+# Function mailboxes never become a person (operator decision 2026-11-17).
+# Accounting mailboxes belong to the commercial company; operational ones to the
+# one site they match, else to the company.
+ACCOUNTING_MAILBOX_LOCALS: frozenset[str] = frozenset(
+    {"ap", "ar", "accounting", "accounts", "invoices", "invoice", "billing", "payables", "receivables"}
+)
+OPERATIONAL_MAILBOX_LOCALS: frozenset[str] = frozenset(
+    {"shipping", "receiving", "orders", "office", "customerservice", "info", "sales", "purchasing"}
+)
+MAILBOX_ACCOUNTING = "accounting"
+MAILBOX_OPERATIONAL = "operational"
+
+
+def function_mailbox(emails: list[str]) -> str | None:
+    """``accounting`` or ``operational`` when an address has a function local part, else ``None``.
+
+    Accounting wins when a cell carries both (``ap@`` and ``orders@``).
+    """
+    locals_ = {"".join(char for char in address.split("@", 1)[0].casefold() if char.isalnum()) for address in emails}
+    if locals_ & ACCOUNTING_MAILBOX_LOCALS:
+        return MAILBOX_ACCOUNTING
+    if locals_ & OPERATIONAL_MAILBOX_LOCALS:
+        return MAILBOX_OPERATIONAL
+    return None
+
+
+def name_local_forms(name: str | None) -> frozenset[str]:
+    """The mailbox local parts a person's name produces, case-folded and alphanumeric only.
+
+    ``first.last`` and ``firstlast`` (the same once punctuation is dropped),
+    ``flast``, ``firstl``, ``first`` and ``last``. First and last are the first
+    and last words of the title.
+    """
+    words = [_alnum(word).casefold() for word in (name or "").split()]
+    words = [word for word in words if word]
+    if not words:
+        return frozenset()
+    first, last = words[0], words[-1]
+    return frozenset({first + last, first[:1] + last, first + last[:1], first, last})
+
+
 def is_role_word(name: str | None) -> bool:
     """True when a contact title is an ERP role word (``BILLING``, ``COLLECTIONS``)."""
     return normalize_contact_role(name).casefold() in CONTACT_ROLE_TAGS

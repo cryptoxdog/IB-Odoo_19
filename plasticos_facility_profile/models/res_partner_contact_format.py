@@ -10,7 +10,7 @@ import logging
 
 from odoo import api, models
 
-from ..services.contact_format import format_emails_result, format_phone_result
+from ..services.contact_format import country_for, format_emails_result, format_phone_result
 
 _logger = logging.getLogger(__name__)
 
@@ -54,10 +54,13 @@ class PlasticosResPartnerContactFormat(models.Model):
     _inherit = RES_PARTNER
 
     def _plasticos_contact_country_code(self):
-        """The partner's country, else its parent's, else US."""
+        """The partner's country, else its commercial company's, else US (operator, 2026-11-17)."""
         self.ensure_one()
-        country = self.country_id or self.parent_id.country_id
-        return country.code or DEFAULT_COUNTRY
+        return country_for(
+            self.country_id.code,
+            self.commercial_partner_id.country_id.code,
+            self.parent_id.commercial_partner_id.country_id.code,
+        )
 
     @api.model
     def _plasticos_country_code_from_vals(self, vals):
@@ -66,7 +69,8 @@ class PlasticosResPartnerContactFormat(models.Model):
             return self.env[RES_COUNTRY].browse(country_id).code or DEFAULT_COUNTRY
         parent_id = vals.get("parent_id")
         if parent_id:
-            return self.browse(parent_id).country_id.code or DEFAULT_COUNTRY
+            parent = self.browse(parent_id)
+            return country_for(parent.country_id.code, parent.commercial_partner_id.country_id.code)
         return DEFAULT_COUNTRY
 
     @api.model_create_multi
@@ -91,10 +95,8 @@ class PlasticosResPartnerContactFormat(models.Model):
                 code = self._plasticos_country_code_from_vals(vals)
             elif "country_id" in vals or "parent_id" in vals:
                 parent = self.browse(vals["parent_id"]) if "parent_id" in vals else partner.parent_id
-                country = (
-                    partner.country_id if "country_id" not in vals else self.env[RES_COUNTRY]
-                ) or parent.country_id
-                code = country.code or DEFAULT_COUNTRY
+                own = partner.country_id.code if "country_id" not in vals else None
+                code = country_for(own, parent.country_id.code, parent.commercial_partner_id.country_id.code)
             else:
                 code = partner._plasticos_contact_country_code()
             groups.setdefault(code, []).append(partner.id)

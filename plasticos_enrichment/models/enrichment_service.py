@@ -196,6 +196,17 @@ FORM_CODE_TO_MASTER = {
 }
 
 
+def _entity_type_from_ranks(partner):
+    """Return ``"buyer"`` when the commercial partner has ``customer_rank > 0``, else ``"supplier"``.
+
+    Native ranks replace the former "Buyer"/"Customer" tag-name rule (C1 lane C);
+    a partner with both ranks is a buyer, as a "Customer" tag was before.
+    """
+    if partner and (partner.commercial_partner_id.customer_rank or 0) > 0:
+        return "buyer"
+    return "supplier"
+
+
 class EnrichmentService(models.AbstractModel):
     _name = "plasticos.enrichment.service"
     _description = "AI-Powered CRM Enrichment Service"
@@ -375,11 +386,7 @@ class EnrichmentService(models.AbstractModel):
         }
 
         # Determine entity type from partner
-        entity_type = "supplier"
-        if profile.partner_id:
-            tags = profile.partner_id.category_id.mapped("name")
-            if "Buyer" in tags or "Customer" in tags:
-                entity_type = "buyer"
+        entity_type = _entity_type_from_ranks(profile.partner_id)
 
         augmented = self.run_inference(profile_vals, entity_type)
 
