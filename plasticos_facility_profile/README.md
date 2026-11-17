@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_facility_profile
 component_name: PlasticOS Facility Profile
-module_version: 19.0.5.4.16
+module_version: 19.0.5.4.17
 layer: 2
 installable: true
 auto_install: true

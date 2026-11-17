@@ -152,33 +152,33 @@
     <field name="arch" type="xml">
 
       <xpath expr="//div[hasclass('flex-column')]/h1" position="after">
-        <field name="contact_header_name" nolabel="1" readonly="1" invisible="not is_company or not contact_header_name"/>
+        <field name="contact_header_name" nolabel="1" readonly="1" invisible="company_type == 'person' or not contact_header_name"/>
       </xpath>
 
       <xpath expr="//div[hasclass('flex-column')]/field[@name='company_type']" position="after">
         <div class="d-flex align-items-baseline gap-2">
           <span class="o_form_label">Address Type</span>
-          <field name="type" nolabel="1" readonly="1"/>
-          <field name="address_type_meaning" nolabel="1" readonly="1"/>
+          <field name="type" nolabel="1" readonly="1" invisible="address_type_meaning"/>
+          <field name="address_type_meaning" nolabel="1" readonly="1" invisible="not address_type_meaning"/>
         </div>
       </xpath>
 
       <xpath expr="//div[hasclass('flex-column')]//field[@name='email']/parent::div" position="attributes">
-        <attribute name="invisible">is_company and parent_id</attribute>
+        <attribute name="invisible">company_type == 'site'</attribute>
       </xpath>
       <xpath expr="//div[hasclass('flex-column')]//field[@name='email']/parent::div" position="after">
-        <div class="d-flex align-items-baseline w-md-50" invisible="not is_company or not parent_id">
+        <div class="d-flex align-items-baseline w-md-50" invisible="company_type != 'site'">
           <i class="fa fa-fw me-1 fa-envelope text-primary" title="Email"/>
           <field name="linked_person_email" class="w-100" widget="email" readonly="1"/>
         </div>
       </xpath>
 
       <xpath expr="//div[hasclass('flex-column')]//field[@name='phone']/parent::div" position="after">
-        <div class="d-flex align-items-baseline w-md-50" invisible="is_company and parent_id">
+        <div class="d-flex align-items-baseline w-md-50" invisible="company_type == 'site'">
           <i class="fa fa-fw me-1 fa-mobile text-primary" title="Mobile"/>
           <field name="mobile" class="w-100" widget="phone" placeholder="Mobile"/>
         </div>
-        <div class="d-flex align-items-baseline w-md-50" invisible="not is_company or not parent_id">
+        <div class="d-flex align-items-baseline w-md-50" invisible="company_type != 'site'">
           <i class="fa fa-fw me-1 fa-mobile text-primary" title="Mobile"/>
           <field name="linked_person_mobile" class="w-100" widget="phone" readonly="1"/>
         </div>
@@ -204,8 +204,8 @@
                     class="btn-link p-0"/>
           </list>
         </field>
-        <separator string="Locations" invisible="not is_company or parent_id"/>
-        <field name="location_child_ids" nolabel="1" invisible="not is_company or parent_id">
+        <separator string="Locations" invisible="company_type != 'company'"/>
+        <field name="location_child_ids" nolabel="1" invisible="company_type != 'company'">
           <list>
             <field name="name"/>
             <field name="type" string="Address Type"/>
@@ -223,7 +223,7 @@
                     class="btn-link text-danger p-0"/>
           </list>
         </field>
-        <group string="Sites" invisible="is_company">
+        <group string="Sites" invisible="company_type != 'person'">
           <field name="location_partner_ids" nolabel="1">
             <list>
               <field name="name"/>
@@ -231,8 +231,8 @@
             </list>
           </field>
         </group>
-        <separator string="People" invisible="not is_company or not parent_id"/>
-        <field name="site_person_ids" nolabel="1" invisible="not is_company or not parent_id">
+        <separator string="People" invisible="company_type != 'site'"/>
+        <field name="site_person_ids" nolabel="1" invisible="company_type != 'site'">
           <list>
             <field name="name"/>
             <field name="function"/>
@@ -243,22 +243,22 @@
 
       <!-- Under the address block so the label is a normal form row, not inside the tax-id cell. -->
       <xpath expr="//div[hasclass('o_address_format')]" position="after">
-        <field name="default_delivery_term" string="Dock Rule" invisible="not is_company"/>
+        <field name="default_delivery_term" string="Dock Rule" invisible="company_type == 'person'"/>
       </xpath>
 
       <!-- The base Tags row stays for locations. The company card gets its own, under Lead Source. -->
       <xpath expr="//field[@name='category_id']" position="attributes">
-        <attribute name="invisible">is_company and type == 'contact'</attribute>
+        <attribute name="invisible">company_type == 'company'</attribute>
       </xpath>
       <xpath expr="//field[@name='category_id']" position="after">
-        <field name="lead_source_id" widget="badge" invisible="not is_company or type == 'contact'"/>
-        <field name="user_id" string="Salesperson" widget="many2one_avatar_user" readonly="parent_id" invisible="not is_company or type == 'contact'"/>
-        <field name="property_supplier_payment_term_id" string="Payment Terms" invisible="not is_company or type == 'contact' or not supplier_rank"/>
+        <field name="lead_source_id" widget="badge" invisible="company_type != 'site'"/>
+        <field name="user_id" string="Salesperson" widget="many2one_avatar_user" readonly="parent_id" invisible="company_type != 'site'"/>
+        <field name="property_supplier_payment_term_id" string="Payment Terms" invisible="company_type != 'site' or not supplier_rank"/>
       </xpath>
       <xpath expr="//field[@name='vat']" position="before">
-        <field name="lead_source_id" widget="badge" invisible="not is_company or type != 'contact'"/>
-        <field name="category_id" widget="many2many_tags" options="{'color_field': 'color'}" placeholder="e.g. &quot;B2B&quot;, &quot;VIP&quot;, &quot;Consulting&quot;, ..." invisible="not is_company or type != 'contact'"/>
-        <field name="user_id" string="Salesperson" widget="many2one_avatar_user" readonly="parent_id" invisible="not is_company or type != 'contact'"/>
+        <field name="lead_source_id" widget="badge" invisible="company_type != 'company'"/>
+        <field name="category_id" widget="many2many_tags" options="{'color_field': 'color'}" placeholder="e.g. &quot;B2B&quot;, &quot;VIP&quot;, &quot;Consulting&quot;, ..." invisible="company_type != 'company'"/>
+        <field name="user_id" string="Salesperson" widget="many2one_avatar_user" readonly="parent_id" invisible="company_type != 'company'"/>
       </xpath>
 
     </field>
