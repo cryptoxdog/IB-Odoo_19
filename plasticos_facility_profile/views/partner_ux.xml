@@ -168,7 +168,7 @@
         <field name="model">res.partner</field>
         <field name="inherit_id" ref="plasticos_material_profile.view_partner_form_material_tab"/>
         <field name="arch" type="xml">
-            <xpath expr="//separator[@string='Material Profile']" position="attributes">
+            <xpath expr="//separator[@name='material_profile_separator']" position="attributes">
                 <attribute name="invisible">company_type == 'person'</attribute>
             </xpath>
             <xpath expr="//div[@role='status'][contains(@invisible, 'material_profile_count')]" position="attributes">
