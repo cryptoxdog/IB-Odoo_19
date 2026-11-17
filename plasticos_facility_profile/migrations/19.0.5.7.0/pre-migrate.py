@@ -2,9 +2,11 @@
 
 ``views/facility_profile_views.xml`` loads before ``views/facility_profile_ux.xml``.
 On upgrade the new parent list and form are checked against the child arches
-still stored in the database. Those arches still xpath ``process_type`` and the
-retired capability booleans, so the upgrade stops with "cannot be located in
-parent view" before the UX file is reloaded. A fresh install has no stored child.
+still stored in the database. Those arches still xpath ``process_type``, the
+retired capability booleans, and the equipment fields (``has_horizontal_baler``
+and the rest of the columns this migration drops), so the upgrade stops with
+"cannot be located in parent view" before the UX file is reloaded. A fresh
+install has no stored child.
 
 This removes only those nodes, in every language of ``arch_db``, and keeps the
 view row. The UX file then rewrites the arch. A second run finds nothing.
@@ -24,12 +26,28 @@ _VIEWS = (
 )
 _STALE_FIELDS = (
     "process_type",
+    "form_preference",
+    "form_preference_id",
+    "handles_bales",
+    "handles_regrind",
+    "handles_pellet",
     "handles_flake",
     "handles_rollstock",
     "can_remove_metal",
     "can_reduce_moisture",
     "can_filter_fr",
     "can_screen_fines",
+    "has_horizontal_baler",
+    "has_downstroke_baler",
+    "has_shredder",
+    "has_granulator",
+    "has_wash_line",
+    "has_extruder",
+    "has_sorting_line",
+    "density_min",
+    "density_max",
+    "melt_index_min",
+    "melt_index_max",
 )
 _QUOTE = r"(?:'|&apos;|&#39;)"
 
@@ -53,12 +71,12 @@ def _patterns():
                 re.DOTALL,
             )
         )
-    compiled.append(
-        re.compile(
-            r"<filter\b[^>]*?group_by['\"]:\s*['\"]process_type['\"][^>]*?/>",
-            re.DOTALL,
+        compiled.append(
+            re.compile(
+                r"<filter\b[^>]*?['\"]" + name + r"['\"][^>]*?/>",
+                re.DOTALL,
+            )
         )
-    )
     return compiled
 
 

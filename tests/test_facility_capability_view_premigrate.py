@@ -23,6 +23,8 @@ FORM_ARCH = (
     "</xpath>"
     '<xpath expr="//notebook//field[@name=\'can_remove_metal\']" position="attributes">'
     '<attribute name="widget">boolean_toggle</attribute></xpath>'
+    '<xpath expr="//notebook//field[@name=\'has_horizontal_baler\']" position="attributes">'
+    '<attribute name="widget">boolean_toggle</attribute></xpath>'
     '<xpath expr="//notebook//field[@name=\'iso_certified\']" position="attributes">'
     '<attribute name="widget">boolean_toggle</attribute></xpath>'
     "</data>"
@@ -32,6 +34,7 @@ SEARCH_ARCH = (
     '<field name="process_type"/>'
     '<field name="feedstock_type"/>'
     '<filter name="group_process" string="Process Type" context="{\'group_by\': \'process_type\'}"/>'
+    '<filter name="filter_has_wash" string="Has Wash Line" domain="[(\'has_wash_line\', \'=\', True)]"/>'
     '<filter name="group_feedstock" string="Feedstock" context="{\'group_by\': \'feedstock_type\'}"/>'
     "</search>"
 )
@@ -85,9 +88,11 @@ def test_strips_retired_nodes_and_keeps_the_surviving_anchors():
     assert "partner_id" not in updated[1]
     assert "process_type" not in updated[2]
     assert "can_remove_metal" not in updated[2]
+    assert "has_horizontal_baler" not in updated[2]
     assert "iso_certified" in updated[2]
     assert "facility_profile_pages" in updated[2]
     assert "process_type" not in updated[3]
+    assert "has_wash_line" not in updated[3]
     assert "feedstock_type" in updated[3]
 
 
