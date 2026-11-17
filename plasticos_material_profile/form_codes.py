@@ -16,6 +16,9 @@ totes, pallets) are not forms; they live in ``grade_codes.py``.
 # Sorted alphabetically for deterministic comparison. UPPERCASE convention.
 # Bales are packaging (``plasticos.packaging.type`` code ``bales``), never a form: the
 # form ``plasticos_material_profile.form_bale`` is archived and is not a form code.
+# REPRO and LOOSE were retired in 19.0.5.14.0 (ADR-134 §6). Repro is the attribute
+# ``attr_repro``. Loose is packaging ``loose``. Both form records stay archived.
+RETIRED_FORM_CODES: tuple[str, ...] = ("BALES", "LOOSE", "REPRO")
 FORM_CODES: tuple[str, ...] = (
     "CHOPPED",
     "CORRUGATED",
@@ -25,13 +28,11 @@ FORM_CODES: tuple[str, ...] = (
     "FLOORSWEEP",
     "FLUFF",
     "LOGS",
-    "LOOSE",
     "OTHER",
     "PARTS",
     "PELLETS",
     "POWDER",
     "PURGE",
-    "REPRO",
     "REGRIND",
     "ROLLSTOCK",
     "SHEET",
