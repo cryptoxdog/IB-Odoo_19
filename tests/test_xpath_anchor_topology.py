@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import importlib.util
 import sys
-import xml.etree.ElementTree as ET
 from pathlib import Path
+
+import defusedxml.ElementTree as ET
 
 ROOT = Path(__file__).parents[1]
 CI = ROOT / "ci"
