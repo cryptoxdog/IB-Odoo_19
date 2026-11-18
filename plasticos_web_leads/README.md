@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_web_leads
 component_name: PlasticOS Web Leads
-module_version: 19.0.2.11.11
+module_version: 19.0.2.11.12
 layer: 2
 installable: true
 auto_install: true

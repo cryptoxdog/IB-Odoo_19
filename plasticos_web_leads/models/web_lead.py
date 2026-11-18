@@ -33,7 +33,7 @@ from ..adapters.base import (
 )
 from ..adapters.registry import get_adapter
 from ..zip_place import resolve_pickup
-from .ai_client import run_broker_inference
+from .inference_provider import run_broker_inference
 from .attachment_processor import copy_successful_attachments_to_intake, process_attachments
 from .classification_engine import (
     DISPOSITION_COLD,
