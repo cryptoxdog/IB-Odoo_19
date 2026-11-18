@@ -140,6 +140,10 @@
                         <group>
                             <field name="lead_image_ids" widget="lead_image_strip" readonly="1"/>
                             <field name="decision"/>
+                            <field name="representation_alignment_display" readonly="1"/>
+                            <div invisible="representation_alignment_display != '100/100'">
+                                <span class="badge bg-success">100/100 representation alignment</span>
+                            </div>
                             <field name="review_status" readonly="1"/>
                             <field name="review_required_reason" readonly="1"/>
                         </group>
@@ -220,6 +224,7 @@
                 <field name="state"/>
                 <field name="lead_source_id"/>
                 <field name="estimated_lbs_per_load"/>
+                <field name="representation_alignment_display"/>
                 <field name="intake_id"/>
                 <progressbar field="state"
                              colors='{"received": "info", "review_pending": "warning", "intake_created": "success", "skipped": "muted", "error": "danger"}'/>
@@ -244,6 +249,14 @@
                                 <div t-if="record.estimated_lbs_per_load.raw_value" class="mt-1">
                                     <span class="badge bg-info">
                                         <field name="estimated_lbs_per_load"/> lbs/load
+                                    </span>
+                                </div>
+                                <div t-if="record.representation_alignment_display.raw_value == '100/100'" class="mt-1">
+                                    <span class="badge bg-success">100/100 representation alignment</span>
+                                </div>
+                                <div t-elif="record.representation_alignment_display.raw_value" class="mt-1">
+                                    <span class="badge bg-secondary">
+                                        <t t-out="record.representation_alignment_display.value"/>
                                     </span>
                                 </div>
                             </div>
