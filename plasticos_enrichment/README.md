@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_enrichment
 component_name: PlastOS Buyer CRM Enrichment Engine
-module_version: 19.0.2.7.2
+module_version: 19.0.2.7.3
 layer: 2
 installable: true
 auto_install: true
@@ -57,7 +57,7 @@ The Odoo shell for partner enrichment. Odoo decides when to ask, sends a converg
   - **Provenance.** Every considered field gets a provenance row with `target_model`, `target_res_id` and a status. The status is `written`, `skipped_immutable`, `skipped_unknown`, `skipped_conflicting`, `skipped_unit`, `skipped_unresolved_code`, `skipped_not_admitted` or `unmapped`.
   - **Failure.** A v1-shaped, malformed, or other-revision reply writes nothing; the run is `degraded` with the reason. A profile run under v1 never reaches Gate. ([ADR-012 amendment 2026-11-13](../docs/adr/ADR-012-crm-writeback-allowlist-provenance.md))
 - **Scheduled sweep (off by default).** `plasticos.enrichment.sweep` (`models/enrichment_sweep.py`) is the Odoo side of the EIE buyer sweep. Contract: EIE `docs/contracts/enrichment-sweep.md` at `a606791`; ADR-012 amendment 2026-11-15.
-  - **Send.** The nightly cron `_cron_send_sweep` reads the `plasticos.gate.sweep_*` settings, validated by `services/sweep_policy.py`. It selects buyer facility profiles (`customer_rank > 0` on the site or its company) that match the operator's filters. It drops profiles in review, inside the cooldown or pending in an open sweep, and puts the oldest enrichment first. It sends one `enrichment-sweep` with the profiles' current values. It needs converge v2 with a cartridge id, version and sha256 pin, and records that pin on the sweep.
+  - **Send.** The nightly cron `_cron_send_sweep` reads the `plasticos.gate.sweep_*` settings, validated by `services/sweep_policy.py`. It selects buyer facility profiles (`customer_rank > 0` on the site, its commercial partner, or the parent company when the site is its own commercial partner) that match the operator's filters: capability type, application class, feedstock, and an inbound material profile. It drops profiles in review, inside the cooldown or pending in an open sweep, and puts the oldest enrichment first. It sends one `enrichment-sweep` with the profiles' current values. It needs converge v2 with a cartridge id, version and sha256 pin, and records that pin on the sweep.
   - **Collect.** The hourly cron `_cron_collect_results` pages `enrichment-sweep-results`; the first page sends no cursor. Each result goes through `plasticos.enrichment.run._v2_review_sweep_reply`, which ends in the same review step as an interactive run. It becomes one run in `review`, or `degraded` with the reason. Nothing is written before a human approves the run; approval re-validates the stored reply.
   - **Recorded per candidate.** EIE's skip reasons, send rejections and `stats` stay on the sweep.
   - **Refusals.** `sweep_not_found` marks the sweep `expired`. `disabled` and `sweep_store_unavailable` keep it open. Other refusals fail it.

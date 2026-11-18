@@ -284,22 +284,11 @@ FACILITY_FIELD_DEFS = (
     _fd("material_profile_ids", "one2many", relation="plasticos.material.profile", stored=False),
     _fd("message_ids", "one2many", relation="mail.message", stored=False),
     _fd("message_partner_ids", "many2many", relation="res.partner", computed=True),
-    _fd("equipment_type_ids", "many2many", relation="plasticos.equipment.type", relation_has_code=True),
-    _fd("has_shredder", "boolean", computed=True),
     _fd("avg_truckload_lbs", "float"),
-    _fd("handles_bales", "boolean"),
     _fd("iso_certified", "boolean"),
     _fd("food_grade_certified", "boolean"),
     _fd("min_lot_size_lbs", "float"),
     _fd("freeform_notes", "text"),
-    _fd("accepted_polymer_ids", "many2many", relation="plasticos.polymer", relation_has_code=True),
-    _fd("form_preference_id", "many2one", relation="plasticos.material.form", relation_has_code=True),
-    _fd("form_preference", "selection", computed=True, selection_keys=("pellet",)),
-    _fd("process_type", "selection", selection_keys=("recycler", "compounder")),
-    _fd("density_min", "float"),
-    _fd("density_max", "float"),
-    _fd("melt_index_min", "float"),
-    _fd("melt_index_max", "float"),
     _fd("contamination_tolerance_pct", "float"),
     _fd("moisture_tolerance_pct", "float"),
     _fd("capacity_lbs_month", "integer"),
@@ -394,11 +383,6 @@ def test_starting_rows_are_exactly_the_reviewed_set():
     with pytest.raises(KeyError):
         allow.resolve_v2_target("material_profile")
     assert rows(allow.V2_TARGET_FACILITY_PROFILE) == {
-        ("processed_polymers", "accepted_polymer_ids", "many2many_code"),
-        ("min_density", "density_min", "float"),
-        ("max_density", "density_max", "float"),
-        ("min_mfi", "melt_index_min", "float"),
-        ("max_mfi", "melt_index_max", "float"),
         ("contamination_tolerance", "contamination_tolerance_pct", "float"),
     }
     facility_subject = allow.resolve_v2_target(
@@ -430,20 +414,11 @@ def test_never_targets_and_unmapped_fields_have_no_row():
 def test_facility_profile_is_open_by_model_definition_minus_never_targets():
     eligible = set(allow.eligible_odoo_fields(FACILITY_FIELD_DEFS))
     assert eligible == {
-        "equipment_type_ids",
         "avg_truckload_lbs",
-        "handles_bales",
         "iso_certified",
         "food_grade_certified",
         "min_lot_size_lbs",
         "freeform_notes",
-        "accepted_polymer_ids",
-        "form_preference_id",
-        "process_type",
-        "density_min",
-        "density_max",
-        "melt_index_min",
-        "melt_index_max",
         "contamination_tolerance_pct",
         "moisture_tolerance_pct",
         "capacity_lbs_month",
@@ -472,7 +447,14 @@ def test_facility_profile_unmapped_cartridge_fields_are_listed_with_a_reason():
         "phone",
         "material_forms",
         "capacity_tons_month",
+        "processed_polymers",
+        "min_density",
+        "max_density",
+        "min_mfi",
+        "max_mfi",
     }
+    assert unmapped["min_density"] == allow.ADR134_RETIRED_REASON
+    assert unmapped["processed_polymers"] == allow.ADR134_RETIRED_REASON
     assert unmapped["facility_id"] == "cartridge identity"
     assert unmapped["city"] == "subject 'facility': requested under that subject, not 'material'"
     assert unmapped["material_grade"] == "no facility-profile field of that name and no alias"
@@ -648,7 +630,9 @@ def test_table_is_immutable():
 
 def test_table_refuses_a_numeric_row_without_units():
     with pytest.raises(ValueError, match="units"):
-        allow.ConvergeV2FieldRow("min_density", "density_min", "float", allow._freeze({"type": "float"}))
+        allow.ConvergeV2FieldRow(
+            "contamination_tolerance", "contamination_tolerance_pct", "float", allow._freeze({"type": "float"})
+        )
 
 
 # ── Request v2 shape (request.v2.md) ────────────────────────────────────────
@@ -708,14 +692,7 @@ def test_partner_request_targets_only_empty_fields_and_observes_the_rest():
 def test_supplier_facility_profile_request_asks_capability_fields_under_material():
     body = _request(SUPPLIER_FACILITY).to_dict()
     assert body["subject"] == {"type": "material", "role": "supplier"}
-    assert [t["field"] for t in body["targets"]] == [
-        "min_density",
-        "max_density",
-        "min_mfi",
-        "max_mfi",
-        "contamination_tolerance",
-        "processed_polymers",
-    ]
+    assert [t["field"] for t in body["targets"]] == ["contamination_tolerance"]
     assert "observations" not in body, "capacity is a facility-subject field and is not sent under material"
     assert body["entity"]["id"] == "res.partner:56"
     assert body["odoo"]["target_model"] == "plasticos.facility.profile"
@@ -741,42 +718,15 @@ def test_a_material_profile_cannot_start_a_v2_run():
 def test_facility_profile_request_observes_filled_tolerances_with_their_odoo_unit():
     body = _request(allow.V2_TARGET_FACILITY_PROFILE).to_dict()
     assert body["subject"] == {"type": "material", "role": "buyer"}
-    assert [t["field"] for t in body["targets"]] == ["min_density", "contamination_tolerance", "processed_polymers"]
-    assert body["targets"][2]["type"] == CARTRIDGE_DECLARATIONS["processed_polymers"]
-    assert body["observations"] == [
-        {
-            "field": "max_density",
-            "value": 0.965,
-            "source_kind": "odoo_record",
-            "source_ref": "plasticos.facility.profile:401#density_max",
-            "unit": "g/cm3",
-        },
-        {
-            "field": "min_mfi",
-            "value": 0.2,
-            "source_kind": "odoo_record",
-            "source_ref": "plasticos.facility.profile:401#melt_index_min",
-            "unit": "g/10min",
-        },
-        {
-            "field": "max_mfi",
-            "value": 8.0,
-            "source_kind": "odoo_record",
-            "source_ref": "plasticos.facility.profile:401#melt_index_max",
-            "unit": "g/10min",
-        },
-    ]
+    assert [t["field"] for t in body["targets"]] == ["contamination_tolerance"]
+    assert body["targets"][0]["type"] == CARTRIDGE_DECLARATIONS["contamination_tolerance"]
+    assert "observations" not in body
 
 
-def test_filled_polymers_are_observed_as_cartridge_codes():
-    partner, run, profile = _facility_case()
-    profile._values["accepted_polymer_ids"] = [_Coded("hdpe"), _Coded("pp")]
-    body = build_converge_request_v2(
-        _Env(), run, target="facility_profile", record=profile, cartridge=PIN, field_defs=FACILITY_FIELD_DEFS
-    ).to_dict()
-    obs = next(o for o in body["observations"] if o["field"] == "processed_polymers")
-    assert obs["value"] == [{"code": "hdpe"}, {"code": "pp"}]
-    assert "unit" not in obs
+def test_retired_polymer_and_density_fields_are_not_requested():
+    body = _request(allow.V2_TARGET_FACILITY_PROFILE).to_dict()
+    assert "processed_polymers" not in {t["field"] for t in body["targets"]}
+    assert "min_density" not in {t["field"] for t in body["targets"]}
 
 
 def test_sha256_pin_travels_when_set():
@@ -1098,35 +1048,26 @@ def test_partner_plan_writes_only_admitted_claims_and_inferences():
     assert "name" not in decisions, "an observation the request did not target is never planned"
 
 
-def test_supplier_facility_plan_writes_numbers_only_in_an_accepted_unit():
+def test_supplier_facility_plan_skips_the_kept_tolerance_when_the_reply_has_no_evidence():
     decisions = _by_field(_plan(SUPPLIER_FACILITY))
-    assert (decisions["min_density"].action, decisions["min_density"].value) == (V2_PLAN_WRITE, 0.941)
-    assert decisions["min_density"].odoo_field == "density_min"
-    assert decisions["max_density"].skip_reason == V2_SKIP_UNIT, "kg/m3 is never converted by assumption"
-    assert decisions["min_mfi"].skip_reason == V2_SKIP_UNIT, "a number without a stated unit is skipped"
-    assert (decisions["max_mfi"].action, decisions["max_mfi"].value) == (V2_PLAN_WRITE, 0.7)
-    assert decisions["max_mfi"].odoo_field == "melt_index_max"
-    assert (decisions["max_mfi"].source_value, decisions["max_mfi"].source_unit) == (0.7, "g/10min")
-    assert decisions["max_mfi"].evidence_state == "inferred"
+    assert set(decisions) == {"contamination_tolerance"}
+    assert decisions["contamination_tolerance"].action == V2_PLAN_SKIP
+    assert decisions["contamination_tolerance"].skip_reason == V2_SKIP_UNKNOWN
+    assert decisions["contamination_tolerance"].odoo_field == "contamination_tolerance_pct"
 
 
-def test_facility_plan_converts_declared_units_and_keeps_codes_for_resolution():
+def test_facility_plan_writes_contamination():
     decisions = _by_field(_plan(allow.V2_TARGET_FACILITY_PROFILE))
-    polymers = decisions["processed_polymers"]
-    assert (polymers.action, polymers.value, polymers.odoo_field) == (
-        V2_PLAN_WRITE,
-        ("HDPE", "PP"),
-        "accepted_polymer_ids",
-    )
+    assert set(decisions) == {"contamination_tolerance"}
     contamination = decisions["contamination_tolerance"]
     assert contamination.action == V2_PLAN_WRITE
     assert contamination.value == pytest.approx(5.0)
-    assert decisions["min_density"].skip_reason == V2_SKIP_UNKNOWN
+    assert contamination.odoo_field == "contamination_tolerance_pct"
 
 
 def test_a_declaration_that_drifted_from_the_reviewed_row_rejects_the_plan():
     reply = _reply(SUPPLIER_FACILITY)
-    reply["field_evidence"]["min_density"]["declaration"] = {"type": "string"}
+    reply["field_evidence"]["contamination_tolerance"]["declaration"] = {"type": "string"}
     plan = _plan(SUPPLIER_FACILITY, reply)
     assert plan.rejection and "declaration" in plan.rejection
     assert plan.decisions == ()
@@ -1134,19 +1075,17 @@ def test_a_declaration_that_drifted_from_the_reviewed_row_rejects_the_plan():
 
 def test_declared_unit_on_a_declaration_is_not_drift():
     reply = _reply(SUPPLIER_FACILITY)
-    reply["field_evidence"]["min_density"]["declaration"] = {"type": "float", "unit": "g/cm3"}
+    reply["field_evidence"]["contamination_tolerance"]["declaration"] = {"type": "float", "unit": "percent"}
     assert _plan(SUPPLIER_FACILITY, reply).rejection is None
 
 
 @pytest.mark.parametrize(
     ("target", "field", "value"),
     [
-        (SUPPLIER_FACILITY, "min_density", "0.94"),
-        (SUPPLIER_FACILITY, "min_density", True),
+        (SUPPLIER_FACILITY, "contamination_tolerance", "0.94"),
+        (SUPPLIER_FACILITY, "contamination_tolerance", True),
         (allow.V2_TARGET_PARTNER, "city", 12),
         (allow.V2_TARGET_PARTNER, "city", "  "),
-        (allow.V2_TARGET_FACILITY_PROFILE, "processed_polymers", [{"name": "HDPE"}]),
-        (allow.V2_TARGET_FACILITY_PROFILE, "processed_polymers", []),
     ],
 )
 def test_a_value_of_the_wrong_shape_rejects_the_plan(target, field, value):
@@ -1282,23 +1221,21 @@ def test_v1_allowlist_and_mapper_are_unchanged():
 
 
 def test_a_number_with_unit_status_unknown_is_skipped_as_on_cartridge_0_5_0():
-    """Cartridge 0.5.0 declares no unit, so every number arrives with unit_status 'unknown' (decision 4)."""
-    reply = _reply(SUPPLIER_FACILITY)
-    numbers = ("min_density", "max_density", "min_mfi", "max_mfi")
-    for name in numbers:
-        entry = reply["field_evidence"][name]
-        entry["unit_status"] = "unknown"
-        entry.pop("unit", None)
-    decisions = _by_field(_plan(SUPPLIER_FACILITY, reply))
-    assert {decisions[n].skip_reason for n in numbers} == {V2_SKIP_UNIT}
-    assert all(decisions[n].action == V2_PLAN_SKIP for n in numbers)
-    assert "no governing unit" in decisions["min_density"].detail
+    """Cartridge 0.5.0 declares no unit, so a kept number arrives with unit_status 'unknown' (decision 4)."""
+    reply = _reply(allow.V2_TARGET_FACILITY_PROFILE)
+    entry = reply["field_evidence"]["contamination_tolerance"]
+    entry["unit_status"] = "unknown"
+    entry.pop("unit", None)
+    decisions = _by_field(_plan(allow.V2_TARGET_FACILITY_PROFILE, reply))
+    assert decisions["contamination_tolerance"].action == V2_PLAN_SKIP
+    assert decisions["contamination_tolerance"].skip_reason == V2_SKIP_UNIT
+    assert "no governing unit" in decisions["contamination_tolerance"].detail
 
 
 def test_engine_and_spec_declaration_forms_compare_equal():
     from plasticos_gate.services.gate_mappers import _declaration_shape
 
-    spec_form = CARTRIDGE_DECLARATIONS["processed_polymers"]
+    spec_form = CARTRIDGE_DECLARATIONS["processed_polymers"]  # declaration compare only; the field is not written
     engine_form = {
         "type": "list",
         "required": False,
@@ -1311,7 +1248,7 @@ def test_engine_and_spec_declaration_forms_compare_equal():
 
 
 def _unknown_unit_reply_with_declared_units(unit_by_field):
-    reply = _reply(SUPPLIER_FACILITY)
+    reply = _reply(allow.V2_TARGET_FACILITY_PROFILE)
     for name, unit in unit_by_field.items():
         entry = reply["field_evidence"][name]
         entry["unit_status"] = "unknown"
@@ -1321,25 +1258,27 @@ def _unknown_unit_reply_with_declared_units(unit_by_field):
 
 
 def test_the_declared_unit_governs_when_the_value_states_none():
-    reply = _unknown_unit_reply_with_declared_units({"min_density": "g/cm3", "max_mfi": "g/10min"})
-    decisions = _by_field(_plan(SUPPLIER_FACILITY, reply))
-    assert (decisions["min_density"].action, decisions["min_density"].value) == (V2_PLAN_WRITE, 0.941)
-    assert decisions["min_density"].source_unit == "g/cm3"
-    assert (decisions["max_mfi"].action, decisions["max_mfi"].value) == (V2_PLAN_WRITE, 0.7)
+    reply = _unknown_unit_reply_with_declared_units({"contamination_tolerance": "percent"})
+    decisions = _by_field(_plan(allow.V2_TARGET_FACILITY_PROFILE, reply))
+    assert decisions["contamination_tolerance"].action == V2_PLAN_WRITE
+    assert decisions["contamination_tolerance"].value == pytest.approx(5.0)
+    assert decisions["contamination_tolerance"].source_unit == "percent"
 
 
 def test_a_stated_value_unit_overrides_the_declared_unit():
-    reply = _reply(SUPPLIER_FACILITY)
-    entry = reply["field_evidence"]["max_density"]  # stated kg/m3
-    entry["declaration"] = {**entry["declaration"], "unit": "g/cm3"}
-    decisions = _by_field(_plan(SUPPLIER_FACILITY, reply))
-    assert decisions["max_density"].skip_reason == V2_SKIP_UNIT
+    reply = _reply(allow.V2_TARGET_FACILITY_PROFILE)
+    entry = reply["field_evidence"]["contamination_tolerance"]
+    entry["unit"] = "kg/m3"
+    entry["unit_status"] = "stated"
+    entry["declaration"] = {**entry["declaration"], "unit": "percent"}
+    decisions = _by_field(_plan(allow.V2_TARGET_FACILITY_PROFILE, reply))
+    assert decisions["contamination_tolerance"].skip_reason == V2_SKIP_UNIT
 
 
 def test_a_declared_unit_the_row_does_not_accept_is_skipped():
-    reply = _unknown_unit_reply_with_declared_units({"min_density": "kg/m3"})
-    decisions = _by_field(_plan(SUPPLIER_FACILITY, reply))
-    assert decisions["min_density"].skip_reason == V2_SKIP_UNIT
+    reply = _unknown_unit_reply_with_declared_units({"contamination_tolerance": "kg/m3"})
+    decisions = _by_field(_plan(allow.V2_TARGET_FACILITY_PROFILE, reply))
+    assert decisions["contamination_tolerance"].skip_reason == V2_SKIP_UNIT
 
 
 def test_capacity_keeps_the_original_value_and_unit_for_provenance():
@@ -1403,24 +1342,19 @@ def test_adopting_0_6_0_needs_only_the_pin():
     )
     rows = {r.cartridge_field: r for r in facility.rows}
     assert rows["capacity_tons_month"].odoo_field == "capacity_lbs_month"
-    for same_named in ("freeform_notes", "application_notes", "handles_bales", "iso_certified", "process_type"):
+    for same_named in ("freeform_notes", "application_notes", "iso_certified"):
         assert rows[same_named].odoo_field == same_named
         assert same_named not in allow.FACILITY_PROFILE_V2_ALIASES
-    assert (rows["equipment_type_ids"].kind, rows["equipment_type_ids"].code_item_key) == ("many2many_code", None)
-    assert rows["form_preference_id"].kind == "many2one_code"
+    for retired in ("handles_bales", "process_type", "equipment_type_ids", "form_preference_id"):
+        assert retired not in rows
+    _spec, unmapped = allow.derive_facility_profile_target(FACILITY_FIELD_DEFS, subject="facility", version="0.6.0")
+    assert unmapped["equipment_type_ids"] == allow.ADR134_RETIRED_REASON
     assert dict(rows["avg_truckload_lbs"].units) == {"lb": 1.0, "lbs": 1.0}
     assert dict(rows["moisture_tolerance_pct"].units) == {"percent": 1.0, "%": 1.0}
     material = allow.resolve_v2_target(
         allow.V2_TARGET_FACILITY_PROFILE, FACILITY_FIELD_DEFS, subject="material", version="0.6.0"
     )
-    assert {r.cartridge_field for r in material.rows} == {
-        "processed_polymers",
-        "min_density",
-        "max_density",
-        "min_mfi",
-        "max_mfi",
-        "contamination_tolerance",
-    }
+    assert {r.cartridge_field for r in material.rows} == {"contamination_tolerance"}
 
 
 def test_a_0_6_0_request_never_sends_a_unit_in_a_target_type():
@@ -1434,6 +1368,6 @@ def test_a_0_6_0_request_never_sends_a_unit_in_a_target_type():
         field_defs=FACILITY_FIELD_DEFS,
     )
     targets = {t["field"]: t["type"] for t in request.to_dict()["targets"]}
-    assert targets["min_density"] == {"type": "float"}
+    assert "min_density" not in targets
     assert targets["contamination_tolerance"] == {"type": "float"}
     assert all("unit" not in json.dumps(t) for t in targets.values())

@@ -16,7 +16,6 @@ FILES = [
     "plasticos_buyer_match_engine/models/match_exclusion.py",
     "plasticos_claims/models/claim.py",
     "plasticos_documents/models/document_rule.py",
-    "plasticos_facility_profile/models/equipment_type.py",
     "plasticos_facility_profile/models/facility_profile.py",
     "plasticos_facility_profile/models/partner_type.py",
     "plasticos_logistics/models/rate_memory.py",

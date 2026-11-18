@@ -78,15 +78,12 @@ class TestProcessEnumAlignment:
         assert not missing, f"MFI_RANGES missing entries for: {missing}"
 
     def test_facility_profile_imports_registry(self):
-        """facility_profile.py must import PROCESS_SELECTION from registry."""
+        """Equipment rows own the process detail. The profile no longer imports the registry."""
         fp_path = REPO_ROOT / "plasticos_facility_profile" / "models" / "facility_profile.py"
         assert fp_path.exists(), f"File not found: {fp_path}"
 
         source = fp_path.read_text()
-        assert "process_codes import" in source and "PROCESS_SELECTION" in source, (
-            "facility_profile.py does not import PROCESS_SELECTION from process_codes registry."
-        )
-        assert "PROCESS_SELECTION" in source, "facility_profile.py does not use PROCESS_SELECTION"
+        assert "PROCESS_SELECTION" not in source
 
     @pytest.mark.skip(reason="M7 / TASK-051: plasticos_buyer_match_engine physically deleted")
     def test_matcher_imports_registry(self):

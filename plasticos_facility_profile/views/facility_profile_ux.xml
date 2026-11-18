@@ -32,10 +32,7 @@
                         <field name="partner_id" readonly="1" force_save="1" options="{'no_open': True}"/>
                     </h1>
                     <h3 class="text-muted">
-                        <field name="process_type" readonly="1"/>
-                        <span invisible="not feedstock_type">
-                            — <field name="feedstock_type" readonly="1"/>
-                        </span>
+                        <field name="feedstock_type" readonly="1"/>
                     </h3>
                 </div>
 
@@ -56,59 +53,7 @@
 
             </xpath>
 
-            <!-- ═══ Equipment booleans → boolean_toggle (scoped to notebook) ═══ -->
-            <xpath expr="//notebook//field[@name='has_horizontal_baler']" position="attributes">
-                <attribute name="widget">boolean_toggle</attribute>
-            </xpath>
-            <xpath expr="//notebook//field[@name='has_downstroke_baler']" position="attributes">
-                <attribute name="widget">boolean_toggle</attribute>
-            </xpath>
-            <xpath expr="//notebook//field[@name='has_shredder']" position="attributes">
-                <attribute name="widget">boolean_toggle</attribute>
-            </xpath>
-            <xpath expr="//notebook//field[@name='has_granulator']" position="attributes">
-                <attribute name="widget">boolean_toggle</attribute>
-            </xpath>
-            <xpath expr="//notebook//field[@name='has_wash_line']" position="attributes">
-                <attribute name="widget">boolean_toggle</attribute>
-            </xpath>
-            <xpath expr="//notebook//field[@name='has_extruder']" position="attributes">
-                <attribute name="widget">boolean_toggle</attribute>
-            </xpath>
-            <xpath expr="//notebook//field[@name='has_sorting_line']" position="attributes">
-                <attribute name="widget">boolean_toggle</attribute>
-            </xpath>
-
-            <!-- Material handling → boolean_toggle (scoped to notebook) -->
-            <xpath expr="//notebook//field[@name='handles_bales']" position="attributes">
-                <attribute name="widget">boolean_toggle</attribute>
-            </xpath>
-            <xpath expr="//notebook//field[@name='handles_regrind']" position="attributes">
-                <attribute name="widget">boolean_toggle</attribute>
-            </xpath>
-            <xpath expr="//notebook//field[@name='handles_pellet']" position="attributes">
-                <attribute name="widget">boolean_toggle</attribute>
-            </xpath>
-            <xpath expr="//notebook//field[@name='handles_flake']" position="attributes">
-                <attribute name="widget">boolean_toggle</attribute>
-            </xpath>
-            <xpath expr="//notebook//field[@name='handles_rollstock']" position="attributes">
-                <attribute name="widget">boolean_toggle</attribute>
-            </xpath>
-
-            <!-- Quality/Cert booleans → boolean_toggle (scoped to notebook) -->
-            <xpath expr="//notebook//field[@name='can_remove_metal']" position="attributes">
-                <attribute name="widget">boolean_toggle</attribute>
-            </xpath>
-            <xpath expr="//notebook//field[@name='can_reduce_moisture']" position="attributes">
-                <attribute name="widget">boolean_toggle</attribute>
-            </xpath>
-            <xpath expr="//notebook//field[@name='can_filter_fr']" position="attributes">
-                <attribute name="widget">boolean_toggle</attribute>
-            </xpath>
-            <xpath expr="//notebook//field[@name='can_screen_fines']" position="attributes">
-                <attribute name="widget">boolean_toggle</attribute>
-            </xpath>
+            <!-- Cert booleans → boolean_toggle (scoped to notebook) -->
             <xpath expr="//notebook//field[@name='iso_certified']" position="attributes">
                 <attribute name="widget">boolean_toggle</attribute>
             </xpath>
@@ -135,13 +80,7 @@
         <field name="arch" type="xml">
             <search>
                 <field name="partner_id"/>
-                <field name="process_type"/>
                 <field name="feedstock_type"/>
-                <field name="accepted_polymer_ids"/>
-                <filter name="filter_has_wash" string="Has Wash Line"
-                        domain="[('has_wash_line', '=', True)]"/>
-                <filter name="filter_has_extruder" string="Has Extruder"
-                        domain="[('has_extruder', '=', True)]"/>
                 <filter name="filter_iso" string="ISO Certified"
                         domain="[('iso_certified', '=', True)]"/>
                 <filter name="filter_food_grade" string="Food Grade"
@@ -152,8 +91,6 @@
                 <filter name="filter_contract" string="Prefers Contract"
                         domain="[('prefers_contract', '=', True)]"/>
                 <separator/>
-                <filter name="group_process" string="Process Type"
-                        context="{'group_by': 'process_type'}"/>
                 <filter name="group_feedstock" string="Feedstock"
                         context="{'group_by': 'feedstock_type'}"/>
                 <filter name="group_partner" string="Partner"
@@ -175,7 +112,7 @@
         <field name="arch" type="xml">
 
             <!-- Add partner name as first column (scoped to list view) -->
-            <xpath expr="//list/field[@name='process_type']" position="before">
+            <xpath expr="//list/field[@name='feedstock_type']" position="before">
                 <field name="partner_id" string="Facility"/>
             </xpath>
 

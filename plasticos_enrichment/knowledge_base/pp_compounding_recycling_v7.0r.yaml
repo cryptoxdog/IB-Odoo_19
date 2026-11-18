@@ -558,7 +558,7 @@ buyer_profiles:
       quality_tier_required: [2, 3]
       pe_contamination_max_pct: 5.0
       color_preference: "black, gray, automotive colors"
-      form_preference: "pellets"
+      in_form: "pellets"
 
     quality_specifications:
       mfi_range_g_10min: [5, 35]
@@ -585,7 +585,7 @@ buyer_profiles:
       quality_tier_required: [2, 3]
       pe_contamination_max_pct: 3.0
       color_preference: "any"
-      form_preference: "pellets"
+      in_form: "pellets"
 
     quality_specifications:
       mfi_range_g_10min: [2, 30]
@@ -610,7 +610,7 @@ buyer_profiles:
       quality_tier_required: [1]
       pe_contamination_max_pct: 1.0
       color_preference: "natural or clear"
-      form_preference: "pellets"
+      in_form: "pellets"
 
     quality_specifications:
       contamination_max_pct: 0.5
@@ -639,7 +639,7 @@ buyer_profiles:
       quality_tier_required: [3, 4]
       pe_contamination_max_pct: 8.0
       color_preference: "any"
-      form_preference: "pellets or regrind"
+      in_form: "pellets or regrind"
 
     quality_specifications:
       contamination_max_pct: 8.0
@@ -663,7 +663,7 @@ buyer_profiles:
       quality_tier_required: [2, 3]
       mfi_preference_g_10min: [2, 5]
       color_preference: "any"
-      form_preference: "pellets"
+      in_form: "pellets"
 
     quality_specifications:
       contamination_max_pct: 8.0
@@ -686,7 +686,7 @@ buyer_profiles:
       quality_tier_required: [1, 2]
       pe_contamination_max_pct: 2.0
       color_preference: "natural or consistent"
-      form_preference: "pellets"
+      in_form: "pellets"
 
     quality_specifications:
       mfi_range_g_10min: [0.5, 7]

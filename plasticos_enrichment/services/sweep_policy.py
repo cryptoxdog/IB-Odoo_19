@@ -21,11 +21,11 @@ ICP_ENABLED = "plasticos.gate.sweep_enabled"
 ICP_DAILY_BUDGET_USD = "plasticos.gate.sweep_daily_budget_usd"
 ICP_MAX_CANDIDATES = "plasticos.gate.sweep_max_candidates"
 ICP_COOLDOWN_DAYS = "plasticos.gate.sweep_cooldown_days"
-ICP_PROCESS_TYPES = "plasticos.gate.sweep_process_types"
+ICP_CAPABILITY_TYPE_CODES = "plasticos.gate.sweep_process_types"
 ICP_APPLICATION_CLASSES = "plasticos.gate.sweep_application_classes"
 ICP_FEEDSTOCK_TYPES = "plasticos.gate.sweep_feedstock_types"
-ICP_EQUIPMENT_TYPE_IDS = "plasticos.gate.sweep_equipment_type_ids"
-ICP_ACCEPTED_POLYMER_IDS = "plasticos.gate.sweep_accepted_polymer_ids"
+ICP_CAPABILITY_TYPE_IDS = "plasticos.gate.sweep_capability_type_ids"
+ICP_POLYMER_IDS = "plasticos.gate.sweep_accepted_polymer_ids"
 ICP_MIN_CAPACITY_LBS_MONTH = "plasticos.gate.sweep_min_capacity_lbs_month"
 
 DEFAULT_DAILY_BUDGET_USD = 5.0
@@ -51,11 +51,11 @@ class SweepSettings:
     daily_budget_usd: float = DEFAULT_DAILY_BUDGET_USD
     max_candidates: int = DEFAULT_MAX_CANDIDATES
     cooldown_days: int = DEFAULT_COOLDOWN_DAYS
-    process_types: tuple[str, ...] = ()
+    capability_type_codes: tuple[str, ...] = ()
     application_classes: tuple[str, ...] = ()
     feedstock_types: tuple[str, ...] = ()
-    equipment_type_ids: tuple[int, ...] = ()
-    accepted_polymer_ids: tuple[int, ...] = ()
+    capability_type_ids: tuple[int, ...] = ()
+    polymer_ids: tuple[int, ...] = ()
     min_capacity_lbs_month: int = 0
 
 
@@ -63,7 +63,7 @@ class SweepSettings:
 class SelectionKeys:
     """The selection keys the facility-profile fields accept (read from the live model)."""
 
-    process_types: frozenset[str] = field(default_factory=frozenset)
+    capability_type_codes: frozenset[str] = field(default_factory=frozenset)
     application_classes: frozenset[str] = field(default_factory=frozenset)
     feedstock_types: frozenset[str] = field(default_factory=frozenset)
 
@@ -167,13 +167,15 @@ def read_settings(get_param: Callable[[str], str | None], keys: SelectionKeys) -
         cooldown_days=parse_int(
             get_param(ICP_COOLDOWN_DAYS), ICP_COOLDOWN_DAYS, DEFAULT_COOLDOWN_DAYS, minimum=0, maximum=MAX_COOLDOWN_DAYS
         ),
-        process_types=parse_list(get_param(ICP_PROCESS_TYPES), ICP_PROCESS_TYPES, allowed=keys.process_types),
+        capability_type_codes=parse_list(
+            get_param(ICP_CAPABILITY_TYPE_CODES), ICP_CAPABILITY_TYPE_CODES, allowed=keys.capability_type_codes
+        ),
         application_classes=parse_list(
             get_param(ICP_APPLICATION_CLASSES), ICP_APPLICATION_CLASSES, allowed=keys.application_classes
         ),
         feedstock_types=parse_list(get_param(ICP_FEEDSTOCK_TYPES), ICP_FEEDSTOCK_TYPES, allowed=keys.feedstock_types),
-        equipment_type_ids=parse_list(get_param(ICP_EQUIPMENT_TYPE_IDS), ICP_EQUIPMENT_TYPE_IDS, ints=True),
-        accepted_polymer_ids=parse_list(get_param(ICP_ACCEPTED_POLYMER_IDS), ICP_ACCEPTED_POLYMER_IDS, ints=True),
+        capability_type_ids=parse_list(get_param(ICP_CAPABILITY_TYPE_IDS), ICP_CAPABILITY_TYPE_IDS, ints=True),
+        polymer_ids=parse_list(get_param(ICP_POLYMER_IDS), ICP_POLYMER_IDS, ints=True),
         min_capacity_lbs_month=parse_int(
             get_param(ICP_MIN_CAPACITY_LBS_MONTH), ICP_MIN_CAPACITY_LBS_MONTH, 0, minimum=0, maximum=2**31 - 1
         ),
@@ -183,29 +185,39 @@ def read_settings(get_param: Callable[[str], str | None], keys: SelectionKeys) -
 def facility_domain(settings: SweepSettings) -> list:
     """The Odoo domain over plasticos.facility.profile for sweep-eligible BUYER facilities.
 
-    A buyer is a partner with customer_rank > 0, on the facility's own partner
-    or its commercial (company) partner: facility partners are usually child
-    sites, and the rank lives on the company. Lead-owned profiles (no partner)
-    are never candidates. Empty filters do not narrow.
+    A buyer is a partner with customer_rank > 0. The rank may sit on the site,
+    on its commercial partner, or on the parent company when the site is its
+    own commercial partner (a company child with is_company set). Lead-owned
+    profiles (no partner) are never candidates. Empty filters do not narrow.
+    Capability and inbound-polymer filters replace the retired equipment,
+    process and accepted-polymer fields (ADR-134).
     """
     domain: list = [
         ("active", "=", True),
         ("partner_id", "!=", False),
         ("partner_id.active", "=", True),
         "|",
+        "|",
         ("partner_id.customer_rank", ">", 0),
         ("partner_id.commercial_partner_id.customer_rank", ">", 0),
+        ("partner_id.parent_id.commercial_partner_id.customer_rank", ">", 0),
     ]
-    if settings.process_types:
-        domain.append(("process_type", "in", list(settings.process_types)))
+    if settings.capability_type_codes:
+        domain.append(("capability_ids.capability_type_id.code", "in", list(settings.capability_type_codes)))
     if settings.application_classes:
         domain.append(("application_class", "in", list(settings.application_classes)))
     if settings.feedstock_types:
         domain.append(("feedstock_type", "in", list(settings.feedstock_types)))
-    if settings.equipment_type_ids:
-        domain.append(("equipment_type_ids", "in", list(settings.equipment_type_ids)))
-    if settings.accepted_polymer_ids:
-        domain.append(("accepted_polymer_ids", "in", list(settings.accepted_polymer_ids)))
+    if settings.capability_type_ids:
+        domain.append(("capability_ids.capability_type_id", "in", list(settings.capability_type_ids)))
+    if settings.polymer_ids:
+        domain.append(
+            (
+                "partner_id.material_profile_ids",
+                "any",
+                [("polymer_id", "in", list(settings.polymer_ids)), ("direction", "=", "in")],
+            )
+        )
     if settings.min_capacity_lbs_month:
         domain.append(("capacity_lbs_month", ">=", settings.min_capacity_lbs_month))
     return domain

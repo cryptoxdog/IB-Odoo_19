@@ -60,7 +60,7 @@ class PlasticosFacilityMaterialRule(models.Model):
     form_id = fields.Many2one("plasticos.material.form", ondelete="restrict", index=True)
     source_type_id = fields.Many2one("plasticos.source.type", ondelete="restrict", index=True)
     filler_type_id = fields.Many2one("plasticos.filler.type", ondelete="restrict", index=True)
-    equipment_type_id = fields.Many2one("plasticos.equipment.type", ondelete="restrict", index=True)
+    capability_type_id = fields.Many2one("plasticos.capability.type", ondelete="restrict", index=True)
     process_type = fields.Selection(selection=_get_process_selection)
     application_class = fields.Char()
     mfi_min = fields.Float()

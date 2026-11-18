@@ -360,7 +360,8 @@ class TestCapabilities(TransactionCase):
         ):
             self.assertFalse(company[name])
             self.assertIsNone(self.env["res.partner"]._fields[name].default)
-        self.assertEqual(self.env["res.partner"]._fields["default_delivery_term"].default, "appointment")
+        defaults = self.env["res.partner"].default_get(["default_delivery_term"])
+        self.assertEqual(defaults.get("default_delivery_term"), "appointment")
         site = self.env["res.partner"].create(
             {"name": "C5 Child Address Site", "parent_id": company.id, "type": "delivery"}
         )
