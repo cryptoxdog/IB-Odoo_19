@@ -81,6 +81,9 @@ _logger = logging.getLogger(__name__)
 # the economic provider call. Lane A owns ``run_broker_inference``. Lane B owns
 # ``PLANNING_DEFAULTS_V1``. This flag is the switch those lanes read.
 ONE_PASS_ORCHESTRATION = True
+_PARSE_STATUS_PARSED = "parsed"
+_ALIGNMENT_STATUS_ALIGNED = "aligned"
+_REPRESENTATIVENESS_WHOLE_LOT = "confirmed_whole_lot"
 
 # Identity of Lane B's planning object. The pound figures stay inside that object.
 _PLANNING_POLICY_REF = "web-lead-planning-defaults/v1"
@@ -184,7 +187,7 @@ def _broker_request_media(
             source_ref = f"pdf.{position}"
             pages = [dict(page) for page in row.get("pages") or [] if isinstance(page, Mapping)]
             documents.append({"source_ref": source_ref, "source_id": row.get("source_id"), "pages": pages})
-            parsed = [page for page in pages if page.get("parse_status") == "parsed" and page.get("text")]
+            parsed = [page for page in pages if page.get("parse_status") == _PARSE_STATUS_PARSED and page.get("text")]
             if not parsed:
                 error = row.get("error") if isinstance(row.get("error"), Mapping) else {}
                 omissions.append(
@@ -295,7 +298,7 @@ def representation_alignment_label(bundle: Mapping[str, Any] | None) -> str:
     status = str(alignment.get("status") or "unknown")
     label = _ALIGNMENT_LABELS.get(status, status)
     refs = [str(item) for item in alignment.get("source_refs") or [] if item]
-    if status != "aligned" or alignment.get("representativeness") != "confirmed_whole_lot":
+    if status != _ALIGNMENT_STATUS_ALIGNED or alignment.get("representativeness") != _REPRESENTATIVENESS_WHOLE_LOT:
         return label
     has_photo = any(ref.startswith("photo.") for ref in refs)
     has_spec = any(ref.startswith(("pdf.", "document.")) for ref in refs)
