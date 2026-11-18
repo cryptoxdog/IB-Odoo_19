@@ -17,6 +17,7 @@ from odoo.exceptions import AccessError, ConcurrencyError, UserError, Validation
 from odoo.tests import TransactionCase, tagged
 
 from ..models.review_snapshot import snapshot_content_hash
+from .test_broker_one_pass import economic_assessment_patch
 
 _ATTACHMENT_PROCESSOR = "odoo.addons.plasticos_web_leads.models.attachment_processor"
 _WEB_LEAD = "odoo.addons.plasticos_web_leads.models.web_lead"
@@ -82,7 +83,7 @@ class _WebLeadCase(TransactionCase):
     def _approved_hot_lead(self, external_id, attachments=None):
         """A HOT lead whose economic assessment completed, so it is approvable."""
         with (
-            patch(f"{_WEB_LEAD}.evaluate_economic_opportunity", return_value=dict(_ASSESSED)),
+            economic_assessment_patch(return_value=dict(_ASSESSED)),
             patch(f"{_ATTACHMENT_PROCESSOR}.requests.get", return_value=_image_response()),
             patch(f"{_ATTACHMENT_PROCESSOR}.resolve_host_addresses", return_value=_PUBLIC_IP),
         ):
