@@ -7,7 +7,7 @@ class PlasticosPackagingType(models.Model):
     Packaging types for how material is shipped/stored.
 
     Distinct from Form (what the material IS) - this is how it's packaged.
-    Examples: Gaylords, Super Sacks, Bales, Loose, Palletized
+    Examples: Gaylords, Supersacs, Bales, Loose, Palletized
     """
 
     _name = "plasticos.packaging.type"

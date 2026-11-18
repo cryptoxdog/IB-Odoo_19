@@ -18,7 +18,7 @@
       <field name="sequence">20</field>
     </record>
     <record id="packaging_supersacks" model="plasticos.packaging.type">
-      <field name="name">Super Sacks</field>
+      <field name="name">Supersacs</field>
       <field name="code">supersacks</field>
       <field name="description">FIBC (Flexible Intermediate Bulk Container) bags.</field>
       <field name="sequence">30</field>

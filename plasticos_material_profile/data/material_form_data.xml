@@ -56,8 +56,9 @@
     <record id="form_repro" model="plasticos.material.form">
       <field name="name">Repro</field>
       <field name="code">REPRO</field>
-      <field name="description">Reprocessed plastic.</field>
+      <field name="description">Retired as a form (ADR-134). Repro is the attribute Repro, on Pellets only when confirmed.</field>
       <field name="sequence">55</field>
+      <field name="active" eval="False"/>
     </record>
     <record id="form_chopped" model="plasticos.material.form">
       <field name="name">Chopped</field>
@@ -122,8 +123,9 @@
     <record id="form_loose" model="plasticos.material.form">
       <field name="name">Loose</field>
       <field name="code">LOOSE</field>
-      <field name="description">Loose bulk material (unbaled).</field>
+      <field name="description">Retired as a form (ADR-134). Loose is packaging Loose.</field>
       <field name="sequence">155</field>
+      <field name="active" eval="False"/>
     </record>
     <record id="form_corrugated" model="plasticos.material.form">
       <field name="name">Corrugated</field>
