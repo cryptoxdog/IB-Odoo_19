@@ -299,14 +299,14 @@ A recommendation of hot is broker attention. It is not offer readiness.
 Return ONLY one JSON object. Nested objects use the fields below. Do not return any other shape.
 {
   "normalization": {
-    "polymer": string | null,
-    "form": string | null,
+    "polymer": (string | null),
+    "form": (string | null),
     "material_grade": string | null,
     "color": string | null,
     "material_description": string | null,
     "material_summary": string | null,
     "contaminants_noted": string | null,
-    "source_type": string | null,
+    "source_type": (string | null),
     "filler_type": string | null,
     "packaging_type": string | null,
     "process_type": string | null,
