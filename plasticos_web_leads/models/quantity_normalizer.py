@@ -158,12 +158,16 @@ def _inventory(text: str, cadence_period: str | None) -> tuple[float | None, str
     return float(match.group(1)), match.group(2).lower().rstrip("s")
 
 
+_SOURCE_WEIGHT_FIELD = "weight_per_load_field_lbs"
+_SOURCE_RANGE_LBS = "range_lbs"
+
+
 def mass_label_for(source: str, lbs: float | None) -> str:
     """Label seller-stated mass as grounded and every other reading as planning.
 
     This does not choose a planning-default number and does not change ``lbs``.
     """
-    seller_stated = source == "weight_per_load_field_lbs" or source == "range_lbs" or source.startswith("explicit_")
+    seller_stated = source in {_SOURCE_WEIGHT_FIELD, _SOURCE_RANGE_LBS} or source.startswith("explicit_")
     if lbs and lbs > 0 and seller_stated:
         return MASS_LABEL_GROUNDED
     return MASS_LABEL_PLANNING
@@ -178,7 +182,7 @@ def _weight_from_weight_field(raw: str) -> SellerMass:
         return parse_seller_mass(raw)
     if numeric < 0:
         return SellerMass(None, None, "none")
-    return SellerMass(numeric, None, "weight_per_load_field_lbs")
+    return SellerMass(numeric, None, _SOURCE_WEIGHT_FIELD)
 
 
 def normalize_quantity_evidence(
