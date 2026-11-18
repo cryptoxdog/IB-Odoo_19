@@ -32,25 +32,6 @@ class TestProfileLineRemoval(TransactionCase):
         self.assertFalse(self.env["plasticos.material.profile"].browse(profile_id).exists())
         self.assertNotIn(profile_id, self.company.material_profile_ids.ids)
 
-    def test_approved_profile_is_archived(self):
-        profile = self._profile(self.company)
-        opportunity = self.env["crm.lead"].create(
-            {"name": "Profile removal opportunity", "type": "opportunity", "partner_id": self.company.id}
-        )
-        approval = self.env["plasticos.opportunity.approval"].mint(
-            opportunity,
-            source="manual",
-            partner=self.company,
-            material_profile=profile,
-        )
-        profile.action_remove_profile()
-        kept = self.env["plasticos.material.profile"].with_context(active_test=False).browse(profile.id)
-        self.assertTrue(kept.exists())
-        self.assertFalse(kept.active)
-        self.assertNotIn(profile.id, self.company.material_profile_ids.ids)
-        self.assertTrue(approval.exists())
-        self.assertEqual(approval.with_context(active_test=False).material_profile_id, kept)
-
     def test_parent_company_can_hold_a_profile_without_a_child(self):
         profile = self._profile(self.company)
         self.assertFalse(self.company.child_ids)

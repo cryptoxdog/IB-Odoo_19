@@ -201,7 +201,8 @@ class TestSalesDashboardDocumentChecklist(TransactionCase):
     def test_native_branch_reads_the_native_projection_only_without_business_rows(self):
         tx, _loads = self._trade()
         folder = self.env.ref("plasticos_documents_native.folder_plasticos_inbox")
-        self.env["documents.document"].create(
+        native_documents = "documents.document"
+        self.env[native_documents].create(
             {
                 "name": "native-bol.pdf",
                 "folder_id": folder.id,

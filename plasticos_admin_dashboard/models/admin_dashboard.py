@@ -499,7 +499,7 @@ class PlasticosAdminKpi(models.Model):
                     ("opportunity_id.stage_id.is_won", "=", True),
                 ]
             )
-            .opportunity_id
+            .mapped("opportunity_id")
         )
         ordered = Lead.browse()
         if offered and "opportunity_id" in self.env["sale.order"]._fields:

@@ -81,7 +81,19 @@ class CrmLeadSync(models.Model):
         def link(row, tag_id):
             row.lead.write({"tag_ids": [(4, tag_id)]})
 
-        leads = self.with_context(active_test=False, tracking_disable=True).search([("vanillasoft_id", "!=", False)])
-        counts = backfill_company_type_tags((_Row(lead) for lead in leads), tag_for, link)
+        leads = self.with_context(active_test=False, tracking_disable=True)
+        last_id = 0
+        rows = []
+        while True:
+            page = leads.search(
+                [("vanillasoft_id", "!=", False), ("id", ">", last_id)],
+                order="id ASC",
+                limit=80,
+            )
+            if not page:
+                break
+            last_id = page[-1].id
+            rows.extend(_Row(lead) for lead in page)
+        counts = backfill_company_type_tags(rows, tag_for, link)
         _logger.info("VanillaSoft Company Type CRM tag backfill: %s", counts)
         return counts

@@ -11,3 +11,4 @@ from . import test_opportunity_reach_contact
 from . import test_manual_offers
 from . import test_crm_lead_personal_intel_view
 from . import test_dock_rule_side
+from . import test_profile_line_removal

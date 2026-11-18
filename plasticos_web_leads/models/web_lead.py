@@ -1850,7 +1850,10 @@ class PlasticosWebLead(models.Model):
         return True
 
     def _route_review_lead(self, config):
-        """Make a REVIEW disposition actionable: queue state, clarification status, assigned work."""
+        """Make a REVIEW disposition actionable: queue state, clarification status, assigned work.
+
+        State transitions: the lead state becomes review_pending and review_status becomes clarification_required.
+        """
         self.ensure_one()
         self.write({"state": "review_pending", "review_status": "clarification_required"})
         qualification = (self.decision_reasons or {}).get(KEY_QUALIFICATION) or {}

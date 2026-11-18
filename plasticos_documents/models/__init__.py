@@ -7,3 +7,4 @@ from . import document_validation_matrix
 from . import transaction_docs
 from . import transaction_docs_bridge
 from . import load_docs_bridge
+from . import logistics_evidence

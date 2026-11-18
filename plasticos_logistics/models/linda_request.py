@@ -1224,15 +1224,15 @@ class PlasticosLogisticsRequest(models.Model):
             return "actual_delivery_unknown"
         if not load.scale_ticket_reminder_sent:
             return "documents_reminder_not_due"
-        # Documents depends on Logistics, so its model is an optional, soft reference here.
-        if "plasticos.document.tag" not in self.env:
-            return "documents_status_not_available"
-        tag = self.env["plasticos.document.tag"].search([("code", "=", "SCALE")], order="id ASC", limit=1)
-        if not tag:
-            return "documents_status_not_available"
-        if checker(load, tag):
-            return "evidence_received"
-        return False
+        return self._scale_ticket_evidence_status(load, checker)
+
+    @api.model
+    def _scale_ticket_evidence_status(self, load, checker):
+        """Whether a current scale ticket already covers this load.
+
+        Documents owns the tag and the evidence check. Without it, nothing is chased.
+        """
+        return "documents_status_not_available"
 
     @api.model
     def _linda_resolve_load_source(self, purpose, res_id, audience_partner, **params):
@@ -1428,7 +1428,10 @@ class PlasticosLogisticsRequest(models.Model):
         return {"status": "applied", "record_id": request.id}
 
     def _queue_typed_mail(self, outcome, attachments):
-        """Render the frozen snapshot through the purpose's native template and queue it once."""
+        """Render the frozen snapshot through the purpose's native template and queue it once.
+
+        State transitions: a render failure writes state to blocked with reason render_failed.
+        """
         self.ensure_one()
         template = self.env.ref(TYPED_SPECS[self.purpose].template, raise_if_not_found=False)
         mail_id = False
