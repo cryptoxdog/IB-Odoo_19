@@ -60,7 +60,14 @@ import hashlib
 import json
 from datetime import UTC, datetime
 
-__all__ = ["data_verdict", "exceptions_digest", "import_run_summary", "run_exit_status", "utc_now"]
+__all__ = [
+    "data_verdict",
+    "exceptions_digest",
+    "import_run_summary",
+    "review_lines",
+    "run_exit_status",
+    "utc_now",
+]
 
 SUMMARY_SOURCE = "erp"
 # ``source_counts`` key that tallies rows already counted in their own table.
@@ -215,3 +222,28 @@ def data_verdict(result: dict, *, partners_only: bool = False) -> dict:
         verdict["accounting_state"] = ACCOUNTING_STATE
         verdict["accounting_acceptance"] = ACCOUNTING_ACCEPTANCE
     return verdict
+
+
+_REVIEW_TITLES = {
+    "ambiguous_contacts": "Contact rows not folded (ambiguous)",
+    "retire_kept": "People kept visible by the retire rule",
+}
+
+
+def review_lines(result: dict) -> list[str]:
+    """The always-present NEEDS REVIEW block of an ERP import, ids only.
+
+    One line per entry, every entry in full, under a heading per section; the
+    last line is the total, ``NEEDS REVIEW: <n>``, so it ends ``make import-erp``.
+    Review entries are diagnostics and never enter the reconciliation above.
+    """
+    review = result.get("review") or {}
+    lines = ["NEEDS REVIEW"]
+    total = 0
+    for section, title in _REVIEW_TITLES.items():
+        entries = review.get(section) or []
+        total += len(entries)
+        lines.append(f"  {title}: {len(entries)}")
+        lines.extend(f"    {json.dumps(entry, sort_keys=True)}" for entry in entries)
+    lines.append(f"NEEDS REVIEW: {total}")
+    return lines

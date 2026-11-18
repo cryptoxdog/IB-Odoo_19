@@ -232,7 +232,12 @@
                     </group>
 
                     <group>
-                        <group string="Delivery Terms">
+                        <group string="Dock Rules">
+                            <field name="pickup_dock_rule"/>
+                            <field name="pickup_dock_rule_overridden" invisible="1"/>
+                            <field name="pickup_dock_rule_override_reason"
+                                   invisible="not pickup_dock_rule_overridden"
+                                   required="pickup_dock_rule_overridden"/>
                             <field name="delivery_term"/>
                             <field name="delivery_term_overridden" invisible="1"/>
                             <field name="delivery_term_override_reason"
@@ -321,8 +326,12 @@
                         <page string="Status" name="status">
                             <group>
                                 <group string="Ready Confirmation">
+                                    <field name="expected_ready_date"/>
+                                    <field name="ready_net_weight_lbs"/>
                                     <field name="ready_confirmed_by" readonly="1"/>
                                     <field name="ready_confirmed_at" readonly="1"/>
+                                    <field name="light_load_override_reason"/>
+                                    <field name="pickup_rebook_required"/>
                                 </group>
                                 <group string="Timing">
                                     <field name="entered_state_at" readonly="1"/>
@@ -352,6 +361,19 @@
                                     <field name="sla_breached" readonly="1"/>
                                 </group>
                             </group>
+                        </page>
+                        <page string="Appointments" name="appointments">
+                            <field name="appointment_ids">
+                                <list>
+                                    <field name="side"/>
+                                    <field name="state"/>
+                                    <field name="slot_start"/>
+                                    <field name="slot_end"/>
+                                    <field name="reference"/>
+                                    <field name="arranged_by"/>
+                                    <field name="note"/>
+                                </list>
+                            </field>
                         </page>
                     </notebook>
                 </sheet>

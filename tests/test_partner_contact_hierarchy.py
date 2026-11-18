@@ -30,8 +30,9 @@ def test_contacts_list_shows_first_and_last_name_after_name():
     first_at = text.index('name="first_name" optional="show"', name_at)
     last_at = text.index('name="last_name" optional="show"', first_at)
     assert name_at < first_at < last_at
-    assert 'name="first_name" invisible="is_company"' in text
-    assert 'name="last_name" invisible="is_company"' in text
+    # C1 D1 (ADR-131): a site is neither a person nor a company, so the name parts show for people only.
+    assert 'name="first_name" invisible="company_type != \'person\'"' in text
+    assert 'name="last_name" invisible="company_type != \'person\'"' in text
 
 
 def test_material_profile_sits_above_the_notebook_at_priority_10():
@@ -75,10 +76,13 @@ def test_locations_list_is_full_width_and_has_the_address_columns():
     assert "Supplier Payment Terms" not in text
     company_card = text.split("field[@name='vat']", 1)[1].split("</xpath>", 1)[0]
     assert 'name="lead_source_id"' in company_card
-    assert 'name="category_id"' in company_card
-    assert company_card.index('name="lead_source_id"') < company_card.index('name="category_id"')
-    assert company_card.index('name="category_id"') < company_card.index('string="Salesperson"')
+    assert company_card.index('name="lead_source_id"') < company_card.index('string="Salesperson"')
     assert "Payment Terms" not in company_card
+    # ADR-131 (C1 F2): tags sit under the name on company, site and person cards, once.
+    assert 'name="category_id"' not in company_card
+    header = text.split('name="contact_header_name" nolabel="1"', 1)[1].split("</xpath>", 1)[0]
+    assert 'name="category_id" widget="many2many_tags"' in header
+    assert "invisible=" not in header.split('name="category_id"', 1)[1].split("/>", 1)[0]
     private = (ROOT / "plasticos_security_base" / "views" / "res_partner_views.xml").read_text(encoding="utf-8")
     private_field = private.split('name="is_private"', 1)[1].split("/>", 1)[0]
     assert 'readonly="1"' in private_field
@@ -152,6 +156,17 @@ def test_open_full_profile_saves_the_material_line():
     assert "action_open_profile_form" not in text
     manifest = MATERIAL_MANIFEST.read_text(encoding="utf-8")
     assert "plasticos_material_profile/static/src/material_profile_lines.css" in manifest
+
+
+def test_open_full_profile_saves_the_facility_line():
+    text = FACILITY_VIEWS.read_text(encoding="utf-8")
+    facility_field = text.split('<field name="facility_profile_ids"', 1)[1].split("</field>", 1)[0]
+    assert 'open_form_view="1"' in facility_field
+    assert 'class="o_material_profile_lines"' in facility_field
+    assert "action_open_profile_form" not in facility_field
+    assert 'delete="0"' in facility_field
+    assert 'name="action_remove_profile"' in facility_field
+    assert 'title="Remove facility profile"' in facility_field
 
 
 def test_facility_profile_is_a_section_above_locations():

@@ -63,10 +63,16 @@ LAYER_TABLE = {
     "roles": "ContactRoleAssignment",
     "salesreps": "SalesReps",
 }
+# Re-point verbs: the label of a fold (a surviving person) or a retire (no survivor).
+REPOINT_FOLD = "fold"
+REPOINT_RETIRE = "retire"
 PARTNER_COUNT_PARAM = "plasticos_partner_import.partner_count_after_contacts"
 UNRESOLVED_RR_PARAM = "plasticos_partner_import.unresolved_rr"
 # Every historical-import write carries this context: no chatter, no tracking,
 # no business automation reacting to a bulk load.
+# Native address types of a site (ADR-131); the D1 predicate lives in plasticos_facility_profile.
+SITE_ADDRESS_TYPES = ("delivery", "invoice")
+
 IMPORT_CONTEXT = {
     "import_mode": True,
     "tracking_disable": True,
@@ -260,7 +266,7 @@ class PlasticosErpImport(models.AbstractModel):
                 elif "company_role_tag_ids" in Partner._fields:
                     values["company_role_tag_ids"] = [Command.set(tag_ids)]
             _set_if(values, "ref", _text(row, "OurCustNo"))
-            _set_if(values, "email", _text(row, "APEMail"))
+            _set_if(values, "email", _email(row, "APEMail"))
             _set_if(values, "website", _text(row, "WebSite"))
 
             credit_limit = mapping.parse_decimal(row.get("CreditLimit"))
@@ -344,11 +350,28 @@ class PlasticosErpImport(models.AbstractModel):
             if canonical_id:
                 ordered.append(next(pair for pair in billing_rows if pair[0] == canonical_id))
             ordered.extend(pair for pair in (*billing_rows, *location_rows) if pair[0] != canonical_id)
+            site_rows = []
             for address_id, row in ordered:
                 if dry_run:
                     report.skip("locations")
                     continue
                 if parent and (address_id == canonical_id or _same_party_name(_text(row, "Addr1"), parent_name)):
+                    if address_id != canonical_id and _is_other_street(parent, row):
+                        # A site that carries the company's name (F12). It is a
+                        # location only: its street never fills the company.
+                        site_rows.append(row)
+                        self._create_location(
+                            Partner,
+                            row,
+                            address_id,
+                            parent.id,
+                            parent_name,
+                            partner_by_address,
+                            report,
+                            dry_run,
+                            child_name=_location_title(row, parent_name),
+                        )
+                        continue
                     wrote = self._apply_billing_address(parent, row)
                     company_street = (parent.street or "").casefold()
                     row_street = _text(row, "Addr2").casefold()
@@ -373,11 +396,73 @@ class PlasticosErpImport(models.AbstractModel):
                         self._ensure_identity_marker(Partner, f"legacy_erp_address_{address_id}", parent)
                         report.bump("locations", "updated" if wrote else "skipped")
                     continue
+                site_rows.append(row)
                 self._create_location(
                     Partner, row, address_id, parent_id, parent_name, partner_by_address, report, dry_run
                 )
+            if parent and canonical_id and not dry_run:
+                canonical_row = next(row for address_id, row in billing_rows if address_id == canonical_id)
+                self._clear_leaked_site_street(parent, canonical_row, site_rows)
 
+        if not dry_run:
+            self._convert_unmarked_sites(Partner)
         return partner_by_address
+
+    def _clear_leaked_site_street(self, company, canonical_row, site_rows: list) -> None:
+        """Remove a site street an earlier run wrote into the company's street2 (F12).
+
+        Before F12 a site row that carries the company's name filled the
+        company's blank street2 from its own Addr3. The company's address is
+        its canonical billing row, so when that row has no Addr3 and street2
+        equals a street of one of the company's sites, street2 is that leak
+        and is cleared. Any other street2 is kept.
+        """
+        current = (company.street2 or "").strip().casefold()
+        if not current or _text(canonical_row, "Addr3"):
+            return
+        site_streets = {
+            _text(row, column).casefold() for row in site_rows for column in ("Addr2", "Addr3") if _text(row, column)
+        }
+        if current in site_streets:
+            company.write({"street2": False})
+
+    def _convert_unmarked_sites(self, partner_model) -> None:
+        """Convert an old-shape site that no ERP AddressID names (ADR-131).
+
+        A company with a parent and a delivery or invoice ``type`` is a site in
+        the old shape; it becomes a native address in place and takes its
+        company's commercial values. Any other company with a parent is left as
+        it is. Each case is logged by record id. A company child that carries
+        an ``legacy_erp_address_*`` marker is converted by its own address row.
+        """
+        marked = {
+            row.res_id
+            for row in self.env["ir.model.data"].search(
+                [
+                    ("module", "=", XMLID_MODULE),
+                    ("name", "=like", "legacy_erp_address_%"),
+                    ("model", "=", RES_PARTNER),
+                ]
+            )
+        }
+        children = partner_model.with_context(active_test=False).search(
+            [("is_company", "=", True), ("parent_id", "!=", False)]
+        )
+        for partner in children:
+            if partner.id in marked:
+                continue
+            if partner.type in SITE_ADDRESS_TYPES:
+                partner.write({"is_company": False})
+                partner.sudo()._commercial_sync_from_company()  # sudo: as Odoo _fields_sync, writes company-dependent properties
+                _logger.info(
+                    "ERP import: converted unmarked old-shape site %s to a native %s address", partner.id, partner.type
+                )
+            else:
+                _logger.info(
+                    "ERP import: left company child %s as a company (type %s is not a site address type)",
+                    partner.id,
+                    partner.type,
+                )
 
     def _create_location(
         self,
@@ -391,7 +476,14 @@ class PlasticosErpImport(models.AbstractModel):
         dry_run,
         child_name: str | None = None,
     ) -> None:
-        """A location under the company. It is a company, not a second counterparty."""
+        """A site under the company: a native delivery or invoice address (ADR-131).
+
+        The site is not a company and not a second counterparty; the parent is
+        its commercial partner. A replay rewrites a site an earlier run stored
+        as a company with a parent into this shape in place: the record and its
+        ``legacy_erp_address_<AddressID>`` marker are kept, so material and
+        facility profiles and person links stay attached.
+        """
         from ..erp import mapping
 
         kind = mapping.address_kind(row)
@@ -399,7 +491,7 @@ class PlasticosErpImport(models.AbstractModel):
         values = {
             "name": child_name or _location_title(row, parent_name),
             "parent_id": parent_id,
-            "is_company": True,
+            "is_company": False,
             "type": mapping.ODOO_ADDRESS_TYPE[kind],
         }
         values.update(self._copied_role(parent))
@@ -409,7 +501,15 @@ class PlasticosErpImport(models.AbstractModel):
         if dry_run:
             report.skip("locations")
             return
+        prior = self._partner_by_xmlid(partner_model, f"legacy_erp_address_{address_id}")
+        was_company = bool(prior and prior.is_company)
         partner = self._upsert(partner_model, f"legacy_erp_address_{address_id}", values, report, "locations")
+        if was_company and not partner.is_company:
+            # An old-shape site converted in place. Odoo copies the company's
+            # commercial fields (terms, accounts, fiscal position, credit
+            # limit) only when parent_id is written, which an unchanged parent
+            # never is, so the copy runs here: the parent wins (ADR-131).
+            partner.sudo()._commercial_sync_from_company()  # sudo: as Odoo _fields_sync, writes company-dependent properties
         partner_by_address[address_id] = partner.id
         self._sync_address_phones(partner, row)
 
@@ -463,6 +563,8 @@ class PlasticosErpImport(models.AbstractModel):
             row = index.contacts[contact_id]
             if mapping.contact_exclusion(row.get("IsActive")):
                 continue
+            if _is_function_mailbox_row(row):  # its email joins the company; its number never does
+                continue
             roles = [role.lower() for role in self._contact_roles(index, contact_id)]
             (primary_rows if "primary" in roles else other_rows).append(row)
         values = {}
@@ -477,6 +579,31 @@ class PlasticosErpImport(models.AbstractModel):
                 break
         if values:
             partner.write(values)
+
+    def _fill_sites_from_person(self, site_ids: list[int]) -> None:
+        """Fill a site's blank phone and email from its one linked person (ADR-131 D12).
+
+        Runs after the counterparty's people and their site links are stored.
+        A site linked to exactly one active person takes that person's phone
+        and email where its own is blank. A value the site already has is never
+        replaced, and a site with no person or with several is left as it is.
+        """
+        from ..erp import mapping
+
+        if not site_ids:
+            return
+        sites = self.env[RES_PARTNER].with_context(**IMPORT_CONTEXT).browse(sorted(set(site_ids))).exists()
+        for site in sites:
+            if not site._plasticos_is_site():
+                continue
+            people = site.site_person_ids
+            values = mapping.site_contact_fill(
+                site_phone=site.phone,
+                site_email=site.email,
+                people=[(person.phone, person.email) for person in people],
+            )
+            if values:
+                site.write(values)
 
     def _address_values(self, values: dict, row) -> None:
         """ERP: Addr2 is the street, Addr3 is the second street line."""
@@ -536,6 +663,8 @@ class PlasticosErpImport(models.AbstractModel):
         from ..erp import mapping
 
         Partner = self.env[RES_PARTNER].with_context(**IMPORT_CONTEXT, active_test=False)
+        if not hasattr(index, "function_mailbox_ct_ids"):
+            index.function_mailbox_ct_ids = set()
         catalog = self._address_catalog()
         mailbox_keys = mapping.site_mailbox_keys(_mailbox_companies_from(index, catalog))
 
@@ -554,6 +683,7 @@ class PlasticosErpImport(models.AbstractModel):
             groups: dict[str, list] = {}
             order: list[str] = []
             excluded_ids: list[str] = []
+            weak_rows: list[tuple[str, dict, str]] = []
             addresses = [
                 (address_id, label) for item_cp, address_id, label, _partner_id in catalog if item_cp == cp_id and label
             ]
@@ -572,15 +702,16 @@ class PlasticosErpImport(models.AbstractModel):
                     continue
                 name = _text(row, "ContactNm")
                 if not name:
-                    report.anomaly("Contact", contact_id, "blank ContactNm")
-                    report.reject("contacts")
+                    # A blank title may still be a known person's row (R2).
+                    # It is rejected only when it does not fold.
+                    weak_rows.append((contact_id, row, mapping.WEAK_BLANK))
                     continue
                 if not mapping.is_person_name(name):
                     index.omitted_contact_ids.add(contact_id)
                     retired = False
                     if not dry_run and company_partner_id:
                         self._apply_non_person(Partner.browse(company_partner_id), row)
-                        retired = self._retire_stale_contact(Partner, contact_id)
+                        retired = self._retire_stale_contact(Partner, contact_id, report)
                     report.bump("contacts", "updated" if retired else "skipped")
                     continue
                 target = mapping.site_mailbox_target(name, addresses, _text(row, "Location"), mailbox_keys)
@@ -589,8 +720,12 @@ class PlasticosErpImport(models.AbstractModel):
                     retired = False
                     if not dry_run:
                         self._apply_site_mailbox(partner_by_address, target, row)
-                        retired = self._retire_stale_contact(Partner, contact_id)
+                        retired = self._retire_stale_contact(Partner, contact_id, report)
                     report.bump("contacts", "updated" if retired else "skipped")
+                    continue
+                kind = mapping.weak_name_kind(name, _row_emails(row))
+                if kind:
+                    weak_rows.append((contact_id, row, kind))
                     continue
                 key = mapping.person_key(name)
                 if key not in groups:
@@ -598,11 +733,42 @@ class PlasticosErpImport(models.AbstractModel):
                     groups[key] = []
                 groups[key].append((contact_id, row))
 
+            company = Partner.browse(company_partner_id) if company_partner_id else Partner.browse()
+            region = _region_of(company) if company else "US"
+            plan = _fold_weak_rows(
+                groups,
+                order,
+                weak_rows,
+                report,
+                region,
+                self._site_channels(Partner, partner_by_address, company, region),
+            )
+            self._route_channel_rows(Partner, plan, company, index, report, dry_run)
+            folded = plan.folded
+            display_names: dict[str, str] = {}
+            extra_sites: dict[str, list[int]] = {}
+            for contact_id, row, kind in plan.unfolded:
+                name = _text(row, "ContactNm")
+                if kind == mapping.WEAK_BLANK:
+                    report.anomaly("Contact", contact_id, "blank ContactNm")
+                    report.reject("contacts")
+                    continue
+                key = mapping.person_key(name)
+                if key not in groups:
+                    order.append(key)
+                    groups[key] = []
+                    if kind == mapping.WEAK_EMAIL_PREFIX:
+                        display_names[key] = mapping.email_prefix_title(name)
+                groups[key].append((contact_id, row))
+                if contact_id in plan.extra_sites:
+                    extra_sites.setdefault(key, []).append(plan.extra_sites[contact_id])
+
             label_to_partner = {
                 label: partner_id for item_cp, _address_id, label, partner_id in catalog if item_cp == cp_id and label
             }
+            people: dict[str, int] = {}
             for key in order:
-                self._import_person(
+                person = self._import_person(
                     Partner,
                     groups[key],
                     company_partner_id,
@@ -610,11 +776,77 @@ class PlasticosErpImport(models.AbstractModel):
                     report,
                     dry_run,
                     mapping,
+                    folded=folded.get(key, ()),
+                    name=display_names.get(key),
+                    extra_location_ids=extra_sites.get(key, ()),
+                    region=region,
                 )
+                if person:
+                    people[key] = person.id
+            for entry in plan.ambiguous:
+                keys = entry.pop("candidate_keys")
+                entry["candidate_ct_ids"] = sorted(
+                    (min(groups[key], key=_contact_sort_key)[0] for key in keys), key=_ct_order
+                )
+                entry["candidate_partner_ids"] = sorted(people[key] for key in keys if key in people)
+                report.review["ambiguous_contacts"].append(entry)
             if excluded_ids and not dry_run:
-                self._retire_inactive_contacts(Partner, excluded_ids)
+                self._retire_inactive_contacts(Partner, excluded_ids, report)
+            if not dry_run:
+                self._fill_sites_from_person(
+                    [pid for pid in partner_by_address.values() if pid and pid != company_partner_id]
+                )
 
-    def _retire_inactive_contacts(self, partner_model, contact_ids: list[str]) -> None:
+    def _route_channel_rows(self, partner_model, plan, company, index, report, dry_run: bool) -> None:
+        """Rows that are no person: the channel lands on their one site, or on the company."""
+        routes = [(contact_id, row, partner_model.browse(site_id), False) for contact_id, row, site_id in plan.to_site]
+        routes += [(contact_id, row, company, False) for contact_id, row in plan.to_company]
+        routes += [(contact_id, row, company, True) for contact_id, row in plan.to_company_email]
+        for contact_id in plan.mailbox_ct_ids:
+            index.function_mailbox_ct_ids.add(contact_id)
+        for contact_id, row, target, email_only in routes:
+            index.omitted_contact_ids.add(contact_id)
+            retired = False
+            if not dry_run and target:
+                if email_only:
+                    self._append_company_email(target, row)
+                else:
+                    self._apply_non_person(target, row)
+                retired = self._retire_stale_contact(partner_model, contact_id, report)
+            report.bump("contacts", "updated" if retired else "skipped")
+
+    def _append_company_email(self, company, row) -> None:
+        """An accounting mailbox joins the company's emails: appended, de-duplicated, never replacing one.
+
+        The company's phone is left unchanged.
+        """
+        from ..erp import mapping
+
+        current = mapping.clean_emails(company.email)
+        added = [address for address in _row_emails(row) if address not in current]
+        if added:
+            company.with_context(**IMPORT_CONTEXT).write({"email": ", ".join([*current, *added])})
+
+    def _site_channels(self, partner_model, partner_by_address: dict, company, region: str) -> list:
+        """``[(site partner id, phone keys, emails)]`` for the stored sites of one company (R2b)."""
+        from ..erp import mapping
+
+        channels = []
+        seen: set[int] = set()
+        for partner_id in partner_by_address.values():
+            if not partner_id or partner_id in seen or (company and partner_id == company.id):
+                continue
+            seen.add(partner_id)
+            site = partner_model.browse(partner_id)
+            if not site:
+                continue
+            phones = set(mapping.phone_keys(site.phone, region)) if "phone" in site._fields else set()
+            emails = set(mapping.clean_emails(site.email)) if "email" in site._fields else set()
+            if phones or emails:
+                channels.append((partner_id, phones, emails))
+        return channels
+
+    def _retire_inactive_contacts(self, partner_model, contact_ids: list[str], report=None) -> None:
         """Remove the marker an earlier run stored for each excluded CT_ID.
 
         Runs after the active people of the counterparty are stored. The person
@@ -645,22 +877,37 @@ class PlasticosErpImport(models.AbstractModel):
             ]
         )
         orphans = sorted(affected - {row.res_id for row in still_named})
-        people = (
-            partner_model.browse(orphans).exists().filtered(lambda partner: not partner.is_company and partner.active)
-        )
-        if people:
-            people.write({"active": False})
+        people = partner_model.browse(orphans).exists().filtered(lambda partner: _is_person(partner) and partner.active)
+        for person in people:
+            # What names the person moves first; a person whose records cannot move stays visible.
+            if self._repoint_retired(person, report):
+                person.write({"active": False})
 
     def _import_person(
-        self, partner_model, members, company_partner_id, label_to_partner, report, dry_run, mapping
-    ) -> None:
+        self,
+        partner_model,
+        members,
+        company_partner_id,
+        label_to_partner,
+        report,
+        dry_run,
+        mapping,
+        folded=(),
+        name: str | None = None,
+        extra_location_ids=(),
+        region: str = "US",
+    ):
         """One person per company plus first and last name. Every CT_ID aliases that person.
 
         ``members`` holds explicitly active rows only; ``_import_contacts``
-        excluded every other row before grouping.
+        excluded every other row before grouping. ``folded`` holds weak-name
+        rows of the same company that resolved to this person (R2): they alias
+        it, add their channels, sites and roles, but never supply the name or
+        the anchor. ``name`` overrides the title (an unfolded e-mail prefix).
         """
-        members = sorted(members, key=_contact_sort_key)
-        name = _text(members[0][1], "ContactNm")
+        own = sorted(members, key=_contact_sort_key)
+        members = own + sorted(folded, key=_contact_sort_key)
+        name = name or _text(own[0][1], "ContactNm")
         parent = partner_model.browse(company_partner_id) if company_partner_id else partner_model.browse()
         values = {
             "name": name,
@@ -678,20 +925,28 @@ class PlasticosErpImport(models.AbstractModel):
             if partner_id and partner_id != company_partner_id and partner_id not in location_ids:
                 location_ids.append(partner_id)
 
+        for site_id in extra_location_ids:  # R2b: a first-name row that matched one site
+            if site_id != company_partner_id and site_id not in location_ids:
+                location_ids.append(site_id)
         if dry_run:
             report.skip("contacts", len(members))
-            return
+            return None
 
-        anchor = self._anchor_contact_id(partner_model, members)
+        anchor = self._anchor_contact_id(partner_model, own)
         partner = self._upsert(partner_model, f"legacy_erp_contact_{anchor}", values, report, "contacts")
         for contact_id, _row in members:
             if contact_id == anchor:
                 continue
             self._alias_xmlid(partner_model, f"legacy_erp_contact_{contact_id}", partner, report, "contacts")
-        if "location_partner_ids" in partner._fields and set(partner.location_partner_ids.ids) != set(location_ids):
-            partner.write({"location_partner_ids": [(6, 0, location_ids)]})
+        if "location_partner_ids" in partner._fields:
+            # Additive: a site linked by hand, or carried over from a folded
+            # card (_repoint_superseded), is kept on replay.
+            missing = [site_id for site_id in location_ids if site_id not in partner.location_partner_ids.ids]
+            if missing:
+                partner.write({"location_partner_ids": [(4, site_id) for site_id in missing]})
         self._sync_phone_lines(partner, phone_lines)
         self._append_comment_evidence(partner, email_evidence)
+        return partner
 
     def _append_comment_evidence(self, partner, lines: list) -> None:
         """Append each labelled line to ``comment`` as its own paragraph, once.
@@ -777,12 +1032,13 @@ class PlasticosErpImport(models.AbstractModel):
             lines.append(("fax", fax))
         self._sync_phone_lines(company, lines)
 
-    def _retire_stale_contact(self, partner_model, contact_id: str) -> bool:
+    def _retire_stale_contact(self, partner_model, contact_id: str, report=None) -> bool:
         """Retire the person an earlier run stored for a row that is not a person.
 
         The row's identity marker is removed and the partner it pointed at is
-        archived (never deleted: references stay valid). True when something
-        was retired.
+        archived (never deleted: references stay valid) once what names it has
+        moved (:meth:`_repoint_retired`); when something cannot move, the person
+        stays visible. True when the marker was retired.
         """
         data = self.env["ir.model.data"].search(
             [
@@ -795,7 +1051,7 @@ class PlasticosErpImport(models.AbstractModel):
         if not data:
             return False
         partner = partner_model.browse(data.res_id).exists() if data.res_id else partner_model.browse()
-        if partner and not partner.is_company and partner.active:
+        if partner and _is_person(partner) and partner.active and self._repoint_retired(partner, report):
             partner.write({"active": False})
         data.unlink()
         return True
@@ -852,6 +1108,41 @@ class PlasticosErpImport(models.AbstractModel):
             job = mapping.job_position(tags)
             if job and partner.function != job:
                 partner.write({"function": job})
+        self._report_mailbox_role_holders(Partner, index, report, tag_cache)
+
+    def _report_mailbox_role_holders(self, partner_model, index, report, tag_cache: dict) -> None:
+        """A function mailbox's role tag stays with the one person who already holds it.
+
+        Its role rows were skipped (the mailbox is no person). When exactly one
+        person of the company already carries the tag, nothing is added. When
+        none or several do, the tag is not assigned and the row is reported.
+        """
+        from ..erp import mapping
+
+        for contact_id in sorted(getattr(index, "function_mailbox_ct_ids", ()), key=_ct_order):
+            role_ids = index.roles_by_contact.get(contact_id, [])
+            if not role_ids:
+                continue
+            cp_id = index.contacts[contact_id].get("CpID")
+            people = {}
+            for other in index.contacts_by_cp.get(cp_id, []):
+                if other in index.omitted_contact_ids:
+                    continue
+                person = self._partner_by_xmlid(partner_model, f"legacy_erp_contact_{other}")
+                if person:
+                    people[person.id] = person
+            for role_id in role_ids:
+                tag, _reason = mapping.map_contact_role(index.contact_roles[role_id].get("RoleNm"))
+                if not tag:
+                    continue
+                tag_id = self._role_tag_id(tag, tag_cache, report)
+                holders = [person for person in people.values() if tag_id in person.category_id.ids]
+                if len(holders) != 1:
+                    report.anomaly(
+                        "ContactRoleAssignment",
+                        role_id,
+                        f"function mailbox CT_ID={contact_id}: role {tag!r} not assigned ({len(holders)} holders)",
+                    )
 
     def _user_ids_by_name(self, names: set[str]) -> dict[str, int | None]:
         """One query for the named users. A name with two users maps to None.
@@ -1004,15 +1295,26 @@ class PlasticosErpImport(models.AbstractModel):
         )
 
     def _sync_phone_lines(self, partner, lines: list) -> None:
-        """Add labeled numbers that are not already on the partner."""
+        """Add labeled numbers that are not already on the partner.
+
+        A number is the same number when its phone keys meet (``mapping.phone_keys``:
+        digits, and E.164 in the partner's region): a line stored as
+        ``(732) 202-9500`` already holds the raw ERP value ``732-202-9500``, and a
+        ``+44`` line holds the national form of the same number, so a replay adds
+        nothing and never trips ``unique(partner_id, label, number)``.
+        """
         if "phone_line_ids" not in partner._fields:
             return
-        present = {(line.label, line.number) for line in partner.phone_line_ids}
+        region = _region_of(partner)
+        present: dict[str, set[str]] = {}
+        for line in partner.phone_line_ids:
+            present.setdefault(line.label, set()).update(_phone_line_keys(line.number, region))
         commands = []
         for label, number in lines:
-            if not number or (label, number) in present:
+            keys = _phone_line_keys(number, region)
+            if not number or keys & present.get(label, set()):
                 continue
-            present.add((label, number))
+            present.setdefault(label, set()).update(keys)
             commands.append(Command.create({"label": label, "number": number}))
         if commands:
             partner.with_context(**IMPORT_CONTEXT).write({"phone_line_ids": commands})
@@ -1051,20 +1353,165 @@ class PlasticosErpImport(models.AbstractModel):
         if data:
             superseded = model.browse(data.res_id).exists() if data.res_id else model.browse()
             data.write({"res_id": record.id, "model": model._name})
-            self._retire_superseded_partner(superseded, record)
+            self._retire_superseded_partner(superseded, record, report)
             report.bump(bucket, "updated")
             return
         self._write_identity_marker(model, xml_id, record)
         report.bump(bucket, "skipped")
 
-    def _retire_superseded_partner(self, superseded, record) -> None:
-        """Archive a person partner that the identity migration folded into ``record``."""
-        if not superseded or superseded.id == record.id or superseded.is_company:
+    def _retire_superseded_partner(self, superseded, record, report=None) -> None:
+        """Archive a person partner that the identity migration folded into ``record``.
+
+        Its extra numbers move to ``record``. It is archived (never deleted)
+        only once no ERP contact marker still points at it, so a partner that
+        another CT_ID still names stays visible until that CT_ID moves too.
+        Before it is archived, the records that name it move to ``record``
+        (:meth:`_repoint_superseded`); when one cannot move, it stays visible.
+        """
+        if not superseded or superseded.id == record.id or not _is_person(superseded):
             return
         if "phone_line_ids" in superseded._fields:
             self._sync_phone_lines(record, [(line.label, line.number) for line in superseded.phone_line_ids])
-        if superseded.active:
-            superseded.write({"active": False})
+        if superseded.active and not self._named_by_contact_marker(superseded.id):
+            if self._repoint_superseded(superseded, record, report):
+                superseded.write({"active": False})
+
+    def _repoint_superseded(self, superseded, record, report) -> bool:
+        """Move what names ``superseded`` onto ``record`` before it is archived (contact fold).
+
+        Leads, material and facility profiles go to ``record``, and its linked
+        sites are added to ``record`` (:meth:`_repoint_records`).
+        """
+        return self._repoint_records(
+            superseded, lead_to=record, profile_to=record, sites_to=record, verb=REPOINT_FOLD, report=report
+        )
+
+    def _repoint_retired(self, person, report) -> bool:
+        """Move what names a retired person, which has no surviving person (ADR in #530).
+
+        ``crm.lead`` goes to the person's company. Profiles go to the person's
+        single linked site; with no linked site, to the company when it has no
+        site; otherwise they have no target and the person stays visible. A
+        profile never ends on a person.
+        """
+        if not self._named_by_records(person):
+            return True
+        company = _owning_company(person)
+        site_ids = person.location_partner_ids.ids if "location_partner_ids" in person._fields else []
+        if len(site_ids) == 1:
+            profile_to = self.env[RES_PARTNER].with_context(**IMPORT_CONTEXT).browse(site_ids[0])
+        elif not site_ids and company and not any(_is_site_partner(child) for child in company.child_ids):
+            profile_to = company
+        else:
+            profile_to = None
+        return self._repoint_records(
+            person, lead_to=company, profile_to=profile_to, sites_to=None, verb=REPOINT_RETIRE, report=report
+        )
+
+    def _named_by_records(self, partner) -> bool:
+        """True when a lead or a material or facility profile names ``partner``."""
+        for model_name in ("crm.lead", "plasticos.material.profile", "plasticos.facility.profile"):
+            if model_name in self.env:
+                Model = self.env[model_name].with_context(active_test=False)
+                if Model.search([("partner_id", "=", partner.id)], limit=1):
+                    return True
+        return False
+
+    def _repoint_records(self, source, *, lead_to, profile_to, sites_to, verb: str, report) -> bool:
+        """Move what names ``source`` before it is archived. Never delete.
+
+        ``crm.lead.partner_id`` moves to ``lead_to``; ``plasticos.material.profile``
+        and ``plasticos.facility.profile`` ``partner_id`` move to ``profile_to``; each
+        model is used only when installed (no manifest dependency). With
+        ``sites_to``, the linked sites of ``source`` are added to it. A record that
+        cannot move (no target, or a profile that would duplicate one the target
+        already holds: one facility profile per partner, one material profile per
+        polymer, form and grade) stays where it is and the result is False, so the
+        caller keeps ``source`` visible. Moves and refusals are reported under
+        ``source``.
+        """
+        moved: list[str] = []
+        blocked: list[str] = []
+        if "crm.lead" in self.env:
+            leads = (
+                self.env["crm.lead"]
+                .with_context(**IMPORT_CONTEXT, active_test=False)
+                .search([("partner_id", "=", source.id)])
+            )
+            if leads and lead_to:
+                leads.write({"partner_id": lead_to.id})
+                moved.append(f"crm.lead {len(leads)} -> partner {lead_to.id}")
+            elif leads:
+                blocked.append("leads need a company")
+        if "plasticos.material.profile" in self.env:
+            Material = self.env["plasticos.material.profile"].with_context(**IMPORT_CONTEXT, active_test=False)
+            profiles = Material.search([("partner_id", "=", source.id)])
+            if profiles and not profile_to:
+                blocked.append("profiles need a site")
+            elif profiles:
+                movable = Material.browse()
+                for profile in profiles:
+                    duplicate = Material.search(
+                        [
+                            ("partner_id", "=", profile_to.id),
+                            ("polymer_id", "=", profile.polymer_id.id),
+                            ("form_id", "=", profile.form_id.id or False),
+                            ("material_grade_id", "=", profile.material_grade_id.id or False),
+                        ],
+                        limit=1,
+                    )
+                    if duplicate:
+                        blocked.append(f"partner {profile_to.id} already holds plasticos.material.profile {profile.id}")
+                    else:
+                        movable |= profile
+                if movable:
+                    movable.write({"partner_id": profile_to.id})
+                    moved.append(f"plasticos.material.profile {len(movable)} -> partner {profile_to.id}")
+        if "plasticos.facility.profile" in self.env:
+            Facility = self.env["plasticos.facility.profile"].with_context(**IMPORT_CONTEXT, active_test=False)
+            profiles = Facility.search([("partner_id", "=", source.id)])
+            if profiles and not profile_to:
+                if "profiles need a site" not in blocked:
+                    blocked.append("profiles need a site")
+            elif profiles and Facility.search([("partner_id", "=", profile_to.id)], limit=1):
+                blocked.extend(
+                    f"partner {profile_to.id} already holds plasticos.facility.profile {profile.id}"
+                    for profile in profiles
+                )
+            elif profiles:
+                profiles.write({"partner_id": profile_to.id})
+                moved.append(f"plasticos.facility.profile {len(profiles)} -> partner {profile_to.id}")
+        if sites_to and "location_partner_ids" in source._fields:
+            sites = [
+                site_id
+                for site_id in source.location_partner_ids.ids
+                if site_id not in sites_to.location_partner_ids.ids
+            ]
+            if sites:
+                sites_to.write({"location_partner_ids": [(4, site_id) for site_id in sites]})
+                moved.append(f"location_partner_ids {len(sites)} -> partner {sites_to.id}")
+        if report is not None and moved:
+            report.anomaly("Contact", f"partner {source.id}", f"{verb} re-pointed: {', '.join(moved)}")
+        if report is not None and blocked:
+            report.anomaly(
+                "Contact", f"partner {source.id}", f"{verb} kept partner {source.id} visible: {'; '.join(blocked)}"
+            )
+            if verb == REPOINT_RETIRE:
+                report.review["retire_kept"].append({"partner_id": source.id, "reason": "; ".join(blocked)})
+        return not blocked
+
+    def _named_by_contact_marker(self, partner_id: int) -> bool:
+        """True while any ``legacy_erp_contact_%`` marker still points at ``partner_id``."""
+        marker = self.env["ir.model.data"].search(
+            [
+                ("module", "=", XMLID_MODULE),
+                ("name", "=like", "legacy_erp_contact_%"),
+                ("model", "=", RES_PARTNER),
+                ("res_id", "=", partner_id),
+            ],
+            limit=1,
+        )
+        return bool(marker)
 
     def _contact_roles(self, index, contact_id: str) -> list:
         """Ordered role names for a contact. ``Primary`` sorts first."""
@@ -1235,7 +1682,7 @@ class PlasticosErpImport(models.AbstractModel):
         if not partner_id:
             return
         partner = self.env[RES_PARTNER].with_context(**IMPORT_CONTEXT).browse(partner_id)
-        email = _email(row, "Email").split(";")[0].strip()
+        email = _email(row, "Email").split(",")[0].strip()
         if email and not partner.email:
             partner.write({"email": email})
 
@@ -1248,19 +1695,224 @@ class PlasticosErpImport(models.AbstractModel):
 # ---------------------------------------------------------------------------
 # Module-level helpers
 # ---------------------------------------------------------------------------
+def _is_other_street(company, row) -> bool:
+    """True when the row has a street and the company already has a different one."""
+    company_street = (company.street or "").casefold()
+    row_street = _text(row, "Addr2").casefold()
+    return bool(row_street and company_street and row_street != company_street)
+
+
+def _is_person(partner) -> bool:
+    """A person partner: neither a company nor a site (either site shape)."""
+    return not partner.is_company and not partner._plasticos_is_site()
+
+
 def _text(row, column: str) -> str:
     return (row.get(column) or "").strip()
 
 
 def _email(row, *columns: str) -> str:
-    """The first e-mail cell among ``columns`` once the brokerage's own mailboxes are dropped."""
+    """The first non-empty e-mail cell among ``columns``, cleaned.
+
+    The brokerage's own mailboxes are dropped (``mapping.external_emails``),
+    then the entries are split, shape-checked, lower-cased, de-duplicated and
+    joined with ``", "`` (``mapping.email_cell``). Every importer email write
+    goes through here.
+    """
     from ..erp import mapping
 
     for column in columns:
-        value = mapping.external_emails(_text(row, column)).strip()
+        value = mapping.email_cell(_text(row, column))
         if value:
             return value
     return ""
+
+
+def _row_emails(row) -> list[str]:
+    """The cleaned addresses of a contact row's ``Email`` cell."""
+    value = _email(row, "Email")
+    return value.split(", ") if value else []
+
+
+class _FoldPlan:
+    """Where each weak-name row of one company goes (R2, R2b, probe-3 tie-breaks)."""
+
+    def __init__(self):
+        self.folded: dict[str, list] = {}  # group key -> extra (contact_id, row) members
+        self.unfolded: list = []  # (contact_id, row, kind): own person, or rejected when blank
+        self.to_site: list = []  # (contact_id, row, site partner id): channel on the site, no person
+        self.to_company: list = []  # (contact_id, row): channel on the company, no person
+        self.to_company_email: list = []  # (contact_id, row): accounting mailbox appended to the company email
+        self.mailbox_ct_ids: list[str] = []  # function mailboxes: their role tags are never assigned anew
+        self.extra_sites: dict[str, int] = {}  # contact_id -> site partner id for an unfolded first name
+        self.ambiguous: list[dict] = []  # review entries; candidate keys resolved after the people exist
+
+
+def _fold_weak_rows(groups: dict, order: list, weak_rows: list, report, region="US", sites=()) -> _FoldPlan:
+    """Resolve each weak-name contact row of one company. Returns a :class:`_FoldPlan`.
+
+    Candidates are the full-name groups whose phone keys (``PhoneBusiness`` /
+    ``PhoneMobile``, :func:`mapping.phone_keys`) or external email match the row.
+    Applied in order:
+
+    a. a plain first name only considers groups whose first word is that name;
+    c. a role word whose own address is a generic mailbox (``ap@``, ``orders@``)
+       never becomes a person: its channel goes to the one matching site, else to
+       the company;
+    b. an e-mail prefix with several candidates folds into the one whose name
+       produces that local part (``first.last``, ``firstlast``, ``flast``,
+       ``firstl``, ``first``, ``last``);
+    d. phone to one group and email to another is a conflict and does not fold;
+    then exactly one candidate folds; several are ambiguous and reported. With
+    no candidate (R2b), exactly one matching site of the company takes the
+    channel of a blank, role-word or e-mail-prefix row (no person), and is added
+    to the sites of a first-name row (a person); several matching sites are
+    reported. ``sites`` is ``[(site partner id, phone keys, emails)]``.
+    """
+    from ..erp import mapping
+
+    by_phone: dict[str, set[str]] = {}
+    by_email: dict[str, set[str]] = {}
+    first_word: dict[str, str] = {}
+    titles: dict[str, str] = {}
+    for key in order:
+        members = groups[key]
+        titles[key] = _text(sorted(members, key=_contact_sort_key)[0][1], "ContactNm")
+        first_word[key] = mapping.first_word_key(titles[key])
+        for _contact_id, row in members:
+            for phone in _row_phone_keys(row, region):
+                by_phone.setdefault(phone, set()).add(key)
+            for address in _row_emails(row):
+                by_email.setdefault(address, set()).add(key)
+
+    def matching_sites(row) -> list[int]:
+        phones, emails = _row_phone_keys(row, region), set(_row_emails(row))
+        return [site_id for site_id, site_phones, site_emails in sites if phones & site_phones or emails & site_emails]
+
+    plan = _FoldPlan()
+    for contact_id, row, kind in weak_rows:
+        name = _text(row, "ContactNm")
+        emails = _row_emails(row)
+        allowed = set(order)
+        if kind == mapping.WEAK_FIRST_NAME:  # a
+            wanted = mapping.first_word_key(name)
+            allowed = {key for key in order if first_word[key] == wanted}
+        phone_hits = set().union(*(by_phone.get(p, set()) for p in _row_phone_keys(row, region))) & allowed
+        email_hits = set().union(*(by_email.get(a, set()) for a in emails)) & allowed
+        candidates = phone_hits | email_hits
+
+        mailbox = mapping.function_mailbox(emails)  # c: a function mailbox is never a person
+        if mailbox:
+            plan.mailbox_ct_ids.append(contact_id)
+            site_ids = matching_sites(row) if mailbox == mapping.MAILBOX_OPERATIONAL else []
+            if len(site_ids) == 1:
+                plan.to_site.append((contact_id, row, site_ids[0]))
+            elif mailbox == mapping.MAILBOX_ACCOUNTING:
+                plan.to_company_email.append((contact_id, row))
+            else:
+                plan.to_company.append((contact_id, row))
+            continue
+        if kind == mapping.WEAK_EMAIL_PREFIX and len(candidates) > 1:  # b
+            local = "".join(char for char in name.casefold() if char.isalnum())
+            named = [key for key in candidates if local in mapping.name_local_forms(titles[key])]
+            if len(named) == 1:
+                plan.folded.setdefault(named[0], []).append((contact_id, row))
+                continue
+        if phone_hits and email_hits and phone_hits.isdisjoint(email_hits):  # d
+            report.anomaly("Contact", contact_id, "alias conflict: phone and email name different people")
+            plan.ambiguous.append(
+                _ambiguous_entry(contact_id, kind, "phone and email point to different people", candidates)
+            )
+            plan.unfolded.append((contact_id, row, kind))
+            continue
+        if len(candidates) == 1:
+            plan.folded.setdefault(next(iter(candidates)), []).append((contact_id, row))
+            continue
+        report.anomaly("Contact", contact_id, f"alias ambiguous: {len(candidates)} full-name candidates")
+        if candidates:
+            shared = " and ".join(
+                part for part, hits in (("phone", phone_hits), ("email", email_hits)) if len(hits) > 1
+            )
+            plan.ambiguous.append(
+                _ambiguous_entry(contact_id, kind, f"shared {shared or 'phone or email'}", candidates)
+            )
+            plan.unfolded.append((contact_id, row, kind))
+            continue
+        site_ids = matching_sites(row)  # R2b
+        if len(site_ids) == 1 and kind != mapping.WEAK_FIRST_NAME:
+            plan.to_site.append((contact_id, row, site_ids[0]))
+            continue
+        if len(site_ids) == 1:
+            plan.extra_sites[contact_id] = site_ids[0]
+        elif len(site_ids) > 1:
+            report.anomaly("Contact", contact_id, f"site ambiguous: {len(site_ids)} sites match")
+        plan.unfolded.append((contact_id, row, kind))
+    return plan
+
+
+def _is_function_mailbox_row(row) -> bool:
+    """A weak-name contact row whose own address is a function mailbox (``ap@``, ``orders@``)."""
+    from ..erp import mapping
+
+    emails = _row_emails(row)
+    return bool(mapping.weak_name_kind(_text(row, "ContactNm"), emails) and mapping.function_mailbox(emails))
+
+
+def _ct_order(contact_id):
+    return _contact_sort_key((contact_id, None))
+
+
+def _ambiguous_entry(contact_id: str, kind: str, reason: str, candidates: set) -> dict:
+    return {"ct_id": contact_id, "kind": kind, "reason": reason, "candidate_keys": sorted(candidates)}
+
+
+def _row_phone_keys(row, region="US") -> set[str]:
+    """Phone keys of a contact row's business and mobile numbers."""
+    from ..erp import mapping
+
+    keys: set[str] = set()
+    for column in ("PhoneBusiness", "PhoneMobile"):
+        keys |= mapping.phone_keys(row.get(column), region)
+    return keys
+
+
+def _phone_line_keys(number, region="US") -> frozenset[str]:
+    """Comparison keys of a stored or incoming phone line: digits and E.164, else the text as written."""
+    from ..erp import mapping
+
+    return mapping.phone_keys(number, region) or frozenset({(number or "").strip()})
+
+
+# ADR-131 site predicate, local to this module (the D1 model method is not a
+# dependency of the importer): a partner with a parent that is a delivery or
+# invoice address, or a company record parented under a company.
+_SITE_ADDRESS_TYPES = ("delivery", "invoice")
+
+
+def _is_site_partner(partner) -> bool:
+    return bool(partner.parent_id) and (partner.type in _SITE_ADDRESS_TYPES or bool(partner.is_company))
+
+
+def _region_of(partner) -> str:
+    """Phone region of a partner: its country, else its company's, else ``US``."""
+    node = partner
+    while node:
+        country = getattr(node, "country_id", None)
+        code = getattr(country, "code", None) if country else None
+        if code:
+            return code
+        node = getattr(node, "parent_id", None)
+    return "US"
+
+
+def _owning_company(partner):
+    """The first ancestor-or-self that is a company and not a site; empty when none."""
+    node = partner
+    while node:
+        if node.is_company and not _is_site_partner(node):
+            return node
+        node = node.parent_id
+    return node
 
 
 def _sales_rep_row_key(cp_id: str, row) -> str:

@@ -23,6 +23,7 @@ Zero Odoo runtime. Pure AST + XML parsing.
 import ast
 import os
 import re
+import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import NamedTuple
@@ -540,6 +541,48 @@ GLOBAL_ALLOWLIST = frozenset(
         "tight_supply",
         "loose_supply",
         "balanced",
+        # ─────────────────────────────────────────────────────────────────────
+        # ENRICHMENT NORMALIZER CODES (plasticos_enrichment/models/enrichment_service.py)
+        # Input words and intermediate short codes of FORM_NORMALIZE,
+        # SOURCE_TYPE_NORMALIZE and POLYMER_NORMALIZE; FORM_CODE_TO_MASTER maps
+        # them onto plasticos_material_profile master codes. They are not
+        # Selection values. Until C1 G1 they were accepted only because the
+        # retired plasticos_base material-taxonomy partner tags carried the same
+        # names. "sweep" is also the Gate proposal origin (enrichment_run.py).
+        # ─────────────────────────────────────────────────────────────────────
+        "BAG",
+        "CHOP",
+        "CONT",
+        "DENS",
+        "GAY",
+        "HMW HDPE",
+        "LOG",
+        "No-Value",
+        "OFF",
+        "PA",
+        "PAL",
+        "PART",
+        "PATTY",
+        "PELL",
+        "PI",
+        "PP-PE",
+        "PURG",
+        "REUSE",
+        "RG",
+        "ROLL",
+        "SWEEP",
+        "bag",
+        "chop",
+        "dens",
+        "log",
+        "no-value",
+        "off-grade",
+        "part",
+        "patty",
+        "pcr",
+        "pir",
+        "roll",
+        "sweep",
         # ─────────────────────────────────────────────────────────────────────
         # WEB LEADS SYNONYM MAPPINGS (normalize external input)
         # These are intentionally NOT in the registry — they're input synonyms
@@ -1391,7 +1434,13 @@ class TestRegistrySanity:
             assert polymer in XML_NAMES, f"Expected polymer '{polymer}' not found in XML names"
 
     def test_known_forms_in_registry(self):
-        for form in ["BALE", "FILM", "FLAKE", "PELL"]:
+        """Spot-check the form master (plasticos_material_profile/data/material_form_data.xml).
+
+        Until C1 G1 this checked the short codes of the retired plasticos_base
+        material-taxonomy partner tags (BALE, PELL); the form vocabulary now
+        lives only on the master.
+        """
+        for form in ["Bales", "Film", "Flake", "Pellets"]:
             assert form in XML_NAMES, f"Expected form '{form}' not found in XML names"
 
     def test_known_selection_keys_in_registry(self):
@@ -1840,13 +1889,16 @@ class TestXmlSelectionAlignment:
             }
         )
 
+        # Until C1 G1 this read the names of the retired plasticos_base
+        # material-taxonomy partner tags; polymer codes now live only on the
+        # polymer master, so check its codes.
         polymer_names = {
             s.value
             for s in ALL_SOURCES
-            if "taxonomy" in s.source_file.lower()
-            and s.source_type == "xml_name"
-            and any(cat in s.source_file for cat in ["material_taxonomy", "polymer"])
+            if s.source_file.endswith("plasticos_material_profile/data/polymer_data.xml")
+            and s.source_type == "xml_code"
         }
+        assert polymer_names, "No polymer codes found in plasticos_material_profile/data/polymer_data.xml"
         # Filter to things that look like polymer codes:
         # - Short (≤8 chars)
         # - Alphabetic
@@ -1864,47 +1916,34 @@ class TestXmlSelectionAlignment:
 
 
 class TestEquipmentCodeAlignment:
-    """Validate that equipment codes used in _compute_equipment_flags
-    match the codes defined in equipment type seed data XML."""
+    """Capability type codes the migration writes exist in the capability-type seed."""
 
     def test_equipment_codes_in_compute_match_seed_data(self):
-        """Codes used in `"code_value" in codes` comparisons must
-        exist in equipment type XML seed data."""
-        # Find equipment codes used in Python
-        used_codes = set()
-        for mod in MODULES:
-            mod_path = REPO_ROOT / mod
-            for _rel_path, src in _iter_python_files(mod_path):
-                if "equipment" not in src.lower():
-                    continue
-                # Pattern: "some_code" in codes
-                for match in re.finditer(r'["\'](\w+)["\']\s+in\s+codes', src):
-                    used_codes.add(match.group(1))
-
-        if not used_codes:
-            pytest.skip("No equipment code comparisons found")
-
-        # Find equipment codes defined in XML
+        """Retired equipment codes are gone. Migration capability codes are seeded."""
+        seed = REPO_ROOT / "plasticos_facility_profile" / "data" / "capability_type_data.xml"
+        tree = ET.parse(seed)
         xml_codes = set()
-        for mod in MODULES:
-            for xml_path in _iter_xml_data_files(REPO_ROOT / mod):
-                try:
-                    tree = ET.parse(xml_path)
-                except ET.ParseError:
-                    continue
-                for record in tree.getroot().iter("record"):
-                    model = record.get("model", "")
-                    if "equipment" not in model:
-                        continue
-                    for field in record.findall("field"):
-                        if field.get("name") == "code":
-                            text = (field.text or "").strip()
-                            if text:
-                                xml_codes.add(text)
+        for record in tree.getroot().iter("record"):
+            if record.get("model") != "plasticos.capability.type":
+                continue
+            for field in record.findall("field"):
+                if field.get("name") == "code":
+                    text = (field.text or "").strip()
+                    if text:
+                        xml_codes.add(text)
+        assert xml_codes, "No capability type seed data found"
+        import importlib.util
 
-        if not xml_codes:
-            pytest.skip("No equipment type seed data found")
-
+        spec = importlib.util.spec_from_file_location(
+            "capability_migration_codes",
+            REPO_ROOT / "plasticos_facility_profile" / "capability_migration.py",
+        )
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module
+        spec.loader.exec_module(module)
+        used_codes = {type_code for type_code, _details in module.EQUIPMENT_CAPABILITY.values()}
+        used_codes.update(module.PROCESS_CAPABILITY.values())
+        used_codes.update(type_code for type_code, _details in module.CAN_CAPABILITY.values())
         missing = used_codes - xml_codes
         assert len(missing) == 0, (
             f"Equipment codes used in Python but missing from XML seed data:\n"

@@ -437,18 +437,19 @@ def test_address_type_meaning_follows_the_company_role():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     meaning = module.address_type_meaning
+    # ADR-131 / C1 D1: one label per site; a company itself keeps its own.
     assert (
         meaning("contact", is_company=True, company_role="supplier", source_label=None)
         == "This record is the company itself."
     )
-    assert meaning("invoice", is_company=True, company_role="supplier", source_label="INVOICE") == "Mailing address"
-    assert meaning("delivery", is_company=True, company_role="supplier", source_label="PICK UP") == "Pickup address"
-    assert meaning("delivery", is_company=True, company_role="buyer", source_label="DELIVERY") == "Ship-to address"
-    assert (
-        meaning("delivery", is_company=True, company_role="broker", source_label="PICK UP LOCATION") == "Pickup address"
-    )
-    assert meaning("delivery", is_company=True, company_role="carrier", source_label="WAREHOUSE") == "Delivery"
-    assert "neither" in meaning("other", is_company=True, company_role="supplier", source_label="LINCOLN, IL").lower()
+    site = {"is_company": True, "site": True}
+    assert meaning("invoice", company_role="supplier", source_label="INVOICE", **site) == "Mailing Address"
+    assert meaning("delivery", company_role="supplier", source_label="PICK UP", **site) == "Pick-Up Address"
+    assert meaning("delivery", company_role="buyer", source_label="DELIVERY", **site) == "Delivery Address"
+    assert meaning("delivery", company_role="broker", source_label="PICK UP LOCATION", **site) == "Pick-Up Address"
+    assert meaning("delivery", company_role="carrier", source_label="WAREHOUSE", **site) == "Site Address"
+    assert meaning("other", company_role="supplier", source_label="LINCOLN, IL", **site) == "Pick-Up Address"
+    assert "neither" in meaning("other", is_company=False, company_role=None, source_label=None).lower()
 
 
 def test_kind_word_is_not_a_location_title():

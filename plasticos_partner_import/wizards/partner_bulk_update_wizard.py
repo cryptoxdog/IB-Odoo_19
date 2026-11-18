@@ -104,8 +104,9 @@ class PartnerBulkUpdateWizard(models.TransientModel):
     @api.depends("partner_ids")
     def _compute_stats(self):
         for rec in self:
-            rec.company_count = len(rec.partner_ids.filtered(lambda p: p.is_company))
-            rec.contact_count = len(rec.partner_ids.filtered(lambda p: not p.is_company))
+            # A site (either shape) is neither a company nor a contact (ADR-131).
+            rec.company_count = len(rec.partner_ids.filtered(lambda p: p.is_company and not p._plasticos_is_site()))
+            rec.contact_count = len(rec.partner_ids.filtered(lambda p: not p.is_company and not p._plasticos_is_site()))
 
     @api.model
     def default_get(self, fields_list):
@@ -218,7 +219,10 @@ class PartnerBulkUpdateWizard(models.TransientModel):
 
         updated = 0
         for partner in self.partner_ids:
-            old_type = "Company" if partner.is_company else "Individual"
+            if partner._plasticos_is_site():
+                old_type = "Site"
+            else:
+                old_type = "Company" if partner.is_company else "Individual"
             is_company = self.company_type == "company"
             partner.is_company = is_company
             new_type = "Company" if is_company else "Individual"

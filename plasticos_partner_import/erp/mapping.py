@@ -41,6 +41,7 @@ __all__ = [
     "mailbox_key",
     "site_mailbox_keys",
     "site_mailbox_target",
+    "site_contact_fill",
     "normalize_contact_role",
     "sort_contact_roles",
     "parse_bool",
@@ -573,6 +574,176 @@ def external_emails(value: str | None) -> str:
     return "; ".join(part for part in kept if part and not _INTERNAL_EMAIL_RE.search(part))
 
 
+# ``local@domain.tld`` once lower-cased. A display name, an angle-bracket form,
+# or a fragment without a top-level domain is not an address.
+_EMAIL_SHAPE_RE = re.compile(r"^[^@\s<>,;]+@[^@\s<>,;.]+(?:\.[^@\s<>,;.]+)*\.[a-z]{2,}$")
+
+
+def clean_emails(value: str | None) -> list[str]:
+    """The addresses of one source e-mail cell, in source order.
+
+    Step 1 drops the brokerage's own mailboxes (:func:`external_emails`).
+    Step 2 splits on ``;`` or ``,``, trims, drops empty entries and entries
+    not shaped ``local@domain.tld``, lower-cases, and de-duplicates keeping
+    the first occurrence.
+    """
+    addresses: list[str] = []
+    for part in _EMAIL_LIST_SPLIT_RE.split(external_emails(value)):
+        entry = part.strip().lower()
+        if entry and _EMAIL_SHAPE_RE.match(entry) and entry not in addresses:
+            addresses.append(entry)
+    return addresses
+
+
+def email_cell(value: str | None) -> str:
+    """Step 3: the cleaned addresses joined with ``", "``. Nothing usable is ``""``."""
+    return ", ".join(clean_emails(value))
+
+
+def phone_digits(value: str | None) -> str:
+    """Digits of a dialable number, for matching only. ``1`` + ten digits drops the ``1``."""
+    digits = "".join(char for char in real_phone(value) if char.isdigit())
+    if len(digits) == 11 and digits.startswith("1"):
+        return digits[1:]
+    return digits
+
+
+def phone_keys(value: str | None, region: str | None = "US") -> frozenset[str]:
+    """Comparison keys of one phone value. Two numbers are the same when their keys meet.
+
+    Always the digit key (:func:`phone_digits`). When the ``phonenumbers`` library
+    is installed (it ships with Odoo) and parses the value as a possible number in
+    ``region`` (the partner's country, else its company's, else ``US``), the E.164
+    form too, with ``x<extension>`` when the number has one. A ``+44`` number and
+    the same number written nationally then match. Blank or not dialable: empty.
+    """
+    digits = phone_digits(value)
+    if not digits:
+        return frozenset()
+    keys = {digits}
+    parsed = parse_phone(value, region)
+    if parsed:
+        keys.add(parsed)
+    return frozenset(keys)
+
+
+def parse_phone(value: str | None, region: str | None = "US") -> str | None:
+    """E.164 (plus ``x<extension>``) of a dialable value, or ``None``.
+
+    ``None`` when the value is not dialable, when ``phonenumbers`` is not
+    installed, or when it does not parse as a possible number.
+    """
+    text = real_phone(value)
+    if not text:
+        return None
+    try:
+        import phonenumbers
+    except ImportError:
+        return None
+    try:
+        number = phonenumbers.parse(text, (region or "US").upper())
+    except phonenumbers.NumberParseException:
+        return None
+    if not phonenumbers.is_possible_number(number):
+        return None
+    key = phonenumbers.format_number(number, phonenumbers.PhoneNumberFormat.E164)
+    return f"{key}x{number.extension}" if number.extension else key
+
+
+# Function mailboxes never become a person (operator decision 2026-11-17).
+# Accounting mailboxes belong to the commercial company; operational ones to the
+# one site they match, else to the company.
+ACCOUNTING_MAILBOX_LOCALS: frozenset[str] = frozenset(
+    {"ap", "ar", "accounting", "accounts", "invoices", "invoice", "billing", "payables", "receivables"}
+)
+OPERATIONAL_MAILBOX_LOCALS: frozenset[str] = frozenset(
+    {"shipping", "receiving", "orders", "office", "customerservice", "info", "sales", "purchasing"}
+)
+MAILBOX_ACCOUNTING = "accounting"
+MAILBOX_OPERATIONAL = "operational"
+
+
+def function_mailbox(emails: list[str]) -> str | None:
+    """``accounting`` or ``operational`` when an address has a function local part, else ``None``.
+
+    Accounting wins when a cell carries both (``ap@`` and ``orders@``).
+    """
+    locals_ = {"".join(char for char in address.split("@", 1)[0].casefold() if char.isalnum()) for address in emails}
+    if locals_ & ACCOUNTING_MAILBOX_LOCALS:
+        return MAILBOX_ACCOUNTING
+    if locals_ & OPERATIONAL_MAILBOX_LOCALS:
+        return MAILBOX_OPERATIONAL
+    return None
+
+
+def name_local_forms(name: str | None) -> frozenset[str]:
+    """The mailbox local parts a person's name produces, case-folded and alphanumeric only.
+
+    ``first.last`` and ``firstlast`` (the same once punctuation is dropped),
+    ``flast``, ``firstl``, ``first`` and ``last``. First and last are the first
+    and last words of the title.
+    """
+    words = [_alnum(word).casefold() for word in (name or "").split()]
+    words = [word for word in words if word]
+    if not words:
+        return frozenset()
+    first, last = words[0], words[-1]
+    return frozenset({first + last, first[:1] + last, first + last[:1], first, last})
+
+
+def is_role_word(name: str | None) -> bool:
+    """True when a contact title is an ERP role word (``BILLING``, ``COLLECTIONS``)."""
+    return normalize_contact_role(name).casefold() in CONTACT_ROLE_TAGS
+
+
+# ``weak_name_kind`` results. Plain constants, not a Selection.
+WEAK_BLANK = "blank"
+WEAK_ROLE = "role"
+WEAK_EMAIL_PREFIX = "email_prefix"
+WEAK_FIRST_NAME = "first_name"
+
+
+def weak_name_kind(name: str | None, emails: list[str]) -> str | None:
+    """Why a contact title does not name a person by itself, or ``None`` for a full name.
+
+    ``blank``: no title. ``role``: a role word. ``email_prefix``: one word equal
+    to the local part of one of the row's own external ``emails``.
+    ``first_name``: any other single word. A title of two or more words that is
+    not a role word is a full name, a multi-person title such as ``A B & C D``
+    included.
+    """
+    raw = " ".join((name or "").split())
+    if not raw:
+        return WEAK_BLANK
+    if is_role_word(raw):
+        return WEAK_ROLE
+    if len(raw.split(" ")) >= 2:
+        return None
+    if raw.casefold() in {address.split("@", 1)[0] for address in emails}:
+        return WEAK_EMAIL_PREFIX
+    return WEAK_FIRST_NAME
+
+
+def email_prefix_title(name: str | None) -> str:
+    """``todd.antonick`` -> ``Todd Antonick``. Separators are ``.``, ``_`` and ``-``.
+
+    Only a title written in lower case, the way an address local part is, is
+    rewritten. A title with any capital (``AP``) was typed by a person and is
+    kept as written.
+    """
+    raw = (name or "").strip()
+    if raw != raw.lower():
+        return raw
+    words = [word for word in re.split(r"[._\-]+", raw) if word]
+    return " ".join(word[:1].upper() + word[1:].lower() for word in words)
+
+
+def first_word_key(name: str | None) -> str:
+    """The first word of a title, without case or punctuation."""
+    words = (name or "").split()
+    return _alnum(words[0]) if words else ""
+
+
 def job_position(tags: list[str]) -> str:
     """One Job Position from the tags already mapped for this person.
 
@@ -672,3 +843,22 @@ def sort_contact_roles(roles: list[str]) -> list[str]:
     """Order a contact's roles deterministically, primary first."""
     primary = PRIMARY_CONTACT_ROLE.lower()
     return sorted(roles, key=lambda role: (role.lower() != primary, role.lower()))
+
+
+def site_contact_fill(*, site_phone, site_email, people: list[tuple]) -> dict:
+    """Phone and email a site takes from its one linked person (ADR-131 D12).
+
+    ``people`` holds ``(phone, email)`` for each active person linked to the
+    site. Only a site with exactly one such person is filled, and only where
+    its own value is blank: a value the site already has is never replaced,
+    and with several people nobody is chosen for it.
+    """
+    if len(people) != 1:
+        return {}
+    phone, email = people[0]
+    values = {}
+    if phone and not site_phone:
+        values["phone"] = phone
+    if email and not site_email:
+        values["email"] = email
+    return values

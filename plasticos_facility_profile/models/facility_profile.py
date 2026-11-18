@@ -1,36 +1,5 @@
-from odoo import Command, api, fields, models  # pyright: ignore[reportMissingImports]
+from odoo import api, fields, models  # pyright: ignore[reportMissingImports]
 from odoo.exceptions import ValidationError  # pyright: ignore[reportMissingImports]
-
-# Flag name to plasticos.equipment.type code. Inverse links only these codes.
-_EQUIPMENT_FLAG_CODES = (
-    ("has_horizontal_baler", "horizontal_baler"),
-    ("has_downstroke_baler", "downstroke_baler"),
-    ("has_shredder", "shredder"),
-    ("has_granulator", "granulator"),
-    ("has_wash_line", "wash_line"),
-    ("has_extruder", "extruder"),
-    ("has_sorting_line", "sorting_line"),
-)
-
-
-def _get_form_selection(self):
-    """Lazy load FORM_SELECTION from plasticos_material_profile.
-
-    Used as selection callable to avoid circular import at module load time.
-    """
-    from odoo.addons.plasticos_material_profile.form_codes import FORM_SELECTION
-
-    return FORM_SELECTION
-
-
-def _get_process_selection(self):
-    """Lazy load PROCESS_SELECTION from plasticos_material_profile.
-
-    Used as selection callable to avoid circular import at module load time.
-    """
-    from odoo.addons.plasticos_material_profile.process_codes import PROCESS_SELECTION
-
-    return PROCESS_SELECTION
 
 
 class PlasticosFacilityProfile(models.Model):
@@ -54,72 +23,8 @@ class PlasticosFacilityProfile(models.Model):
 
     active = fields.Boolean(default=True)
 
-    # ── Equipment (Many2many source of truth) ──────────────────
-    equipment_type_ids = fields.Many2many(
-        "plasticos.equipment.type",
-        "facility_profile_equipment_rel",
-        "profile_id",
-        "equipment_type_id",
-        string="Equipment Types",
-        help="Equipment available at this facility.",
-    )
-
-    # ── Equipment (computed Boolean flags for matcher compatibility) ──
-    has_horizontal_baler = fields.Boolean(
-        compute="_compute_equipment_flags",
-        inverse="_inverse_equipment_flags",
-        store=True,
-        index=True,
-    )
-    has_downstroke_baler = fields.Boolean(
-        compute="_compute_equipment_flags",
-        inverse="_inverse_equipment_flags",
-        store=True,
-    )
-    has_shredder = fields.Boolean(
-        compute="_compute_equipment_flags",
-        inverse="_inverse_equipment_flags",
-        store=True,
-    )
-    has_granulator = fields.Boolean(
-        compute="_compute_equipment_flags",
-        inverse="_inverse_equipment_flags",
-        store=True,
-    )
-    has_wash_line = fields.Boolean(
-        compute="_compute_equipment_flags",
-        inverse="_inverse_equipment_flags",
-        store=True,
-        index=True,
-    )
-    has_extruder = fields.Boolean(
-        string="Has Extruder",
-        help="Facility has extrusion equipment (can process regrind/flake → pellet).",
-        compute="_compute_equipment_flags",
-        inverse="_inverse_equipment_flags",
-        store=True,
-    )
-    has_sorting_line = fields.Boolean(
-        compute="_compute_equipment_flags",
-        inverse="_inverse_equipment_flags",
-        store=True,
-    )
-
     # ── Throughput ───────────────────────────────────────────
     avg_truckload_lbs = fields.Float()
-
-    # ── Material Handling ────────────────────────────────────
-    handles_bales = fields.Boolean(index=True)
-    handles_regrind = fields.Boolean()
-    handles_pellet = fields.Boolean()
-    handles_flake = fields.Boolean()
-    handles_rollstock = fields.Boolean()
-
-    # ── Quality Processing ───────────────────────────────────
-    can_remove_metal = fields.Boolean()
-    can_reduce_moisture = fields.Boolean()
-    can_filter_fr = fields.Boolean()
-    can_screen_fines = fields.Boolean()
 
     # ── Certification ────────────────────────────────────────
     iso_certified = fields.Boolean()
@@ -135,44 +40,6 @@ class PlasticosFacilityProfile(models.Model):
     # ── AI Enrichment ────────────────────────────────────────
     freeform_notes = fields.Text()
 
-    # ═════════════════════════════════════════════════════════
-    # BCP Capability Extension (from PlasticOS BCP Schema)
-    # ═════════════════════════════════════════════════════════
-
-    # ── Polymer Acceptance ───────────────────────────────────
-    accepted_polymer_ids = fields.Many2many(
-        "plasticos.polymer",
-        "facility_profile_polymer_rel",
-        "profile_id",
-        "polymer_id",
-        string="Accepted Polymers",
-        help="Polymer types this facility can process or purchase.",
-    )
-
-    # ── Form Preference ──────────────────────────────────────
-    form_preference_id = fields.Many2one(
-        "plasticos.material.form",
-        string="Form Preference",
-        index=True,
-        ondelete="restrict",
-        help="Primary preferred physical form for inbound material. Leave empty for 'any form accepted'.",
-    )
-    # Backward-compatible computed Selection (read-only)
-    form_preference = fields.Selection(
-        selection=_get_form_selection,
-        string="Form Preference Code",
-        compute="_compute_form_preference",
-        store=True,
-        index=True,
-        help="Auto-populated from form_preference_id. Kept for backward compatibility.",
-    )
-
-    # ── Process Type ──────────────────────────────────────────
-    process_type = fields.Selection(
-        selection=_get_process_selection,
-        help="Primary processing type at this facility.",
-    )
-
     # ── Feedstock Type ───────────────────────────────────────
     feedstock_type = fields.Selection(
         [
@@ -186,18 +53,6 @@ class PlasticosFacilityProfile(models.Model):
     )
 
     # ── Technical Tolerances ─────────────────────────────────
-    density_min = fields.Float(
-        help="Minimum acceptable density (g/cm³).",
-    )
-    density_max = fields.Float(
-        help="Maximum acceptable density (g/cm³).",
-    )
-    melt_index_min = fields.Float(
-        help="Minimum acceptable melt flow index (g/10min).",
-    )
-    melt_index_max = fields.Float(
-        help="Maximum acceptable melt flow index (g/10min).",
-    )
     contamination_tolerance_pct = fields.Float(
         help="Maximum acceptable contamination percentage.",
     )
@@ -249,9 +104,7 @@ class PlasticosFacilityProfile(models.Model):
         compute="_compute_embedding_ready",
         store=True,
         index=True,
-        help="True when facility has minimum structural connections "
-        "for graph embedding: at least 1 accepted polymer, "
-        "1 process type, and a state/market location.",
+        help="True when the site has a capability, a material profile, and a state.",
     )
 
     # ═════════════════════════════════════════════════════════
@@ -296,84 +149,13 @@ class PlasticosFacilityProfile(models.Model):
             if not any(rec[name] for name in owner_fields):
                 raise ValidationError(rec._plasticos_owner_error())
 
-    @api.constrains("density_min", "density_max")
-    def _check_density_range(self):
-        for rec in self:
-            if rec.density_min and rec.density_max and rec.density_min > rec.density_max:
-                raise ValidationError("Density min cannot exceed density max.")
-
-    @api.constrains("melt_index_min", "melt_index_max")
-    def _check_mfi_range(self):
-        for rec in self:
-            if rec.melt_index_min and rec.melt_index_max and rec.melt_index_min > rec.melt_index_max:
-                raise ValidationError("Melt index min cannot exceed melt index max.")
-
-    # ═════════════════════════════════════════════════════════
-    # Computed Fields
-    # ═════════════════════════════════════════════════════════
-
-    @api.depends("equipment_type_ids")
-    def _compute_equipment_flags(self):
-        """Compute Boolean equipment flags from equipment_type_ids Many2many.
-
-        Maps equipment_type.code to has_* Boolean fields for backward
-        compatibility with buyer_match_engine queries.
-        """
-        for rec in self:
-            codes = set(rec.equipment_type_ids.mapped("code"))
-            rec.has_horizontal_baler = "horizontal_baler" in codes
-            rec.has_downstroke_baler = "downstroke_baler" in codes
-            rec.has_shredder = "shredder" in codes
-            rec.has_granulator = "granulator" in codes
-            rec.has_wash_line = "wash_line" in codes
-            rec.has_extruder = "extruder" in codes
-            rec.has_sorting_line = "sorting_line" in codes
-
-    def _inverse_equipment_flags(self):
-        """Link or unlink only the equipment type that matches each edited flag."""
-        codes = [code for _flag, code in _EQUIPMENT_FLAG_CODES]
-        by_code = {row.code: row for row in self.env["plasticos.equipment.type"].search([("code", "in", codes)])}
-        for rec in self:
-            current = rec.equipment_type_ids
-            commands = []
-            for flag, code in _EQUIPMENT_FLAG_CODES:
-                equip = by_code.get(code)
-                if not equip:
-                    continue
-                linked = equip in current
-                if rec[flag] and not linked:
-                    commands.append(Command.link(equip.id))
-                elif not rec[flag] and linked:
-                    commands.append(Command.unlink(equip.id))
-            if commands:
-                rec.equipment_type_ids = commands
-
-    # ═════════════════════════════════════════════════════════
-    # Computed Fields
-    # ═════════════════════════════════════════════════════════
-
-    @api.depends("form_preference_id", "form_preference_id.code")
-    def _compute_form_preference(self):
-        # A retired form (Bales) has no code in FORM_SELECTION; it maps to no code instead of failing.
-        valid_codes = {code for code, _label in _get_form_selection(self)}
-        for rec in self:
-            code = rec.form_preference_id.code if rec.form_preference_id else False
-            rec.form_preference = code if code in valid_codes else False
-
-    @api.depends("accepted_polymer_ids", "process_type", "partner_id.state_id")
+    @api.depends("capability_ids", "partner_id.state_id", "partner_id.material_profile_ids")
     def _compute_embedding_ready(self):
-        """Compute embedding readiness based on minimum structural data.
-
-        A facility profile is considered embedding-ready when it has:
-        - At least one accepted polymer
-        - A process type set
-        - A state/market location on the parent partner
-        """
+        """A site is ready to embed when it has a line, a material, and a state."""
         for rec in self:
-            has_polymers = bool(rec.accepted_polymer_ids)
-            has_process = bool(rec.process_type)
-            has_market = bool(rec.partner_id.state_id)
-            rec.embedding_ready = has_polymers and has_process and has_market
+            rec.embedding_ready = bool(
+                rec.capability_ids and rec.partner_id.material_profile_ids and rec.partner_id.state_id
+            )
 
     # ═════════════════════════════════════════════════════════
     # CRUD
@@ -460,3 +242,14 @@ class PlasticosFacilityProfile(models.Model):
             "view_mode": "form",
             "target": "current",
         }
+
+    def action_remove_profile(self):
+        """Delete this profile from its line's trash button.
+
+        ``unlink`` still refuses a profile whose partner has a live sale order.
+        """
+        self.ensure_one()
+        self.check_access("read")
+        self.partner_id.check_access("read")
+        self.unlink()
+        return True

@@ -33,6 +33,11 @@ Former copies under `reports/adr/` were consolidated here (2026-06-04). The root
 | [ADR-022](ADR-022-erp-historical-closure-and-accounting-opening-balances.md) | Historical trade closure and separate QB/ERP opening residuals | Proposed / operator decision |
 | [ADR-129](ADR-129-rate-memory-reconciliation-ownership.md) | Rate-memory reconciliation ownership follows the historical evidence | Accepted |
 | [ADR-130](ADR-130-export-physical-evidence-and-owner-contracts.md) | Export physical evidence and owner contracts (load company, J1/J2, release guard, actual clocks) | Accepted for S2 Logistics; Export parts planned |
+| [ADR-131](ADR-131-partner-sites-native-addresses-and-native-classification.md) | Partner sites as native addresses; partner classification on native fields | Accepted (operator, 2026-11-17) |
+| [ADR-132](ADR-132-material-profile-belongs-to-the-site.md) | A material profile belongs to the site, never to a person | Accepted (operator, 2026-11-17) |
+| [ADR-133](ADR-133-vanillasoft-records-become-partners-selectively.md) | VanillaSoft records become partners selectively; cold records stay CRM leads | Accepted (operator D32/D33, 2026-11-17) |
+| [ADR-134](ADR-134-site-capabilities.md) | Site capabilities: what a site does, and with what material | Accepted (operator, 2026-11-17) |
+| [ADR-135](ADR-135-dock-rules-appointments-scheduling.md) | Dock rules, appointments and the soonest full-weight schedule | Accepted (operator, 2026-11-17) |
 | [ADR-003 (single)](ADR-003-single-external-intelligence-authority.md) | Single external intelligence authority (Gate → CEG/EIE) | Accepted |
 
 ## Namespaced ADR packs

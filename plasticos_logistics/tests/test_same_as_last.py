@@ -48,6 +48,7 @@ class TestSameAsLast(TransactionCase):
                 "unit_price": 0.25,
                 "freight_rate": 1800.0,
                 "delivery_term": "appointment",
+                "pickup_dock_rule": "fcfs",
             }
         )
         sale.transaction_id = transaction.id
@@ -58,6 +59,8 @@ class TestSameAsLast(TransactionCase):
                     "carrier_id": self.carrier.id,
                     "rate_amount": rate,
                     "rate_currency_id": self.currency.id,
+                    "delivery_term": "appointment",
+                    "pickup_dock_rule": "fcfs",
                 }
             )
             self.assertFalse(load.freight_context_fingerprint)
@@ -85,6 +88,11 @@ class TestSameAsLast(TransactionCase):
         self.assertAlmostEqual(deal.unit_price, 0.25)
         self.assertAlmostEqual(deal.freight_rate, 1800.0)
         self.assertEqual(deal.delivery_term, "appointment")
+        self.assertEqual(deal.pickup_dock_rule, "fcfs")
+        self.assertEqual(deal.load_ids.delivery_term, "appointment")
+        self.assertEqual(deal.load_ids.pickup_dock_rule, "fcfs")
+        self.assertFalse(deal.load_ids.delivery_term_overridden)
+        self.assertFalse(deal.load_ids.pickup_dock_rule_overridden)
 
         new_sale = deal.sale_order_id
         self.assertNotEqual(new_sale, source.sale_order_id)

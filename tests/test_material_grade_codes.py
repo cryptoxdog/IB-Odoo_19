@@ -62,14 +62,16 @@ def test_displayed_names_are_title_case_except_acronyms() -> None:
     assert names["TUBS_LIDS"] == "Tubs/Lids"
     assert names["RETURNS"] == "Returns"
     assert names["SHRINK_WRAP"] == "Shrink Wrap"
-    assert len(names) == 35
+    assert names["SUPERACS"] == "Supersacs"
+    assert names["BALED_TOTERS"] == "Baled Toters"
+    assert len(names) == 36
 
 
 def test_form_codes_equal_the_form_seed() -> None:
     # Active forms only: the archived Bales form (packaging, not a form) is not a form code.
     seed = _seed("material_form_data.xml", "plasticos.material.form")
     assert sorted(values["code"] for values in seed.values() if values["active"]) == sorted(FORMS.FORM_CODES)
-    assert [values["code"] for values in seed.values() if not values["active"]] == ["BALES"]
+    assert [values["code"] for values in seed.values() if not values["active"]] == ["BALES", "REPRO", "LOOSE"]
 
 
 def test_former_form_codes_are_grades_and_no_longer_forms() -> None:

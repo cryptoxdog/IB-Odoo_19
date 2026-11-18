@@ -2,8 +2,7 @@
 
 Every layer that references form codes MUST import from here:
   - material_profile.py ``form`` Selection
-  - facility_profile.py ``form_preference_id`` (Many2one to material.form)
-  - graph_service.py Cypher form-equipment gate
+  - graph_service.py Cypher form-capability gate
   - matcher.py Gate 2 form comparison
   - tests/test_material_grade_codes.py drift-prevention tests
 
@@ -16,6 +15,9 @@ totes, pallets) are not forms; they live in ``grade_codes.py``.
 # Sorted alphabetically for deterministic comparison. UPPERCASE convention.
 # Bales are packaging (``plasticos.packaging.type`` code ``bales``), never a form: the
 # form ``plasticos_material_profile.form_bale`` is archived and is not a form code.
+# REPRO and LOOSE were retired in 19.0.5.14.0 (ADR-134 §6). Repro is the attribute
+# ``attr_repro``. Loose is packaging ``loose``. Both form records stay archived.
+RETIRED_FORM_CODES: tuple[str, ...] = ("BALES", "LOOSE", "REPRO")
 FORM_CODES: tuple[str, ...] = (
     "CHOPPED",
     "CORRUGATED",
@@ -25,13 +27,11 @@ FORM_CODES: tuple[str, ...] = (
     "FLOORSWEEP",
     "FLUFF",
     "LOGS",
-    "LOOSE",
     "OTHER",
     "PARTS",
     "PELLETS",
     "POWDER",
     "PURGE",
-    "REPRO",
     "REGRIND",
     "ROLLSTOCK",
     "SHEET",
@@ -39,12 +39,12 @@ FORM_CODES: tuple[str, ...] = (
 )
 
 # ── Equipment-gated forms ────────────────────────────────────────────
-# Forms that require specific facility equipment to process.
-# Key = form code, Value = Cypher property that must be ``true``.
+# Forms that require a capability type on the site.
+# Key = form code, Value = plasticos.capability.type code.
 EQUIPMENT_GATED_FORMS: dict[str, str] = {
-    "REGRIND": "f.handles_regrind",
-    "FLAKE": "f.handles_flake",
-    "ROLLSTOCK": "f.handles_rollstock",
+    "REGRIND": "grinding",
+    "FLAKE": "washing",
+    "ROLLSTOCK": "extrusion",
 }
 
 # Forms that pass through without equipment checks.

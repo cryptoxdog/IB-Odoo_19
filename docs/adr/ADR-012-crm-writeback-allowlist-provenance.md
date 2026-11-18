@@ -177,3 +177,7 @@ This supersedes the "three targets" wording of the amendments above.
    3. Set converge v2 with the cartridge id, version and sha256 pin.
    4. Set `plasticos.gate.sweep_enabled=1`.
    5. Activate both crons.
+
+## Note 2026-11-17 — retired facility targets are refused (ADR-134)
+
+A converge result that targets a facility field retired by ADR-134 is refused. The reason is exactly `retired by ADR-134; awaiting the follow-up vocabulary`. The retired names include equipment, process type, form preference, the handles and can flags, accepted polymers, and the density and MFI windows (`RETIRED_CONVERGE_FIELDS` in `plasticos_gate/services/gate_allowlists.py`). Nothing new is written back for those names: no capability, no material profile, and no silent drop. Kept facility fields, including contamination tolerance and capacity, still follow the existing write policy. Gate vocabulary 0.7.0 is a follow-up and is not introduced here.

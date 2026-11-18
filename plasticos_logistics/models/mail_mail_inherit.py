@@ -58,7 +58,21 @@ class MailMailInherit(models.Model):
         # Withheld and held mails stay out of the native batch, whose connection-failure
         # path rewrites every mail it was given to "exception".
         others = self - withheld - linda_mails - held
-        res = super(MailMailInherit, others).send(**options) if others else True
+        # A partner with no address still becomes a recipient. Native send then
+        # formats that partner as ``"Name" <@False>`` and hands it to SMTP.
+        # Drop those mails before the native batch. Linda's own mail is judged
+        # by its request, which already stores a normalized recipient.
+        unaddressed = others.filtered(lambda mail: not mail._plasticos_recipient_normalizes())
+        if unaddressed:
+            unaddressed.write(
+                {
+                    "state": "exception",
+                    "failure_type": "mail_email_missing",
+                    "failure_reason": "recipient address does not normalize",
+                }
+            )
+        deliverable = others - unaddressed
+        res = super(MailMailInherit, deliverable).send(**options) if deliverable else True
         # Native order: the queue sends by ascending id.
         for mail in linda_mails.sorted("id"):
             try:
@@ -70,6 +84,13 @@ class MailMailInherit(models.Model):
                 requests._mark_interrupted(mail)
                 raise
         return res
+
+    def _plasticos_recipient_normalizes(self):
+        """True when this mail has one address the queue can actually send to."""
+        self.ensure_one()
+        if email_normalize_all(self.email_to or "") or email_normalize_all(self.email_cc or ""):
+            return True
+        return any(email_normalize(partner.email or "") for partner in self.recipient_ids)
 
     def _linda_request_mail_ids(self, mails):
         """Mail ids that already have a Linda request row.

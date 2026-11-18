@@ -40,7 +40,7 @@ class TestMaterialNormalizer(TransactionCase):
             "HDPE Drums": ("HDPE", "DRUMS", None, False, False, set()),
             "Explicit HMW-HDPE Drums": ("HDPE_HMW", "DRUMS", None, False, False, set()),
             "LDPE Film": ("LDPE", False, None, "FILM", False, set()),
-            "LDPE Film A": ("LDPE", False, "A", "FILM", False, {"clean", "dry"}),
+            "LDPE Film A": ("LDPE", False, "A", "FILM", False, set()),
             "3-7 Commingled": ("3_7_COMMINGLED_BOTTLES", "BOTTLES", None, False, False, set()),
             "1-7 Commingled": ("1_7_COMMINGLED_BOTTLES", "BOTTLES", None, False, False, set()),
             "HDPE Drums (HMW-HDPE)": ("HDPE_HMW", "DRUMS", None, False, False, set()),
@@ -62,7 +62,7 @@ class TestMaterialNormalizer(TransactionCase):
 
         grade_only = normalize_material(self.env, "LDPE Film A")
         self.assertEqual(grade_only.grade, "A")
-        self.assertEqual(set(grade_only.attributes.mapped("code")), {"clean", "dry"})
+        self.assertEqual(set(grade_only.attributes.mapped("code")), set())
         three = normalize_material(self.env, "3-7 Commingled Bottles")
         one = normalize_material(self.env, "1-7 Commingled Bottles")
         self.assertNotEqual(three.polymer, one.polymer)
@@ -311,13 +311,13 @@ class TestMaterialNormalizer(TransactionCase):
 
     def test_ld_lld_and_named_grade_phrases_resolve_on_the_worksheet_path(self):
         cases = (
-            ("LDPE/LLDPE Clear Repro", "LDPE_LLDPE", "REPRO", False, False, (), "CLEAR", False),
+            ("LDPE/LLDPE Clear Repro", "LDPE_LLDPE", False, False, False, ("repro",), "CLEAR", False),
             ("LLDPE/LDPE Mixed Color Purge", "LDPE_LLDPE", "PURGE", False, False, (), "MIXED", False),
             ("CONTAMINATED LDPE/LLDPE", "LDPE_LLDPE", False, False, False, (), False, False),
-            ("LD/LLDPE Repro", "LDPE_LLDPE", "REPRO", False, False, (), False, False),
-            ("LDPE/LLDPE Blue Repro", "LDPE_LLDPE", "REPRO", False, False, (), "BLUE", False),
+            ("LD/LLDPE Repro", "LDPE_LLDPE", False, False, False, ("repro",), False, False),
+            ("LDPE/LLDPE Blue Repro", "LDPE_LLDPE", False, False, False, ("repro",), "BLUE", False),
             ("LDPE/LLDPE Blue/White Purge", "LDPE_LLDPE", "PURGE", False, False, (), ("BLUE", "WHITE"), False),
-            ("LDPE/LLDPE Repro", "LDPE_LLDPE", "REPRO", False, False, (), False, False),
+            ("LDPE/LLDPE Repro", "LDPE_LLDPE", False, False, False, ("repro",), False, False),
             ("SPC-A", "PP", False, "TUBS_LIDS", "POST_CONSUMER", (), False, "bales"),
             ("New OPTI Bins", "HDPE", False, "CRATES", False, (), False, False),
         )

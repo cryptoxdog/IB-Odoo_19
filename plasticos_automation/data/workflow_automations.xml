@@ -311,28 +311,12 @@ else:
         <field name="model_id" ref="sale.model_sale_order"/>
         <field name="state">code</field>
         <field name="code">
-# Skip during imports or when automations disabled
+# Skip during imports or when automations disabled.
+# ADR-135 §4: one Logistics activity, no mail, and appointment_requested stays unset.
 if env.context.get('skip_automations') or env.context.get('import_mode') or env.context.get('install_mode'):
     pass
 else:
-    # Request dock appointment when SO is confirmed and delivery term requires it
-    # delivery_term and appointment_requested are defined in sale_order_automation.py
-    for so in records.filtered(lambda s: s.state == 'sale' and s.delivery_term == 'appointment'):
-        if so.appointment_requested:
-            continue
-
-        # Duplicate guard
-        if so.message_ids.filtered(lambda m: 'Dock appointment request sent' in (m.body or '')):
-            continue
-
-        template = env.ref('plasticos_automation.email_template_request_dock_appointment', raise_if_not_found=False)
-        if template and so.partner_id.email:
-            template.send_mail(so.id, force_send=False)
-            so.write({
-                'appointment_requested': True,
-                'appointment_requested_on': fields.Datetime.now(),
-            })
-            so.message_post(body='Dock appointment request sent to buyer')
+    records._plasticos_request_delivery_appointment_activity()
         </field>
     </record>
 

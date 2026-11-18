@@ -161,8 +161,11 @@ def split_phrase(text: str | None, catalog: Mapping[str, Sequence[CatalogEntry]]
             continue
         attributes.append(code)
     form_codes = match_codes(text, catalog.get("form", ()))
-    if reading["form"] == "LOOSE" and any(code != "LOOSE" for code in form_codes):
-        reading["form"] = next(code for code in form_codes if code != "LOOSE")
+    # LOOSE was retired as a form (ADR-134 §6). A leftover catalog entry is packaging.
+    if reading["form"] == "LOOSE" or "LOOSE" in form_codes:
+        others = [code for code in form_codes if code != "LOOSE"]
+        if reading["form"] == "LOOSE":
+            reading["form"] = others[0] if others else None
         if not reading["packaging_type"]:
             reading["packaging_type"] = accept_value("loose", catalog.get("packaging", ()))
     reading["attributes"] = tuple(attributes)

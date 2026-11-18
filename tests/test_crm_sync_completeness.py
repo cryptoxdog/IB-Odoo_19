@@ -519,7 +519,11 @@ def test_shell_driver_imports_through_odoo_addons():
         if isinstance(node, ast.ImportFrom) and node.module
     }
     assert imports["odoo.addons.plasticos_crm_sync.models.crm_connection"] == ("ICP_ROOT", "ICP_VS_KEY_PARAM")
-    assert imports["odoo.addons.plasticos_crm_sync.services.import_summary"] == ("build_run_summary", "utc_now")
+    assert imports["odoo.addons.plasticos_crm_sync.services.import_summary"] == (
+        "build_run_summary",
+        "review_report_lines",
+        "utc_now",
+    )
     assert imports["odoo.addons.plasticos_crm_sync.services.orchestrator"] == ("SyncOrchestrator",)
     bare = [module for module in imports if module.startswith("plasticos_crm_sync")]
     assert bare == []

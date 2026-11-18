@@ -341,7 +341,7 @@ def _profile_catalog():
         ),
         "color": (entry("WHITE", "White", ""), entry("MIXED", "Mixed Color", "")),
         "source_type": (entry("POST_CONSUMER", "Post-Consumer", ""),),
-        "packaging": (entry("bales", "Bales", ""), entry("loose", "Loose", ""), entry("supersacks", "Super Sacks", "")),
+        "packaging": (entry("bales", "Bales", ""), entry("loose", "Loose", ""), entry("supersacks", "Supersacs", "")),
         "attribute": (
             entry("clean", "Clean", ""),
             entry("printed", "Printed", ""),
@@ -350,6 +350,24 @@ def _profile_catalog():
             entry("reusable", "Reusable", ""),
         ),
     }
+
+
+def test_retired_forms_are_not_form_codes() -> None:
+    assert "REPRO" not in FORM_CODES
+    assert "LOOSE" not in FORM_CODES
+    assert "REPRO" not in FORM_WORD_CODES
+    assert "LOOSE" not in FORM_WORD_CODES
+
+
+def test_loose_catalog_entry_is_packaging() -> None:
+    catalog = _profile_catalog()
+    loose = CATALOG.split_phrase("HDPE Loose", catalog)
+    assert loose["polymer"] == "HDPE"
+    assert loose["form"] is None
+    assert loose["packaging_type"] == "loose"
+    both = CATALOG.split_phrase("HDPE Loose Film", catalog)
+    assert both["form"] == "FILM"
+    assert both["packaging_type"] == "loose"
 
 
 def test_phrase_rules_fill_profile_slots_without_a_product_row() -> None:

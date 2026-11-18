@@ -21,6 +21,7 @@ GRADE_CODES: tuple[str, ...] = (
     "FLOWER_POTS",
     "TOTES",
     "TOTERS",
+    "BALED_TOTERS",
     "IBC_TOTES",
     "LINERS",
     "DRIP_TUBE",

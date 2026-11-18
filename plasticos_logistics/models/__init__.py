@@ -3,10 +3,14 @@ from . import freight_estimate
 from . import freight_governance
 from . import freight_quote
 from . import load
+from . import load_appointment
 from . import transaction_inherit
+from . import delivery_address_default
 from . import sale_order_inherit
 from . import rate_memory
 from . import linda_request
+from . import schedule_obligations
+from . import res_config_settings
 from . import linda_response
 from . import purchase_order_inherit
 from . import mail_mail_inherit

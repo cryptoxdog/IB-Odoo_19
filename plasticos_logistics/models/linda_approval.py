@@ -72,6 +72,9 @@ def is_linda(env):
     return bool(linda) and env.uid == linda.id
 
 
+LINDA_STOPPED_REASON = "linda_stopped"
+
+
 def linda_stopped(env):
     """True when the operator has archived Linda: the supported kill switch (C12 round 2, R3)."""
     linda = linda_user(env)
@@ -270,6 +273,9 @@ class PlasticosLindaApproval(models.Model):
             ("record_verified_gross_mass", "Record VGM"),
             ("confirm_ready", "Confirm Load Ready"),
             ("record_actual_event", "Record Actual Pickup/Delivery"),
+            ("schedule_load", "Schedule Load"),
+            ("dispatch_load", "Dispatch Load"),
+            ("accept_appointment", "Accept Appointment"),
         ],
         required=True,
         readonly=True,
@@ -466,7 +472,12 @@ class PlasticosLindaApproval(models.Model):
             proposal.action_accept(arguments.get("note"))
             proposal.invalidate_recordset()
             return {"status": proposal.command_status or "applied", "record_id": proposal.id}
-        if command in ("confirm_ready", "record_actual_event"):
+        if command == "accept_appointment":
+            appointment = env["plasticos.load.appointment"].browse(int(arguments.get("appointment_id") or 0)).exists()
+            if not appointment:
+                return {"status": "not_available", "reason": "the appointment no longer exists"}
+            return appointment.action_accept_appointment()
+        if command in ("confirm_ready", "record_actual_event", "schedule_load", "dispatch_load"):
             return self._dispatch_load(env, arguments)
         if self.edge_case == "value_conflict":
             return self._apply_conflict_as_correction(env, arguments)
@@ -493,6 +504,12 @@ class PlasticosLindaApproval(models.Model):
             return {"status": "not_available", "reason": "the load no longer exists"}
         if self.command == "confirm_ready":
             load.action_confirm_ready()
+            return {"status": "applied", "record_id": load.id}
+        if self.command == "schedule_load":
+            load.action_schedule(arguments.get("pickup_dt"), arguments.get("delivery_dt"))
+            return {"status": "applied", "record_id": load.id}
+        if self.command == "dispatch_load":
+            load.action_dispatch()
             return {"status": "applied", "record_id": load.id}
         attachment = env["ir.attachment"].browse(int(arguments.get("attachment_id") or 0))
         return load.action_record_actual_event(

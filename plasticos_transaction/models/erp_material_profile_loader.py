@@ -7,8 +7,9 @@ whose ``erp_address_label`` equals the ship label, or the company itself when
 it has no ERP site children at all. Anything else is rejected with one reason
 and writes nothing.
 
-The supplier file and the customer file are one list. Which file a row came
-from carries no meaning and is stored nowhere.
+The supplier file writes direction out. The customer file writes direction in.
+The same product at one site from both files is two profiles. A replay of the
+same files changes nothing.
 
 The loader creates no partner, no master, and no facility profile, and it does
 not commit. The caller owns the transaction.
@@ -57,6 +58,8 @@ REJECT_REASONS = (
 PRODUCT_HEADER = "product"
 COMPANY_HEADERS = ("supplier", "customer")
 SHIP_HEADERS = ("ship from", "ship to")
+DIRECTION_OUT = "out"
+DIRECTION_IN = "in"
 
 # Profile field and the attribute of the resolved product that fills it.
 # A value already on the profile is kept; a different one is an anomaly.
@@ -99,16 +102,18 @@ def _one_header(headers: dict[str, str], names: tuple[str, ...], path) -> str:
 
 
 def read_rows(path) -> list[dict]:
-    """Rows of one operator file as ``{ref, product, company, ship}``.
+    """Rows of one operator file as ``{ref, product, company, ship, direction}``.
 
     ``ref`` is ``<file name>:<line>``. It names the row without repeating a
-    company or a site.
+    company or a site. A Supplier column is direction out. A Customer column
+    is direction in.
     """
     reader = csv.DictReader(io.StringIO(_decode(Path(path).read_bytes()), newline=""))
     headers = {_norm(name): name for name in reader.fieldnames or [] if name}
     product = _one_header(headers, (PRODUCT_HEADER,), path)
     company = _one_header(headers, COMPANY_HEADERS, path)
     ship = _one_header(headers, SHIP_HEADERS, path)
+    direction = DIRECTION_OUT if _norm(company) == "supplier" else DIRECTION_IN
     name = Path(path).name
     return [
         {
@@ -116,6 +121,7 @@ def read_rows(path) -> list[dict]:
             "product": _collapse(row.get(product)),
             "company": row.get(company),
             "ship": row.get(ship),
+            "direction": direction,
         }
         for row in reader
     ]
@@ -137,7 +143,7 @@ class PlasticosErpMaterialProfileLoader(models.AbstractModel):
 
     @api.model
     def load(self, paths, dry_run=False) -> dict:
-        """Load every file in ``paths`` as one list and return the run report.
+        """Load every file in ``paths`` and return the run report.
 
         ``report["summary"]`` is the shared import-run summary, in which
         ``records_seen == created + updated + unchanged + rejected``. A dry run
@@ -254,27 +260,37 @@ class PlasticosErpMaterialProfileLoader(models.AbstractModel):
 
     # ── Profile write ────────────────────────────────────────────────────────
 
+    def _profile_domain(self, partner, material, direction):
+        return [
+            ("partner_id", "=", partner.id),
+            ("polymer_id", "=", material.polymer.id),
+            ("form_id", "=", material.form.id or False),
+            ("material_grade_id", "=", material.material_grade.id or False),
+            ("direction", "=", direction),
+        ]
+
     def _apply(self, partner, material, product, row, report) -> str:
-        """Create or reuse the profile on its unique key. Returns the count bucket."""
+        """Create or reuse the profile on its unique key. Returns the count bucket.
+
+        Direction is part of the key. A profile that already exists with a blank
+        direction is the same product written before direction existed: this
+        file's direction is filled in, and the other file creates its own row.
+        """
         from odoo.addons.plasticos_partner_import.models.erp_import_service import IMPORT_CONTEXT  # noqa: PLC0415
 
         Profile = self.env["plasticos.material.profile"].with_context(active_test=False, **IMPORT_CONTEXT)
         note = NOTE_PREFIX + product
-        profile = Profile.search(
-            [
-                ("partner_id", "=", partner.id),
-                ("polymer_id", "=", material.polymer.id),
-                ("form_id", "=", material.form.id or False),
-                ("material_grade_id", "=", material.material_grade.id or False),
-            ],
-            limit=1,
-        )
+        direction = row["direction"]
+        profile = Profile.search(self._profile_domain(partner, material, direction), limit=1)
+        if not profile:
+            profile = Profile.search(self._profile_domain(partner, material, False), limit=1)
         if not profile:
             values = {
                 "partner_id": partner.id,
                 "polymer_id": material.polymer.id,
                 "form_id": material.form.id or False,
                 "material_grade_id": material.material_grade.id or False,
+                "direction": direction,
                 "color_ids": [Command.set(material.color.ids)],
                 "material_attribute_ids": [Command.set(material.attributes.ids)],
                 "freeform_notes": note,
@@ -285,6 +301,8 @@ class PlasticosErpMaterialProfileLoader(models.AbstractModel):
             return "created"
 
         values = {}
+        if not profile.direction:
+            values["direction"] = direction
         new_colors = material.color - profile.color_ids
         if new_colors:
             values["color_ids"] = [Command.link(color.id) for color in new_colors]

@@ -487,7 +487,8 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(profiles["HDPE"].material_grade_id.code, "DRUMS")
         self.assertFalse(profiles["HDPE"].quality_tier_id)
         self.assertFalse(profiles["HDPE"].material_attribute_ids)
-        self.assertFalse(profiles["PC_ABS"].form_id)
+        # Operator 2026-11-17: the record's one Material Form (Film) applies to every profile without a form.
+        self.assertEqual(profiles["PC_ABS"].form_id.code, "FILM")
         self.assertEqual(profiles["PC_ABS"].source_type_id.code, "POST_INDUSTRIAL")
         notes = film.freeform_notes
         attributes = set(film.material_attribute_ids.ids)
@@ -902,10 +903,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(len(facilities), 1)
         facility = facilities
         self.assertFalse(facility.partner_id)
-        self.assertFalse(facility.equipment_type_ids)
-        self.assertFalse(facility.accepted_polymer_ids)
-        self.assertFalse(facility.process_type)
-        self.assertFalse(facility.form_preference_id)
+        self.assertFalse(facility.capability_ids)
         self.assertFalse(facility.capacity_lbs_month)
         profiles = self.env["plasticos.material.profile"].search([("facility_profile_id", "=", facility.id)])
         by_polymer = {profile.polymer_id.code: profile for profile in profiles}
@@ -945,8 +943,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         linked = self.env["plasticos.material.profile"].search([("facility_profile_id", "=", facility.id)])
         self.assertEqual({profile.polymer_id.code: profile.id for profile in linked}, ids)
         self.assertEqual(set(linked.mapped("partner_id")), {location})
-        self.assertFalse(facility.equipment_type_ids)
-        self.assertFalse(facility.accepted_polymer_ids)
+        self.assertFalse(facility.capability_ids)
         self.assertEqual(self.env["plasticos.facility.profile"].search_count([("partner_id", "=", location.id)]), 1)
         self.assertEqual(self.env["plasticos.material.profile"].search_count([("partner_id", "=", location.id)]), 3)
 
@@ -1494,7 +1491,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(person.parent_id, company)
         self.assertEqual(person.email, "erp-person@example.test")
         self.assertEqual(person.phone, "555-0100")
-        self.assertEqual(person.mobile, "215-555-0140")
+        self.assertEqual(person.mobile, "(215) 555-0140")
         self.assertEqual(person.street, "1 ERP Way")
         self.assertEqual(person.city, "Philadelphia")
         self.assertEqual(person.zip, "19103")
@@ -1527,9 +1524,9 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         )
         leads_before = self.env["crm.lead"].with_context(active_test=False).search_count([])
         orch._upsert_lead(self.connection, dto)
-        self.assertEqual(person.phone, "215-555-0101")
+        self.assertEqual(person.phone, "(215) 555-0101")
         lines = [(line.label, line.number) for line in person.phone_line_ids]
-        self.assertEqual(lines, [("mobile", "215-555-0102"), ("fax", "215-555-0101")])
+        self.assertEqual(lines, [("mobile", "(215) 555-0102"), ("fax", "(215) 555-0101")])
         self.assertNotIn("215-555-0106", [number for _label, number in lines])
         self.assertEqual(self.env["crm.lead"].with_context(active_test=False).search_count([]), leads_before)
         orch._upsert_lead(self.connection, dto)
@@ -1577,7 +1574,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertFalse(bound)
         self.assertEqual(self.env["crm.lead"].with_context(active_test=False).search_count([]), leads_before)
         self.assertEqual(self.env["res.partner"].with_context(active_test=False).search_count([]), partners_before)
-        self.assertEqual(person.phone, "215-555-0101")
+        self.assertEqual(person.phone, "(215) 555-0101")
         self.assertIn("ERP manual", person.comment or "")
 
         resolved = orch._resolve_orphans(self.connection, MagicMock(), run)
@@ -1777,6 +1774,8 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(lead.street, "12 Dock St")
         self.assertEqual(lead.zip, "19019")
         self.assertEqual(lead.delivery_term, "fcfs")
+        # ADR-135 §3: the stored value is the dock rule of the side the partner plays.
+        self.assertIn(lead._plasticos_delivery_term_side(), ("pickup", "delivery"))
         self._assert_tokens_absent(tokens, text)
         self._assert_tokens_absent(tokens, self._profile_notes(lead))
 
@@ -2026,6 +2025,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(person.street, "ERP DOCK")
         self.assertEqual(person.phone, "555-0100")
         self.assertEqual(lead.delivery_term, "fcfs")
+        self.assertIn(lead._plasticos_delivery_term_side(), ("pickup", "delivery"))
         self.assertEqual(set(row.fields_json), {"Material", "Notes"})
         self.assertEqual(row.fields_json["Notes"], "Load Ready is mentioned in ordinary notes")
         self.assertEqual(other.fields_json["Load Ready"], "KEEP-OTHER")
@@ -2057,7 +2057,9 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         )
         slot = sections[""]
         self.assertEqual(slot["phrases"], ["LDPE", "HDPE Drums"])
-        self.assertEqual(slot["hints"], ["Roll, Film"])
+        # Operator 2026-11-17: Material Form is its own field and each comma value counts.
+        self.assertEqual(slot["forms"], ["Roll", "Film"])
+        self.assertEqual(slot["types"], [])
         self.assertEqual(slot["notes"], [("Notes", "keep, this note")])
         self.assertIn("_split_commas", inspect.getsource(_parse_material_sections))
 
@@ -2076,7 +2078,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual({profile.polymer_id.code: profile.id for profile in replayed}, ids)
         self.assertEqual(len(replayed), 2)
 
-    def test_form_hint_comma_stays_one_hint(self):
+    def test_material_form_with_two_values_is_ignored(self):
         orch = SyncOrchestrator(self.env)
         lead = orch._upsert_lead(
             self.connection,
@@ -2096,7 +2098,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(
             profiles.filtered(lambda profile: profile.polymer_id.code == "HDPE").material_grade_id.code, "DRUMS"
         )
-        self.assertTrue(any("type hint is not contact-unique" in row["message"] for row in orch.error_rows))
+        self.assertTrue(any(row["message"] == "Material Form ignored: 2 values" for row in orch.error_rows))
         self.assertFalse(any("Roll" == row["message"] or "Film" == row["message"] for row in orch.error_rows))
 
     def test_section_hint_does_not_broadcast_across_comma_phrases(self):
@@ -2158,7 +2160,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
             self._lead("vs-comma-hint-only", custom_fields={"Material Form": "Roll, Film"}),
         )
         self.assertFalse(self._lead_profiles(hinted))
-        self.assertTrue(any("BLOCKED_UNRESOLVED: Roll, Film" in row["message"] for row in orch.error_rows))
+        self.assertTrue(any(row["message"] == "Material Form ignored: 2 values" for row in orch.error_rows))
         noted = orch._upsert_lead(
             self.connection,
             self._lead("vs-comma-notes-only", custom_fields={"Notes": "roll, film was mentioned"}),
@@ -2279,7 +2281,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertFalse(profile.filler_type_id)
         self.assertEqual(profile.origin_process_type, "injection")
 
-    def test_mixed_density_repro_stays_unresolved(self):
+    def test_mixed_density_repro_is_an_attribute(self):
         facility = self._facility("Regrind Replay")
         orch = SyncOrchestrator(self.env)
         orch.outcomes = _new_outcomes()
@@ -2288,8 +2290,12 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         phrase = "ldpe/lldpe clear repro"
         orch.error_rows.clear()
         orch._upsert_lead(self.connection, self._lead("vs-regrind", custom_fields={"Materials": phrase}))
-        self.assertFalse(self._profiles(facility))
-        self.assertTrue(
+        profile = self._profiles(facility)
+        self.assertEqual(profile.polymer_id.code, "LDPE_LLDPE")
+        self.assertEqual(profile.material_attribute_ids.mapped("code"), ["repro"])
+        self.assertEqual(profile.color_ids.mapped("code"), ["CLEAR"])
+        self.assertNotIn("REPRO", profile.form_id.mapped("code"))
+        self.assertFalse(
             any(
                 row.get("category") == REQUIRED_MAPPING and "unresolved material" in row.get("message", "")
                 for row in orch.error_rows

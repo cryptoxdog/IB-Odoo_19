@@ -5,3 +5,4 @@ from . import test_cron_log_batch
 from . import test_account_move_fk_ondelete
 from . import test_account_move_transaction_projection
 from . import test_manager_escalation_routing
+from . import test_delivery_appointment_activity

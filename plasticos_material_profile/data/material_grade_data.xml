@@ -24,9 +24,9 @@
     <field name="sequence">25</field>
   </record>
   <record id="material_grade_superacs" model="plasticos.material.grade">
-    <field name="name">Superacs</field>
+    <field name="name">Supersacs</field>
     <field name="code">SUPERACS</field>
-    <field name="description">Bulk bags (FIBCs / super sacks).</field>
+    <field name="description">Bulk bags (FIBCs / supersacs).</field>
     <field name="sequence">30</field>
   </record>
   <record id="material_grade_trays" model="plasticos.material.grade">
@@ -76,6 +76,12 @@
     <field name="code">TOTERS</field>
     <field name="description">Wheeled refuse and recycling carts.</field>
     <field name="sequence">80</field>
+  </record>
+  <record id="material_grade_baled_toters" model="plasticos.material.grade">
+    <field name="name">Baled Toters</field>
+    <field name="code">BALED_TOTERS</field>
+    <field name="description">Baled HDPE wheeled refuse carts, kept apart from loose toters.</field>
+    <field name="sequence">85</field>
   </record>
   <record id="material_grade_ibc_totes" model="plasticos.material.grade">
     <field name="name">IBC Totes</field>

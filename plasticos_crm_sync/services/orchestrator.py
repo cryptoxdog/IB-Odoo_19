@@ -38,6 +38,15 @@ _logger = logging.getLogger(__name__)
 
 CRM_LEAD = "crm.lead"
 CONTACT_PAGE_SIZE = 200
+
+# ADR-132 review rows: never fail the run, always printed in full after it.
+MATERIAL_PLACEMENT_REVIEW = "MATERIAL_PLACEMENT_REVIEW"
+MATERIAL_FIELD_IGNORED = "MATERIAL_FIELD_IGNORED"
+MATERIAL_DIRECTION_REVIEW = "MATERIAL_DIRECTION_REVIEW"
+# Set on the environment by the AI broker path. A material-profile write in
+# that context must carry a direction; a write without one is refused.
+AI_BROKER_CONTEXT = "plasticos_ai_broker"
+PLACEMENT_ACTIVITY_PREFIX = "Place materials:"
 CALL_BATCH_SIZE = 500
 
 # VanillaSoft custom fields with no approved native lead target. Each is kept
@@ -186,8 +195,10 @@ def _split_material_values(value) -> list[str]:
 def _material_field_kind(label: str) -> str:
     if label in {"materials", "material"} or label.startswith("material ("):
         return "phrase"
-    if label in {"material form", "material type", "form"} or label.startswith("form ("):
-        return "hint"
+    if label in {"material type", "type"} or label.startswith("type ("):
+        return "type"
+    if label in {"material form", "form"} or label.startswith("form ("):
+        return "form"
     return ""
 
 
@@ -202,7 +213,7 @@ def _material_inputs(*field_maps):
             kind = _material_field_kind(label)
             if kind == "phrase":
                 phrases.extend(_split_commas(parts))
-            elif kind == "hint":
+            elif kind in ("type", "form"):
                 if parts:
                     hints[label] = parts[0]
                 weak.extend(parts)
@@ -232,6 +243,11 @@ def _dedupe_phrases(phrases) -> list[str]:
     return kept
 
 
+def _lookup_key(value) -> str:
+    """Name/code comparison key: case, hyphens and underscores ignored ("Post-Consumer" == "POST_CONSUMER")."""
+    return " ".join(re.sub(r"[-_]+", " ", str(value or "")).casefold().split())
+
+
 _POUNDS_RE = re.compile(r"^([0-9][0-9,]*(?:\.[0-9]+)?)\s*(?:lbs?|pounds?)?$", re.IGNORECASE)
 _SECTION_ALIASES = {
     "mrf": "mrf",
@@ -254,8 +270,11 @@ def _section_key(label: str) -> str:
 def _material_slot(label: str) -> str:
     if label in {"materials", "material"} or label.startswith("material (") or label.startswith("materials ("):
         return "phrase"
-    if label in {"material form", "material type", "form", "type"} or label.startswith(("form (", "type (")):
-        return "hint"
+    # Material Type and Material Form are two separate fields (operator, 2026-11-17).
+    if label in {"material type", "type"} or label.startswith("type ("):
+        return "type"
+    if label in {"material form", "form"} or label.startswith("form ("):
+        return "form"
     base = label.split("(", 1)[0].strip()
     if base == "weight":
         return "weight"
@@ -275,7 +294,7 @@ def _parse_material_sections(*field_maps) -> dict[str, dict]:
     def bucket(key: str) -> dict:
         return sections.setdefault(
             key,
-            {"phrases": [], "hints": [], "weights": [], "loads": [], "colors": [], "notes": []},
+            {"phrases": [], "types": [], "forms": [], "weights": [], "loads": [], "colors": [], "notes": []},
         )
 
     for fields in field_maps:
@@ -293,8 +312,12 @@ def _parse_material_sections(*field_maps) -> dict[str, dict]:
             parts = _split_material_values(value)
             if kind == "phrase":
                 slot["phrases"].extend(_split_commas(parts))
-            elif kind == "hint":
-                slot["hints"].append(parts[0] if parts else text)
+            elif kind in ("type", "form"):
+                # Record-level Material Type / Material Form count each comma value
+                # (operator, 2026-11-17). A section field (Type (LDPE), Form (PP))
+                # keeps its one raw value as that section's polymer hint.
+                target = slot["types"] if kind == "type" else slot["forms"]
+                target.extend(_split_commas(parts) if not _section_key(label) else [parts[0] if parts else text])
             elif kind == "weight":
                 slot["weights"].append(text)
             elif kind == "loads":
@@ -323,23 +346,6 @@ def _loads_count(value: str):
     if not text.isdigit():
         return None
     return int(text)
-
-
-def _facility_partner_for_person(partner):
-    """An existing facility linked to this person. Nothing is created."""
-    if not partner:
-        return None, "facility unresolved"
-    if partner.is_facility:
-        return partner, ""
-    parent = partner.parent_id
-    if parent and parent.is_facility:
-        return parent, ""
-    children = partner.child_ids.filtered(lambda child: child.is_facility)
-    if len(children) == 1:
-        return children, ""
-    if len(children) > 1:
-        return None, "facility unresolved: ambiguous child facilities"
-    return None, "facility unresolved"
 
 
 def _selection_label(record, field_name: str) -> str:
@@ -372,45 +378,100 @@ def _notes_only_sections(*field_maps) -> bool:
     sections = _parse_material_sections(*field_maps)
     if not sections:
         return False
-    return not any(section["phrases"] or section["hints"] for section in sections.values())
+    return not any(section["phrases"] or section["types"] or section["forms"] for section in sections.values())
 
 
 def _verified_company(lead, partner):
     """The one company this source may classify, or None."""
     found = []
+    # The commercial entity, never a site: a site in either ADR-131 shape, a
+    # person, or a person at a site resolves to the company that owns it.
     if lead and getattr(lead, "id", False) and lead.partner_id:
-        company = lead.partner_id if lead.partner_id.is_company else lead.partner_id.parent_id
-        if company and company.is_company:
+        company = lead.partner_id._plasticos_site_company()
+        if company:
             found.append(company)
     if partner:
-        company = partner if partner.is_company else partner.parent_id
-        if company and company.is_company and all(company.id != item.id for item in found):
+        company = partner._plasticos_site_company()
+        if company and all(company.id != item.id for item in found):
             found.append(company)
     if len(found) == 1:
         return found[0]
     return None
 
 
-def _facility_for_material(lead):
-    """Existing facility only. A missing or ambiguous facility is not created.
+def _address_key(zip_code, city, street) -> tuple[str, str, str]:
+    """Comparable address parts: the 5-digit zip, and city and street without case or extra spaces."""
+    digits = "".join(ch for ch in str(zip_code or "") if ch.isdigit())[:5]
+    return digits, _collapse_ws(city).casefold(), _collapse_ws(street).casefold()
 
-    A standalone company is a facility when the partner model says so. A parent
-    with one child facility resolves to that child. Several children stay unresolved.
+
+def _sites_matching_address(sites, address) -> list:
+    """The sites whose address matches the source record (zip, else city + street)."""
+    if not address:
+        return []
+    zip5, city, street = _address_key(*address)
+    if zip5:
+        return [site for site in sites if _address_key(site.zip, site.city, site.street)[0] == zip5]
+    if city and street:
+        return [site for site in sites if _address_key(site.zip, site.city, site.street)[1:] == (city, street)]
+    return []
+
+
+def _linked_sites(partner):
+    """A person's linked sites (``location_partner_ids``, either ADR-131 shape)."""
+    linked = getattr(partner, "location_partner_ids", None) if partner else None
+    return linked.filtered(lambda site: site._plasticos_is_site()) if linked else linked
+
+
+def _material_owner(partner, address=None):
+    """Where a material profile goes: always a site or the company, never a person (ADR-131 / ADR on material placement).
+
+    1. The partner is a site, or a standalone company that is its own facility: that partner.
+    2. A person under a site: that site.
+    3. A company with sites: its one site; several stay unresolved.
+    4. A person linked to one site (``location_partner_ids``): that site.
+    5. A person linked to several sites: the one whose address matches the source
+       record; otherwise nothing, reported as ambiguous.
+    6. A person whose company has no sites: the company.
+    Returns ``(owner, reason)``; ``owner`` is None when nothing may be stored.
     """
-    partner = lead.partner_id
     if not partner:
         return None, "facility unresolved"
-    if partner.is_facility:
+    if partner.is_facility or partner._plasticos_is_site():
         return partner, ""
     parent = partner.parent_id
-    if parent and parent.is_company and parent.parent_id:
+    if parent and parent._plasticos_is_site():
         return parent, ""
-    children = partner.child_ids.filtered(lambda child: child.is_company)
-    if len(children) == 1:
-        return children, ""
-    if len(children) > 1:
-        return None, "facility unresolved: ambiguous child facilities"
-    return None, "facility unresolved"
+    if partner.is_company:
+        children = partner.child_ids.filtered(lambda child: child._plasticos_is_site())
+        if len(children) == 1:
+            return children, ""
+        if len(children) > 1:
+            return None, "facility unresolved: ambiguous child facilities"
+        return None, "facility unresolved"
+    sites = _linked_sites(partner)
+    if sites and len(sites) == 1:
+        return sites, ""
+    if sites and len(sites) > 1:
+        matches = _sites_matching_address(sites, address)
+        if len(matches) == 1:
+            return matches[0], ""
+        return None, f"facility ambiguous: {len(sites)} linked sites"
+    company = parent
+    if company and company.is_company and not company.child_ids.filtered(lambda child: child._plasticos_is_site()):
+        return company, ""
+    return None, "facility unresolved: person not linked to a site"
+
+
+def _facility_for_material(lead, address=None):
+    """The material owner for a lead's partner. The source address defaults to the lead's own."""
+    if address is None and lead:
+        address = (getattr(lead, "zip", ""), getattr(lead, "city", ""), getattr(lead, "street", ""))
+    return _material_owner(lead.partner_id, address)
+
+
+def _dto_address(dto):
+    return (dto.zip, dto.city, dto.street)
 
 
 def _country_token(value: str) -> str:
@@ -690,6 +751,9 @@ def _differs(record, field_name: str, value) -> bool:
 
 class SyncOrchestrator:
     def __init__(self, env):
+        self.placement_review: list[dict] = []
+        # Lead Status code per company id for this run: the most advanced wins (ADR-133).
+        self.status_by_company: dict[int, str] = {}
         self.env = env
         # Reset by every `_sync_contacts` pass; read by `run_full_import` as the
         # evidence that the requested historical floor was actually served.
@@ -1488,8 +1552,8 @@ class SyncOrchestrator:
         )  # archived ERP people are hidden by the default active test
         if len(partner) != 1:
             return None, f"ERP marker {marker} does not point at one partner"
-        if partner.is_company:
-            return None, f"ERP marker {marker} points at a company"
+        if partner.is_company or partner._plasticos_is_site():
+            return None, f"ERP marker {marker} points at a company or a site"
         return partner, ""
 
     def _add_approved_phones(self, partner, dto: CanonicalLead) -> bool:
@@ -1598,10 +1662,11 @@ class SyncOrchestrator:
         self.last_lead_outcome = outcome
         if outcome in ADMITTED_OUTCOMES and not dto.deleted:
             if lead:
-                self._apply_approved_materials(lead, dto.custom_fields)
+                self._apply_approved_materials(lead, dto.custom_fields, address=_dto_address(dto))
                 self._bind_opportunity_material(lead)
             elif "plasticos.material.profile" in self.env:
                 self._apply_person_materials(partner, dto)
+            self._apply_existing_partner_rules(lead, dto, partner)
             if self._env_has_model("crm.tag"):
                 self._apply_crm_classification(lead, dto, partner=partner)
         return lead or Lead.browse()
@@ -1639,7 +1704,7 @@ class SyncOrchestrator:
         self.last_lead_outcome = "unchanged"
         return lead or Lead.browse()
 
-    def _apply_approved_materials(self, lead, *field_maps) -> None:
+    def _apply_approved_materials(self, lead, *field_maps, address=None) -> None:
         """Attach material text only when one facility profile already exists.
 
         Same containment as ``_apply_contact_materials``: a material failure
@@ -1648,7 +1713,7 @@ class SyncOrchestrator:
         """
         try:
             with self.env.cr.savepoint():
-                self._apply_resolved_approved_materials(lead, *field_maps)
+                self._apply_resolved_approved_materials(lead, *field_maps, address=address)
         except Exception as exc:  # noqa: BLE001 - material failure must not drop the admitted contact
             _logger.warning("Approved material normalization failed for lead %s: %s", lead.id, exc)
             self._append_classified_error(
@@ -1657,12 +1722,87 @@ class SyncOrchestrator:
                 REQUIRED_MAPPING,
             )
 
-    def _apply_resolved_approved_materials(self, lead, *field_maps) -> None:
+    # ── ADR-132: unplaced materials are loud and reviewable after every run ──
+    def _report_unplaced_materials(self, lead, partner, address, phrases, reason, record_ref=None) -> None:
+        """One review row (and, with a lead, one native To Do) for materials not placed on any site."""
+        has_lead = bool(lead and getattr(lead, "id", False))
+        ref = record_ref or (lead.vanillasoft_id or str(lead.id) if has_lead else "")
+        sites = _linked_sites(partner)
+        sites = list(sites) if sites else []
+        matches = _sites_matching_address(sites, address)
+        why = "no address match" if not matches else f"{len(matches)} address matches"
+        zip_code, city, _street = address or ("", "", "")
+        row = {
+            "record_ref": ref,
+            "lead_id": lead.id if has_lead else False,
+            "partner_id": partner.id if partner else False,
+            "candidate_site_ids": [site.id for site in sites],
+            "candidate_site_cities": [site.city or "" for site in sites],
+            "source_zip": zip_code or "",
+            "source_city": city or "",
+            "phrases": list(phrases),
+            "reason": why,
+        }
+        self.__dict__.setdefault("placement_review", []).append(row)
+        self._append_classified_error(
+            ref,
+            (
+                f"{reason}: {why}; lead {row['lead_id'] or '-'}; partner {row['partner_id'] or '-'}; "
+                f"candidate sites {row['candidate_site_ids']} {row['candidate_site_cities']}; "
+                f"source zip {row['source_zip'] or '-'} city {row['source_city'] or '-'}; "
+                f"materials: {', '.join(phrases) or '-'}"
+            ),
+            OPTIONAL_CONTEXT,
+            MATERIAL_PLACEMENT_REVIEW,
+        )
+        if has_lead:
+            self._schedule_placement_activity(lead, sites, phrases)
+
+    def _placement_activities(self, lead):
+        if not self._env_has_model("mail.activity"):
+            return None
+        return self.env["mail.activity"].search(
+            [
+                ("res_model", "=", CRM_LEAD),
+                ("res_id", "=", lead.id),
+                ("summary", "=like", f"{PLACEMENT_ACTIVITY_PREFIX}%"),
+            ]
+        )
+
+    def _schedule_placement_activity(self, lead, sites, phrases) -> None:
+        """At most one open "Place materials" To Do per lead; its text follows the latest run."""
+        activities = self._placement_activities(lead)
+        if activities is None:
+            return
+        summary = f"{PLACEMENT_ACTIVITY_PREFIX} {len(sites)} candidate sites"
+        note = (
+            f"<p>Unplaced materials: {', '.join(phrases) or '-'}</p>"
+            f"<p>Candidate sites: {', '.join(site.display_name or site.name or str(site.id) for site in sites)}</p>"
+        )
+        if activities:
+            keep, extra = activities[:1], activities[1:]
+            if extra:
+                extra.unlink()
+            if keep.summary != summary or str(keep.note or "") != note:
+                keep.write({"summary": summary, "note": note})
+            return
+        user = lead.user_id or self.env.user
+        lead.activity_schedule("mail.mail_activity_data_todo", summary=summary, note=note, user_id=user.id)
+
+    def _close_placement_activity(self, lead) -> None:
+        """A later run that places the materials marks the open To Do done."""
+        if not (lead and getattr(lead, "id", False)):
+            return
+        activities = self._placement_activities(lead)
+        if activities:
+            activities.action_feedback(feedback="Materials placed by the VanillaSoft import.")
+
+    def _apply_resolved_approved_materials(self, lead, *field_maps, address=None) -> None:
         sections = _parse_material_sections(*field_maps)
         if not sections or not lead.partner_id:
             return
         if _notes_only_sections(*field_maps):
-            partner, _reason = _facility_for_material(lead)
+            partner, _reason = _facility_for_material(lead, address)
             located = (
                 self.env["plasticos.facility.profile"].search([("partner_id", "=", partner.id)])
                 if partner is not None
@@ -1676,16 +1816,17 @@ class SyncOrchestrator:
                 return
         phrases = _dedupe_phrases(phrase for section in sections.values() for phrase in section["phrases"])
         detail = ", ".join(phrases) or "material evidence"
-        partner, reason = _facility_for_material(lead)
-        if partner is None and lead.partner_id.parent_id:
-            partner = lead.partner_id
+        # A material profile never lands on a person: an unresolved owner stores nothing.
+        partner, reason = _facility_for_material(lead, address)
         if partner is None:
-            self._append_classified_error(
-                lead.vanillasoft_id or str(lead.id),
-                f"{reason}: {detail}",
-                REQUIRED_MAPPING,
-            )
+            if reason.startswith("facility ambiguous"):
+                self._report_unplaced_materials(lead, lead.partner_id, address, phrases, reason)
+            else:
+                self._append_classified_error(
+                    lead.vanillasoft_id or str(lead.id), f"{reason}: {detail}", REQUIRED_MAPPING
+                )
             return
+        self._close_placement_activity(lead)
         profiles = self.env["plasticos.facility.profile"].search([("partner_id", "=", partner.id)])
         self._import_section_materials(
             lead, field_maps, partner=partner, facility_profile=profiles if len(profiles) == 1 else None
@@ -1818,6 +1959,7 @@ class SyncOrchestrator:
             outcomes[outcome] += 1
         self.last_lead_outcome = outcome
         if outcome in ADMITTED_OUTCOMES and not dto.deleted:
+            self._resolve_vanillasoft_partner(lead, dto)
             self._apply_contact_materials(lead, dto.custom_fields)
             self._bind_opportunity_material(lead)
             if self._env_has_model("crm.tag"):
@@ -1855,9 +1997,17 @@ class SyncOrchestrator:
             return False
         return True
 
-    def _append_classified_error(self, record_ref: str, message: str, category: str) -> None:
-        """Record one typed row. Status reads ``category``, never the message text."""
-        self.error_rows.append({"record_ref": record_ref, "message": message, "category": category})
+    def _append_classified_error(self, record_ref: str, message: str, category: str, error_type: str = "") -> None:
+        """Record one typed row. Status reads ``category``, never the message text.
+
+        ``error_type`` marks rows the operator reviews after every run
+        (``MATERIAL_PLACEMENT_REVIEW``, ``MATERIAL_FIELD_IGNORED``,
+        ``MATERIAL_DIRECTION_REVIEW``); see ADR-132 and ADR-134.
+        """
+        row = {"record_ref": record_ref, "message": message, "category": category}
+        if error_type:
+            row["error_type"] = error_type
+        self.error_rows.append(row)
 
     def _record_outcome(self, outcomes: dict[str, int] | None, outcome: str, record_ref: str, message: str) -> None:
         """Record a classified outcome + error detail (duplicate/failed rows).
@@ -2280,12 +2430,150 @@ class SyncOrchestrator:
                 return combined, _HINT_STATUS_UNSUPPORTED
         return combined, None
 
+    def _buyer_supplier_raw(self, field_maps) -> str:
+        for fields in field_maps:
+            if isinstance(fields, dict):
+                raw = _collapse_ws(fields.get("Buyer/Supplier"))
+                if raw:
+                    return raw
+        return ""
+
+    def _vanillasoft_direction(self, field_maps, partner):
+        """Direction this VanillaSoft record writes, and whether it needs review.
+
+        Supplier is out and Buyer is in. Both uses the site when the site can
+        tell (a pickup address is out); otherwise the direction stays blank and
+        the caller lists the record. No Buyer/Supplier value leaves the
+        decision to the profile default (``None``).
+        """
+        from .vanillasoft_partners import ROLE_BUYER, ROLE_SUPPLIER, parse_roles  # noqa: PLC0415
+
+        roles = parse_roles(self._buyer_supplier_raw(field_maps))
+        supplier = ROLE_SUPPLIER in roles
+        buyer = ROLE_BUYER in roles
+        if supplier and not buyer:
+            return "out", False
+        if buyer and not supplier:
+            return "in", False
+        if not (supplier and buyer):
+            return None, False
+        from odoo.addons.plasticos_material_profile.direction import (  # noqa: PLC0415
+            direction_for,
+            is_site_shape,
+        )
+
+        decided = False
+        if partner is not None and getattr(partner, "id", False):
+            site_method = getattr(partner, "_plasticos_is_site", None)
+            site = (
+                bool(site_method())
+                if callable(site_method)
+                else is_site_shape(
+                    has_parent=bool(partner.parent_id),
+                    partner_type=partner.type,
+                    is_company=bool(partner.is_company),
+                )
+            )
+            label = partner.erp_address_label if "erp_address_label" in partner._fields else False
+            role = partner.company_role if "company_role" in partner._fields else False
+            decided = (
+                direction_for(
+                    site=site,
+                    partner_type=partner.type,
+                    source_label=label,
+                    company_role=role,
+                    supplier_rank=1,
+                    customer_rank=1,
+                )
+                or False
+            )
+        return decided, not decided
+
+    def _append_direction_review(self, ref) -> None:
+        """One NEEDS REVIEW row per record. A replay on this run does not add another."""
+        if any(
+            row.get("error_type") == MATERIAL_DIRECTION_REVIEW and row.get("record_ref") == ref
+            for row in self.error_rows
+        ):
+            return
+        self._append_classified_error(
+            ref,
+            "direction blank: Buyer and Supplier; the site does not decide",
+            OPTIONAL_CONTEXT,
+            MATERIAL_DIRECTION_REVIEW,
+        )
+
+    def _reuse_directed_material(self, partner, facility_profile, polymer, forms, grades, note_line, direction):
+        """Reuse or create one profile whose key includes ``direction``.
+
+        ``False`` is an explicit blank direction. It is not the same profile as
+        out or in. A new row links the site's only capability through create.
+        """
+        from odoo.exceptions import ValidationError  # noqa: PLC0415
+
+        Profile = self.env["plasticos.material.profile"]
+        form_id = forms.id if forms is not None and len(forms) == 1 else False
+        grade_id = grades.id if grades is not None and len(grades) == 1 else False
+        identity = [
+            ("polymer_id", "=", polymer.id),
+            ("form_id", "=", form_id),
+            ("material_grade_id", "=", grade_id),
+            ("direction", "=", direction or False),
+        ]
+        has_facility = facility_profile is not None and getattr(facility_profile, "id", False)
+        profile = Profile.browse()
+        if has_facility:
+            profile = Profile.search([("facility_profile_id", "=", facility_profile.id), *identity], limit=1)
+            if not profile and facility_profile.partner_id:
+                profile = Profile.search([("partner_id", "=", facility_profile.partner_id.id), *identity], limit=1)
+                if profile and not profile.facility_profile_id:
+                    profile.facility_profile_id = facility_profile
+        elif partner is not None:
+            profile = Profile.search([("partner_id", "=", partner.id), *identity], limit=1)
+        else:
+            raise ValidationError("A facility profile is required.")
+        if not profile:
+            vals = {
+                "polymer_id": polymer.id,
+                "form_id": form_id,
+                "material_grade_id": grade_id,
+                "direction": direction or False,
+            }
+            if has_facility:
+                vals["facility_profile_id"] = facility_profile.id
+                if facility_profile.partner_id:
+                    vals["partner_id"] = facility_profile.partner_id.id
+            elif partner is not None:
+                vals["partner_id"] = partner.id
+            profile = Profile.create(vals)
+        if note_line:
+            existing_lines = (profile.freeform_notes or "").splitlines()
+            if note_line not in existing_lines:
+                notes = profile.freeform_notes or ""
+                profile.freeform_notes = f"{notes}\n{note_line}" if notes else note_line
+        return profile
+
     def _store_normalized_materials(
-        self, lead, texts, partner=None, facility_profile=None, structured=None, external_id=None
-    ) -> None:
+        self,
+        lead,
+        texts,
+        partner=None,
+        facility_profile=None,
+        structured=None,
+        record_form=None,
+        external_id=None,
+        direction=None,
+    ):
+        """Store each phrase as a profile and return the profiles touched.
+
+        ``record_form`` is the record's one Material Form. It is the form of a
+        phrase that resolves no form of its own, and it is part of the profile
+        identity, so a replay finds the same profile.
+        """
         from odoo.exceptions import ValidationError  # noqa: PLC0415
 
         profiles = self.env["plasticos.material.profile"]
+        touched = []
         ref = self._material_ref(lead, external_id)
         use_structured = structured if structured and len(texts) == 1 else None
         from odoo.addons.plasticos_material_profile.models.material_normalizer import (  # noqa: PLC0415
@@ -2312,11 +2600,22 @@ class SyncOrchestrator:
                     REQUIRED_MAPPING,
                 )
                 continue
-            if facility_profile is not None and getattr(facility_profile, "id", False):
+            forms = normalized.form if len(normalized.form) == 1 or not record_form else record_form
+            if direction is not None:
+                profile = self._reuse_directed_material(
+                    partner,
+                    facility_profile,
+                    normalized.polymer,
+                    forms,
+                    normalized.material_grade,
+                    normalized.source_description,
+                    direction,
+                )
+            elif facility_profile is not None and getattr(facility_profile, "id", False):
                 profile = profiles.reuse_lead_facility_material(
                     facility_profile,
                     normalized.polymer,
-                    normalized.form,
+                    forms,
                     note_line=normalized.source_description,
                     grades=normalized.material_grade,
                 )
@@ -2324,13 +2623,15 @@ class SyncOrchestrator:
                 profile = profiles.reuse_facility_polymer_profile(
                     partner,
                     normalized.polymer,
-                    normalized.form,
+                    forms,
                     note_line=normalized.source_description,
                     grades=normalized.material_grade,
                 )
             else:
                 raise ValidationError("A facility profile is required.")
             self._write_profile_classification(profile, normalized)
+            touched.append(profile)
+        return touched
 
     def _import_section_materials(
         self, lead, field_maps, partner=None, facility_profile=None, external_id=None
@@ -2342,28 +2643,54 @@ class SyncOrchestrator:
         ref = self._material_ref(lead, external_id)
         existing = self._profiles_for_material(partner, facility_profile)
         distinguished_ids = set(existing.filtered(_preexisting_supersac_profile).ids)
-        for _section, slot in sections.items():
+        # Material Type and Material Form: one value applies to every profile of
+        # the record (a section field to its own section), several values mean
+        # the field is ignored (operator, 2026-11-17).
+        record_slot = sections.get("", {})
+        record_type = self._one_record_value(record_slot.get("types", []), "Material Type", ref)
+        record_form = self._one_record_value(record_slot.get("forms", []), "Material Form", ref)
+        source = self._source_type_for(record_type, ref) if record_type else None
+        form, packaging = self._form_or_packaging_for(record_form, ref) if record_form else (None, None)
+        has_phrases = any(slot["phrases"] for slot in sections.values())
+        direction, review = self._vanillasoft_direction(field_maps, partner)
+        context = getattr(self.env, "context", None) or {}
+        if context.get(AI_BROKER_CONTEXT) and has_phrases and not direction:
+            self._append_classified_error(ref, "material write refused: direction is required", REQUIRED_MAPPING)
+            return
+        if review and has_phrases:
+            self._append_direction_review(ref)
+        for section, slot in sections.items():
             phrases = list(slot["phrases"])
-            hints = list(slot["hints"])
-            structured = {"type": hints[0]} if len(phrases) == 1 and len(hints) == 1 else None
-            if hints and structured is None:
-                detail = ", ".join(hints)
-                message = (
-                    f"BLOCKED_UNRESOLVED: {detail}"
-                    if not phrases
-                    else "BLOCKED_UNRESOLVED: type hint is not contact-unique"
-                )
-                category = REQUIRED_MAPPING if not phrases else OPTIONAL_CONTEXT
-                self._append_classified_error(ref, message, category)
-            if phrases:
-                self._store_normalized_materials(
-                    lead,
-                    phrases,
-                    partner=partner,
-                    facility_profile=facility_profile,
-                    structured=structured,
-                    external_id=ref,
-                )
+            structured = None
+            if section:
+                # A section's Type (X) / Form (X) stays that section's polymer hint for one phrase.
+                hints = list(slot["types"]) + list(slot["forms"])
+                structured = {"type": hints[0]} if len(phrases) == 1 and len(hints) == 1 else None
+                if hints and structured is None:
+                    detail = ", ".join(hints)
+                    message = (
+                        f"BLOCKED_UNRESOLVED: {detail}"
+                        if not phrases
+                        else "BLOCKED_UNRESOLVED: type hint is not contact-unique"
+                    )
+                    self._append_classified_error(ref, message, REQUIRED_MAPPING if not phrases else OPTIONAL_CONTEXT)
+            if not phrases:
+                continue
+            touched = self._store_normalized_materials(
+                lead,
+                phrases,
+                partner=partner,
+                facility_profile=facility_profile,
+                structured=structured,
+                record_form=form,
+                external_id=ref,
+                direction=direction,
+            )
+            for profile in touched:
+                if source and not profile.source_type_id:
+                    profile.source_type_id = source
+                if packaging and not profile.packaging_type_id:
+                    profile.packaging_type_id = packaging
         profiles = self._profiles_for_material(partner, facility_profile)
         for section, slot in sections.items():
             self._apply_section_specs(profiles, slot, ref, section)
@@ -2376,12 +2703,53 @@ class SyncOrchestrator:
             else:
                 self._append_classified_error(ref, "BLOCKED_PPS_PROFILE_IDENTITY", REQUIRED_MAPPING)
 
+    def _one_record_value(self, values, label, ref):
+        """The field's one value, or None. Several distinct values: ignored and reported."""
+        distinct = _dedupe_phrases(values)
+        if len(distinct) > 1:
+            self._append_classified_error(
+                ref, f"{label} ignored: {len(distinct)} values", OPTIONAL_CONTEXT, MATERIAL_FIELD_IGNORED
+            )
+            return None
+        return distinct[0] if distinct else None
+
+    def _lookup_named(self, model, value):
+        """The one active record of ``model`` whose name or code equals ``value`` (case, -, _ ignored)."""
+        if not self._env_has_model(model):
+            return None
+        key = _lookup_key(value)
+        found = (
+            self.env[model]
+            .search([])
+            .filtered(lambda record: key in (_lookup_key(record.name), _lookup_key(getattr(record, "code", ""))))
+        )
+        return found if len(found) == 1 else None
+
+    def _source_type_for(self, value, ref):
+        """Material Type → plasticos.source.type (e.g. Post Consumer → POST_CONSUMER)."""
+        source = self._lookup_named("plasticos.source.type", value)
+        if source is None:
+            self._append_classified_error(ref, f"Material Type unresolved: {value}", OPTIONAL_CONTEXT)
+        return source
+
+    def _form_or_packaging_for(self, value, ref):
+        """Material Form → (form, packaging). A packaging name (Bales, Gaylords) is packaging, never a form."""
+        packaging = self._lookup_named("plasticos.packaging.type", value)
+        if packaging is not None:
+            return None, packaging
+        form = self._lookup_named("plasticos.material.form", value)
+        if form is None:
+            self._append_classified_error(ref, f"Material Form unresolved: {value}", OPTIONAL_CONTEXT)
+            return None, None
+        return form, None
+
     def _apply_section_specs(self, profiles, slot, ref, section) -> None:
         phrases = list(slot["phrases"])
-        structured = {"type": slot["hints"][0]} if len(phrases) == 1 and len(slot["hints"]) == 1 else None
+        hints = list(slot["types"]) + list(slot["forms"]) if section else []
+        structured = {"type": hints[0]} if len(phrases) == 1 and len(hints) == 1 else None
         identities = []
         for phrase in phrases:
-            normalized, _dropped = self._resolve_material(phrase, structured if len(phrases) == 1 else None)
+            normalized, _dropped = self._resolve_material(phrase, structured)
             if normalized.unresolved or not normalized.polymer:
                 continue
             form_id = normalized.form.id if len(normalized.form) == 1 else False
@@ -2471,7 +2839,7 @@ class SyncOrchestrator:
         if not _parse_material_sections(dto.custom_fields):
             return
         if _notes_only_sections(dto.custom_fields):
-            facility, _reason = _facility_partner_for_person(partner)
+            facility, _reason = _material_owner(partner, _dto_address(dto))
             located = (
                 self.env["plasticos.facility.profile"].search([("partner_id", "=", facility.id)])
                 if facility is not None
@@ -2481,8 +2849,21 @@ class SyncOrchestrator:
                 if _parse_material_sections(dto.custom_fields).get("pps", {}).get("notes"):
                     self._append_classified_error(dto.external_id, "BLOCKED_PPS_PROFILE_IDENTITY", REQUIRED_MAPPING)
                 return
-        facility, _reason = _facility_partner_for_person(partner)
-        owner = facility if facility is not None else partner
+        owner, reason = _material_owner(partner, _dto_address(dto))
+        if owner is None:
+            # A material profile never lands on a person.
+            if reason.startswith("facility ambiguous"):
+                phrases = _dedupe_phrases(
+                    phrase
+                    for section in _parse_material_sections(dto.custom_fields).values()
+                    for phrase in section["phrases"]
+                )
+                self._report_unplaced_materials(
+                    None, partner, _dto_address(dto), phrases, reason, record_ref=dto.external_id
+                )
+            else:
+                self._append_classified_error(dto.external_id, reason, REQUIRED_MAPPING)
+            return
         profiles = self.env["plasticos.facility.profile"].search([("partner_id", "=", owner.id)])
         try:
             with self.env.cr.savepoint():
@@ -2531,11 +2912,13 @@ class SyncOrchestrator:
         from odoo.addons.plasticos_crm_bridge.models.crm_mapping import (  # noqa: PLC0415
             COMPANY_TYPE_ALIASES,
             COMPANY_TYPE_MAPPING,
+            CRM_COMPANY_TYPE_TAG_MAPPING,
             CRM_ROLE_TAG_MAPPING,
         )
 
         custom = dto.custom_fields or {}
         self._apply_crm_role_tags(lead, dto, custom, Command, CRM_ROLE_TAG_MAPPING)
+        self._apply_lead_company_type(lead, dto, custom, Command, CRM_COMPANY_TYPE_TAG_MAPPING, COMPANY_TYPE_ALIASES)
         self._apply_company_type(lead, dto, partner, custom, Command, COMPANY_TYPE_MAPPING, COMPANY_TYPE_ALIASES)
 
     def _apply_crm_role_tags(self, lead, dto, custom, command, mapping) -> None:
@@ -2581,6 +2964,278 @@ class SyncOrchestrator:
         if len(found) != 1 or found._name != "crm.tag" or found.name != role_name:
             return None
         return found
+
+    def _apply_lead_company_type(self, lead, dto, custom, command, mapping, aliases) -> None:
+        """The VanillaSoft Company Type as a native CRM tag on the lead, with or without a partner (C1 F1)."""
+        raw = _collapse_ws(custom.get("Company Type"))
+        if not raw or not (lead and getattr(lead, "id", False)):
+            return
+        canonical = aliases.get(raw, raw)
+        if canonical not in mapping:
+            self._append_classified_error(dto.external_id, f"BLOCKED_COMPANY_TYPE_VALUE: {raw}", OPTIONAL_CONTEXT)
+            return
+        tag = self._crm_role_tag(canonical, mapping)
+        if not tag:
+            self._append_classified_error(dto.external_id, f"BLOCKED_DESTINATION: {canonical}", OPTIONAL_CONTEXT)
+            return
+        company = _verified_company(lead, None)
+        if company is not None and _company_type_overlaps(company, canonical):
+            # A blocked company type (Broker overlapping the stored role) must not
+            # stay on the lead. The first pass can link it before the partner exists.
+            if tag in lead.tag_ids:
+                lead.write({"tag_ids": [command.unlink(tag.id)]})
+            return
+        if tag not in lead.tag_ids:
+            lead.write({"tag_ids": [command.link(tag.id)]})
+
+    # ── C1 C4: when a VanillaSoft record becomes a partner (D32/D33) ─────────
+    def _resolve_vanillasoft_partner(self, lead, dto) -> None:
+        """Link or create the partner a qualified record earns. Never inside a failure of the lead."""
+        if not (lead and getattr(lead, "id", False)) or not self._env_has_model("res.partner"):
+            return
+        try:
+            with self.env.cr.savepoint():
+                self._resolve_vanillasoft_partner_body(lead, dto)
+        except Exception as exc:  # noqa: BLE001 - partner resolution must not drop the admitted lead
+            _logger.warning("VanillaSoft partner resolution failed for %s: %s", dto.external_id, exc)
+            self._append_classified_error(dto.external_id, f"partner resolution failed: {exc}", REQUIRED_MAPPING)
+
+    def _resolve_vanillasoft_partner_body(self, lead, dto) -> None:
+        from .vanillasoft_partners import (  # noqa: PLC0415
+            is_do_not_call,
+            lead_status_code,
+            parse_roles,
+            partner_allowed,
+            status_acts,
+        )
+
+        custom = dto.custom_fields or {}
+        roles = parse_roles(custom.get("Buyer/Supplier"))
+        if is_do_not_call(dto.lead_status_raw):
+            company = _verified_company(lead, None) or self._existing_company(dto, create_allowed=False)
+            if company:
+                self._apply_do_not_call(company, lead, dto)
+                self._apply_lead_status_tag(company, dto)
+            return
+        if not partner_allowed(dto.lead_status_raw, roles, approved=False):
+            # No partner is created, but a company that already exists (an ERP
+            # partner matched by a COLD lead, say) still gets its Status tag.
+            if status_acts(lead_status_code(dto.lead_status_raw)):
+                company = _verified_company(lead, None) or self._existing_company(dto, create_allowed=False)
+                if company:
+                    self._apply_lead_status_tag(company, dto)
+            return
+        company = _verified_company(lead, None)
+        if company is None:
+            if lead.partner_id:
+                # A partner is set but resolves to no single company: do not guess.
+                self._append_classified_error(dto.external_id, "BLOCKED_PARTNER_UNRESOLVED", OPTIONAL_CONTEXT)
+                return
+            company = self._existing_company(dto, create_allowed=True)
+            if company is None:
+                return
+            lead.write({"partner_id": company.id})
+        self._ensure_contact_person(company, dto)
+        self._raise_trade_ranks(company, roles)
+        self._apply_lead_status_tag(company, dto)
+
+    def _apply_existing_partner_rules(self, lead, dto, partner) -> None:
+        """Approved contacts already have an ERP person: ranks, DNC and Status on its company only."""
+        from .vanillasoft_partners import is_do_not_call, lead_status_code, parse_roles, status_acts  # noqa: PLC0415
+
+        do_not_call = is_do_not_call(dto.lead_status_raw)
+        roles = parse_roles((dto.custom_fields or {}).get("Buyer/Supplier"))
+        if not do_not_call and not roles and not status_acts(lead_status_code(dto.lead_status_raw)):
+            return
+        try:
+            with self.env.cr.savepoint():
+                company = _verified_company(lead, partner)
+                if company is None:
+                    return
+                if do_not_call:
+                    self._apply_do_not_call(company, lead, dto)
+                elif roles:
+                    self._raise_trade_ranks(company, roles)
+                self._apply_lead_status_tag(company, dto)
+        except Exception as exc:  # noqa: BLE001 - partner rules must not drop the bound contact
+            _logger.warning("VanillaSoft partner rules failed for %s: %s", dto.external_id, exc)
+            self._append_classified_error(dto.external_id, f"partner rules failed: {exc}", REQUIRED_MAPPING)
+
+    def _existing_company(self, dto, *, create_allowed: bool):
+        """The one company this record names, ERP companies first; created only when none exists.
+
+        Matching is on the company name with case, punctuation and legal
+        suffixes ignored. Several matches at one tier are refused, never guessed.
+        """
+        from .vanillasoft_partners import normalized_company_name, pick_existing  # noqa: PLC0415
+
+        name = _collapse_ws(dto.company)
+        key = normalized_company_name(name)
+        if not key:
+            if create_allowed:
+                self._append_classified_error(dto.external_id, "BLOCKED_PARTNER_NO_COMPANY", OPTIONAL_CONTEXT)
+            return None
+        Partner = self.env["res.partner"].with_context(active_test=False)
+        # Search wide on the longest word (punctuation and "&" differ between sources),
+        # then keep only the companies whose normalized name is exactly this one.
+        probe = max(key.split(), key=len)
+        found = Partner.search([("is_company", "=", True), ("parent_id", "=", False), ("name", "ilike", probe)])
+        matches = found.filtered(lambda partner: normalized_company_name(partner.name) == key)
+        erp_ids = set()
+        if matches:
+            erp_ids = set(
+                self.env["ir.model.data"]
+                .sudo()  # sudo: the sync reads which partners carry an ERP counterparty XML id
+                .search(
+                    [
+                        ("module", "=", "plasticos_transaction"),
+                        ("model", "=", "res.partner"),
+                        ("name", "=like", "legacy_erp_cp_%"),
+                        ("res_id", "in", matches.ids),
+                    ]
+                )
+                .mapped("res_id")
+            )
+        chosen, reason = pick_existing(erp_ids, set(matches.ids) - erp_ids)
+        if chosen:
+            return Partner.browse(chosen)
+        if reason:
+            self._append_classified_error(dto.external_id, reason, OPTIONAL_CONTEXT)
+            return None
+        if not create_allowed:
+            return None
+        return self.env["res.partner"].create(self._company_vals(dto, name))
+
+    def _company_vals(self, dto, name: str) -> dict[str, Any]:
+        vals = {
+            "name": name,
+            "is_company": True,
+            "street": dto.street or False,
+            "street2": dto.street2 or False,
+            "city": dto.city or False,
+            "zip": dto.zip or False,
+            "phone": dto.phone or False,
+        }
+        country_id = self._resolve_country_id(dto.country_code)
+        if country_id:
+            vals["country_id"] = country_id
+            state_text = _collapse_ws(dto.state_code)
+            if state_text:
+                State = self.env["res.country.state"]
+                state = State.search([("code", "=", state_text.upper()), ("country_id", "=", country_id)], limit=1)
+                if state:
+                    vals["state_id"] = state.id
+        return vals
+
+    def _ensure_contact_person(self, company, dto) -> None:
+        """The contact as a person under the company: the existing one with the same name or email, else new."""
+        from .vanillasoft_partners import normalized_company_name  # noqa: PLC0415
+
+        contact = " ".join(part for part in (_collapse_ws(dto.first_name), _collapse_ws(dto.last_name)) if part)
+        if not contact:
+            return
+        email = _collapse_ws(dto.email).casefold()
+        key = normalized_company_name(contact)
+        for child in company.with_context(active_test=False).child_ids:
+            if child.is_company:
+                continue
+            if normalized_company_name(child.name) == key or (email and _collapse_ws(child.email).casefold() == email):
+                return
+        self.env["res.partner"].create(
+            {
+                "name": contact,
+                "parent_id": company.id,
+                "type": "contact",
+                "email": dto.email or False,
+                "phone": dto.phone or False,
+            }
+        )
+
+    def _raise_trade_ranks(self, company, roles) -> None:
+        """Buyer/Supplier raise ``customer_rank`` / ``supplier_rank`` to at least 1. Never lowered."""
+        from .vanillasoft_partners import trade_ranks  # noqa: PLC0415
+
+        wanted = {field: rank for field, rank in trade_ranks(roles).items() if (company[field] or 0) < rank}
+        if wanted:
+            # Ranks rise. Buyer and Supplier stay off res.partner.category.
+            company.with_context(plasticos_skip_trade_role_category=True).write(wanted)
+        self._link_company_role_tags(company, roles)
+
+    def _link_company_role_tags(self, company, roles) -> None:
+        """Gate still reads ``company_role_tag_ids``: mirror the roles there. Added, never removed.
+
+        A role tag whose external id is absent (it ships with plasticos_facility_profile
+        data) is skipped quietly.
+        """
+        from .vanillasoft_partners import COMPANY_ROLE_TAG_XMLIDS  # noqa: PLC0415
+
+        if "company_role_tag_ids" not in getattr(company, "_fields", {"company_role_tag_ids": None}):
+            return
+        missing = []
+        for role in sorted(set(roles)):
+            xmlid = COMPANY_ROLE_TAG_XMLIDS.get(role)
+            tag = self.env.ref(xmlid, raise_if_not_found=False) if xmlid else None
+            if tag and tag not in company.company_role_tag_ids:
+                missing.append(tag.id)
+        if missing:
+            company.write({"company_role_tag_ids": [(4, tag_id) for tag_id in missing]})
+
+    def _apply_do_not_call(self, company, lead, dto) -> None:
+        """7=Do Not Call on an existing company: the DNC status tag and a blacklist. Nothing is removed."""
+        from odoo.addons.plasticos_crm_bridge.models.crm_mapping import DNC_PARTNER_TAG_XMLID  # noqa: PLC0415
+
+        tag = self.env.ref(DNC_PARTNER_TAG_XMLID, raise_if_not_found=False)
+        if tag and tag._name == "res.partner.category" and tag not in company.category_id:
+            company.write({"category_id": [(4, tag.id)]})
+        message = f"VanillaSoft ContactID {dto.external_id}: 7=Do Not Call"
+        emails = {_collapse_ws(value) for value in (dto.email, getattr(lead, "email_from", "") if lead else "")}
+        if self._env_has_model("mail.blacklist"):
+            for email in sorted(value for value in emails if value):
+                self.env["mail.blacklist"].sudo()._add(email, message=message)  # sudo: sync user blacklists by rule
+        if self._env_has_model("phone.blacklist"):
+            numbers = {dto.phone, dto.mobile, *dto.phone_numbers, *dto.mobile_numbers}
+            if lead:
+                numbers |= {getattr(lead, "phone", ""), getattr(lead, "mobile", "")}
+            Blacklist = self.env["phone.blacklist"].sudo()  # sudo: sync user blacklists by rule
+            for number in sorted(_collapse_ws(value) for value in numbers if _collapse_ws(value)):
+                sanitized = self.env.user._phone_format(number=number)
+                if sanitized:
+                    Blacklist._add([sanitized], message=message)
+
+    def _apply_lead_status_tag(self, company, dto) -> None:
+        """The Lead Status as the company's one Status tag (ADR-133 "Status").
+
+        Written on the company only; ``plasticos_facility_profile`` mirrors the
+        lead-status tags onto its sites. Within this run the most advanced
+        status of all records naming the company wins, and DNC from any record
+        wins over every status. A status with no tag (``New``) changes nothing.
+        """
+        from odoo.addons.plasticos_crm_bridge.models.crm_mapping import DNC_PARTNER_TAG_XMLID  # noqa: PLC0415
+
+        from .vanillasoft_partners import (  # noqa: PLC0415
+            LEAD_STATUS_TAG_XMLIDS,
+            lead_status_code,
+            status_acts,
+            status_tag_ids_after,
+            stronger_status,
+        )
+
+        code = lead_status_code(dto.lead_status_raw)
+        if not company or not status_acts(code):
+            return
+        code = stronger_status(self.status_by_company.get(company.id), code)
+        self.status_by_company[company.id] = code
+        tag_ids = {}
+        for status, xmlid in LEAD_STATUS_TAG_XMLIDS.items():
+            tag = self.env.ref(xmlid, raise_if_not_found=False)
+            if tag and tag._name == "res.partner.category":
+                tag_ids[status] = tag.id
+        dnc = self.env.ref(DNC_PARTNER_TAG_XMLID, raise_if_not_found=False)
+        dnc_id = dnc.id if dnc and dnc._name == "res.partner.category" else None
+        current = set(company.category_id.ids)
+        target = status_tag_ids_after(current, tag_ids, dnc_id, code)
+        if target != current:
+            company.write({"category_id": [(6, 0, sorted(target))]})
 
     def _apply_company_type(self, lead, dto, partner, custom, command, mapping, aliases) -> None:
         raw = _collapse_ws(custom.get("Company Type"))

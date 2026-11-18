@@ -85,7 +85,6 @@ FORM_NORMALIZE = {
     "gaylords": "GAY",
     "log": "LOG",
     "logs": "LOG",
-    "loose": "LOOSE",
     "pallet": "PAL",
     "pallets": "PAL",
     "parts": "PART",
@@ -100,8 +99,6 @@ FORM_NORMALIZE = {
     "regrind": "RG",
     "regrinds": "RG",
     "reground": "RG",
-    "repro": "REPRO",
-    "reprocessed": "REPRO",
     "roll": "ROLL",
     "rolls": "ROLL",
     "rollstock": "ROLL",
@@ -116,11 +113,13 @@ FORM_NORMALIZE = {
 # Bales are packaging, not a form: the Bales form was retired on 2026-11-10
 # (plasticos_material_profile 19.0.5.11.14 moves those profiles onto packaging
 # Bales). Operator decision 2026-11-12: an extracted bale word sets the profile's
-# packaging type and no form. Values are plasticos.packaging.type codes.
+# packaging type and no form. ADR-134 §6 does the same for loose. Values are
+# plasticos.packaging.type codes. Repro is not a form and is not mapped to regrind.
 PACKAGING_NORMALIZE = {
     "bale": "bales",
     "bales": "bales",
     "baled": "bales",
+    "loose": "loose",
 }
 
 SOURCE_TYPE_NORMALIZE = {
@@ -189,11 +188,20 @@ FORM_CODE_TO_MASTER = {
     "PATTY": "OTHER",
     "GAY": "OTHER",
     "LOG": "LOGS",
-    "LOOSE": "LOOSE",
     "PAL": "PALLETS",
-    "REPRO": "REGRIND",
     "SWEEP": "FLOORSWEEP",
 }
+
+
+def _entity_type_from_ranks(partner):
+    """Return ``"buyer"`` when the commercial partner has ``customer_rank > 0``, else ``"supplier"``.
+
+    Native ranks replace the former "Buyer"/"Customer" tag-name rule (C1 lane C);
+    a partner with both ranks is a buyer, as a "Customer" tag was before.
+    """
+    if partner and (partner.commercial_partner_id.customer_rank or 0) > 0:
+        return "buyer"
+    return "supplier"
 
 
 class EnrichmentService(models.AbstractModel):
@@ -375,11 +383,7 @@ class EnrichmentService(models.AbstractModel):
         }
 
         # Determine entity type from partner
-        entity_type = "supplier"
-        if profile.partner_id:
-            tags = profile.partner_id.category_id.mapped("name")
-            if "Buyer" in tags or "Customer" in tags:
-                entity_type = "buyer"
+        entity_type = _entity_type_from_ranks(profile.partner_id)
 
         augmented = self.run_inference(profile_vals, entity_type)
 

@@ -286,7 +286,7 @@
                     </group>
 
                     <group string="Delivery Preferences">
-                        <field name="delivery_term"/>
+                        <field name="delivery_term" string="Dock Rule"/>
                     </group>
 
                     <group string="Commercial Material Context">
@@ -390,7 +390,7 @@
                 <field name="partner_last_pickup" string="Last Shipped" optional="show"/>
                 <field name="intake_count" string="Intakes" optional="show"/>
                 <field name="web_lead_count" string="Web Leads" optional="hide"/>
-                <field name="delivery_term" string="Delivery" optional="hide"/>
+                <field name="delivery_term" string="Dock Rule" optional="hide"/>
             </xpath>
         </field>
     </record>

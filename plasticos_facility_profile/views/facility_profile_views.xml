@@ -9,12 +9,9 @@
     <field name="model">plasticos.facility.profile</field>
     <field name="arch" type="xml">
       <list editable="bottom">
-        <field name="process_type"/>
         <field name="feedstock_type"/>
         <field name="capacity_lbs_month" sum="Total Capacity"/>
-        <field name="has_horizontal_baler"/>
-        <field name="has_wash_line"/>
-        <field name="handles_bales"/>
+        <field name="iso_certified"/>
       </list>
     </field>
   </record>
@@ -30,13 +27,26 @@
       <form>
         <sheet>
           <notebook name="facility_profile_pages">
-            <!-- ── Capability Tab ──────────────────────── -->
-            <page string="Capability">
+            <page string="Capabilities" name="capabilities">
+              <field name="capability_ids">
+                <list editable="bottom">
+                  <field name="sequence" widget="handle"/>
+                  <field name="capability_type_id"/>
+                  <field name="model"/>
+                  <field name="rated_capacity_lb_hr"/>
+                  <field name="in_material_chips"/>
+                  <field name="out_material_chips"/>
+                  <field name="details" widget="properties"/>
+                  <field name="notes" optional="hide"/>
+                </list>
+              </field>
+            </page>
+
+            <!-- ── Site facts ──────────────────────────── -->
+            <page string="Site">
               <group>
                 <group string="Processing">
-                  <field name="process_type"/>
                   <field name="feedstock_type"/>
-                  <field name="form_preference_id"/>
                   <field name="application_class"/>
                 </group>
                 <group string="Capacity">
@@ -44,23 +54,10 @@
                   <field name="avg_truckload_lbs"/>
                 </group>
               </group>
-              <group string="Accepted Polymers">
-                <field name="accepted_polymer_ids" widget="many2many_tags"/>
-              </group>
             </page>
 
             <!-- ── Tolerances Tab ──────────────────────── -->
             <page string="Tolerances">
-              <group>
-                <group string="Density (g/cm³)">
-                  <field name="density_min"/>
-                  <field name="density_max"/>
-                </group>
-                <group string="Melt Flow Index (g/10min)">
-                  <field name="melt_index_min"/>
-                  <field name="melt_index_max"/>
-                </group>
-              </group>
               <group>
                 <group string="Contamination &amp; Moisture">
                   <field name="contamination_tolerance_pct"/>
@@ -73,37 +70,9 @@
               </group>
             </page>
 
-            <!-- ── Equipment Tab ───────────────────────── -->
-            <page string="Equipment">
-              <group>
-                <group string="Equipment">
-                  <field name="has_horizontal_baler"/>
-                  <field name="has_downstroke_baler"/>
-                  <field name="has_shredder"/>
-                  <field name="has_granulator"/>
-                  <field name="has_wash_line"/>
-                  <field name="has_extruder"/>
-                  <field name="has_sorting_line"/>
-                </group>
-                <group string="Material Handling">
-                  <field name="handles_bales"/>
-                  <field name="handles_regrind"/>
-                  <field name="handles_pellet"/>
-                  <field name="handles_flake"/>
-                  <field name="handles_rollstock"/>
-                </group>
-              </group>
-            </page>
-
             <!-- ── Quality &amp; Certification Tab ─────── -->
             <page string="Quality &amp; Certification">
               <group>
-                <group string="Quality Processing">
-                  <field name="can_remove_metal"/>
-                  <field name="can_reduce_moisture"/>
-                  <field name="can_filter_fr"/>
-                  <field name="can_screen_fines"/>
-                </group>
                 <group string="Certifications">
                   <field name="iso_certified"/>
                   <field name="food_grade_certified"/>
@@ -152,33 +121,35 @@
     <field name="arch" type="xml">
 
       <xpath expr="//div[hasclass('flex-column')]/h1" position="after">
-        <field name="contact_header_name" nolabel="1" readonly="1" invisible="not is_company or not contact_header_name"/>
+        <field name="contact_header_name" nolabel="1" readonly="1" invisible="company_type == 'person' or not contact_header_name"/>
+        <!-- Company Type and Status tags under the name on company, site and person cards (ADR-131). -->
+        <field name="category_id" widget="many2many_tags" options="{'color_field': 'color'}" placeholder="Company Type, Status"/>
       </xpath>
 
       <xpath expr="//div[hasclass('flex-column')]/field[@name='company_type']" position="after">
         <div class="d-flex align-items-baseline gap-2">
           <span class="o_form_label">Address Type</span>
-          <field name="type" nolabel="1" readonly="1"/>
-          <field name="address_type_meaning" nolabel="1" readonly="1"/>
+          <field name="type" nolabel="1" readonly="1" invisible="address_type_meaning"/>
+          <field name="address_type_meaning" nolabel="1" readonly="1" invisible="not address_type_meaning"/>
         </div>
       </xpath>
 
       <xpath expr="//div[hasclass('flex-column')]//field[@name='email']/parent::div" position="attributes">
-        <attribute name="invisible">is_company and parent_id</attribute>
+        <attribute name="invisible">company_type == 'site'</attribute>
       </xpath>
       <xpath expr="//div[hasclass('flex-column')]//field[@name='email']/parent::div" position="after">
-        <div class="d-flex align-items-baseline w-md-50" invisible="not is_company or not parent_id">
+        <div class="d-flex align-items-baseline w-md-50" invisible="company_type != 'site'">
           <i class="fa fa-fw me-1 fa-envelope text-primary" title="Email"/>
           <field name="linked_person_email" class="w-100" widget="email" readonly="1"/>
         </div>
       </xpath>
 
       <xpath expr="//div[hasclass('flex-column')]//field[@name='phone']/parent::div" position="after">
-        <div class="d-flex align-items-baseline w-md-50" invisible="is_company and parent_id">
+        <div class="d-flex align-items-baseline w-md-50" invisible="company_type == 'site'">
           <i class="fa fa-fw me-1 fa-mobile text-primary" title="Mobile"/>
           <field name="mobile" class="w-100" widget="phone" placeholder="Mobile"/>
         </div>
-        <div class="d-flex align-items-baseline w-md-50" invisible="not is_company or not parent_id">
+        <div class="d-flex align-items-baseline w-md-50" invisible="company_type != 'site'">
           <i class="fa fa-fw me-1 fa-mobile text-primary" title="Mobile"/>
           <field name="linked_person_mobile" class="w-100" widget="phone" readonly="1"/>
         </div>
@@ -190,24 +161,24 @@
         <field name="partner_type_id" options="{'no_create': True}" invisible="not is_facility"/>
         <field name="facility_profile_ids" nolabel="1" invisible="not is_facility"
                context="{'default_partner_id': id, 'form_view_ref': 'plasticos_facility_profile.view_facility_profile_form'}">
-          <list editable="bottom">
-            <field name="process_type"/>
+          <!-- Same row behaviour as the Material Profile lines: the built-in open
+               button saves the row, then opens the full profile form. The class
+               reuses that list's external-link icon styling (material_profile_lines.css). -->
+          <list editable="bottom" open_form_view="1" delete="0" class="o_material_profile_lines">
             <field name="feedstock_type"/>
             <field name="capacity_lbs_month" sum="Total Capacity"/>
-            <field name="has_horizontal_baler"/>
-            <field name="has_wash_line"/>
-            <field name="handles_bales"/>
-            <button name="action_open_profile_form"
-                    type="object"
-                    icon="fa-external-link"
-                    title="Open Full Profile"
-                    class="btn-link p-0"/>
+            <field name="iso_certified"/>
+            <button name="action_remove_profile" type="object" icon="fa-trash"
+                    title="Remove facility profile"
+                    confirm="Remove this facility profile? A profile whose partner has an open sale order cannot be removed."
+                    class="btn-link text-danger p-0"/>
           </list>
         </field>
-        <separator string="Locations" invisible="not is_company or parent_id"/>
-        <field name="location_child_ids" nolabel="1" invisible="not is_company or parent_id">
+        <separator string="Locations" invisible="company_type != 'company'"/>
+        <field name="location_child_ids" nolabel="1" invisible="company_type != 'company'">
           <list>
             <field name="name"/>
+            <field name="contact_header_name" string="Contact"/>
             <field name="type" string="Address Type"/>
             <field name="street"/>
             <field name="city"/>
@@ -223,16 +194,19 @@
                     class="btn-link text-danger p-0"/>
           </list>
         </field>
-        <group string="Sites" invisible="is_company">
-          <field name="location_partner_ids" nolabel="1">
-            <list>
-              <field name="name"/>
-              <field name="city"/>
-            </list>
-          </field>
-        </group>
-        <separator string="People" invisible="not is_company or not parent_id"/>
-        <field name="site_person_ids" nolabel="1" invisible="not is_company or not parent_id">
+        <separator string="Sites" invisible="company_type != 'person'"/>
+        <field name="location_partner_ids" nolabel="1" invisible="company_type != 'person'">
+          <list>
+            <field name="name"/>
+            <field name="street"/>
+            <field name="city"/>
+            <field name="state_id"/>
+            <field name="zip"/>
+            <field name="phone"/>
+          </list>
+        </field>
+        <separator string="People" invisible="company_type != 'site'"/>
+        <field name="site_person_ids" nolabel="1" invisible="company_type != 'site'">
           <list>
             <field name="name"/>
             <field name="function"/>
@@ -243,24 +217,62 @@
 
       <!-- Under the address block so the label is a normal form row, not inside the tax-id cell. -->
       <xpath expr="//div[hasclass('o_address_format')]" position="after">
-        <field name="default_delivery_term" string="Dock Rule" invisible="not is_company"/>
+        <group string="Site logistics" invisible="not is_facility">
+          <field name="default_delivery_term" string="Dock Rule"/>
+          <field name="dock_rule_confirmed_on"/>
+          <field name="shipping_hours"/>
+          <field name="tz" string="Timezone"/>
+          <field name="loading_docks"/>
+          <field name="export_container_loading"/>
+          <field name="truck_scale"/>
+        </group>
       </xpath>
 
-      <!-- The base Tags row stays for locations. The company card gets its own, under Lead Source. -->
-      <xpath expr="//field[@name='category_id']" position="attributes">
-        <attribute name="invisible">is_company and type == 'contact'</attribute>
+      <!-- Tags show under the name for every card type; the base Tags row is hidden. -->
+      <xpath expr="//group//field[@name='category_id']" position="attributes">
+        <attribute name="invisible">1</attribute>
       </xpath>
-      <xpath expr="//field[@name='category_id']" position="after">
-        <field name="lead_source_id" widget="badge" invisible="not is_company or type == 'contact'"/>
-        <field name="user_id" string="Salesperson" widget="many2one_avatar_user" readonly="parent_id" invisible="not is_company or type == 'contact'"/>
-        <field name="property_supplier_payment_term_id" string="Payment Terms" invisible="not is_company or type == 'contact' or not supplier_rank"/>
+      <xpath expr="//group//field[@name='category_id']" position="after">
+        <field name="lead_source_id" widget="badge" invisible="company_type != 'site'"/>
+        <field name="user_id" string="Salesperson" widget="many2one_avatar_user" readonly="parent_id" invisible="company_type != 'site'"/>
+        <field name="property_supplier_payment_term_id" string="Payment Terms" invisible="company_type != 'site' or not supplier_rank"/>
       </xpath>
       <xpath expr="//field[@name='vat']" position="before">
-        <field name="lead_source_id" widget="badge" invisible="not is_company or type != 'contact'"/>
-        <field name="category_id" widget="many2many_tags" options="{'color_field': 'color'}" placeholder="e.g. &quot;B2B&quot;, &quot;VIP&quot;, &quot;Consulting&quot;, ..." invisible="not is_company or type != 'contact'"/>
-        <field name="user_id" string="Salesperson" widget="many2one_avatar_user" readonly="parent_id" invisible="not is_company or type != 'contact'"/>
+        <field name="lead_source_id" widget="badge" invisible="company_type != 'company'"/>
+        <field name="user_id" string="Salesperson" widget="many2one_avatar_user" readonly="parent_id" invisible="company_type != 'company'"/>
       </xpath>
 
+    </field>
+  </record>
+
+  <record id="view_capability_type_list" model="ir.ui.view">
+    <field name="name">plasticos.capability.type.list</field>
+    <field name="model">plasticos.capability.type</field>
+    <field name="arch" type="xml">
+      <list>
+        <field name="sequence" widget="handle"/>
+        <field name="name"/>
+        <field name="code"/>
+        <field name="active"/>
+      </list>
+    </field>
+  </record>
+
+  <record id="view_capability_type_form" model="ir.ui.view">
+    <field name="name">plasticos.capability.type.form</field>
+    <field name="model">plasticos.capability.type</field>
+    <field name="arch" type="xml">
+      <form>
+        <sheet>
+          <group>
+            <field name="name"/>
+            <field name="code"/>
+            <field name="sequence"/>
+            <field name="active"/>
+          </group>
+          <field name="details_definition"/>
+        </sheet>
+      </form>
     </field>
   </record>
 

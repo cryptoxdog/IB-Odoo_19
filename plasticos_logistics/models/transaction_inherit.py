@@ -146,6 +146,7 @@ class PlasticosTransactionLoadBridge(models.Model):
                 "unit_price": source.unit_price,
                 "freight_rate": source.freight_rate,
                 "delivery_term": source.delivery_term,
+                "pickup_dock_rule": source.pickup_dock_rule,
             }
         )
         deal = self.env["plasticos.transaction"].create(vals)

@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_logistics
 component_name: Plasticos Logistics Engine
-module_version: 19.0.1.14.26
+module_version: 19.0.1.16.0
 layer: 5
 installable: true
 auto_install: true
@@ -16,9 +16,11 @@ depends:
   - purchase
   - purchase_stock
   - mail
+  - base_setup
   - base_automation
 models_owned:
   - plasticos.load
+  - plasticos.load.appointment
   - plasticos.dispatch
   - plasticos.load.dashboard
   - plasticos.freight.quote.request
@@ -38,6 +40,7 @@ models_extended:
   - sale.order
   - purchase.order
   - mail.mail
+  - res.config.settings
 crons:
   - cron_escalation
   - cron_dispatch_acknowledgment

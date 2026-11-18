@@ -18,7 +18,7 @@
             <!-- Priority 10 places this block above Locations (priority 16) and Notes (priority 99). -->
             <xpath expr="//notebook[page[@name='internal_notes']]" position="before">
 
-                <separator string="Material Profile" invisible="not is_company"/>
+                <separator name="material_profile_separator" string="Material Profile" invisible="not is_company"/>
 
                 <div class="alert alert-light text-muted"
                      role="status"
@@ -36,6 +36,7 @@
                         <field name="polymer_id"/>
                         <field name="material_grade_id" optional="show"/>
                         <field name="form_id"/>
+                        <field name="direction"/>
                         <field name="color_ids" widget="many2many_tags" optional="show"/>
                         <field name="source_type_id" optional="show"/>
                         <field name="packaging_type_id" string="Packaging Type" optional="show"/>

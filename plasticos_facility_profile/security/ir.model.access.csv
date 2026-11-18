@@ -1,14 +1,12 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
 access_plasticos_facility_profile,access_plasticos_facility_profile,model_plasticos_facility_profile,base.group_user,1,1,1,1
-access_plasticos_equipment_type,access_plasticos_equipment_type,model_plasticos_equipment_type,base.group_user,1,0,0,0
-access_plasticos_equipment_type_admin,access_plasticos_equipment_type_admin,model_plasticos_equipment_type,base.group_system,1,1,1,1
 access_plasticos_partner_type,access_plasticos_partner_type,model_plasticos_partner_type,base.group_user,1,0,0,0
 access_plasticos_partner_type_admin,access_plasticos_partner_type_admin,model_plasticos_partner_type,base.group_system,1,1,1,1
-access_plasticos_equipment_type_all,plasticos.equipment.type.all,model_plasticos_equipment_type,base.group_user,1,1,1,1
 access_plasticos_partner_type_all,plasticos.partner.type.all,model_plasticos_partner_type,base.group_user,1,1,1,1
-access_plasticos_facility_template_user,plasticos.facility.template.user,model_plasticos_facility_template,base.group_user,1,0,0,0
-access_plasticos_facility_template_admin,plasticos.facility.template.admin,model_plasticos_facility_template,base.group_system,1,1,1,1
 access_plasticos_partner_phone_user,plasticos.partner.phone.user,model_plasticos_partner_phone,base.group_user,1,1,1,0
 access_plasticos_partner_phone_admin,plasticos.partner.phone.admin,model_plasticos_partner_phone,base.group_system,1,1,1,1
 access_plasticos_company_role_tag_user,plasticos.company.role.tag.user,model_plasticos_company_role_tag,base.group_user,1,0,0,0
 access_plasticos_company_role_tag_admin,plasticos.company.role.tag.admin,model_plasticos_company_role_tag,base.group_system,1,1,1,1
+access_plasticos_capability_user,plasticos.capability.user,model_plasticos_capability,base.group_user,1,1,1,1
+access_plasticos_capability_type_user,plasticos.capability.type.user,model_plasticos_capability_type,base.group_user,1,0,0,0
+access_plasticos_capability_type_system,plasticos.capability.type.system,model_plasticos_capability_type,base.group_system,1,1,1,1

@@ -34,7 +34,8 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
         """
         Validate Plasticos partner hierarchy:
         - Corporates: company_type=company, parent_id=False
-        - Facilities / locations: company_type=company, parent_id set
+        - Facilities / locations: sites (``res.partner._plasticos_is_site``),
+          a native delivery/invoice address or a company with a parent
         - Contacts: company_type=person, parent_id set, is_company=False
 
         ``facility_role`` is not part of the graph contract: the facility
@@ -42,8 +43,8 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
         through enrichment or manual entry, never derives it from partner type,
         so an imported location is valid without a facility specialization.
         """
-        # Corporates (company, no parent) and locations (company with a
-        # parent) are valid by definition, so only contacts are read. Of
+        # Corporates (company, no parent) and sites (either shape) are valid
+        # by definition, so only contacts are read. Of
         # those, a contact can fail only when it has no parent or carries
         # is_company=True; the res.users exemption stays in Python below.
         candidates = self.env["res.partner"].search(
@@ -105,17 +106,13 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
             if Partner.browse(d.res_id).exists()
         ]
 
-        # 2. Facility companies (company + parent) missing facility_role
-        # facility_role is a stored, indexed selection: unset is NULL, which
-        # "= False" selects, so only the reported locations are read.
-        facilities = Partner.search(
-            [
-                ("company_type", "=", "company"),
-                ("parent_id", "!=", False),
-                ("facility_role", "=", False),
-            ]
-        )
-        facilities_missing_role = [{"id": p.id, "name": p.name, "parent": p.parent_id.name} for p in facilities]
+        # 2. Company children missing facility_role. The same predicate as
+        # ``_original_missing_role``: a site (company_type "site") is not a
+        # company child, so it is not this report.
+        facilities = Partner.search([("company_type", "=", "company"), ("parent_id", "!=", False)])
+        facilities_missing_role = [
+            {"id": p.id, "name": p.name, "parent": p.parent_id.name} for p in facilities if not p.facility_role
+        ]
 
         # 3. Contacts (person) with no parent
         contacts_no_parent = Partner.search(
