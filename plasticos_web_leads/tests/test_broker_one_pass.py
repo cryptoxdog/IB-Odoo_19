@@ -19,7 +19,6 @@ import importlib
 from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import patch
-from xml.etree import ElementTree
 
 from odoo.tests import TransactionCase, tagged
 
@@ -355,6 +354,8 @@ class TestRepresentationAlignmentDisplay(TransactionCase):
                 viewed.append(path)
         self.assertFalse(offenders, f"100/100 display is views-only: {offenders}")
         self.assertTrue(viewed, "100/100 display is missing from the web-lead views")
+        from defusedxml import ElementTree
+
         for path in viewed:
             root = ElementTree.parse(path).getroot()
             parents = _parent_map(root)
