@@ -6,6 +6,7 @@ import uuid
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from .evidence_keys import KEY_MASS_LABEL
 from .material_catalog import CatalogEntry, accept_value, match_codes
 from .quantity_normalizer import QuantityEvidence
 
@@ -121,9 +122,10 @@ def reconcile_evidence(
         vision=vision,
         conflicts=conflicts,
         clarification_requests=sorted(set(clarifications)),
-        classification_inputs=dict(
-            weight_source=quantity.weight_source,
-            is_plastic_hint=ai.get("is_plastic"),
-            is_commercial_hint=ai.get("is_commercial_source"),
-        ),
+        classification_inputs={
+            "weight_source": quantity.weight_source,
+            KEY_MASS_LABEL: quantity.mass_label,
+            "is_plastic_hint": ai.get("is_plastic"),
+            "is_commercial_hint": ai.get("is_commercial_source"),
+        },
     )
