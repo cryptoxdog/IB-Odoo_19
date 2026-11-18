@@ -3,10 +3,17 @@
 Under ``legacy`` and ``shadow`` qualification the threshold here still feeds the
 legacy HOT/COLD classifier. Under ``live`` qualification (ADR-016, 2026-11-11
 amendment) the result is an advisory signal handed to the commercial model and
-the disposition validator: a weight below the threshold, or an unknown weight,
-is never a COLD decision by itself. A known, seller-stated or calculated weight
-below the configured cold floor is direct negative evidence the validator may
-weigh; an unknown weight is a missing fact, routed to REVIEW.
+the disposition validator. A known, seller-stated or calculated weight below
+the configured cold floor is direct negative evidence the validator may weigh.
+
+An unknown per-load weight is missing evidence. ``evaluate_economic_eligibility``
+keeps ``eligible`` false and records ``economic_evidence:weight_unknown``. This
+function does not choose a disposition. Unknown weight is not a review
+disposition.
+
+``PLANNING_DEFAULTS_V1`` is the single D7 planning object. Seller weight wins.
+Its figures are planning references only: they are never written into
+``estimated_lbs_per_load`` or ``quantity_per_load_lbs``.
 """
 
 from __future__ import annotations
@@ -15,6 +22,31 @@ from dataclasses import dataclass, field
 from typing import Any
 
 DEFAULT_REUSABLE_ITEM_POLICY_CODES = frozenset({"PLASTIC_PALLETS", "PALLETS", "TOTES", "CRATES"})
+
+
+@dataclass(frozen=True)
+class PlanningDefaultsV1:
+    """D7 planning figures. Not a stored per-load quantity and not a disposition.
+
+    ``trailers`` names the only planning equipment: one full domestic 53-foot
+    trailer. ``stored_per_load_lbs`` returns a seller-stated weight or nothing.
+    """
+
+    policy_ref: str = "web-lead-planning-defaults/v1"
+    mixed_plastic_pallets_lbs: tuple[int, int] = (10_000, 12_000)
+    baled_film_lbs: int = 36_000
+    pellets_lbs: int = 40_000
+    trailers: tuple[str, ...] = ("full domestic 53-foot trailer",)
+    seller_weight_wins: bool = True
+
+    def stored_per_load_lbs(self, seller_lbs: float | None) -> float | None:
+        """Pounds that may be stored. Planning figures are never returned."""
+        if not self.seller_weight_wins or seller_lbs is None or seller_lbs <= 0:
+            return None
+        return float(seller_lbs)
+
+
+PLANNING_DEFAULTS_V1 = PlanningDefaultsV1()
 
 
 @dataclass(frozen=True)
