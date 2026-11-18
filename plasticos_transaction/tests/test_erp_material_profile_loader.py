@@ -161,9 +161,10 @@ class TestErpMaterialProfileLoader(TransactionCase):
         self.assertEqual(profile.material_attribute_ids.mapped("code"), ["clean"])
         self.assertEqual(profile.packaging_type_id.code, "gaylords")
         self.assertEqual(profile.freeform_notes, "ERP product: Syn HDPE Regrind")
+        self.assertEqual(profile.direction, "out")
         self.assertFalse(self._profiles(self.resins | self.warehouse))
 
-    def test_supplier_and_customer_files_are_one_list(self):
+    def test_supplier_list_is_out_and_customer_list_is_in(self):
         paths = self._files(
             suppliers=[("Syn HDPE Regrind", "Synthetic Resins Co", "Plant 1")],
             customers=[
@@ -173,10 +174,27 @@ class TestErpMaterialProfileLoader(TransactionCase):
         )
         report = self._run(paths)
         self.assertEqual(report["summary"]["records_seen"], 3)
-        self.assertEqual(report["summary"]["records_created"], 2)
-        self.assertEqual(report["summary"]["records_unchanged"], 1)
-        self.assertEqual(len(self._profiles(self.plant)), 1)
-        self.assertEqual(self._profiles(self.warehouse).polymer_id.code, "LDPE")
+        self.assertEqual(report["summary"]["records_created"], 3)
+        self.assertEqual(report["summary"]["records_unchanged"], 0)
+        plant = self._profiles(self.plant)
+        self.assertEqual(set(plant.mapped("direction")), {"out", "in"})
+        self.assertEqual(set(plant.mapped("polymer_id.code")), {"HDPE"})
+        warehouse = self._profiles(self.warehouse)
+        self.assertEqual(warehouse.direction, "in")
+        self.assertEqual(warehouse.polymer_id.code, "LDPE")
+
+        self.env.flush_all()
+        with (
+            patch.object(type(self.Profile), "write") as write,
+            patch.object(type(self.Profile), "create") as create,
+        ):
+            replay = self._run(paths)
+        write.assert_not_called()
+        create.assert_not_called()
+        self.assertEqual(replay["summary"]["records_created"], 0)
+        self.assertEqual(replay["summary"]["records_updated"], 0)
+        self.assertEqual(replay["summary"]["records_unchanged"], 3)
+        self.assertEqual(self._profiles(self.plant | self.warehouse), plant | warehouse)
 
     def test_second_run_creates_and_changes_nothing(self):
         paths = self._files(
@@ -261,12 +279,16 @@ class TestErpMaterialProfileLoader(TransactionCase):
         self.assertEqual(report["summary"]["records_created"], 2)
         self.assertEqual(report["summary"]["records_rejected"], 0)
         self.assertEqual(self._profiles(self.solo).polymer_id.code, "LDPE")
+        self.assertEqual(self._profiles(self.solo).direction, "out")
         self.assertEqual(self._profiles(self.accent).form_id.code, "FILM")
+        self.assertEqual(self._profiles(self.accent).direction, "in")
 
     def test_products_sharing_a_key_at_one_site_yield_one_profile(self):
         paths = self._files(
-            suppliers=[("Syn HDPE Regrind", "Synthetic Resins Co", "Plant 1")],
-            customers=[("Syn HDPE Regrind Washed", "Synthetic Resins Co", "Plant 1")],
+            suppliers=[
+                ("Syn HDPE Regrind", "Synthetic Resins Co", "Plant 1"),
+                ("Syn HDPE Regrind Washed", "Synthetic Resins Co", "Plant 1"),
+            ],
         )
         report = self._run(paths)
         self.assertEqual(report["summary"]["records_created"], 1)
@@ -286,8 +308,9 @@ class TestErpMaterialProfileLoader(TransactionCase):
         self.assertEqual(profile.source_type_id.code, "POST_INDUSTRIAL")
         self.assertEqual(
             [(row["key"], row["detail"]) for row in report["anomalies"]],
-            [(f"{CUSTOMERS}:2", f"profile {profile.id}: source_type_id already set to a different value; kept")],
+            [(f"{SUPPLIERS}:3", f"profile {profile.id}: source_type_id already set to a different value; kept")],
         )
+        self.assertEqual(profile.direction, "out")
 
     def test_existing_notes_are_kept_and_the_product_line_is_added_once(self):
         polymer = self.env["plasticos.polymer"].search([("code", "=", "LDPE")], limit=1)
@@ -305,6 +328,7 @@ class TestErpMaterialProfileLoader(TransactionCase):
         self.assertEqual(self._run(paths)["summary"]["records_unchanged"], 1)
         self.assertEqual(self._profiles(self.warehouse), existing)
         self.assertEqual(existing.freeform_notes.splitlines(), ["Operator note", "ERP product: Syn LDPE Film"])
+        self.assertEqual(existing.direction, "out")
 
     def test_dry_run_counts_like_an_applied_run_and_persists_nothing(self):
         paths = self._files(
@@ -322,6 +346,19 @@ class TestErpMaterialProfileLoader(TransactionCase):
         applied = self._run(paths)
         self.assertEqual(applied["summary"]["records_created"], 1)
         self.assertEqual(self.Profile.search_count([]), before + 1)
+
+    def test_one_capability_on_the_site_is_linked(self):
+        facility = self.env["plasticos.facility.profile"].create({"partner_id": self.plant.id})
+        cap_type = self.env["plasticos.capability.type"].search([("code", "=", "shredding")], limit=1)
+        self.assertTrue(cap_type)
+        only = self.env["plasticos.capability"].create(
+            {"facility_profile_id": facility.id, "capability_type_id": cap_type.id}
+        )
+        self._run(self._files(suppliers=[("Syn LDPE Film", "Synthetic Resins Co", "Plant 1")]))
+        profile = self._profiles(self.plant)
+        self.assertEqual(len(profile), 1)
+        self.assertEqual(profile.direction, "out")
+        self.assertEqual(profile.capability_id, only)
 
     def test_a_file_without_the_expected_columns_is_refused(self):
         path = self.folder / "Syn-Bad.csv"

@@ -5,7 +5,8 @@ this file into the shell). Configuration arrives through the environment:
 
 * ``ERP_PROFILE_SUPPLIERS`` / ``ERP_PROFILE_CUSTOMERS`` — the two operator
   files (Product, Supplier or Customer, Ship From or Ship To). Both are
-  required and both are read as one list.
+  required. The supplier file writes direction out and the customer file
+  writes direction in.
 * ``ERP_PROFILE_DRY`` — ``1`` resolves and counts, then rolls back.
 * ``ERP_PROFILE_REPORT_PATH`` — write the machine-readable summary here.
 * ``ERP_TARGET_DB`` — the database this run may touch. The ERP import's

@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+  <!-- ADR-134 section 3. Property names are lowercase letters, digits and underscores.
+       A width-by-length opening is two float properties. Yes/no details are booleans. -->
+
+  <record id="capability_type_shredding" model="plasticos.capability.type">
+    <field name="name">Shredding</field>
+    <field name="code">shredding</field>
+    <field name="sequence">10</field>
+    <field name="details_definition" eval="[
+      {'name': 'shafts', 'string': 'Shafts', 'type': 'selection', 'selection': [['single', 'Single'], ['dual', 'Dual'], ['quad', 'Quad']]},
+      {'name': 'hp', 'string': 'HP', 'type': 'integer'},
+      {'name': 'feed_opening_w_in', 'string': 'Feed opening width (in)', 'type': 'float'},
+      {'name': 'feed_opening_l_in', 'string': 'Feed opening length (in)', 'type': 'float'},
+      {'name': 'screen', 'string': 'Screen', 'type': 'boolean'},
+      {'name': 'screen_size_in', 'string': 'Screen size (in)', 'type': 'float'},
+    ]"/>
+  </record>
+
+  <record id="capability_type_grinding" model="plasticos.capability.type">
+    <field name="name">Grinding</field>
+    <field name="code">grinding</field>
+    <field name="sequence">20</field>
+    <field name="details_definition" eval="[
+      {'name': 'hp', 'string': 'HP', 'type': 'integer'},
+      {'name': 'throat_opening_w_in', 'string': 'Throat opening width (in)', 'type': 'float'},
+      {'name': 'throat_opening_l_in', 'string': 'Throat opening length (in)', 'type': 'float'},
+      {'name': 'screen_size_in', 'string': 'Screen size (in)', 'type': 'float'},
+    ]"/>
+  </record>
+
+  <record id="capability_type_sink_float" model="plasticos.capability.type">
+    <field name="name">Sink-Float</field>
+    <field name="code">sink_float</field>
+    <field name="sequence">30</field>
+    <field name="details_definition" eval="[
+      {'name': 'separates', 'string': 'Separates', 'type': 'selection', 'selection': [['polyolefins_from_heavier', 'Polyolefins from heavier plastics'], ['metal', 'Metal'], ['both', 'Both']]},
+    ]"/>
+  </record>
+
+  <record id="capability_type_washing" model="plasticos.capability.type">
+    <field name="name">Washing</field>
+    <field name="code">washing</field>
+    <field name="sequence">40</field>
+    <field name="details_definition" eval="[
+      {'name': 'water', 'string': 'Water', 'type': 'selection', 'selection': [['hot', 'Hot'], ['cold', 'Cold']]},
+      {'name': 'friction_washer', 'string': 'Friction washer', 'type': 'boolean'},
+      {'name': 'dryer', 'string': 'Dryer', 'type': 'boolean'},
+    ]"/>
+  </record>
+
+  <record id="capability_type_metal_separation" model="plasticos.capability.type">
+    <field name="name">Metal Separation</field>
+    <field name="code">metal_separation</field>
+    <field name="sequence">50</field>
+    <field name="details_definition" eval="[
+      {'name': 'method', 'string': 'Method', 'type': 'selection', 'selection': [['magnet', 'Magnet'], ['eddy_current', 'Eddy current'], ['both', 'Both']]},
+    ]"/>
+  </record>
+
+  <record id="capability_type_drying" model="plasticos.capability.type">
+    <field name="name">Drying</field>
+    <field name="code">drying</field>
+    <field name="sequence">60</field>
+    <field name="details_definition" eval="[]"/>
+  </record>
+
+  <record id="capability_type_sorting" model="plasticos.capability.type">
+    <field name="name">Sorting</field>
+    <field name="code">sorting</field>
+    <field name="sequence">70</field>
+    <field name="details_definition" eval="[
+      {'name': 'method', 'string': 'Method', 'type': 'selection', 'selection': [['manual', 'Manual'], ['optical_nir', 'Optical-NIR']]},
+    ]"/>
+  </record>
+
+  <record id="capability_type_baling" model="plasticos.capability.type">
+    <field name="name">Baling</field>
+    <field name="code">baling</field>
+    <field name="sequence">80</field>
+    <field name="details_definition" eval="[
+      {'name': 'baler', 'string': 'Baler', 'type': 'selection', 'selection': [['hrb', 'HRB'], ['downstroke', 'Downstroke'], ['two_ram', 'Two-ram']]},
+      {'name': 'ram', 'string': 'Ram', 'type': 'selection', 'selection': [['single', 'Single'], ['dual', 'Dual']]},
+      {'name': 'bale_weight_lb', 'string': 'Bale weight (lb)', 'type': 'float'},
+    ]"/>
+  </record>
+
+  <record id="capability_type_pelletizing" model="plasticos.capability.type">
+    <field name="name">Pelletizing</field>
+    <field name="code">pelletizing</field>
+    <field name="sequence">90</field>
+    <field name="details_definition" eval="[
+      {'name': 'screw', 'string': 'Screw', 'type': 'selection', 'selection': [['single', 'Single'], ['twin', 'Twin']]},
+      {'name': 'screw_diameter_mm', 'string': 'Screw diameter (mm)', 'type': 'float'},
+      {'name': 'melt_filter', 'string': 'Melt filter', 'type': 'selection', 'selection': [['screen_changer', 'Screen changer'], ['continuous', 'Continuous'], ['none', 'None']]},
+      {'name': 'vented', 'string': 'Vented', 'type': 'boolean'},
+    ]"/>
+  </record>
+
+  <record id="capability_type_extrusion" model="plasticos.capability.type">
+    <field name="name">Extrusion</field>
+    <field name="code">extrusion</field>
+    <field name="sequence">100</field>
+    <field name="details_definition" eval="[
+      {'name': 'screw', 'string': 'Screw', 'type': 'selection', 'selection': [['single', 'Single'], ['twin', 'Twin']]},
+      {'name': 'screw_diameter_mm', 'string': 'Screw diameter (mm)', 'type': 'float'},
+    ]"/>
+  </record>
+
+  <record id="capability_type_compounding" model="plasticos.capability.type">
+    <field name="name">Compounding</field>
+    <field name="code">compounding</field>
+    <field name="sequence">110</field>
+    <field name="details_definition" eval="[
+      {'name': 'screw', 'string': 'Screw', 'type': 'selection', 'selection': [['single', 'Single'], ['twin', 'Twin']]},
+      {'name': 'screw_diameter_mm', 'string': 'Screw diameter (mm)', 'type': 'float'},
+      {'name': 'melt_filter', 'string': 'Melt filter', 'type': 'selection', 'selection': [['screen_changer', 'Screen changer'], ['continuous', 'Continuous'], ['none', 'None']]},
+      {'name': 'vented', 'string': 'Vented', 'type': 'boolean'},
+    ]"/>
+  </record>
+
+  <record id="capability_type_injection_molding" model="plasticos.capability.type">
+    <field name="name">Injection Molding</field>
+    <field name="code">injection_molding</field>
+    <field name="sequence">120</field>
+    <field name="details_definition" eval="[]"/>
+  </record>
+
+  <record id="capability_type_blow_molding" model="plasticos.capability.type">
+    <field name="name">Blow Molding</field>
+    <field name="code">blow_molding</field>
+    <field name="sequence">130</field>
+    <field name="details_definition" eval="[]"/>
+  </record>
+
+  <record id="capability_type_film_blowing" model="plasticos.capability.type">
+    <field name="name">Film Blowing</field>
+    <field name="code">film_blowing</field>
+    <field name="sequence">140</field>
+    <field name="details_definition" eval="[]"/>
+  </record>
+
+  <record id="capability_type_film_casting" model="plasticos.capability.type">
+    <field name="name">Film Casting</field>
+    <field name="code">film_casting</field>
+    <field name="sequence">150</field>
+    <field name="details_definition" eval="[]"/>
+  </record>
+
+  <record id="capability_type_thermoforming" model="plasticos.capability.type">
+    <field name="name">Thermoforming</field>
+    <field name="code">thermoforming</field>
+    <field name="sequence">160</field>
+    <field name="details_definition" eval="[]"/>
+  </record>
+
+  <record id="capability_type_rotomolding" model="plasticos.capability.type">
+    <field name="name">Rotomolding</field>
+    <field name="code">rotomolding</field>
+    <field name="sequence">170</field>
+    <field name="details_definition" eval="[]"/>
+  </record>
+
+  <record id="capability_type_compression_molding" model="plasticos.capability.type">
+    <field name="name">Compression Molding</field>
+    <field name="code">compression_molding</field>
+    <field name="sequence">180</field>
+    <field name="details_definition" eval="[]"/>
+  </record>
+
+  <record id="capability_type_purification" model="plasticos.capability.type">
+    <field name="name">Purification</field>
+    <field name="code">purification</field>
+    <field name="sequence">190</field>
+    <field name="details_definition" eval="[]"/>
+  </record>
+</odoo>

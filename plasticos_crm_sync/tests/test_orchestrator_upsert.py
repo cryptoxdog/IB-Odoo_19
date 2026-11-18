@@ -1495,7 +1495,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(person.parent_id, company)
         self.assertEqual(person.email, "erp-person@example.test")
         self.assertEqual(person.phone, "555-0100")
-        self.assertEqual(person.mobile, "215-555-0140")
+        self.assertEqual(person.mobile, "(215) 555-0140")
         self.assertEqual(person.street, "1 ERP Way")
         self.assertEqual(person.city, "Philadelphia")
         self.assertEqual(person.zip, "19103")
@@ -1528,9 +1528,9 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         )
         leads_before = self.env["crm.lead"].with_context(active_test=False).search_count([])
         orch._upsert_lead(self.connection, dto)
-        self.assertEqual(person.phone, "215-555-0101")
+        self.assertEqual(person.phone, "(215) 555-0101")
         lines = [(line.label, line.number) for line in person.phone_line_ids]
-        self.assertEqual(lines, [("mobile", "215-555-0102"), ("fax", "215-555-0101")])
+        self.assertEqual(lines, [("mobile", "(215) 555-0102"), ("fax", "(215) 555-0101")])
         self.assertNotIn("215-555-0106", [number for _label, number in lines])
         self.assertEqual(self.env["crm.lead"].with_context(active_test=False).search_count([]), leads_before)
         orch._upsert_lead(self.connection, dto)
@@ -1578,7 +1578,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertFalse(bound)
         self.assertEqual(self.env["crm.lead"].with_context(active_test=False).search_count([]), leads_before)
         self.assertEqual(self.env["res.partner"].with_context(active_test=False).search_count([]), partners_before)
-        self.assertEqual(person.phone, "215-555-0101")
+        self.assertEqual(person.phone, "(215) 555-0101")
         self.assertIn("ERP manual", person.comment or "")
 
         resolved = orch._resolve_orphans(self.connection, MagicMock(), run)
@@ -1778,6 +1778,8 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(lead.street, "12 Dock St")
         self.assertEqual(lead.zip, "19019")
         self.assertEqual(lead.delivery_term, "fcfs")
+        # ADR-135 §3: the stored value is the dock rule of the side the partner plays.
+        self.assertIn(lead._plasticos_delivery_term_side(), ("pickup", "delivery"))
         self._assert_tokens_absent(tokens, text)
         self._assert_tokens_absent(tokens, self._profile_notes(lead))
 
@@ -2027,6 +2029,7 @@ class TestCrmSyncOrchestrator(CrmSyncOrchestratorCase):
         self.assertEqual(person.street, "ERP DOCK")
         self.assertEqual(person.phone, "555-0100")
         self.assertEqual(lead.delivery_term, "fcfs")
+        self.assertIn(lead._plasticos_delivery_term_side(), ("pickup", "delivery"))
         self.assertEqual(set(row.fields_json), {"Material", "Notes"})
         self.assertEqual(row.fields_json["Notes"], "Load Ready is mentioned in ordinary notes")
         self.assertEqual(other.fields_json["Load Ready"], "KEEP-OTHER")

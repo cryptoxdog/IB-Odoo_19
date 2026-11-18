@@ -4,3 +4,4 @@ from . import test_facility_form_edits
 from . import test_location_removal
 from . import test_reach_person
 from . import test_facility_profile_removal
+from . import test_capabilities

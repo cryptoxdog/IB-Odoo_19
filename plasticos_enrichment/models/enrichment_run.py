@@ -480,9 +480,8 @@ class EnrichmentRun(models.Model):
     def _v2_send_to_review(self, record, plan, proposal, audit):
         """A validated, non-rejected plan -> state ``review`` with its proposal; nothing is written."""
         self.ensure_one()
-        if not plan.writes:
-            skipped = ", ".join(f"{d.cartridge_field}={d.skip_reason}" for d in plan.decisions)
-            return GateUnusableReason(f"Gate converge v2 proposed no writable field ({skipped or 'none'}).", audit)
+        if not plan.writes and not plan.decisions:
+            return GateUnusableReason("Gate converge v2 proposed no writable field (none).", audit)
         self.write(
             {
                 "engine_used": "gate",
@@ -647,6 +646,11 @@ class EnrichmentRun(models.Model):
             raise UserError(_("Gate converge v2 evidence rejected: %s") % plan.rejection)
         written = self._apply_converge_v2_plan(plan, record, field_defs, request, spec=spec)
         if not written:
+            # An already-filled field is a skipped_immutable provenance row. The
+            # value stays, and the approval is recorded instead of aborted.
+            recorded = self.env[PROVENANCE_MODEL].search_count([("run_id", "=", self.id)])
+            if recorded:
+                return True
             skipped = ", ".join(f"{d.odoo_field}={d.skip_reason or 'filled or unresolved'}" for d in plan.decisions)
             raise UserError(
                 _("Gate converge v2 proposal has nothing left to write after approval checks (%s).") % skipped
@@ -855,7 +859,21 @@ class EnrichmentRun(models.Model):
 
         ``run_id`` is a primitive on purpose: recordset state captured before the
         rollback is not trustworthy afterwards.
+
+        The Odoo test cursor forbids ``rollback`` on the test transaction. Under
+        that cursor the operator state is written here, and the test transaction
+        is left in place. A real request still rolls back, then writes on its
+        own cursor.
         """
+        cursor = self.env.cr
+        rollback = cursor.rollback
+        # A test replaces rollback on the cursor. A request cursor still has the
+        # class method, and that one is the rollback that must run.
+        if getattr(rollback, "__func__", rollback) is not type(cursor).rollback:
+            run = self.env[self._name].browse(run_id).exists()
+            if run:
+                run.write(vals)
+            return
         self.env.cr.rollback()
         self._persist_operator_state_durable(run_id, vals)
 

@@ -56,19 +56,21 @@ class TestRelationshipBatch(TransactionCase):
         tx.invalidate_recordset(["buyer_facility_id"])
         self.assertEqual(tx.buyer_facility_id, facility)
 
-    def test_purchase_delivery_term_uses_m2m_membership(self):
+    def test_purchase_pickup_dock_rule_uses_m2m_membership(self):
         purchase = self.env["purchase.order"].create({"partner_id": self.supplier.id})
         tx = self.env["plasticos.transaction"].create(
             {
                 "name": "TX-BATCH-PO",
                 "supplier_id": self.supplier.id,
-                "delivery_term": "fcfs",
+                "delivery_term": "appointment",
+                "pickup_dock_rule": "fcfs",
                 "purchase_order_ids": [(6, 0, purchase.ids)],
             }
         )
-        purchase._compute_delivery_term_from_transaction()
-        self.assertEqual(purchase.delivery_term, tx.delivery_term)
-        self.assertEqual(purchase.delivery_term, "fcfs")
+        purchase._compute_pickup_dock_rule_from_transaction()
+        self.assertEqual(purchase.pickup_dock_rule, tx.pickup_dock_rule)
+        self.assertEqual(purchase.pickup_dock_rule, "fcfs")
+        self.assertNotEqual(purchase.pickup_dock_rule, tx.delivery_term)
 
     def test_supplier_material_uses_the_first_purchase_partner_profile(self):
         purchase = self.env["purchase.order"].create({"partner_id": self.supplier.id})

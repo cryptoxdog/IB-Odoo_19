@@ -677,8 +677,10 @@ def check_xml_server_actions(filepath: str) -> list[AntiPatternIssue]:
                 continue
 
             # Pattern: variable.field = value (not a method call result)
-            # Matches: so.appointment_requested = True
             # Matches: record.state = 'done'
+            # Matches: order.delivery_term = 'fcfs'
+            # A server action calls a model method. It does not assign
+            # appointment_requested; a person sets that flag when the request is sent.
             # Does NOT match: record.field = some_func()  (has parentheses)
             # Does NOT match: self.env = ...  (self is excluded)
             direct_assign = re.search(

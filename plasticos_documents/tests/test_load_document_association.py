@@ -29,6 +29,7 @@ class TestLoadDocumentAssociation(PlasticosTestCase):
                 "buyer_id": self.buyer.id,
                 "sale_order_id": order.id,
                 "delivery_term": "appointment",
+                "pickup_dock_rule": "appointment",
             }
         )
         load = self.env["plasticos.load"].create({"sale_order_id": order.id})

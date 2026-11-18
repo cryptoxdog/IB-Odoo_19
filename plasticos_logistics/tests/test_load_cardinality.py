@@ -49,6 +49,7 @@ class TestLoadCardinality(TransactionCase):
             "supplier_id": self.supplier.id,
             "buyer_id": self.buyer.id,
             "delivery_term": "appointment",
+            "pickup_dock_rule": "appointment",
         }
         if sale_order:
             values["sale_order_id"] = sale_order.id

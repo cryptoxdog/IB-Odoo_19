@@ -42,6 +42,10 @@ CONTACT_PAGE_SIZE = 200
 # ADR-132 review rows: never fail the run, always printed in full after it.
 MATERIAL_PLACEMENT_REVIEW = "MATERIAL_PLACEMENT_REVIEW"
 MATERIAL_FIELD_IGNORED = "MATERIAL_FIELD_IGNORED"
+MATERIAL_DIRECTION_REVIEW = "MATERIAL_DIRECTION_REVIEW"
+# Set on the environment by the AI broker path. A material-profile write in
+# that context must carry a direction; a write without one is refused.
+AI_BROKER_CONTEXT = "plasticos_ai_broker"
 PLACEMENT_ACTIVITY_PREFIX = "Place materials:"
 CALL_BATCH_SIZE = 500
 
@@ -1997,7 +2001,8 @@ class SyncOrchestrator:
         """Record one typed row. Status reads ``category``, never the message text.
 
         ``error_type`` marks rows the operator reviews after every run
-        (``MATERIAL_PLACEMENT_REVIEW``, ``MATERIAL_FIELD_IGNORED``); see ADR-132.
+        (``MATERIAL_PLACEMENT_REVIEW``, ``MATERIAL_FIELD_IGNORED``,
+        ``MATERIAL_DIRECTION_REVIEW``); see ADR-132 and ADR-134.
         """
         row = {"record_ref": record_ref, "message": message, "category": category}
         if error_type:
@@ -2425,8 +2430,139 @@ class SyncOrchestrator:
                 return combined, _HINT_STATUS_UNSUPPORTED
         return combined, None
 
+    def _buyer_supplier_raw(self, field_maps) -> str:
+        for fields in field_maps:
+            if isinstance(fields, dict):
+                raw = _collapse_ws(fields.get("Buyer/Supplier"))
+                if raw:
+                    return raw
+        return ""
+
+    def _vanillasoft_direction(self, field_maps, partner):
+        """Direction this VanillaSoft record writes, and whether it needs review.
+
+        Supplier is out and Buyer is in. Both uses the site when the site can
+        tell (a pickup address is out); otherwise the direction stays blank and
+        the caller lists the record. No Buyer/Supplier value leaves the
+        decision to the profile default (``None``).
+        """
+        from .vanillasoft_partners import ROLE_BUYER, ROLE_SUPPLIER, parse_roles  # noqa: PLC0415
+
+        roles = parse_roles(self._buyer_supplier_raw(field_maps))
+        supplier = ROLE_SUPPLIER in roles
+        buyer = ROLE_BUYER in roles
+        if supplier and not buyer:
+            return "out", False
+        if buyer and not supplier:
+            return "in", False
+        if not (supplier and buyer):
+            return None, False
+        from odoo.addons.plasticos_material_profile.direction import (  # noqa: PLC0415
+            direction_for,
+            is_site_shape,
+        )
+
+        decided = False
+        if partner is not None and getattr(partner, "id", False):
+            site_method = getattr(partner, "_plasticos_is_site", None)
+            site = (
+                bool(site_method())
+                if callable(site_method)
+                else is_site_shape(
+                    has_parent=bool(partner.parent_id),
+                    partner_type=partner.type,
+                    is_company=bool(partner.is_company),
+                )
+            )
+            label = partner.erp_address_label if "erp_address_label" in partner._fields else False
+            role = partner.company_role if "company_role" in partner._fields else False
+            decided = (
+                direction_for(
+                    site=site,
+                    partner_type=partner.type,
+                    source_label=label,
+                    company_role=role,
+                    supplier_rank=1,
+                    customer_rank=1,
+                )
+                or False
+            )
+        return decided, not decided
+
+    def _append_direction_review(self, ref) -> None:
+        """One NEEDS REVIEW row per record. A replay on this run does not add another."""
+        if any(
+            row.get("error_type") == MATERIAL_DIRECTION_REVIEW and row.get("record_ref") == ref
+            for row in self.error_rows
+        ):
+            return
+        self._append_classified_error(
+            ref,
+            "direction blank: Buyer and Supplier; the site does not decide",
+            OPTIONAL_CONTEXT,
+            MATERIAL_DIRECTION_REVIEW,
+        )
+
+    def _reuse_directed_material(self, partner, facility_profile, polymer, forms, grades, note_line, direction):
+        """Reuse or create one profile whose key includes ``direction``.
+
+        ``False`` is an explicit blank direction. It is not the same profile as
+        out or in. A new row links the site's only capability through create.
+        """
+        from odoo.exceptions import ValidationError  # noqa: PLC0415
+
+        Profile = self.env["plasticos.material.profile"]
+        form_id = forms.id if forms is not None and len(forms) == 1 else False
+        grade_id = grades.id if grades is not None and len(grades) == 1 else False
+        identity = [
+            ("polymer_id", "=", polymer.id),
+            ("form_id", "=", form_id),
+            ("material_grade_id", "=", grade_id),
+            ("direction", "=", direction or False),
+        ]
+        has_facility = facility_profile is not None and getattr(facility_profile, "id", False)
+        profile = Profile.browse()
+        if has_facility:
+            profile = Profile.search([("facility_profile_id", "=", facility_profile.id), *identity], limit=1)
+            if not profile and facility_profile.partner_id:
+                profile = Profile.search([("partner_id", "=", facility_profile.partner_id.id), *identity], limit=1)
+                if profile and not profile.facility_profile_id:
+                    profile.facility_profile_id = facility_profile
+        elif partner is not None:
+            profile = Profile.search([("partner_id", "=", partner.id), *identity], limit=1)
+        else:
+            raise ValidationError("A facility profile is required.")
+        if not profile:
+            vals = {
+                "polymer_id": polymer.id,
+                "form_id": form_id,
+                "material_grade_id": grade_id,
+                "direction": direction or False,
+            }
+            if has_facility:
+                vals["facility_profile_id"] = facility_profile.id
+                if facility_profile.partner_id:
+                    vals["partner_id"] = facility_profile.partner_id.id
+            elif partner is not None:
+                vals["partner_id"] = partner.id
+            profile = Profile.create(vals)
+        if note_line:
+            existing_lines = (profile.freeform_notes or "").splitlines()
+            if note_line not in existing_lines:
+                notes = profile.freeform_notes or ""
+                profile.freeform_notes = f"{notes}\n{note_line}" if notes else note_line
+        return profile
+
     def _store_normalized_materials(
-        self, lead, texts, partner=None, facility_profile=None, structured=None, record_form=None, external_id=None
+        self,
+        lead,
+        texts,
+        partner=None,
+        facility_profile=None,
+        structured=None,
+        record_form=None,
+        external_id=None,
+        direction=None,
     ):
         """Store each phrase as a profile and return the profiles touched.
 
@@ -2465,7 +2601,17 @@ class SyncOrchestrator:
                 )
                 continue
             forms = normalized.form if len(normalized.form) == 1 or not record_form else record_form
-            if facility_profile is not None and getattr(facility_profile, "id", False):
+            if direction is not None:
+                profile = self._reuse_directed_material(
+                    partner,
+                    facility_profile,
+                    normalized.polymer,
+                    forms,
+                    normalized.material_grade,
+                    normalized.source_description,
+                    direction,
+                )
+            elif facility_profile is not None and getattr(facility_profile, "id", False):
                 profile = profiles.reuse_lead_facility_material(
                     facility_profile,
                     normalized.polymer,
@@ -2505,6 +2651,14 @@ class SyncOrchestrator:
         record_form = self._one_record_value(record_slot.get("forms", []), "Material Form", ref)
         source = self._source_type_for(record_type, ref) if record_type else None
         form, packaging = self._form_or_packaging_for(record_form, ref) if record_form else (None, None)
+        has_phrases = any(slot["phrases"] for slot in sections.values())
+        direction, review = self._vanillasoft_direction(field_maps, partner)
+        context = getattr(self.env, "context", None) or {}
+        if context.get(AI_BROKER_CONTEXT) and has_phrases and not direction:
+            self._append_classified_error(ref, "material write refused: direction is required", REQUIRED_MAPPING)
+            return
+        if review and has_phrases:
+            self._append_direction_review(ref)
         for section, slot in sections.items():
             phrases = list(slot["phrases"])
             structured = None
@@ -2530,6 +2684,7 @@ class SyncOrchestrator:
                 structured=structured,
                 record_form=form,
                 external_id=ref,
+                direction=direction,
             )
             for profile in touched:
                 if source and not profile.source_type_id:
@@ -2823,6 +2978,13 @@ class SyncOrchestrator:
         if not tag:
             self._append_classified_error(dto.external_id, f"BLOCKED_DESTINATION: {canonical}", OPTIONAL_CONTEXT)
             return
+        company = _verified_company(lead, None)
+        if company is not None and _company_type_overlaps(company, canonical):
+            # A blocked company type (Broker overlapping the stored role) must not
+            # stay on the lead. The first pass can link it before the partner exists.
+            if tag in lead.tag_ids:
+                lead.write({"tag_ids": [command.unlink(tag.id)]})
+            return
         if tag not in lead.tag_ids:
             lead.write({"tag_ids": [command.link(tag.id)]})
 
@@ -2995,7 +3157,8 @@ class SyncOrchestrator:
 
         wanted = {field: rank for field, rank in trade_ranks(roles).items() if (company[field] or 0) < rank}
         if wanted:
-            company.write(wanted)
+            # Ranks rise. Buyer and Supplier stay off res.partner.category.
+            company.with_context(plasticos_skip_trade_role_category=True).write(wanted)
         self._link_company_role_tags(company, roles)
 
     def _link_company_role_tags(self, company, roles) -> None:

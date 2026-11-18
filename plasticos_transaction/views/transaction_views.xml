@@ -192,6 +192,13 @@
                         </group>
                     </group>
 
+                    <group>
+                        <group string="Dock Rules" name="dock_rules">
+                            <field name="pickup_dock_rule"/>
+                            <field name="delivery_term"/>
+                        </group>
+                    </group>
+
                     <notebook name="transaction_pages">
                         <page string="Invoices &amp; Bills">
                             <group>

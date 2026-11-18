@@ -12,3 +12,6 @@ access_plasticos_partner_phone_user,plasticos.partner.phone.user,model_plasticos
 access_plasticos_partner_phone_admin,plasticos.partner.phone.admin,model_plasticos_partner_phone,base.group_system,1,1,1,1
 access_plasticos_company_role_tag_user,plasticos.company.role.tag.user,model_plasticos_company_role_tag,base.group_user,1,0,0,0
 access_plasticos_company_role_tag_admin,plasticos.company.role.tag.admin,model_plasticos_company_role_tag,base.group_system,1,1,1,1
+access_plasticos_capability_user,plasticos.capability.user,model_plasticos_capability,base.group_user,1,1,1,1
+access_plasticos_capability_type_user,plasticos.capability.type.user,model_plasticos_capability_type,base.group_user,1,0,0,0
+access_plasticos_capability_type_system,plasticos.capability.type.system,model_plasticos_capability_type,base.group_system,1,1,1,1
