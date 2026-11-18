@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from dataclasses import asdict, dataclass
 
+from .evidence_keys import MASS_LABEL_GROUNDED, MASS_LABEL_PLANNING
 from .triage_helpers import UNIT_WEIGHTS_LBS, WEIGHT_SOURCE_AREA, SellerMass, parse_seller_mass
 
 _WEEKLY_TO_MONTHLY = 52.0 / 12.0
@@ -85,6 +86,9 @@ class QuantityEvidence:
     assumptions: tuple[str, ...]
     clarification_requests: tuple[str, ...]
     load_weight_lbs_high: float | None = None
+    # grounded: the seller stated the pounds. planning: the figure is not seller weight.
+    # Planning-default pounds are never written into load_weight_lbs.
+    mass_label: str = MASS_LABEL_PLANNING
 
     def to_dict(self) -> dict[str, object]:
         """Return a JSON-safe representation for evidence persistence."""
@@ -154,6 +158,21 @@ def _inventory(text: str, cadence_period: str | None) -> tuple[float | None, str
     return float(match.group(1)), match.group(2).lower().rstrip("s")
 
 
+_SOURCE_WEIGHT_FIELD = "weight_per_load_field_lbs"
+_SOURCE_RANGE_LBS = "range_lbs"
+
+
+def mass_label_for(source: str, lbs: float | None) -> str:
+    """Label seller-stated mass as grounded and every other reading as planning.
+
+    This does not choose a planning-default number and does not change ``lbs``.
+    """
+    seller_stated = source in {_SOURCE_WEIGHT_FIELD, _SOURCE_RANGE_LBS} or source.startswith("explicit_")
+    if lbs and lbs > 0 and seller_stated:
+        return MASS_LABEL_GROUNDED
+    return MASS_LABEL_PLANNING
+
+
 def _weight_from_weight_field(raw: str) -> SellerMass:
     """A dedicated weight box that is only a number is already pounds."""
     token = raw.replace(",", "").strip()
@@ -163,7 +182,7 @@ def _weight_from_weight_field(raw: str) -> SellerMass:
         return parse_seller_mass(raw)
     if numeric < 0:
         return SellerMass(None, None, "none")
-    return SellerMass(numeric, None, "weight_per_load_field_lbs")
+    return SellerMass(numeric, None, _SOURCE_WEIGHT_FIELD)
 
 
 def normalize_quantity_evidence(
@@ -235,4 +254,5 @@ def normalize_quantity_evidence(
         assumptions=chosen.assumptions,
         clarification_requests=tuple(clarifications),
         load_weight_lbs_high=chosen.lbs_high,
+        mass_label=mass_label_for(weight_source, load_weight),
     )

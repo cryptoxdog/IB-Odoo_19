@@ -77,3 +77,32 @@ def call_json_with_retry(
             errors.append(str(exc))
 
     raise ValueError(f"LLM JSON call failed after {max_attempts} attempts: {errors[-1] if errors else 'unknown error'}")
+
+
+def call_json_once(
+    *,
+    client: Any,
+    model: str,
+    messages: list[dict[str, Any]],
+    temperature: float = 0.0,
+    max_tokens: int | None = None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Call one configured provider exactly once and recover a JSON object.
+
+    This helper does not retry. A caller that needs bounded retries uses
+    ``call_json_with_retry``.
+    """
+    started = time.monotonic()
+    kwargs: dict[str, Any] = {
+        "model": model,
+        "temperature": temperature,
+        "response_format": {"type": "json_object"},
+        "messages": messages,
+    }
+    if max_tokens is not None:
+        kwargs["max_tokens"] = max_tokens
+    response = client.chat.completions.create(**kwargs)
+    content = response.choices[0].message.content or "{}"
+    payload = extract_json(content)
+    elapsed_ms = int((time.monotonic() - started) * 1000)
+    return payload, _usage_metadata(response, attempts=1, model=model, elapsed_ms=elapsed_ms)
