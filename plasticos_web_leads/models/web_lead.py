@@ -251,12 +251,11 @@ def _apply_one_pass_evidence(
     """Write one-pass facts into the existing bundle. Planning mass stays inside planning_basis."""
     alignment = result.get("representation_alignment")
     if not isinstance(alignment, Mapping):
-        alignment = {
-            "status": "unknown",
-            "direction": "neutral_or_unknown",
-            "representativeness": "unknown",
-            "source_refs": [],
-        }
+        alignment = {}
+        alignment["status"] = "unknown"
+        alignment["direction"] = "neutral_or_unknown"
+        alignment["representativeness"] = "unknown"
+        alignment["source_refs"] = []
     bundle["representation_alignment"] = dict(alignment)
     bundle["planning_basis"] = _planning_basis(PLANNING_DEFAULTS_V1)
     bundle["media_omissions"] = list(media_omissions)
