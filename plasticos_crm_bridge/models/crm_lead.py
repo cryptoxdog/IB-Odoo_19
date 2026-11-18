@@ -339,6 +339,7 @@ class CrmLeadPlastOS(models.Model):
                 target_id=profile.id,
                 sources=sources,
             )
+        self._plasticos_copy_web_lead_pdfs()
         if crm_copied or profile_copied:
             self.message_post(
                 body=(
@@ -347,6 +348,58 @@ class CrmLeadPlastOS(models.Model):
                 )
             )
         return {"crm": crm_copied, "material_profile": profile_copied}
+
+    def _plasticos_copy_web_lead_pdfs(self):
+        """Copy each original web-lead PDF onto this opportunity once.
+
+        Checksum and a source marker keep a replay from storing the file again.
+        Images stay on the existing commercial-image copy.
+        """
+        self.ensure_one()
+        if not isinstance(self.id, int):
+            return 0
+        attachment = self.env["ir.attachment"]
+        existing = attachment.search(
+            [
+                ("res_model", "=", "crm.lead"),
+                ("res_id", "=", self.id),
+                ("mimetype", "=", "application/pdf"),
+            ]
+        )
+        checksums = {row.checksum for row in existing if row.checksum}
+        copied = 0
+        for web_lead in self.web_lead_ids:
+            pdfs = attachment.search(
+                [
+                    ("res_model", "=", "plasticos.web.lead"),
+                    ("res_id", "=", web_lead.id),
+                    ("mimetype", "=", "application/pdf"),
+                    ("res_field", "=", False),
+                ]
+            )
+            for pdf in pdfs:
+                marker = f"[plasticos-pdf:{pdf.id}]"
+                already = (pdf.checksum and pdf.checksum in checksums) or any(
+                    marker in (row.description or "") for row in existing
+                )
+                if already:
+                    continue
+                description = (pdf.description or "").strip()
+                if marker not in description:
+                    description = f"{description} {marker}".strip()
+                created = pdf.copy(
+                    {
+                        "res_model": "crm.lead",
+                        "res_id": self.id,
+                        "res_field": False,
+                        "description": description,
+                    }
+                )
+                existing |= created
+                if created.checksum:
+                    checksums.add(created.checksum)
+                copied += 1
+        return copied
 
     def action_sync_commercial_images(self):
         """Reconcile images currently available from linked commercial sources."""
@@ -993,6 +1046,10 @@ class CrmLeadPlastOS(models.Model):
             if lead.type != "opportunity" or lead.opportunity_material_ids or not lead.material_profile_id:
                 continue
             Material.copy_from_profile(lead, lead.material_profile_id)
+            for web_lead in lead.web_lead_ids:
+                propagate = getattr(web_lead, "_propagate_one_pass_spec", None)
+                if callable(propagate):
+                    propagate(lead)
 
     def _plasticos_mark_won(self):
         """Move to the native Won stage. Creates no order."""

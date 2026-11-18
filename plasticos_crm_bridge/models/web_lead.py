@@ -4,9 +4,19 @@ from odoo import SUPERUSER_ID, fields, models
 
 Markup = importlib.import_module("markupsafe").Markup
 
+# The copy below is the real propagation. Bridge tests wait on this flag.
+SPEC_PROPAGATION = True
+_SPEC_MARKER = 'data-plasticos-spec="1"'
+_PDF_MARKER = 'data-plasticos-pdf="1"'
+_MAX_SPEC_ROWS = 40
+_MAX_PDF_PAGES = 12
+_MAX_PAGE_CHARS = 1500
+_MAX_PDF_CHARS = 6000
+
 
 class PlasticosWebLeadCRM(models.Model):
     _inherit = "plasticos.web.lead"
+    SPEC_PROPAGATION = SPEC_PROPAGATION
 
     crm_lead_id = fields.Many2one(
         "crm.lead",
@@ -55,9 +65,13 @@ class PlasticosWebLeadCRM(models.Model):
         which requires a singleton. We bind a known uid (SUPERUSER_ID) for all
         mail-thread calls so the author is unambiguous. The crm.lead itself inherits
         the queue assignee. The webhook technical user is never the salesperson.
+
+        HOT creates this opportunity. It does not create an offer.
         """
         self.ensure_one()
+        actor = self.with_user(SUPERUSER_ID)
         if self.crm_lead_id:
+            actor._propagate_one_pass_spec(self.crm_lead_id)
             return self.crm_lead_id
 
         ref = self.env.ref
@@ -91,14 +105,40 @@ class PlasticosWebLeadCRM(models.Model):
         # env.user._is_public() and requires a singleton res.users. Bind that
         # sequence to SUPERUSER_ID. The opportunity salesperson is the inherited
         # queue assignee, or nobody.
-        actor = self.with_user(SUPERUSER_ID)
         lead = actor.env["crm.lead"].create(vals)
         actor.crm_lead_id = lead
         synchronize_images = getattr(lead, "_propagate_available_commercial_images", None)
         if callable(synchronize_images):
             synchronize_images()
         actor.message_post(body=Markup("CRM opportunity created: %s") % lead.name)
+        actor._propagate_one_pass_spec(lead)
         return lead
+
+    def _propagate_one_pass_spec(self, opportunity):
+        """Copy one-pass specs, PDF text, and the original PDF onto an existing opportunity.
+
+        A planning weight is not a load quantity. Only a seller point mass from the
+        dedicated per-load field is written to ``quantity_per_load_lbs``, and only
+        when that column is still empty. Unknown mass stays empty. Replay appends
+        nothing that is already on the opportunity.
+        """
+        self.ensure_one()
+        if not opportunity:
+            return
+        bundle = self.evidence_bundle if isinstance(self.evidence_bundle, dict) else {}
+        rows = _spec_rows(bundle)
+        pages = _pdf_pages(bundle)
+        representation = _representation_text(bundle.get("representation_alignment"))
+        _append_marked_html(opportunity, _SPEC_MARKER, _spec_html(rows, representation))
+        _append_marked_html(opportunity, _PDF_MARKER, _pdf_html(pages))
+        copy_pdfs = getattr(opportunity, "_plasticos_copy_web_lead_pdfs", None)
+        if callable(copy_pdfs):
+            copy_pdfs()
+        material = opportunity.opportunity_material_ids[:1]
+        if not material:
+            return
+        grounded = _seller_grounded_load_lbs(bundle)
+        material.apply_web_lead_specification(rows, representation, grounded)
 
     def _crm_opportunity_description(self):
         """HTML-escaped summary of submitted facts; computed estimates are labelled, empty values omitted."""
@@ -117,3 +157,221 @@ class PlasticosWebLeadCRM(models.Model):
         ]
         items = [Markup("<li><b>%s:</b> %s</li>") % (label, value) for label, value in rows if value]
         return Markup("<ul>%s</ul>") % Markup("").join(items) if items else False
+
+
+def _append_marked_html(opportunity, marker, block):
+    if not block:
+        return
+    current = opportunity.description or ""
+    if marker in str(current):
+        return
+    opportunity.description = Markup(current) + block if current else block
+
+
+def _spec_rows(bundle):
+    rows = bundle.get("document_specifications")
+    if not isinstance(rows, list):
+        return []
+    return [row for row in rows if isinstance(row, dict)]
+
+
+def _spec_html(rows, representation):
+    shown = rows[:_MAX_SPEC_ROWS]
+    items = []
+    for row in shown:
+        label, detail = _spec_pair(row)
+        if detail:
+            items.append(Markup("<li><b>%s:</b> %s</li>") % (label, detail))
+    if representation:
+        items.append(Markup("<li><b>%s:</b> %s</li>") % ("Representation", representation))
+    omitted = len(rows) - len(shown)
+    if omitted:
+        items.append(Markup("<li>%s</li>") % f"{omitted} further specification rows remain on the web lead.")
+    if not items:
+        return Markup("")
+    return Markup('<div data-plasticos-spec="1"><ul>%s</ul></div>') % Markup("").join(items)
+
+
+def _pdf_html(pages):
+    items = []
+    used = 0
+    shown = 0
+    for page in pages:
+        if used >= _MAX_PDF_CHARS:
+            break
+        text = _bounded(page.get("text"), min(_MAX_PAGE_CHARS, _MAX_PDF_CHARS - used))
+        if not text:
+            continue
+        used += len(text)
+        shown += 1
+        label = page.get("label") or "PDF text"
+        items.append(Markup("<li><b>%s:</b> %s</li>") % (label, text))
+    remaining = len(pages) - shown
+    if remaining:
+        items.append(Markup("<li>%s</li>") % f"{remaining} further PDF pages remain on the attached PDF.")
+    if not items:
+        return Markup("")
+    return Markup('<div data-plasticos-pdf="1"><ul>%s</ul></div>') % Markup("").join(items)
+
+
+def _spec_pair(row):
+    label = str(row.get("property") or "Specification").strip() or "Specification"
+    value = _plain(row.get("value"))
+    unit = str(row.get("unit") or "").strip()
+    conditions = str(row.get("test_conditions") or "").strip()
+    refs = _refs(row.get("source_refs"))
+    detail = " ".join(part for part in (value, unit, conditions, refs) if part)
+    return label, detail
+
+
+def _representation_text(alignment):
+    if not isinstance(alignment, dict) or not alignment:
+        return ""
+    status = str(alignment.get("status") or "unknown").strip()
+    direction = str(alignment.get("direction") or "neutral_or_unknown").strip()
+    representativeness = str(alignment.get("representativeness") or "unknown").strip()
+    refs = _refs(alignment.get("source_refs"))
+    text = f"Status {status}; direction {direction}; lot {representativeness}."
+    if refs:
+        text = f"{text} Sources: {refs}."
+    return text
+
+
+def _pdf_pages(bundle):
+    pages = []
+    for row in _attachment_rows(bundle):
+        for page in _row_pages(row):
+            text = _page_text(page)
+            if not text:
+                continue
+            pages.append({"label": _page_label(page, len(pages) + 1), "text": text})
+            if len(pages) >= _MAX_PDF_PAGES:
+                return pages
+    if pages:
+        return pages
+    for document in bundle.get("documents") or []:
+        if not isinstance(document, dict):
+            continue
+        for page in document.get("pages") or []:
+            text = _page_text(page if isinstance(page, dict) else {})
+            if not text:
+                continue
+            pages.append({"label": _page_label(page if isinstance(page, dict) else {}, len(pages) + 1), "text": text})
+            if len(pages) >= _MAX_PDF_PAGES:
+                return pages
+    return pages
+
+
+def _attachment_rows(bundle):
+    rows = bundle.get("attachments")
+    if not isinstance(rows, list):
+        return []
+    return [row for row in rows if isinstance(row, dict)]
+
+
+def _row_pages(row):
+    mimetype = str(row.get("content_type") or row.get("mimetype") or "")
+    analysis = row.get("analysis") if isinstance(row.get("analysis"), dict) else {}
+    page_rows = row.get("pages")
+    if not isinstance(page_rows, list):
+        page_rows = analysis.get("pages") if isinstance(analysis.get("pages"), list) else None
+    if isinstance(page_rows, list):
+        return [page for page in page_rows if isinstance(page, dict)]
+    if mimetype != "application/pdf" and row.get("analysis_type") != "document":
+        return []
+    text = row.get("extracted_text") or row.get("page_text") or analysis.get("text")
+    if not str(text or "").strip():
+        return []
+    return [
+        {
+            "text": text,
+            "source_ref": row.get("source_ref") or row.get("source_id"),
+            "parse_status": row.get("parse_status") or analysis.get("parse_status"),
+        }
+    ]
+
+
+def _page_text(page):
+    status = str(page.get("parse_status") or page.get("status") or "").strip().lower()
+    text = page.get("text") or page.get("page_text") or page.get("extracted_text") or ""
+    if status == "unknown" and not str(text).strip():
+        return ""
+    return _bounded(text, _MAX_PAGE_CHARS)
+
+
+def _page_label(page, number):
+    page_number = page.get("page_number") or number
+    ref = str(page.get("source_ref") or "").strip()
+    label = f"PDF page {page_number}"
+    return f"{label} ({ref})" if ref else label
+
+
+def _seller_grounded_load_lbs(bundle):
+    """Point mass the seller typed in the per-load field. A range, a count, or a plan is empty."""
+    quantity = bundle.get("quantity")
+    if not isinstance(quantity, dict):
+        return None
+    source = str(quantity.get("weight_source") or "").strip()
+    basis = str(quantity.get("basis") or quantity.get("mass_basis") or "")
+    if "planning" in source or "planning" in basis:
+        return None
+    if source.startswith(("unit_count:", "bare_number:", "pallet_count")):
+        return None
+    if source != "weight_per_load_field_lbs" and not source.startswith("explicit_"):
+        return None
+    if _range_high(quantity.get("load_weight_lbs_high")):
+        return None
+    seller = bundle.get("seller") if isinstance(bundle.get("seller"), dict) else {}
+    per_load = str(seller.get("weight_per_load_text") or "").strip()
+    source_text = str(quantity.get("weight_source_text") or "").strip()
+    if source != "weight_per_load_field_lbs" and (not per_load or source_text != per_load):
+        return None
+    if source == "weight_per_load_field_lbs" and source_text and per_load and source_text != per_load:
+        return None
+    return _positive_float(quantity.get("load_weight_lbs"))
+
+
+def _range_high(value):
+    if value in (None, False, ""):
+        return False
+    if isinstance(value, bool):
+        return False
+    if isinstance(value, (int, float)):
+        return value > 0
+    return bool(str(value).strip())
+
+
+def _positive_float(value):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    number = float(value)
+    if number != number or number <= 0 or number == float("inf"):
+        return None
+    return number
+
+
+def _refs(value):
+    if isinstance(value, str):
+        refs = [value]
+    elif isinstance(value, (list, tuple)):
+        refs = value
+    else:
+        return ""
+    return ", ".join(str(ref).strip() for ref in refs if str(ref).strip())
+
+
+def _plain(value):
+    if value is None or isinstance(value, bool):
+        return ""
+    if isinstance(value, (int, float)):
+        return _bounded(value, 80)
+    if isinstance(value, str):
+        return _bounded(value, 240)
+    return ""
+
+
+def _bounded(value, limit):
+    text = " ".join(str(value).split())
+    if len(text) <= limit:
+        return text
+    return text[: limit - 1].rstrip() + "…"

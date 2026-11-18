@@ -10,6 +10,9 @@ a later edit here; the next match freezes the edited sheet as a new lot.
 
 from __future__ import annotations
 
+import math
+import re
+
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
@@ -43,6 +46,131 @@ LINE_SPEC_FIELDS = (
     "source_type_id",
     "filler_type_id",
 )
+_SPEC_NOTE_HEADING = "Web-lead specification"
+_SPEC_NUMBER = re.compile(r"\d+(?:\.\d+)?|\.\d+")
+_PROPERTY_FIELDS = {
+    "mfi": "melt_flow_index",
+    "melt flow": "melt_flow_index",
+    "melt flow index": "melt_flow_index",
+    "melt index": "melt_flow_index",
+    "melt flow rate": "melt_flow_index",
+    "mfr": "melt_flow_index",
+    "density": "density",
+    "moisture": "moisture_percent",
+    "moisture content": "moisture_percent",
+    "moisture percent": "moisture_percent",
+}
+_COLUMN_UNITS = {
+    "melt_flow_index": frozenset({"g/10min", "dg/min"}),
+    "density": frozenset({"g/cm3", "g/cm³", "g/cm^3", "g/cc", "g/ml"}),
+    "moisture_percent": frozenset({"%", "percent", "pct", "wt%", "wt.%"}),
+}
+
+
+def _unit_key(unit):
+    return re.sub(r"\s+", "", str(unit or "").strip().lower()).rstrip(".")
+
+
+def _property_field(name):
+    key = re.sub(r"[^a-z0-9]+", " ", str(name or "").lower()).strip()
+    return _PROPERTY_FIELDS.get(key)
+
+
+def _spec_number(value):
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        number = float(value)
+    else:
+        text = str(value or "").strip().replace(",", "")
+        if not _SPEC_NUMBER.fullmatch(text):
+            return None
+        number = float(text)
+    if not math.isfinite(number) or number <= 0:
+        return None
+    return number
+
+
+def _condition_key(value):
+    return " ".join(str(value or "").casefold().split())
+
+
+def _column_updates(rows):
+    """One number per column when every compatible row agrees, including test conditions."""
+    grouped = {name: [] for name in _COLUMN_UNITS}
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        field = _property_field(row.get("property"))
+        if field is None or _unit_key(row.get("unit")) not in _COLUMN_UNITS[field]:
+            continue
+        number = _spec_number(row.get("value"))
+        if number is None:
+            continue
+        grouped[field].append((number, _condition_key(row.get("test_conditions"))))
+    updates = {}
+    for field, samples in grouped.items():
+        if not samples:
+            continue
+        numbers = {number for number, _condition in samples}
+        conditions = {condition for _number, condition in samples}
+        if len(numbers) == 1 and len(conditions) == 1:
+            updates[field] = samples[0][0]
+    return updates
+
+
+def _note_refs(value):
+    if isinstance(value, str):
+        refs = [value]
+    elif isinstance(value, (list, tuple)):
+        refs = value
+    else:
+        return ""
+    return ", ".join(str(ref).strip() for ref in refs if str(ref).strip())
+
+
+def _note_value(value):
+    if value is None or isinstance(value, bool):
+        return ""
+    if isinstance(value, (int, float, str)):
+        return " ".join(str(value).split())
+    return ""
+
+
+def _specification_note(rows, representation):
+    lines = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        label = str(row.get("property") or "Specification").strip() or "Specification"
+        detail = " ".join(
+            part
+            for part in (
+                _note_value(row.get("value")),
+                str(row.get("unit") or "").strip(),
+                str(row.get("test_conditions") or "").strip(),
+                _note_refs(row.get("source_refs")),
+            )
+            if part
+        )
+        if detail:
+            lines.append(f"{label}: {detail}")
+    if representation:
+        lines.append(f"Representation: {representation}")
+    if not lines:
+        return ""
+    return "\n".join([_SPEC_NOTE_HEADING, *lines])
+
+
+def _finite_positive(value):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    number = float(value)
+    if not math.isfinite(number) or number <= 0:
+        return None
+    return number
+
+
 ORIGIN_PROCESS_SELECTION = [
     ("blow_mold", "Blow Molding"),
     ("compounding", "Compounding"),
@@ -228,6 +356,28 @@ class PlasticosOpportunityMaterial(models.Model):
             if address:
                 opportunity.write(address)
         return material
+
+    def apply_web_lead_specification(self, specifications, representation, grounded_lbs):
+        """Fill empty spec columns and append sheet citations. This does not create an offer.
+
+        A number already on the sheet stays. Callers pass a seller point mass or nothing;
+        an unknown or planning weight is not written into ``quantity_per_load_lbs``.
+        """
+        self.ensure_one()
+        rows = [row for row in specifications or [] if isinstance(row, dict)]
+        vals = {}
+        for field_name, number in _column_updates(rows).items():
+            if not self[field_name]:
+                vals[field_name] = number
+        grounded = _finite_positive(grounded_lbs)
+        if grounded and not self.quantity_per_load_lbs:
+            vals["quantity_per_load_lbs"] = grounded
+        note = _specification_note(rows, representation)
+        existing = self.freeform_notes or ""
+        if note and _SPEC_NOTE_HEADING not in existing:
+            vals["freeform_notes"] = f"{existing.rstrip()}\n{note}".strip() if existing else note
+        if vals:
+            self.with_context(**{SUPPLIER_OFFER_OPTIONAL: True}).write(vals)
 
     @api.model_create_multi
     def create(self, vals_list):
