@@ -33,7 +33,6 @@ from ..adapters.base import (
 )
 from ..adapters.registry import get_adapter
 from ..zip_place import resolve_pickup
-from .inference_provider import run_broker_inference
 from .attachment_processor import copy_successful_attachments_to_intake, process_attachments
 from .classification_engine import (
     DISPOSITION_COLD,
@@ -70,7 +69,7 @@ from .evidence_keys import (
     scrub_acquisition_secrets,
 )
 from .evidence_reconciler import reconcile_evidence
-from .inference_provider import InferenceProvider
+from .inference_provider import InferenceProvider, run_broker_inference
 from .material_catalog import CatalogEntry, accept_value, match_codes, match_distinct, split_phrase
 from .material_identity import merge_form_and_grade, split_material_code
 from .quantity_normalizer import QuantityEvidence, normalize_quantity_evidence
