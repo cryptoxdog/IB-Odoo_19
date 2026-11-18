@@ -129,7 +129,13 @@ The sweep is `plasticos.logistics.request._run_load_obligations`, run by `plasti
 - **Staging deadline for a delivery slot X:** X minus transit days, minus the buffer, minus the lead time.
 - **Decision date for X:** the last business day on which Linda can still accept X. After it, she falls back to the next slot.
 
-**Flags.** Each flag opens one deduplicated `mail.activity` for Linda (or Logistics before live). Each drafted email is shadow-only until the live cutover.
+**Linda mode.** `plasticos_logistics.linda_mode` has three values. `off` is the default.
+
+- **off.** The schedule sweep records no activity and no request.
+- **shadow.** Each flag opens one deduplicated activity for Logistics and one request in state `shadow`. That request is not sent.
+- **live.** Each flag opens the same unsent shadow request, and the activity is assigned to Linda. Sending still waits for the live cutover.
+
+**Flags.** The conditions below run only when the mode is `shadow` or `live`.
 
 | Flag | Condition | Drafted email |
 |---|---|---|
