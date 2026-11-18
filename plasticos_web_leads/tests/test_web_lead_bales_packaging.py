@@ -15,11 +15,10 @@ as in the other web-lead material tests.
 
 from __future__ import annotations
 
-from unittest.mock import patch
-
 from odoo.tests import TransactionCase, tagged
 
-from .test_web_lead_material_grade import _ASSESSED, _WEB_LEAD, _payload
+from .test_broker_one_pass import economic_assessment_patch
+from .test_web_lead_material_grade import _ASSESSED, _payload
 
 
 @tagged("post_install", "-at_install", "plasticos", "web_lead")
@@ -41,7 +40,7 @@ class TestWebLeadBalesPackaging(TransactionCase):
         cls.bales = cls.env.ref("plasticos_material_profile.packaging_bales")
 
     def _lead(self, external_id, description, weight="500 lbs"):
-        with patch(f"{_WEB_LEAD}.evaluate_economic_opportunity", return_value=dict(_ASSESSED)):
+        with economic_assessment_patch(return_value=dict(_ASSESSED)):
             return self.WebLead.create_from_cognito(_payload(external_id, description, weight))
 
     def _intake(self, lead, merged):

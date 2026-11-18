@@ -8,6 +8,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import re
 import sys
 import types
 from unittest.mock import MagicMock, patch
@@ -946,10 +947,29 @@ def test_text_normalization_is_locked_to_deepseek_flash():
     )
 
 
+def _method_body(source, name):
+    return source.split(f"def {name}", 1)[1].split("\n    def ", 1)[0]
+
+
+def _one_pass_orchestration_enabled(source):
+    return re.search(r"^ONE_PASS_ORCHESTRATION\s*(?::[^\n=]+)?=\s*True\b", source, re.MULTILINE) is not None
+
+
+def _assert_one_provider_request(body):
+    assert body.count("run_broker_inference(") == 1
+    assert "normalize_with_provider(" not in body
+    assert "analyze_image_with_provider(" not in body
+    assert "evaluate_economic_opportunity(" not in body
+
+
 def test_vision_still_reaches_the_classifier_after_it_feeds_the_normalizer():
     with open(os.path.join(_models_dir, "web_lead.py"), encoding="utf-8") as handle:
         source = handle.read()
-    pipeline = source.split("def _run_triage_pipeline", 1)[1].split("\n    def ", 1)[0]
+    pipeline = _method_body(source, "_run_triage_pipeline")
+    if _one_pass_orchestration_enabled(source):
+        _assert_one_provider_request(pipeline)
+        _assert_one_provider_request(_method_body(source, "action_retry_economic_assessment"))
+        return
     assert pipeline.index("analyze_image_with_provider") < pipeline.index("normalize_with_provider")
     assert "vision_results=vision_results" in pipeline
     assert "vision_evidence=vision_results" in pipeline
