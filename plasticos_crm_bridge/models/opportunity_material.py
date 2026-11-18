@@ -48,18 +48,20 @@ LINE_SPEC_FIELDS = (
 )
 _SPEC_NOTE_HEADING = "Web-lead specification"
 _SPEC_NUMBER = re.compile(r"\d+(?:\.\d+)?|\.\d+")
-_PROPERTY_FIELDS = {
-    "mfi": "melt_flow_index",
-    "melt flow": "melt_flow_index",
-    "melt flow index": "melt_flow_index",
-    "melt index": "melt_flow_index",
-    "melt flow rate": "melt_flow_index",
-    "mfr": "melt_flow_index",
-    "density": "density",
-    "moisture": "moisture_percent",
-    "moisture content": "moisture_percent",
-    "moisture percent": "moisture_percent",
-}
+_PROPERTY_FIELDS = {}
+for _name, _field in (
+    ("mfi", "melt_flow_index"),
+    ("melt flow", "melt_flow_index"),
+    ("melt flow index", "melt_flow_index"),
+    ("melt index", "melt_flow_index"),
+    ("melt flow rate", "melt_flow_index"),
+    ("mfr", "melt_flow_index"),
+    ("density", "density"),
+    ("moisture", "moisture_percent"),
+    ("moisture content", "moisture_percent"),
+    ("moisture percent", "moisture_percent"),
+):
+    _PROPERTY_FIELDS[_name] = _field
 _COLUMN_UNITS = {
     "melt_flow_index": frozenset({"g/10min", "dg/min"}),
     "density": frozenset({"g/cm3", "g/cm³", "g/cm^3", "g/cc", "g/ml"}),

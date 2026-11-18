@@ -269,6 +269,10 @@ def _attachment_rows(bundle):
     return [row for row in rows if isinstance(row, dict)]
 
 
+_ANALYSIS_DOCUMENT = "document"
+_SOURCE_WEIGHT_FIELD = "weight_per_load_field_lbs"
+
+
 def _row_pages(row):
     mimetype = str(row.get("content_type") or row.get("mimetype") or "")
     analysis = row.get("analysis") if isinstance(row.get("analysis"), dict) else {}
@@ -277,7 +281,7 @@ def _row_pages(row):
         page_rows = analysis.get("pages") if isinstance(analysis.get("pages"), list) else None
     if isinstance(page_rows, list):
         return [page for page in page_rows if isinstance(page, dict)]
-    if mimetype != "application/pdf" and row.get("analysis_type") != "document":
+    if mimetype != "application/pdf" and row.get("analysis_type") != _ANALYSIS_DOCUMENT:
         return []
     text = row.get("extracted_text") or row.get("page_text") or analysis.get("text")
     if not str(text or "").strip():
@@ -317,16 +321,16 @@ def _seller_grounded_load_lbs(bundle):
         return None
     if source.startswith(("unit_count:", "bare_number:", "pallet_count")):
         return None
-    if source != "weight_per_load_field_lbs" and not source.startswith("explicit_"):
+    if source != _SOURCE_WEIGHT_FIELD and not source.startswith("explicit_"):
         return None
     if _range_high(quantity.get("load_weight_lbs_high")):
         return None
     seller = bundle.get("seller") if isinstance(bundle.get("seller"), dict) else {}
     per_load = str(seller.get("weight_per_load_text") or "").strip()
     source_text = str(quantity.get("weight_source_text") or "").strip()
-    if source != "weight_per_load_field_lbs" and (not per_load or source_text != per_load):
+    if source != _SOURCE_WEIGHT_FIELD and (not per_load or source_text != per_load):
         return None
-    if source == "weight_per_load_field_lbs" and source_text and per_load and source_text != per_load:
+    if source == _SOURCE_WEIGHT_FIELD and source_text and per_load and source_text != per_load:
         return None
     return _positive_float(quantity.get("load_weight_lbs"))
 

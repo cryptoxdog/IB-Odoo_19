@@ -368,7 +368,7 @@ class CrmLeadPlastOS(models.Model):
         )
         checksums = {row.checksum for row in existing if row.checksum}
         copied = 0
-        lead_ids = [lead_id for lead_id in self.web_lead_ids.ids if isinstance(lead_id, int)]
+        lead_ids = self.web_lead_ids.ids
         pdfs = (
             attachment.search(
                 [
