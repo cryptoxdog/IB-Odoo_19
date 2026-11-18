@@ -368,37 +368,41 @@ class CrmLeadPlastOS(models.Model):
         )
         checksums = {row.checksum for row in existing if row.checksum}
         copied = 0
-        for web_lead in self.web_lead_ids:
-            pdfs = attachment.search(
+        lead_ids = [lead_id for lead_id in self.web_lead_ids.ids if isinstance(lead_id, int)]
+        pdfs = (
+            attachment.search(
                 [
                     ("res_model", "=", "plasticos.web.lead"),
-                    ("res_id", "=", web_lead.id),
+                    ("res_id", "in", lead_ids),
                     ("mimetype", "=", "application/pdf"),
                     ("res_field", "=", False),
                 ]
             )
-            for pdf in pdfs:
-                marker = f"[plasticos-pdf:{pdf.id}]"
-                already = (pdf.checksum and pdf.checksum in checksums) or any(
-                    marker in (row.description or "") for row in existing
-                )
-                if already:
-                    continue
-                description = (pdf.description or "").strip()
-                if marker not in description:
-                    description = f"{description} {marker}".strip()
-                created = pdf.copy(
-                    {
-                        "res_model": "crm.lead",
-                        "res_id": self.id,
-                        "res_field": False,
-                        "description": description,
-                    }
-                )
-                existing |= created
-                if created.checksum:
-                    checksums.add(created.checksum)
-                copied += 1
+            if lead_ids
+            else attachment.browse()
+        )
+        for pdf in pdfs:
+            marker = f"[plasticos-pdf:{pdf.id}]"
+            already = (pdf.checksum and pdf.checksum in checksums) or any(
+                marker in (row.description or "") for row in existing
+            )
+            if already:
+                continue
+            description = (pdf.description or "").strip()
+            if marker not in description:
+                description = f"{description} {marker}".strip()
+            created = pdf.copy(
+                {
+                    "res_model": "crm.lead",
+                    "res_id": self.id,
+                    "res_field": False,
+                    "description": description,
+                }
+            )
+            existing |= created
+            if created.checksum:
+                checksums.add(created.checksum)
+            copied += 1
         return copied
 
     def action_sync_commercial_images(self):
