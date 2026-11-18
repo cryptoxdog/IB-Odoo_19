@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_load_appointment_list" model="ir.ui.view">
+        <field name="name">plasticos.load.appointment.list</field>
+        <field name="model">plasticos.load.appointment</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="load_id"/>
+                <field name="side"/>
+                <field name="state"/>
+                <field name="slot_start"/>
+                <field name="slot_end"/>
+                <field name="reference"/>
+                <field name="arranged_by"/>
+                <field name="proposed_by"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_load_appointment_form" model="ir.ui.view">
+        <field name="name">plasticos.load.appointment.form</field>
+        <field name="model">plasticos.load.appointment</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_accept_appointment" type="object" string="Accept" class="btn-primary"
+                            invisible="state in ('accepted', 'canceled', 'missed')"/>
+                    <field name="state" widget="statusbar" statusbar_visible="requested,proposed,accepted"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="load_id"/>
+                            <field name="side"/>
+                            <field name="slot_start"/>
+                            <field name="slot_end"/>
+                            <field name="reference"/>
+                        </group>
+                        <group>
+                            <field name="arranged_by"/>
+                            <field name="proposed_by"/>
+                            <field name="source_message_id"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="note"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="view_load_appointment_search" model="ir.ui.view">
+        <field name="name">plasticos.load.appointment.search</field>
+        <field name="model">plasticos.load.appointment</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="load_id"/>
+                <field name="reference"/>
+                <filter name="filter_accepted" string="Accepted" domain="[('state', '=', 'accepted')]"/>
+                <filter name="filter_pickup" string="Pickup" domain="[('side', '=', 'pickup')]"/>
+                <filter name="filter_delivery" string="Delivery" domain="[('side', '=', 'delivery')]"/>
+            </search>
+        </field>
+    </record>
+</odoo>

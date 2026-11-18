@@ -250,6 +250,14 @@ class PlasticosLogisticsRequest(models.Model):
             ("load_ack_notice", "Dispatch Acknowledgement Reminder"),
             ("load_ack_escalation", "Dispatch Acknowledgement Escalation"),
             ("document_chase", "Carrier Document Chase"),
+            ("earlier_option_available", "Earlier Delivery Option"),
+            ("ready_slot_far", "Ready With a Far Slot"),
+            ("needs_delivery_slot", "Delivery Slot Needed"),
+            ("dock_rule_unverified", "Dock Rule Unverified"),
+            ("site_hours_unknown", "Site Hours Unknown"),
+            ("weight_unknown", "Full Weight Unknown"),
+            ("export_cutoff_notice", "Export Cutoff Notice"),
+            ("booking_roll_request", "Booking Roll Request"),
         ],
         required=True,
         readonly=True,
@@ -389,7 +397,10 @@ class PlasticosLogisticsRequest(models.Model):
         " OR (purpose IN ('booking_issue', 'booking_amend', 'booking_cancel') AND source_kind = 'booking'"
         " AND purchase_order_id IS NULL AND sale_order_id IS NULL AND source_model IS NOT NULL"
         " AND source_res_id IS NOT NULL AND source_revision_key IS NOT NULL)"
-        " OR (purpose IN ('load_ack_notice', 'load_ack_escalation', 'document_chase') AND source_kind = 'load'"
+        " OR (purpose IN ('load_ack_notice', 'load_ack_escalation', 'document_chase',"
+        " 'earlier_option_available', 'ready_slot_far', 'needs_delivery_slot', 'dock_rule_unverified',"
+        " 'site_hours_unknown', 'weight_unknown', 'export_cutoff_notice', 'booking_roll_request')"
+        " AND source_kind = 'load'"
         " AND purchase_order_id IS NULL AND sale_order_id IS NULL AND source_model IS NOT NULL"
         " AND source_res_id IS NOT NULL AND source_revision_key IS NOT NULL))",
         "A Linda request has exactly one source, matching its purpose: a PO, an SO, or one typed source.",

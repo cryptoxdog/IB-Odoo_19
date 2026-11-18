@@ -1280,7 +1280,8 @@ class TestLindaLoadAcknowledgementObligations(PlasticosTestCase):
     def test_reminder_and_escalation_follow_the_actual_send_clock_once_each(self):
         load = self._dispatched()
         self._run_at(timedelta(hours=1, minutes=55))
-        self.assertFalse(self._obligations(load), "no early reminder")
+        self.assertFalse(self._obligations(load, "load_ack_notice"), "no early reminder")
+        self.assertFalse(self._obligations(load, "load_ack_escalation"), "no early escalation")
         self._run_at(timedelta(hours=2, minutes=5))
         notice = self._obligations(load, "load_ack_notice")
         self.assertEqual(len(notice), 1)

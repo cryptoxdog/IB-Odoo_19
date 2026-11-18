@@ -6,11 +6,14 @@ Pure Python, no Odoo import, so it also runs outside the Odoo test runner
 What it covers: every ``ir.cron``, ``base.automation`` and ``ir.actions.server``
 ``<record>`` in the XML data of the PlasticOS addons, followed through a
 name-based call graph of all their Python except ``tests/``, ``migrations/`` and
-the operator shell ``scripts/`` (no addon module imports those). A function
-name stands for every definition with that name, so it over-approximates.
-``getattr(obj, "prefix…")`` and ``getattr(obj, f"prefix{…}")`` are followed
-conservatively: the call reaches every function and gated command whose name
-starts with that literal prefix. An entry point that runs as
+the operator shell ``scripts/`` (no addon module imports those). A ``self`` or
+``cls`` call is followed only to that name on the same class, or, for a
+function that is not in a class, to that name in the same module. A bare call,
+and an attribute call on any other receiver, is followed only when exactly one
+definition of that name exists. ``getattr(obj, "prefix…")`` and
+``getattr(obj, f"prefix{…}")`` are followed conservatively: the call reaches
+every function and gated command whose name starts with that literal prefix.
+An entry point that runs as
 ``plasticos_logistics.user_linda`` is allowed (the gate then holds its edge
 cases); none does today.
 
@@ -26,9 +29,9 @@ What it does not cover, so a clean result is not proof about these:
 * calls over RPC, controllers and the mail gateway, which run as their caller
   rather than as a scheduled user.
 
-Every call is followed by name, builtin-looking ones included (``write``, ``get``,
-``append``…), so a ``self.write(...)`` reaching a PlasticOS ``write`` override is
-followed (C12 round 2, R4).
+A ``self.write(...)`` is followed to the ``write`` defined on that same class
+or module, builtin-looking names included (C12 round 2, R4). It is not followed
+to every other ``write`` in the tree.
 """
 
 import ast
@@ -87,7 +90,12 @@ def entry_points(root):
 
 
 def call_graph(root):
-    """``{function name: {called attribute or function names}}`` over the addons' non-test Python."""
+    """``{(receiver, name): {calls}}`` over the addons' non-test Python.
+
+    ``receiver`` is the class, qualified by file, or the module itself when the
+    function is not inside a class. A call is ``("self", name)``, ``("name", name)``
+    or ``("prefix", text)``.
+    """
     graph = {}
     for addon in addon_dirs(root):
         for py_file in sorted(addon.rglob("*.py")):
@@ -98,24 +106,58 @@ def call_graph(root):
                 tree = ast.parse(py_file.read_text(encoding="utf-8"))
             except (SyntaxError, UnicodeDecodeError):
                 continue
-            for node in ast.walk(tree):
-                if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                    continue
-                calls = graph.setdefault(node.name, set())
-                for inner in ast.walk(node):
-                    if isinstance(inner, ast.Call):
-                        func = inner.func
-                        if isinstance(func, ast.Attribute):
-                            calls.add(func.attr)
-                        elif isinstance(func, ast.Name):
-                            calls.add(func.id)
-                            prefix = _getattr_prefix(inner) if func.id == "getattr" else None
-                            if prefix is not None:
-                                calls.add(PREFIX_MARK + prefix)
+            for receiver, node in _functions(tree, f"{py_file}"):
+                calls = graph.setdefault((receiver, node.name), set())
+                calls.update(_calls(node))
     return graph
 
 
-PREFIX_MARK = "getattr-prefix:"
+def _functions(tree, module_key):
+    """``[(receiver, function node)]`` without descending into a nested function's body twice."""
+    found = []
+
+    def visit(node, receiver):
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, ast.ClassDef):
+                visit(child, f"{module_key}:{child.name}")
+            elif isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                found.append((receiver, child))
+                visit(child, f"{receiver}:{child.name}:{child.lineno}")
+            else:
+                visit(child, receiver)
+
+    visit(tree, f"{module_key}:<module>")
+    return found
+
+
+def _calls(func_node):
+    """Calls in this function, excluding the bodies of functions it defines."""
+    calls = set()
+
+    def walk(node):
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                continue
+            if isinstance(child, ast.Call):
+                calls.update(_call_marks(child))
+            walk(child)
+
+    walk(func_node)
+    return calls
+
+
+def _call_marks(call):
+    func = call.func
+    if isinstance(func, ast.Attribute):
+        kind = "self" if isinstance(func.value, ast.Name) and func.value.id in {"self", "cls"} else "name"
+        return {(kind, func.attr)}
+    if isinstance(func, ast.Name):
+        marks = {("name", func.id)}
+        prefix = _getattr_prefix(call) if func.id == "getattr" else None
+        if prefix is not None:
+            marks.add(("prefix", prefix))
+        return marks
+    return set()
 
 
 def _getattr_prefix(call):
@@ -133,32 +175,66 @@ def _getattr_prefix(call):
     return None
 
 
-def _callees(graph, name):
-    """Who ``name`` calls; a getattr prefix reaches every function and gated command it can name."""
-    if name.startswith(PREFIX_MARK):
-        prefix = name[len(PREFIX_MARK) :]
-        return sorted({candidate for candidate in (*graph, *GATED_COMMANDS) if candidate.startswith(prefix)})
-    return sorted(graph.get(name, ()))
+def _by_name(graph):
+    found = {}
+    for _receiver, name in graph:
+        found.setdefault(name, []).append(_receiver)
+    return found
+
+
+def _targets(graph, by_name, receiver, kind, target):
+    """Definitions a call may enter, and names that are themselves the next hop."""
+    if kind == "prefix":
+        hops = [(found, name) for (found, name) in graph if name.startswith(target)]
+        defined = {name for (_found, name) in hops}
+        missing = [
+            command for command in sorted(GATED_COMMANDS) if command.startswith(target) and command not in defined
+        ]
+        hops.extend((None, command) for command in missing)
+        return hops
+    if kind == "self":
+        return [(receiver, target)]
+    receivers = by_name.get(target, [])
+    if len(receivers) == 1:
+        return [(receivers[0], target)]
+    if target in GATED_COMMANDS:
+        return [(None, target)]
+    return []
 
 
 def gated_paths(root):
     """``[(entry xml id, gated command, call chain)]`` for every non-Linda entry that reaches a gated command."""
     graph = call_graph(root)
+    by_name = _by_name(graph)
     hits = []
     for _addon, xml_id, _model, user_ref, names in entry_points(root):
         if user_ref in LINDA_REFS:
             continue
-        seen = {}
-        queue = [(name, (name,)) for name in sorted(names)]
-        while queue:
-            name, chain = queue.pop(0)
-            if name in seen:
+        seen = set()
+        queue = []
+        for name in sorted(names):
+            if name in GATED_COMMANDS:
+                hits.append((xml_id, name, (name,)))
                 continue
-            seen[name] = chain
+            queue.extend((found, name, (name,)) for found in by_name.get(name, []))
+        while queue:
+            receiver, name, chain = queue.pop(0)
+            hop = (receiver, name)
+            if hop in seen:
+                continue
+            seen.add(hop)
             if name in GATED_COMMANDS:
                 hits.append((xml_id, name, chain))
                 continue
-            queue.extend((callee, (*chain, callee)) for callee in _callees(graph, name) if callee not in seen)
+            for kind, target in sorted(graph.get(hop, ())):
+                for next_receiver, next_name in _targets(graph, by_name, receiver, kind, target):
+                    if next_name in GATED_COMMANDS:
+                        hit = (xml_id, next_name, (*chain, next_name))
+                        if hit not in hits:
+                            hits.append(hit)
+                        continue
+                    if (next_receiver, next_name) not in seen:
+                        queue.append((next_receiver, next_name, (*chain, next_name)))
     return hits
 
 

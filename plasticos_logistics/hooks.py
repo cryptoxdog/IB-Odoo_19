@@ -3,6 +3,16 @@ import logging
 _logger = logging.getLogger(__name__)
 
 
+def _seed_schedule_parameters(env):
+    """Store the ADR-135 schedule defaults when the parameter is still absent."""
+    from .schedule_window import PARAMETER_DEFAULTS
+
+    params = env["ir.config_parameter"].sudo()  # sudo: system parameters are settings-admin only
+    for key, value in PARAMETER_DEFAULTS:
+        if not params.search([("key", "=", key)], limit=1):
+            params.set_param(key, value)
+
+
 def post_init_hook(env):
     """Assign cron-job users to this module's security groups.
 
@@ -10,6 +20,7 @@ def post_init_hook(env):
     that lacks the ACL grants defined by the module, causing
     ``AccessError`` at runtime.
     """
+    _seed_schedule_parameters(env)
     _module = "plasticos_logistics"
 
     # ── discover crons owned by this module ──────────────────────────
