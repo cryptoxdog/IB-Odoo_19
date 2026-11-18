@@ -106,11 +106,13 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
             if Partner.browse(d.res_id).exists()
         ]
 
-        # 2. Sites (either shape, one predicate) missing facility_role
-        # facility_role is a stored, indexed selection: unset is NULL, which
-        # "= False" selects, so only the reported locations are read.
-        facilities = Partner.search([*Partner._plasticos_site_domain(), ("facility_role", "=", False)])
-        facilities_missing_role = [{"id": p.id, "name": p.name, "parent": p.parent_id.name} for p in facilities]
+        # 2. Company children missing facility_role. The same predicate as
+        # ``_original_missing_role``: a site (company_type "site") is not a
+        # company child, so it is not this report.
+        facilities = Partner.search([("company_type", "=", "company"), ("parent_id", "!=", False)])
+        facilities_missing_role = [
+            {"id": p.id, "name": p.name, "parent": p.parent_id.name} for p in facilities if not p.facility_role
+        ]
 
         # 3. Contacts (person) with no parent
         contacts_no_parent = Partner.search(

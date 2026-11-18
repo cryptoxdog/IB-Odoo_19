@@ -60,14 +60,15 @@ Rules that go with it:
 - **Buyer / supplier / both** are the native `customer_rank` / `supplier_rank`, both set for a company that is both. The UI offers the filters Buyers, Suppliers, and Buyer & Supplier. The existing Company Role field (`res_partner.py:97`, stored selection today) becomes a computed **Trade Role** badge: Buyer, Supplier, Both.
 - **Company Type** is native partner tags (`res.partner.category`) under one "Company Type" parent: Distribution Center, Commercial Recycler, Pallet Recycler, Compounder, Grinder/Processor, E-Waste, MRF, Manufacturer, Broker, Carrier, Exporter, Toll Processor. VanillaSoft is the authority. The tags of that group only are mirrored onto the company's sites and persons. On CRM leads they are native CRM tags (`crm.tag`) in a matching group.
 - **Status tags** (Needs Enrichment, Do Not Contact, Key Account, Preferred Carrier) apply to companies and sites.
+- **Buyer and Supplier partner tags are only partly changed.** A VanillaSoft rank write raises `customer_rank` and `supplier_rank` and the matching CRM tags. It does not attach `categ_buyer` or `categ_supplier`. A company-type tag such as Manufacturer still attaches. An ERP rank write still attaches the Buyer or Supplier partner category. The rest of that tag retirement is not done.
 - **Retired later, not in this campaign:**
-  - the 108 material-taxonomy partner tags (`plasticos_base/data/material_taxonomy.xml`) and the Buyer / Supplier / Expense partner tags;
+  - the 108 material-taxonomy partner tags (`plasticos_base/data/material_taxonomy.xml`) and the Expense partner tag;
   - Company Roles (`plasticos.company.role.tag`), Facility Role, Partner Type and the current Trade Role field, together with their Gate and matching readers. `plasticos_gate/services/gate_builders.py:207` `derive_subject_role` reads `company_role_tag_ids` and feeds `subject_role` (`gate_builders.py:333`). Retiring them changes what Odoo sends through Gate, so that step needs its own ADR under ADR-002 and ADR-003 (single).
 
 ### E. Sale-order delivery address
 
 - New sale orders default the delivery address to the buyer's most recently used one.
-- The opportunity hand-off issues the sale order to the **buyer company**, with the chosen facility as the **delivery address**. Today `plasticos_crm_bridge/models/crm_lead.py:1119-1121` creates the sale order with `partner_id = release_buyer_facility_id`, so the facility itself is the customer.
+- The opportunity hand-off names the facility as the draft sale order's customer and as its delivery address. `partner_id` and `partner_shipping_id` are that facility (`parties["ship_to"]`). `plasticos.transaction.buyer_id` stays the buyer company. The ownership check still requires the facility to belong to that company.
 
 ## Consequences
 

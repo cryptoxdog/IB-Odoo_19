@@ -23,7 +23,7 @@ sys.modules[_SPEC.name] = policy  # dataclasses resolve their module through sys
 _SPEC.loader.exec_module(policy)
 
 KEYS = policy.SelectionKeys(
-    process_types=frozenset({"injection", "compounding", "extrusion"}),
+    capability_type_codes=frozenset({"injection_molding", "compounding", "extrusion"}),
     application_classes=frozenset({"food", "packaging"}),
     feedstock_types=frozenset({"post_industrial", "post_consumer"}),
 )
@@ -40,7 +40,7 @@ def _settings(params):
 def test_defaults_are_off_five_dollars_fifty_buyers_thirty_days():
     s = _settings({})
     assert (s.enabled, s.daily_budget_usd, s.max_candidates, s.cooldown_days) == (False, 5.0, 50, 30)
-    assert s.process_types == s.equipment_type_ids == ()
+    assert s.capability_type_codes == s.capability_type_ids == ()
 
 
 def test_odoo_boolean_spellings_are_read():
@@ -52,17 +52,17 @@ def test_odoo_boolean_spellings_are_read():
 def test_multi_values_accept_json_or_comma_lists_and_normalize():
     s = _settings(
         {
-            policy.ICP_PROCESS_TYPES: "injection, compounding",
+            policy.ICP_CAPABILITY_TYPE_CODES: "injection_molding, compounding",
             policy.ICP_APPLICATION_CLASSES: '["packaging"]',
-            policy.ICP_EQUIPMENT_TYPE_IDS: "[3, 1, 3]",
-            policy.ICP_ACCEPTED_POLYMER_IDS: "7,2",
+            policy.ICP_CAPABILITY_TYPE_IDS: "[3, 1, 3]",
+            policy.ICP_POLYMER_IDS: "7,2",
         }
     )
-    assert s.process_types == ("compounding", "injection")
+    assert s.capability_type_codes == ("compounding", "injection_molding")
     assert s.application_classes == ("packaging",)
-    assert s.equipment_type_ids == (1, 3)
-    assert s.accepted_polymer_ids == (2, 7)
-    assert json.loads(policy.dump_list(s.equipment_type_ids)) == [1, 3]
+    assert s.capability_type_ids == (1, 3)
+    assert s.polymer_ids == (2, 7)
+    assert json.loads(policy.dump_list(s.capability_type_ids)) == [1, 3]
     assert policy.dump_list([]) == ""
 
 
@@ -77,13 +77,13 @@ def test_multi_values_accept_json_or_comma_lists_and_normalize():
         {policy.ICP_MAX_CANDIDATES: "0"},
         {policy.ICP_MAX_CANDIDATES: "501"},
         {policy.ICP_COOLDOWN_DAYS: "-1"},
-        {policy.ICP_PROCESS_TYPES: "injection,blow_molding"},
+        {policy.ICP_CAPABILITY_TYPE_CODES: "injection,blow_molding"},
         {policy.ICP_FEEDSTOCK_TYPES: '["virgin"]'},
         {policy.ICP_APPLICATION_CLASSES: '{"food": 1}'},
-        {policy.ICP_EQUIPMENT_TYPE_IDS: "[1, 0]"},
-        {policy.ICP_EQUIPMENT_TYPE_IDS: "a,b"},
-        {policy.ICP_ACCEPTED_POLYMER_IDS: "[true]"},
-        {policy.ICP_ACCEPTED_POLYMER_IDS: "[1.5]"},
+        {policy.ICP_CAPABILITY_TYPE_IDS: "[1, 0]"},
+        {policy.ICP_CAPABILITY_TYPE_IDS: "a,b"},
+        {policy.ICP_POLYMER_IDS: "[true]"},
+        {policy.ICP_POLYMER_IDS: "[1.5]"},
         {policy.ICP_MIN_CAPACITY_LBS_MONTH: "-5"},
     ],
 )
@@ -101,31 +101,38 @@ def test_domain_selects_active_partnered_buyers_and_no_filter_widens_nothing():
     assert ("partner_id", "!=", False) in domain
     assert ("partner_id.active", "=", True) in domain
     i = domain.index("|")
-    assert domain[i + 1 : i + 3] == [
+    assert domain[i : i + 5] == [
+        "|",
+        "|",
         ("partner_id.customer_rank", ">", 0),
         ("partner_id.commercial_partner_id.customer_rank", ">", 0),
+        ("partner_id.parent_id.commercial_partner_id.customer_rank", ">", 0),
     ]
-    assert len(domain) == 6
+    assert len(domain) == 8
 
 
 def test_domain_adds_each_configured_filter():
     domain = policy.facility_domain(
         _settings(
             {
-                policy.ICP_PROCESS_TYPES: "compounding,injection",
+                policy.ICP_CAPABILITY_TYPE_CODES: "compounding,injection_molding",
                 policy.ICP_APPLICATION_CLASSES: "food",
                 policy.ICP_FEEDSTOCK_TYPES: "post_industrial",
-                policy.ICP_EQUIPMENT_TYPE_IDS: "4",
-                policy.ICP_ACCEPTED_POLYMER_IDS: "9",
+                policy.ICP_CAPABILITY_TYPE_IDS: "4",
+                policy.ICP_POLYMER_IDS: "9",
                 policy.ICP_MIN_CAPACITY_LBS_MONTH: "100000",
             }
         )
     )
-    assert ("process_type", "in", ["compounding", "injection"]) in domain
+    assert ("capability_ids.capability_type_id.code", "in", ["compounding", "injection_molding"]) in domain
     assert ("application_class", "in", ["food"]) in domain
     assert ("feedstock_type", "in", ["post_industrial"]) in domain
-    assert ("equipment_type_ids", "in", [4]) in domain
-    assert ("accepted_polymer_ids", "in", [9]) in domain
+    assert ("capability_ids.capability_type_id", "in", [4]) in domain
+    assert (
+        "partner_id.material_profile_ids",
+        "any",
+        [("polymer_id", "in", [9]), ("direction", "=", "in")],
+    ) in domain
     assert ("capacity_lbs_month", ">=", 100000) in domain
 
 

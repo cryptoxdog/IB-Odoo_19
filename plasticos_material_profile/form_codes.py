@@ -2,8 +2,7 @@
 
 Every layer that references form codes MUST import from here:
   - material_profile.py ``form`` Selection
-  - facility_profile.py ``form_preference_id`` (Many2one to material.form)
-  - graph_service.py Cypher form-equipment gate
+  - graph_service.py Cypher form-capability gate
   - matcher.py Gate 2 form comparison
   - tests/test_material_grade_codes.py drift-prevention tests
 
@@ -40,12 +39,12 @@ FORM_CODES: tuple[str, ...] = (
 )
 
 # ── Equipment-gated forms ────────────────────────────────────────────
-# Forms that require specific facility equipment to process.
-# Key = form code, Value = Cypher property that must be ``true``.
+# Forms that require a capability type on the site.
+# Key = form code, Value = plasticos.capability.type code.
 EQUIPMENT_GATED_FORMS: dict[str, str] = {
-    "REGRIND": "f.handles_regrind",
-    "FLAKE": "f.handles_flake",
-    "ROLLSTOCK": "f.handles_rollstock",
+    "REGRIND": "grinding",
+    "FLAKE": "washing",
+    "ROLLSTOCK": "extrusion",
 }
 
 # Forms that pass through without equipment checks.

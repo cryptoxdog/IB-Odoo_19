@@ -57,7 +57,8 @@ ERROR_ROW_LIMIT = 1000
 # (the run does not fail) and are kept ahead of other rows under the cap.
 MATERIAL_PLACEMENT_REVIEW = "MATERIAL_PLACEMENT_REVIEW"
 MATERIAL_FIELD_IGNORED = "MATERIAL_FIELD_IGNORED"
-REVIEW_ERROR_TYPES = (MATERIAL_PLACEMENT_REVIEW, MATERIAL_FIELD_IGNORED)
+MATERIAL_DIRECTION_REVIEW = "MATERIAL_DIRECTION_REVIEW"
+REVIEW_ERROR_TYPES = (MATERIAL_PLACEMENT_REVIEW, MATERIAL_FIELD_IGNORED, MATERIAL_DIRECTION_REVIEW)
 ERROR_MESSAGE_LIMIT = 2000
 ERROR_TYPE_LIMIT = 200
 _ERROR_CATEGORIES = frozenset({REQUIRED_MAPPING, OPTIONAL_CONTEXT})
@@ -166,7 +167,7 @@ def project_error_rows(error_rows: list[dict] | None) -> list[dict]:
 
 
 def review_rows(summary: dict, error_type: str) -> list[dict]:
-    """The summary's review rows of one kind (``MATERIAL_PLACEMENT_REVIEW`` / ``MATERIAL_FIELD_IGNORED``)."""
+    """The summary's review rows of one kind (placement, ignored field, or blank direction)."""
     return [row for row in summary.get("errors") or [] if row.get("error_type") == error_type]
 
 
@@ -174,6 +175,7 @@ def review_report_lines(summary: dict) -> list[str]:
     """The always-present NEEDS REVIEW sections the shell prints after the summary, untruncated."""
     placement = review_rows(summary, MATERIAL_PLACEMENT_REVIEW)
     ignored = review_rows(summary, MATERIAL_FIELD_IGNORED)
+    direction = review_rows(summary, MATERIAL_DIRECTION_REVIEW)
     lines = [
         f"=== NEEDS REVIEW: {len(placement)} VanillaSoft records have materials that were NOT placed "
         "(person oversees several sites) ==="
@@ -181,6 +183,11 @@ def review_report_lines(summary: dict) -> list[str]:
     lines.extend(f"  - {row['record_ref']}: {row['message']}" for row in placement)
     lines.append(f"=== NEEDS REVIEW: {len(ignored)} Material Type/Form fields ignored (several values) ===")
     lines.extend(f"  - {row['record_ref']}: {row['message']}" for row in ignored)
+    lines.append(
+        f"=== NEEDS REVIEW: {len(direction)} VanillaSoft records have materials with no direction "
+        "(Buyer and Supplier) ==="
+    )
+    lines.extend(f"  - {row['record_ref']}: {row['message']}" for row in direction)
     return lines
 
 

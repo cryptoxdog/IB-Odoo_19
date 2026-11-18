@@ -99,8 +99,9 @@ class PlasticosEnrichmentSweep(models.Model):
         def keys(name):
             return frozenset(str(k) for k, _label in profile._fields[name]._description_selection(self.env))
 
+        codes = frozenset(self.env["plasticos.capability.type"].search([]).mapped("code"))
         return policy.SelectionKeys(
-            process_types=keys("process_type"),
+            capability_type_codes=codes,
             application_classes=keys("application_class"),
             feedstock_types=keys("feedstock_type"),
         )

@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import importlib.util
 import sys
-import xml.etree.ElementTree as ET
 from pathlib import Path
+
+import defusedxml.ElementTree as ET
 
 ROOT = Path(__file__).parents[1]
 CI = ROOT / "ci"
@@ -110,7 +111,7 @@ def test_indexes_owned_by_other_nodes_are_not_notebook_findings():
 def test_named_notebook_and_named_page_are_not_findings():
     assert checker.check_xpath("//notebook[@name='intake_pages']", "view.xml", "sample") == []
     assert checker.check_xpath("//notebook[page[@name='internal_notes']]", "view.xml", "sample") == []
-    assert checker.check_xpath("//notebook//field[@name='has_shredder']", "view.xml", "sample") == []
+    assert checker.check_xpath("//notebook//field[@name='capability_type_id']", "view.xml", "sample") == []
 
 
 def test_unscoped_list_field_scopes_to_the_named_field(tmp_path: Path):

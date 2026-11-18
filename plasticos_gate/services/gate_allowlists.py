@@ -584,15 +584,55 @@ class FacilityAlias:
     odoo_field: str
 
 
+# ADR-134 retired these facility-profile targets. A converge result that names
+# one is refused; nothing is written back until the follow-up vocabulary.
+ADR134_RETIRED_REASON = "retired by ADR-134; awaiting the follow-up vocabulary"
+RETIRED_CONVERGE_FIELDS = frozenset(
+    {
+        "processed_polymers",
+        "accepted_polymer_ids",
+        "min_density",
+        "max_density",
+        "min_mfi",
+        "max_mfi",
+        "density_min",
+        "density_max",
+        "melt_index_min",
+        "melt_index_max",
+        "equipment_type_ids",
+        "form_preference_id",
+        "form_preference",
+        "process_type",
+        "handles_bales",
+        "handles_regrind",
+        "handles_pellet",
+        "handles_flake",
+        "handles_rollstock",
+        "can_remove_metal",
+        "can_reduce_moisture",
+        "can_filter_fr",
+        "can_screen_fines",
+        "has_horizontal_baler",
+        "has_downstroke_baler",
+        "has_shredder",
+        "has_granulator",
+        "has_wash_line",
+        "has_extruder",
+        "has_sorting_line",
+    }
+)
+
+
+def is_retired_converge_field(name: str) -> bool:
+    """True when a cartridge or Odoo field name was retired by ADR-134."""
+    return name in RETIRED_CONVERGE_FIELDS
+
+
 # Only the names that differ between the cartridge and the facility profile.
+# Retired aliases are absent: those cartridge fields are refused, not rewritten.
 FACILITY_PROFILE_V2_ALIASES = MappingProxyType(
     dict(
         (
-            ("processed_polymers", FacilityAlias("accepted_polymer_ids")),
-            ("min_density", FacilityAlias("density_min")),
-            ("max_density", FacilityAlias("density_max")),
-            ("min_mfi", FacilityAlias("melt_index_min")),
-            ("max_mfi", FacilityAlias("melt_index_max")),
             ("contamination_tolerance", FacilityAlias("contamination_tolerance_pct")),
             ("capacity_tons_month", FacilityAlias("capacity_lbs_month")),
         )
@@ -605,10 +645,6 @@ FACILITY_PROFILE_V2_ALIASES = MappingProxyType(
 FACILITY_PROFILE_FIELD_UNITS = MappingProxyType(
     dict(
         (
-            ("density_min", _UNITS_DENSITY),
-            ("density_max", _UNITS_DENSITY),
-            ("melt_index_min", _UNITS_MFI),
-            ("melt_index_max", _UNITS_MFI),
             ("contamination_tolerance_pct", _UNITS_PERCENT),
             ("capacity_lbs_month", _UNITS_CAPACITY),
             ("avg_truckload_lbs", _UNITS_LB),
@@ -748,8 +784,14 @@ def derive_facility_profile_target(
         if field_subject != subject:
             unmapped[cartridge_field] = f"subject {field_subject!r}: requested under that subject, not {subject!r}"
             continue
+        if is_retired_converge_field(cartridge_field):
+            unmapped[cartridge_field] = ADR134_RETIRED_REASON
+            continue
         alias = FACILITY_PROFILE_V2_ALIASES.get(cartridge_field)
         odoo_name = alias.odoo_field if alias else cartridge_field
+        if is_retired_converge_field(odoo_name):
+            unmapped[cartridge_field] = ADR134_RETIRED_REASON
+            continue
         field_def = eligible.get(odoo_name)
         if field_def is None:
             if odoo_name in every:

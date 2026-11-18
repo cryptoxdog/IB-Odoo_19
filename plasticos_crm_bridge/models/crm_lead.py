@@ -1180,7 +1180,8 @@ class CrmLeadPlastOS(models.Model):
         )
         sale = self.env["sale.order"].create(
             {
-                "partner_id": parties["customer"].id,
+                # The draft sale order's customer is the facility this release names.
+                "partner_id": parties["ship_to"].id,
                 "partner_shipping_id": parties["ship_to"].id,
                 "opportunity_id": self.id,
                 "origin": offer.name,

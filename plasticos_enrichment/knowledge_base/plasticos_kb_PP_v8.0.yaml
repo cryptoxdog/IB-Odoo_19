@@ -1337,7 +1337,7 @@ buyer_profiles:
         - "black"
         - "gray"
         - "automotive colors"
-      form_preference: "pellets"
+      in_form: "pellets"
     quality_specifications:
       melt_flow_rate:
         value: null
@@ -1408,7 +1408,7 @@ buyer_profiles:
         unit: "%"
       color_preference:
         - "any"
-      form_preference: "pellets"
+      in_form: "pellets"
     quality_specifications:
       melt_flow_rate:
         value: null
@@ -1476,7 +1476,7 @@ buyer_profiles:
       color_preference:
         - "natural"
         - "clear"
-      form_preference: "pellets"
+      in_form: "pellets"
     quality_specifications:
       melt_flow_rate:
         value: null
@@ -1548,7 +1548,7 @@ buyer_profiles:
         unit: "%"
       color_preference:
         - "any"
-      form_preference: "pellets or regrind"
+      in_form: "pellets or regrind"
     quality_specifications:
       melt_flow_rate:
         value: null
@@ -1613,7 +1613,7 @@ buyer_profiles:
         unit: "%"
       color_preference:
         - "any"
-      form_preference: "pellets"
+      in_form: "pellets"
     quality_specifications:
       melt_flow_rate:
         value: null
@@ -1678,7 +1678,7 @@ buyer_profiles:
       color_preference:
         - "natural"
         - "consistent"
-      form_preference: "pellets"
+      in_form: "pellets"
     quality_specifications:
       melt_flow_rate:
         value: [0.5, 7]

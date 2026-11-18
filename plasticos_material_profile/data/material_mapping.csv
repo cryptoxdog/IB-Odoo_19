@@ -14,7 +14,7 @@ material,pp supersacs,PP Supersacs,erp:InvoiceDesc;vanillasoft:Materials,55,213,
 material,hdpe injection 1-5mi,HDPE INJECTION 1-5MI,erp:InvoiceDesc,254,0,mapped,names_one_polymer,HDPE,,,,,,,,,injection,,
 material,ldpe film,LDPE Film,erp:InvoiceDesc;vanillasoft:Material (LDPE);vanillasoft:Materials,177,77,mapped,worksheet_phrase,LDPE,,FILM,,,,,,,,bales,
 material,mrp,MRP,erp:InvoiceDesc;vanillasoft:Material (LDPE);vanillasoft:Materials;vanillasoft:Materials (MRF's),4,218,mapped,crm_code,MRP,,,,,,,,,,,
-material,ldpe film a,LDPE Film A,vanillasoft:Material (LDPE);vanillasoft:Materials,0,193,mapped,worksheet_phrase,LDPE,,FILM,,clean dry,A,LDPE_FILM_A,,,,bales,
+material,ldpe film a,LDPE Film A,vanillasoft:Material (LDPE);vanillasoft:Materials,0,193,mapped,worksheet_phrase,LDPE,,FILM,,,A,LDPE_FILM_A,,,,bales,
 material,abs,ABS,erp:InvoiceDesc;vanillasoft:Material (LDPE);vanillasoft:Materials,7,180,mapped,crm_code,ABS,,,,,,,,,,,
 material,pet,PET,vanillasoft:Material (LDPE);vanillasoft:Materials,0,183,mapped,crm_code,PET,,,,,,,,,,,
 material,e-waste,E-Waste,vanillasoft:Materials,0,173,mapped,crm_code,EWASTE,,,,,,,,,,,
@@ -1073,6 +1073,7 @@ material,clear pet trays in bales,Clear PET Trays in Bales,erp:InvoiceDesc,1,0,m
 material,clear post industrial film bales,Clear Post Industrial Film Bales,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,,names no polymer master
 material,cloumbus 3-7,Cloumbus 3-7,erp:InvoiceDesc,1,0,mapped,names_one_polymer,3_7_COMMINGLED_BOTTLES,BOTTLES,,POST_CONSUMER,,,,,,,,
 material,co-mingled 1-7 all plastics,co-mingled 1-7 all plastics,vanillasoft:Material (LDPE),0,1,mapped,approved_alias,1_7_COMMINGLED_BOTTLES,BOTTLES,,POST_CONSUMER,,,,,,,,
+material,1 & 2 pet & hdpe co-mingled bottles,1 & 2 pet & hdpe co-mingled bottles,vanillasoft:Materials,0,0,mapped,approved_alias,1_2_COMMINGLED_BOTTLES,,,POST_CONSUMER,,,,,,,,
 material,combustible petroleums,combustible petroleums,vanillasoft:Materials,0,1,unknown,,,,,,,,,,,,,no Odoo polymer master for this material
 material,commingled 1-7 plastic,Commingled 1-7 plastic,erp:InvoiceDesc,1,0,mapped,names_one_polymer,1_7_COMMINGLED_BOTTLES,BOTTLES,,POST_CONSUMER,,,,,,,,
 material,commingled bottles,Commingled Bottles,erp:InvoiceDesc,1,0,unknown,,,,,,,,,,,,,names no polymer master

@@ -323,10 +323,34 @@ class ResPartner(models.Model):
             "context": {"default_partner_id": self.id},
         }
 
+    def _fields_sync(self, values):
+        if self.env.context.get("plasticos_keep_site_address"):
+            return
+        return super()._fields_sync(values)
+
     @api.model_create_multi
     def create(self, vals_list):
         records = super().create(vals_list)
         records.filtered("company_role")._sync_rank_from_role()
+        # A site is still a contact while base create copies the parent address
+        # onto it. The zip the caller set is the one an address match must see.
+        address_fields = set(self._address_fields())
+        for record, vals in zip(records, vals_list, strict=True):
+            if not record._plasticos_is_site():
+                continue
+            restore = {}
+            for name in address_fields:
+                if name not in vals or not vals[name]:
+                    continue
+                current = record[name]
+                current_value = current.id if isinstance(current, models.BaseModel) else current
+                if vals[name] != current_value:
+                    restore[name] = vals[name]
+            if restore:
+                # A contact-type write would copy this address onto the company and
+                # every other contact child. The caller's address stays on this site.
+                kept = record.with_context(plasticos_keep_site_address=True)
+                super(ResPartner, kept).write(restore)
         return records
 
     erp_address_label = fields.Char(

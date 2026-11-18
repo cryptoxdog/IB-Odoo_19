@@ -1,4 +1,4 @@
-"""Partner and equipment type code uniqueness is one query per batch and keeps its messages."""
+"""Partner and capability type code uniqueness is one query per batch and keeps its messages."""
 
 import uuid
 from unittest.mock import patch
@@ -8,7 +8,7 @@ from odoo.tests import TransactionCase, tagged
 
 _CODE_MODELS = {
     "plasticos.partner.type": "Partner type",
-    "plasticos.equipment.type": "Equipment type",
+    "plasticos.capability.type": "Capability type",
 }
 
 

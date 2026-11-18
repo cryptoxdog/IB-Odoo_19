@@ -23,6 +23,7 @@ Zero Odoo runtime. Pure AST + XML parsing.
 import ast
 import os
 import re
+import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import NamedTuple
@@ -1915,47 +1916,34 @@ class TestXmlSelectionAlignment:
 
 
 class TestEquipmentCodeAlignment:
-    """Validate that equipment codes used in _compute_equipment_flags
-    match the codes defined in equipment type seed data XML."""
+    """Capability type codes the migration writes exist in the capability-type seed."""
 
     def test_equipment_codes_in_compute_match_seed_data(self):
-        """Codes used in `"code_value" in codes` comparisons must
-        exist in equipment type XML seed data."""
-        # Find equipment codes used in Python
-        used_codes = set()
-        for mod in MODULES:
-            mod_path = REPO_ROOT / mod
-            for _rel_path, src in _iter_python_files(mod_path):
-                if "equipment" not in src.lower():
-                    continue
-                # Pattern: "some_code" in codes
-                for match in re.finditer(r'["\'](\w+)["\']\s+in\s+codes', src):
-                    used_codes.add(match.group(1))
-
-        if not used_codes:
-            pytest.skip("No equipment code comparisons found")
-
-        # Find equipment codes defined in XML
+        """Retired equipment codes are gone. Migration capability codes are seeded."""
+        seed = REPO_ROOT / "plasticos_facility_profile" / "data" / "capability_type_data.xml"
+        tree = ET.parse(seed)
         xml_codes = set()
-        for mod in MODULES:
-            for xml_path in _iter_xml_data_files(REPO_ROOT / mod):
-                try:
-                    tree = ET.parse(xml_path)
-                except ET.ParseError:
-                    continue
-                for record in tree.getroot().iter("record"):
-                    model = record.get("model", "")
-                    if "equipment" not in model:
-                        continue
-                    for field in record.findall("field"):
-                        if field.get("name") == "code":
-                            text = (field.text or "").strip()
-                            if text:
-                                xml_codes.add(text)
+        for record in tree.getroot().iter("record"):
+            if record.get("model") != "plasticos.capability.type":
+                continue
+            for field in record.findall("field"):
+                if field.get("name") == "code":
+                    text = (field.text or "").strip()
+                    if text:
+                        xml_codes.add(text)
+        assert xml_codes, "No capability type seed data found"
+        import importlib.util
 
-        if not xml_codes:
-            pytest.skip("No equipment type seed data found")
-
+        spec = importlib.util.spec_from_file_location(
+            "capability_migration_codes",
+            REPO_ROOT / "plasticos_facility_profile" / "capability_migration.py",
+        )
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module
+        spec.loader.exec_module(module)
+        used_codes = {type_code for type_code, _details in module.EQUIPMENT_CAPABILITY.values()}
+        used_codes.update(module.PROCESS_CAPABILITY.values())
+        used_codes.update(type_code for type_code, _details in module.CAN_CAPABILITY.values())
         missing = used_codes - xml_codes
         assert len(missing) == 0, (
             f"Equipment codes used in Python but missing from XML seed data:\n"

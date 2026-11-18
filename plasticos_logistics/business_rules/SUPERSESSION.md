@@ -149,6 +149,19 @@ The seven clauses keep their source text in `plasticos_documents`. Their clocks 
 | `BRS-EXP-11-R010` | Supersedes the S9 addendum's open decision N9 for human actors: a person needs no second approver, so the same Logistics user may propose and accept a shipment event (operator decision 2026-11-12). Attachment provenance of a proposal remains the proposer's own statement unless it cites a Linda reply. |
 | `BRS-EXP-11-R010` | The Linda load-obligation sweep keeps its page cursor in `plasticos.linda.sweep.cursor`, one row per lane and company, and writes no `ir.config_parameter`. Migration 19.0.1.14.24 moved the stored `plasticos_logistics.linda_load_sweep_cursor.<lane>` values once and removed them. The pages, their order and their wrap are unchanged. |
 
+## 2026-11-17 C5: soonest full-weight schedule and per-side dock rules
+
+**Source:** operator decisions 2026-11-17 (POS-INV-21, ADR-135). This section edits no source BRS file.
+
+| Rule ID | Amended interpretation (2026-11-17) |
+| --- | --- |
+| `BRS-03-R016` | **Separate dock rules.** `pickup_dock_rule` (new) and `delivery_term` (existing) are separate on PO, SO, transaction and load. Each defaults from its own site, then the commercial company, then Appointment. The partner's Appointment default is a guardrail. `dock_rule_confirmed_on` separates a verified rule from the default; Linda asks the site while it is empty. |
+| `BRS-03-R017`, `BRS-03-R018`, `BRS-03-R022` | **Appointment records.** Appointments are `plasticos.load.appointment` records per attempt and side: requested, proposed, accepted, canceled or missed. Each carries the slot, the reference, who arranged it and the source message. Only one record per side may be accepted. A new acceptance cancels the old one and never overwrites it. A changed delivery slot invalidates the dependent pickup commitment. `appointment_requested` stays a stored request indicator. |
+| `BRS-02-R005`, `BRS-03-R020` | **Readiness and the schedule window.** `expected_ready_date` and `ready_net_weight_lbs` sit beside the ready confirmation. Linda's load-obligation sweep computes the schedule window from them, the accepted slot, transit days and carrier lead time; she runs no new scheduler. Unknown site hours or time zone make Linda ask the site. |
+| `BRS-03-R019` | **FCFS pickup.** When pickup is FCFS and the material is confirmed ready, no pickup appointment is made. The delivery slot is booked first, and the dispatch targets it. |
+| `BRS-02-R004`, `BRS-04` | **POS-INV-21.** Linda never schedules or dispatches below the PO's per-shipment `minimum_net_weight`, and never offers a waiver. She presents the real calendar early: the earlier option, its staging deadline and the next slot after it. For export, she asks the buyer who provided the booking to roll it (`booking_roll_request`); `booking_amend` announces the accepted new revision. |
+| `rule_request_dock_appointment` (`plasticos_automation`) | **No automatic email on SO confirmation.** SO confirmation creates a logistics activity instead of emailing the buyer, until Linda's live cutover. |
+
 ## Change control
 
 Amend this register only for an explicit operator decision or an admitted repository architectural ruling, cite exact BRS IDs, update any associated acceptance tests, and preserve source document bytes. In-scope rule proposals that are unresolved must be marked **proposed**, not disguised as accepted.

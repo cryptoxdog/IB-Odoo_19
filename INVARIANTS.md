@@ -307,3 +307,24 @@ To modify an invariant:
 > becomes a `degraded` run with its reason. A malformed sweep reply ingests nothing. One sweep and entity yield at most one run.
 > **Rejects:** a sweep result writing to a partner or facility profile without an approved run, and a sweep reply
 > that does not match the contract module (`plasticos_gate/services/gate_sweep.py`) creating any run.
+
+> **2026-11-17 addition (additive; this file is append-only). Operator decision 2026-11-17. Realized by ADR-135.**
+>
+> ### POS-INV-21 | Soonest Full-Weight Opportunity
+>
+> Linda's scheduling objective **MUST** be the earliest pickup and delivery, or the earliest export sailing, that both the shipper and the receiver accept for a load meeting its minimum net weight. Shipping sooner **MUST NOT** outrank shipping full weight. Linda **MUST NOT** propose, accept, load or dispatch a truckload or export container below its minimum net weight. She **MUST NOT** offer to waive, or ignore, a light-weight deduction.
+>
+> - **Present the real calendar, early.** When the shipper's ready date is later than an available delivery slot or booking cutoff, Linda tells the shipper as soon as she knows. She gives the date the full load must be staged by to make it, the date of the next slot or sailing after it, and asks whether they can be full-weight ready in time.
+>   - If they can, she books the earlier slot or keeps the booking.
+>   - If they cannot, or have not answered by the date she must decide, she books the next available slot or asks for the booking to be rolled.
+> - **Export.** A skipped port call or a long wait for the next cutoff is communicated in advance, never after a cutoff has passed, so the shipper can choose to speed up production.
+> - **Ready early.** When a load is confirmed ready ahead of its accepted delivery slot or booking, Linda **MUST** ask for an earlier one. A refusal leaves the accepted slot or booking unchanged.
+>
+> A load that ships sooner frees the shipper's space for the next load and brings payment and margin sooner. Minimums, tolerances and deduction arithmetic stay in the PO, the transaction and the BRS. Waiving a deduction or paying a roll fee is a human commercial decision.
+>
+> **Rejects:**
+> - dispatching a partial load to make an earlier slot;
+> - offering to waive a light-weight deduction;
+> - silently booking a slot weeks out when the shipper was never told an earlier slot existed;
+> - telling a shipper only after the cutoff that the next sailing is a month away;
+> - leaving a ready load waiting without asking for an earlier slot or sailing.
