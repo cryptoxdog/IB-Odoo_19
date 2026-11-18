@@ -36,6 +36,8 @@ Former copies under `reports/adr/` were consolidated here (2026-06-04). The root
 | [ADR-131](ADR-131-partner-sites-native-addresses-and-native-classification.md) | Partner sites as native addresses; partner classification on native fields | Accepted (operator, 2026-11-17) |
 | [ADR-132](ADR-132-material-profile-belongs-to-the-site.md) | A material profile belongs to the site, never to a person | Accepted (operator, 2026-11-17) |
 | [ADR-133](ADR-133-vanillasoft-records-become-partners-selectively.md) | VanillaSoft records become partners selectively; cold records stay CRM leads | Accepted (operator D32/D33, 2026-11-17) |
+| [ADR-134](ADR-134-site-capabilities.md) | Site capabilities: what a site does, and with what material | Accepted (operator, 2026-11-17) |
+| [ADR-135](ADR-135-dock-rules-appointments-scheduling.md) | Dock rules, appointments and the soonest full-weight schedule | Accepted (operator, 2026-11-17) |
 | [ADR-003 (single)](ADR-003-single-external-intelligence-authority.md) | Single external intelligence authority (Gate → CEG/EIE) | Accepted |
 
 ## Namespaced ADR packs
