@@ -586,6 +586,33 @@ def sale_line_included(detail: dict, source: dict) -> bool:
     return count == 1
 
 
+def _exact_each_quantity(amount, price) -> float | None:
+    """Integer ``amount / price`` when the product reconciles exactly. Otherwise None.
+
+    This is the rehearsal copy of the zero-weight rule. It does not read ``WKSDetail.Units``
+    and it does not substitute quantity 1.
+    """
+    from decimal import Decimal, InvalidOperation
+
+    def _dec(value):
+        text = "" if value is None else str(value).strip()
+        if not text or text.upper() == "NULL":
+            return Decimal(0)
+        try:
+            return Decimal(text)
+        except InvalidOperation:
+            return None
+
+    amount_d = _dec(amount)
+    price_d = _dec(price)
+    if amount_d is None or price_d is None or amount_d == 0 or price_d == 0:
+        return None
+    quantity = amount_d / price_d
+    if quantity != quantity.to_integral_value() or quantity * price_d != amount_d or quantity == 0:
+        return None
+    return float(quantity)
+
+
 def purchase_bill_absolute(details: list[dict]) -> tuple[float, float, bool]:
     """Signed purchase total and the absolute total a matching material bill stores."""
     signed = 0.0
@@ -595,9 +622,8 @@ def purchase_bill_absolute(details: list[dict]) -> tuple[float, float, bool]:
         amount = as_float(detail.get("PAmount")) or 0.0
         signed += amount
         weight, _code = native_quantity(detail.get("PWeight"), detail.get("PWeightUOM"))
-        price = as_float(detail.get("PPrice")) or 0.0
-        if not weight and amount and price:
-            weight = amount / price
+        if not weight:
+            weight = _exact_each_quantity(detail.get("PAmount"), detail.get("PPrice")) or 0.0
         if not weight or not amount:
             continue
         any_line = True
@@ -1526,6 +1552,9 @@ def _customer_invoices(check: _Check) -> None:
         signed = 0.0
         for detail in details_by_worksheet.get(number) or []:
             quantity, _code, price, _amount = _line_terms(detail, "sale")
+            if not quantity:
+                quantity = _exact_each_quantity(detail.get("SAmount"), detail.get("SPrice")) or 0.0
+                price = as_float(detail.get("SPrice")) or 0.0
             if not quantity:
                 continue
             if not sale_line_included(detail, check.source):

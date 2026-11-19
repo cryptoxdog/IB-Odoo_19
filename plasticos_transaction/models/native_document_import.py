@@ -848,13 +848,30 @@ def _customer_invoice(importer, report, context, partner_by_cp, number, buysell,
     partner_id = partner_ids.pop()
     if not partner_id:
         return None
+    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
+        credit_line_terms,
+        unit_priced_quantity,
+    )
+
     commands = []
     for rows in sale_groups.values():
         for detail_id, line, _header in rows:
             product = _product(importer, context, line.get("GradeID"), line.get("InvoiceDesc"))
             weight, uom_code, price = _line_terms(context, report, detail_id, line, "sale")
             if not weight:
-                continue
+                kind, quantity, reason = unit_priced_quantity(line.get("SAmount"), line.get("SPrice"))
+                if quantity is None:
+                    if kind == "invalid":
+                        amount_text = "" if line.get("SAmount") is None else str(line.get("SAmount")).strip()
+                        report.anomaly(
+                            "WKSDetail",
+                            detail_id,
+                            f"sale {reason}; amount {amount_text or 'blank'}",
+                        )
+                    continue
+                weight = float(quantity)
+                price = float(str(line.get("SPrice")).strip())
+                uom_code = "E"
             vals = {
                 "product_id": product.id,
                 "name": (line.get("InvoiceDesc") or "").strip() or product.display_name,
@@ -874,7 +891,9 @@ def _customer_invoice(importer, report, context, partner_by_cp, number, buysell,
     signed = sum(item[2]["quantity"] * item[2]["price_unit"] for item in commands)
     if signed < 0:
         for item in commands:
-            item[2]["price_unit"] = abs(item[2]["price_unit"])
+            quantity, price = credit_line_terms(item[2]["quantity"], item[2]["price_unit"])
+            item[2]["quantity"] = quantity
+            item[2]["price_unit"] = price
     # A worksheet with no source invoice date gets an undated draft, never its order date.
     invoice_date = _date(buysell.get("InvoiceDt"))
     if not invoice_date:
@@ -966,16 +985,25 @@ def _customer_adjustments(importer, index, report, context, partner_by_cp, numbe
         documents["credits"].append(move.id)
 
 
-def _vendor_bill_lines(importer, context, index, material, number, amount, row):
+def _vendor_bill_lines(importer, context, report, index, material, number, amount, row):
     """Worksheet buy quantity when this payable is the purchase total."""
     from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
         payable_matches_purchase,
         purchase_bill_lines,
+        zero_weight_exceptions,
     )
 
     item = (row.get("ItemID") or "").strip()
     details = [index.lines[detail_id] for detail_id in index.detail_ids(number)]
-    specs = purchase_bill_lines(details) if item in ("", "0") and payable_matches_purchase(amount, details) else []
+    matched = item in ("", "0") and payable_matches_purchase(amount, details)
+    if matched:
+        for exc in zero_weight_exceptions(details, "purchase"):
+            report.anomaly(
+                "WKSDetail",
+                exc["detail_id"] or number,
+                f"purchase {exc['reason']}; amount {exc['amount'] or 'blank'}",
+            )
+    specs = purchase_bill_lines(details) if matched else []
     if not specs:
         product, description = _worksheet_material(importer, context, index, number)
         label = description or (product.display_name if product else "") or (row.get("InvoiceNo") or "").strip()
@@ -1227,7 +1255,7 @@ def _write_purchase_bill(
             )
         ]
     else:
-        lines = _vendor_bill_lines(importer, context, index, account, number, amount, row)
+        lines = _vendor_bill_lines(importer, context, report, index, account, number, amount, row)
     move = _move(
         importer,
         f"legacy_erp_ininv_{_token(payable_id)}",
