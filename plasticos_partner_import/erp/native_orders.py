@@ -785,9 +785,9 @@ def purchase_bill_lines(rows: list[dict]) -> list[dict]:
     for row in rows:
         weight, uom = native_quantity(row.get("PWeight"), row.get("PWeightUOM"))
         if not weight:
-            kind, quantity, _reason = unit_priced_quantity(row.get("PAmount"), row.get("PPrice"))
+            _kind, quantity, _reason = unit_priced_quantity(row.get("PAmount"), row.get("PPrice"))
             price_d = _decimal(row.get("PPrice"))
-            if kind != "unit" or quantity is None or price_d is None:
+            if quantity is None or price_d is None:
                 continue
             lines.append(
                 {

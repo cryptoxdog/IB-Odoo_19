@@ -270,7 +270,7 @@ def test_frozen_wksdetail_zero_weight_census_is_two_sales_and_fourteen_purchases
                 kind, quantity, _reason = unit_priced_quantity(row.get(amount), row.get(price))
                 if kind == "empty":
                     continue
-                assert kind == "unit" and quantity is not None, (side, row.get("DetailID"), row.get(amount))
+                assert quantity is not None, (side, row.get("DetailID"), row.get(amount), kind)
                 counts[side][quantity] = counts[side].get(quantity, 0) + 1
     assert counts["sale"] == {Decimal(1): 1, Decimal(2): 1}
     assert counts["purchase"] == {Decimal(1): 10, Decimal(2): 4}

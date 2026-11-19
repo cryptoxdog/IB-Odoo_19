@@ -857,7 +857,7 @@ def _customer_invoice(importer, report, context, partner_by_cp, number, buysell,
             weight, uom_code, price = _line_terms(context, report, detail_id, line, "sale")
             if not weight:
                 kind, quantity, reason = unit_priced_quantity(line.get("SAmount"), line.get("SPrice"))
-                if kind != "unit" or quantity is None:
+                if quantity is None:
                     if kind == "invalid":
                         amount_text = "" if line.get("SAmount") is None else str(line.get("SAmount")).strip()
                         report.anomaly(
