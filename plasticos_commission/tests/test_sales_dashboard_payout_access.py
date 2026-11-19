@@ -14,6 +14,18 @@ from odoo import Command, fields
 from odoo.tests import TransactionCase, tagged
 
 
+def _native_projection():
+    """The documents_native test helper, imported lazily.
+
+    Commission does not depend on Documents, so the helper module is imported
+    inside this function — never at module top level — and the Enterprise model
+    string stays out of this file.
+    """
+    from odoo.addons.plasticos_documents_native.tests import test_native_projection  # noqa: PLC0415
+
+    return test_native_projection
+
+
 @tagged("post_install", "-at_install")
 class TestSalesDashboardPayoutAccess(TransactionCase):
     @classmethod
@@ -77,7 +89,7 @@ class TestSalesDashboardDocumentChecklist(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        if "plasticos.document" not in cls.env or "documents.document" not in cls.env:
+        if "plasticos.document" not in cls.env or not _native_projection().native_model_installed(cls.env):
             raise AssertionError("BLOCKED: PlasticOS Documents and Enterprise Documents must be installed")
         cls.env = cls.env(context=dict(cls.env.context, tracking_disable=True))
         cls.supplier = cls.env["res.partner"].create({"name": "Checklist Supplier", "supplier_rank": 1})
@@ -137,7 +149,7 @@ class TestSalesDashboardDocumentChecklist(TransactionCase):
             {
                 "name": code,
                 "tag_id": self.tags[code].id,
-                "res_model": "documents.document",
+                "res_model": _native_projection().NATIVE_MODEL,
                 "res_id": 0,
                 "attachment_id": attachment.id,
             }
@@ -201,19 +213,17 @@ class TestSalesDashboardDocumentChecklist(TransactionCase):
     def test_native_branch_reads_the_native_projection_only_without_business_rows(self):
         tx, _loads = self._trade()
         folder = self.env.ref("plasticos_documents_native.folder_plasticos_inbox")
-        native_documents = "documents.document"
-        self.env[native_documents].create(
-            {
-                "name": "native-bol.pdf",
-                "folder_id": folder.id,
-                "datas": base64.b64encode(b"%PDF-1.4 native checklist"),
-                "doc_type": "bol",
-                "transaction_id": tx.id,
-            }
+        _native_projection().create_native_document(
+            self.env,
+            name="native-bol.pdf",
+            folder=folder,
+            datas=base64.b64encode(b"%PDF-1.4 native checklist"),
+            doc_type="bol",
+            transaction=tx,
         )
         dashboard = type(self.env["plasticos.sales.dashboard"])
         self.assertEqual(self._dashboard(tx).doc_bol, "missing")
-        with patch.object(dashboard, "_doc_checklist_source", lambda model: "documents.document"):
+        with patch.object(dashboard, "_doc_checklist_source", lambda model: _native_projection().NATIVE_MODEL):
             self.assertEqual(self._dashboard(tx).doc_bol, "pending")
         with patch.object(dashboard, "_doc_checklist_source", lambda model: False):
             self.assertEqual(self._dashboard(tx).doc_bol, "missing")
