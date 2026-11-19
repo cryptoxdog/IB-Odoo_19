@@ -352,7 +352,8 @@ class CrmLeadPlastOS(models.Model):
     def _plasticos_copy_web_lead_pdfs(self):
         """Copy each original web-lead PDF onto this opportunity once.
 
-        Checksum and a source marker keep a replay from storing the file again.
+        Identity is the source attachment id in ``[plasticos-pdf:<id>]``.
+        Identical bytes are a different document when the source id differs.
         Images stay on the existing commercial-image copy.
         """
         self.ensure_one()
@@ -366,7 +367,6 @@ class CrmLeadPlastOS(models.Model):
                 ("mimetype", "=", "application/pdf"),
             ]
         )
-        checksums = {row.checksum for row in existing if row.checksum}
         copied = 0
         lead_ids = self.web_lead_ids.ids
         pdfs = (
@@ -383,10 +383,7 @@ class CrmLeadPlastOS(models.Model):
         )
         for pdf in pdfs:
             marker = f"[plasticos-pdf:{pdf.id}]"
-            already = (pdf.checksum and pdf.checksum in checksums) or any(
-                marker in (row.description or "") for row in existing
-            )
-            if already:
+            if any(marker in (row.description or "") for row in existing):
                 continue
             description = (pdf.description or "").strip()
             if marker not in description:
@@ -400,8 +397,6 @@ class CrmLeadPlastOS(models.Model):
                 }
             )
             existing |= created
-            if created.checksum:
-                checksums.add(created.checksum)
             copied += 1
         return copied
 

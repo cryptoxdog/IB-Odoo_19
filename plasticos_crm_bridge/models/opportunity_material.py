@@ -97,11 +97,45 @@ def _condition_key(value):
     return " ".join(str(value or "").casefold().split())
 
 
-def _column_updates(rows):
-    """One number per column when every compatible row agrees, including test conditions."""
+def _ref_resolves(ref, bundle):
+    """A citation names seller text, an admitted photo, or an admitted PDF page."""
+    text = str(ref or "").strip()
+    evidence = bundle if isinstance(bundle, dict) else {}
+    if not text:
+        return False
+    if text.startswith("seller."):
+        seller = evidence.get("seller") if isinstance(evidence.get("seller"), dict) else {}
+        value = seller.get(text.split(".", 1)[1])
+        if isinstance(value, str):
+            return bool(value.strip())
+        return isinstance(value, (int, float)) and not isinstance(value, bool)
+    photos = evidence.get("photo_findings") if isinstance(evidence.get("photo_findings"), list) else []
+    if text.startswith("vision."):
+        suffix = text.split(".", 1)[1]
+        return suffix.isdigit() and 0 <= int(suffix) < len(photos)
+    if text.startswith("pdf.page."):
+        pages = evidence.get("pdf_page_text") if isinstance(evidence.get("pdf_page_text"), list) else []
+        suffix = text.rsplit(".", 1)[-1]
+        return suffix.isdigit() and 0 <= int(suffix) < len(pages) and bool(str(pages[int(suffix)] or "").strip())
+    return any(
+        isinstance(photo, dict) and text in {photo.get("source_id"), photo.get("source_ref")} for photo in photos
+    )
+
+
+def _row_is_cited(row, bundle):
+    refs = row.get("source_refs")
+    if isinstance(refs, str):
+        refs = [refs]
+    if not isinstance(refs, (list, tuple)):
+        return False
+    return any(_ref_resolves(ref, bundle) for ref in refs)
+
+
+def _column_updates(rows, bundle=None):
+    """One number per column when every cited, compatible row agrees."""
     grouped = {name: [] for name in _COLUMN_UNITS}
     for row in rows:
-        if not isinstance(row, dict):
+        if not isinstance(row, dict) or not _row_is_cited(row, bundle):
             continue
         field = _property_field(row.get("property"))
         if field is None or _unit_key(row.get("unit")) not in _COLUMN_UNITS[field]:
@@ -152,6 +186,7 @@ def _specification_note(rows, representation):
                 str(row.get("unit") or "").strip(),
                 str(row.get("test_conditions") or "").strip(),
                 _note_refs(row.get("source_refs")),
+                _note_refs(row.get("conflicts")),
             )
             if part
         )
@@ -162,6 +197,20 @@ def _specification_note(rows, representation):
     if not lines:
         return ""
     return "\n".join([_SPEC_NOTE_HEADING, *lines])
+
+
+def _replace_specification_note(existing, note):
+    """Replace the previous web-lead specification block. Earlier notes stay."""
+    text = existing or ""
+    start = text.find(_SPEC_NOTE_HEADING)
+    if start < 0:
+        if not note:
+            return text
+        return f"{text.rstrip()}\n{note}".strip() if text.strip() else note
+    prefix = text[:start].rstrip()
+    if not note:
+        return prefix
+    return f"{prefix}\n{note}".strip() if prefix else note
 
 
 def _finite_positive(value):
@@ -359,25 +408,27 @@ class PlasticosOpportunityMaterial(models.Model):
                 opportunity.write(address)
         return material
 
-    def apply_web_lead_specification(self, specifications, representation, grounded_lbs):
-        """Fill empty spec columns and append sheet citations. This does not create an offer.
+    def apply_web_lead_specification(self, specifications, representation, grounded_lbs, bundle=None):
+        """Write cited spec columns and replace this lead's specification note.
 
-        A number already on the sheet stays. Callers pass a seller point mass or nothing;
-        an unknown or planning weight is not written into ``quantity_per_load_lbs``.
+        A numerical column is written only with a supported unit and a resolvable
+        evidence ref. The observation, unit, conditions, provenance, and conflicts
+        stay on the note even when the column is left empty. Replay replaces the
+        previous specification note. This does not create an offer. An unknown or
+        planning weight is not written into ``quantity_per_load_lbs``.
         """
         self.ensure_one()
         rows = [row for row in specifications or [] if isinstance(row, dict)]
         vals = {}
-        for field_name, number in _column_updates(rows).items():
-            if not self[field_name]:
-                vals[field_name] = number
+        for field_name, number in _column_updates(rows, bundle).items():
+            vals[field_name] = number
         grounded = _finite_positive(grounded_lbs)
         if grounded and not self.quantity_per_load_lbs:
             vals["quantity_per_load_lbs"] = grounded
         note = _specification_note(rows, representation)
-        existing = self.freeform_notes or ""
-        if note and _SPEC_NOTE_HEADING not in existing:
-            vals["freeform_notes"] = f"{existing.rstrip()}\n{note}".strip() if existing else note
+        replaced = _replace_specification_note(self.freeform_notes or "", note)
+        if replaced != (self.freeform_notes or ""):
+            vals["freeform_notes"] = replaced or False
         if vals:
             self.with_context(**{SUPPLIER_OFFER_OPTIONAL: True}).write(vals)
 

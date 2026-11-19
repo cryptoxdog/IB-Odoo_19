@@ -117,10 +117,9 @@ class PlasticosWebLeadCRM(models.Model):
     def _propagate_one_pass_spec(self, opportunity):
         """Copy one-pass specs, PDF text, and the original PDF onto an existing opportunity.
 
-        A planning weight is not a load quantity. Only a seller point mass from the
-        dedicated per-load field is written to ``quantity_per_load_lbs``, and only
-        when that column is still empty. Unknown mass stays empty. Replay appends
-        nothing that is already on the opportunity.
+        A planning weight is not a load quantity. A numerical sheet column is written
+        only for a supported unit and a resolvable evidence ref. Replay replaces the
+        previous specification block from this lead with the corrected records.
         """
         self.ensure_one()
         if not opportunity:
@@ -135,10 +134,12 @@ class PlasticosWebLeadCRM(models.Model):
         if callable(copy_pdfs):
             copy_pdfs()
         material = opportunity.opportunity_material_ids[:1]
+        if not material and rows:
+            material = _spec_sheet(opportunity)
         if not material:
             return
         grounded = _seller_grounded_load_lbs(bundle)
-        material.apply_web_lead_specification(rows, representation, grounded)
+        material.apply_web_lead_specification(rows, representation, grounded, bundle)
 
     def _crm_opportunity_description(self):
         """HTML-escaped summary of submitted facts; computed estimates are labelled, empty values omitted."""
@@ -159,13 +160,38 @@ class PlasticosWebLeadCRM(models.Model):
         return Markup("<ul>%s</ul>") % Markup("").join(items) if items else False
 
 
-def _append_marked_html(opportunity, marker, block):
+def _spec_sheet(opportunity):
+    """One working sheet so a cited specification has a column to land on."""
+    from .opportunity_material import SUPPLIER_OFFER_OPTIONAL
+
+    return (
+        opportunity.env["plasticos.opportunity.material"]
+        .with_context(**{SUPPLIER_OFFER_OPTIONAL: True})
+        .create({"opportunity_id": opportunity.id})
+    )
+
+
+def _replace_marked_block(current, marker, block):
+    """Replace the previous block that carries this marker. The first copy is not frozen."""
+    token = f"<div {marker}>"
+    start = current.find(token)
+    if start < 0:
+        if not block:
+            return current
+        return f"{current}{block}" if current else block
+    end = current.find("</div>", start)
+    tail = "" if end < 0 else current[end + len("</div>") :]
+    head = current[:start]
     if not block:
-        return
-    current = opportunity.description or ""
-    if marker in str(current):
-        return
-    opportunity.description = Markup(current) + block if current else block
+        return f"{head}{tail}"
+    return f"{head}{block}{tail}"
+
+
+def _append_marked_html(opportunity, marker, block):
+    current = str(opportunity.description or "")
+    updated = _replace_marked_block(current, marker, str(block or ""))
+    if updated != current:
+        opportunity.description = Markup(updated) if updated else False
 
 
 def _spec_rows(bundle):
@@ -220,7 +246,10 @@ def _spec_pair(row):
     unit = str(row.get("unit") or "").strip()
     conditions = str(row.get("test_conditions") or "").strip()
     refs = _refs(row.get("source_refs"))
-    detail = " ".join(part for part in (value, unit, conditions, refs) if part)
+    conflicts = _refs(row.get("conflicts"))
+    if conflicts:
+        conflicts = f"conflicts: {conflicts}"
+    detail = " ".join(part for part in (value, unit, conditions, refs, conflicts) if part)
     return label, detail
 
 
