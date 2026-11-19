@@ -988,3 +988,15 @@ def test_vision_still_reaches_the_classifier_after_it_feeds_the_normalizer():
     assert pipeline.index("analyze_image_with_provider") < pipeline.index("normalize_with_provider")
     assert "vision_results=vision_results" in pipeline
     assert "vision_evidence=vision_results" in pipeline
+
+
+def test_planning_defaults_serialize_with_units():
+    basis = json.loads(json.dumps(_ep.PLANNING_DEFAULTS_V1.as_evidence()))
+    assert basis["policy_ref"] == "web-lead-planning-defaults/v1"
+    pallets = basis["weights"]["mixed_plastic_pallets"]
+    assert pallets["low_lb"] == 10000
+    assert pallets["high_lb"] == 12000
+    assert pallets["unit"] == "lb"
+    assert basis["weights"]["baled_film"]["lb"] == 36000
+    assert basis["weights"]["pellets"] == {"lb": 40000, "unit": "lb"}
+    assert "full domestic 53-foot trailer" in basis["trailers"]

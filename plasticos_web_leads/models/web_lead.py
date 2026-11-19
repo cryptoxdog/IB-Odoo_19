@@ -108,15 +108,32 @@ _ALIGNMENT_LABELS = {
 }
 
 
-def _planning_basis(defaults: Any) -> dict[str, Any]:
-    """Lane B's planning object, for the evidence bundle only.
+def _json_ready(value: Any) -> Any:
+    """Ordinary JSON values. A planning dataclass is never stored."""
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    if isinstance(value, (list, tuple)):
+        return [_json_ready(item) for item in value]
+    if isinstance(value, Mapping):
+        return {str(key): _json_ready(item) for key, item in value.items()}
+    return str(value)
 
-    Pound figures are not copied out of the object and are not written onto a
-    load-weight field.
+
+def _planning_basis(defaults: Any) -> dict[str, Any]:
+    """Lane B's planning object, as JSON, for the evidence bundle only.
+
+    Pound figures are not copied onto a load-weight field.
     """
-    payload = dict(defaults) if isinstance(defaults, Mapping) else {"value": defaults}
+    if hasattr(defaults, "as_evidence"):
+        payload = defaults.as_evidence()
+    elif isinstance(defaults, Mapping):
+        payload = _json_ready(dict(defaults))
+    else:
+        payload = {}
+    if not isinstance(payload, dict):
+        payload = {}
     payload.setdefault("policy_ref", _PLANNING_POLICY_REF)
-    return {"policy_ref": payload.get("policy_ref") or _PLANNING_POLICY_REF, "defaults": payload}
+    return payload
 
 
 def _seller_claims_for_broker(payload: Mapping[str, Any] | None) -> dict[str, Any]:
@@ -317,50 +334,129 @@ def _apply_one_pass_evidence(
     return bundle
 
 
-def _cited_seller_text(bundle: Mapping[str, Any], refs: list[str]) -> str:
-    seller = bundle.get("seller") if isinstance(bundle.get("seller"), Mapping) else {}
-    chunks: list[str] = []
-    for ref in refs:
-        if not ref.startswith("seller."):
+def _property_aliases(name: str) -> tuple[str, ...]:
+    if name in _MFI_PROPERTIES:
+        return ("melt flow index", "melt flow rate", "melt flow", "melt index", "mfi", "mfr")
+    if name in _DENSITY_PROPERTIES:
+        return ("specific gravity", "density")
+    if name in _MOISTURE_PROPERTIES or name.startswith("moisture"):
+        return ("moisture content", "moisture")
+    text = " ".join(name.split())
+    return (text,) if text else ()
+
+
+def _number_in_text(text: str, value: float) -> bool:
+    forms = {f"{value:g}", str(value)}
+    if value == int(value):
+        forms.add(str(int(value)))
+    for form in forms:
+        if re.search(rf"(?<![\d.]){re.escape(form)}(?![\d.])", text):
+            return True
+    return False
+
+
+def _unit_in_text(text: str, unit: Any) -> bool:
+    key = re.sub(r"\s+", "", str(unit or "").casefold())
+    if not key:
+        return False
+    return key in re.sub(r"\s+", "", text.casefold())
+
+
+def _text_substantiates(text: str, row: Mapping[str, Any]) -> bool:
+    """The cited text states this property, this number, and this unit."""
+    haystack = text.casefold()
+    name = _spec_property_name(row)
+    if not any(alias and alias in haystack for alias in _property_aliases(name)):
+        return False
+    number = _spec_float(row)
+    if number is None or not _number_in_text(haystack, number):
+        return False
+    return _unit_in_text(haystack, row.get("unit"))
+
+
+def _photo_finding_text(photo: Mapping[str, Any]) -> str:
+    skipped = {"source_id", "source_ref", "content", "content_type", "content_sha256"}
+    return "\n".join(str(value) for key, value in photo.items() if key not in skipped and isinstance(value, str))
+
+
+def _citation_text(ref: Any, bundle: Mapping[str, Any]) -> str:
+    text = str(ref or "").strip()
+    if not text:
+        return ""
+    if text.startswith("seller."):
+        seller = bundle.get("seller") if isinstance(bundle.get("seller"), Mapping) else {}
+        value = seller.get(text.split(".", 1)[1])
+        return value.strip() if isinstance(value, str) else ""
+    photos = bundle.get("photo_findings") if isinstance(bundle.get("photo_findings"), list) else []
+    if text.startswith("vision."):
+        suffix = text.split(".", 1)[1]
+        if suffix.isdigit() and 0 <= int(suffix) < len(photos) and isinstance(photos[int(suffix)], Mapping):
+            return _photo_finding_text(photos[int(suffix)])
+        return ""
+    if text.startswith("pdf.page."):
+        pages = bundle.get("pdf_page_text") if isinstance(bundle.get("pdf_page_text"), list) else []
+        suffix = text.rsplit(".", 1)[-1]
+        if suffix.isdigit() and 0 <= int(suffix) < len(pages):
+            return str(pages[int(suffix)] or "").strip()
+        return ""
+    for photo in photos:
+        if isinstance(photo, Mapping) and text in {photo.get("source_id"), photo.get("source_ref")}:
+            return _photo_finding_text(photo)
+    return ""
+
+
+def _admitted_photo(bundle: Mapping[str, Any]) -> bool:
+    photos = bundle.get("photo_findings")
+    if not isinstance(photos, list):
+        photos = bundle.get("vision") if isinstance(bundle.get("vision"), list) else []
+    return any(isinstance(photo, Mapping) and (photo.get("source_id") or photo.get("source_ref")) for photo in photos)
+
+
+def _seller_confirmation_text(bundle: Mapping[str, Any], alignment: Mapping[str, Any]) -> str:
+    ref = str(alignment.get("seller_confirmation_ref") or "").strip()
+    if not ref.startswith("seller."):
+        return ""
+    return _citation_text(ref, bundle)
+
+
+def _bundle_has_substantiated_spec(bundle: Mapping[str, Any]) -> bool:
+    rows = bundle.get("document_specifications")
+    if not isinstance(rows, list):
+        return False
+    for row in rows:
+        if not isinstance(row, Mapping):
             continue
-        value = seller.get(ref.split(".", 1)[1])
-        if value:
-            chunks.append(str(value))
-    return "\n".join(chunks)
+        refs = row.get("source_refs") or []
+        if isinstance(refs, str):
+            refs = [refs]
+        if any(_text_substantiates(_citation_text(ref, bundle), row) for ref in refs):
+            return True
+    return False
 
 
 def representation_alignment_label(bundle: Mapping[str, Any] | None) -> str:
-    """Category label, or 100/100 only for a cited whole-lot confirmation of photo and specs.
+    """Category label. 100/100 requires checked photo, spec, and seller coverage.
 
-    The score is a display string. It is not stored as a measurement.
+    The model's own coverage flags are not verification. The score is a display
+    string and is not stored as a measurement.
     """
-    alignment = {}
-    if isinstance(bundle, Mapping) and isinstance(bundle.get("representation_alignment"), Mapping):
-        alignment = bundle["representation_alignment"]
+    evidence = bundle if isinstance(bundle, Mapping) else {}
+    alignment = evidence.get("representation_alignment")
+    if not isinstance(alignment, Mapping):
+        alignment = {}
     status = str(alignment.get("status") or "unknown")
     label = _ALIGNMENT_LABELS.get(status, status)
-    refs = [str(item) for item in alignment.get("source_refs") or [] if item]
     if status != _ALIGNMENT_STATUS_ALIGNED or alignment.get("representativeness") != _REPRESENTATIVENESS_WHOLE_LOT:
         return label
-    citation = str(alignment.get("seller_confirmation_ref") or "")
-    covers_whole_lot = (
-        citation.startswith("seller.")
-        and alignment.get("covers_photo") is True
-        and alignment.get("covers_specs") is True
-        and alignment.get("covers_whole_offered_lot") is True
+    confirmation = _seller_confirmation_text(evidence, alignment)
+    confirmed = (
+        _admitted_photo(evidence)
+        and _bundle_has_substantiated_spec(evidence)
+        and bool(_WHOLE_LOT_PHRASE.search(confirmation))
+        and bool(_PHOTO_WORD.search(confirmation))
+        and bool(_SPEC_WORD.search(confirmation))
     )
-    if covers_whole_lot or (alignment.get("whole_lot_confirmed") is True and citation.startswith("seller.")):
-        return "100/100"
-    has_photo = any(ref.startswith("photo.") for ref in refs)
-    has_spec = any(ref.startswith(("pdf.", "document.")) for ref in refs)
-    text = _cited_seller_text(bundle or {}, refs)
-    if (
-        has_photo
-        and has_spec
-        and _WHOLE_LOT_PHRASE.search(text)
-        and _PHOTO_WORD.search(text)
-        and _SPEC_WORD.search(text)
-    ):
+    if confirmed:
         return "100/100"
     return label
 
@@ -395,39 +491,22 @@ def _spec_unit_supported(name: str, unit: Any) -> bool:
     return False
 
 
-def _spec_ref_resolves(ref: Any, bundle: Mapping[str, Any]) -> bool:
-    """A citation names seller text, an admitted photo, or an admitted PDF page."""
-    text = str(ref or "").strip()
-    if not text:
-        return False
-    if text.startswith("seller."):
-        seller = bundle.get("seller") if isinstance(bundle.get("seller"), Mapping) else {}
-        value = seller.get(text.split(".", 1)[1])
-        if isinstance(value, str):
-            return bool(value.strip())
-        return isinstance(value, (int, float)) and not isinstance(value, bool)
-    photos = bundle.get("photo_findings") if isinstance(bundle.get("photo_findings"), list) else []
-    if text.startswith("vision."):
-        suffix = text.split(".", 1)[1]
-        return suffix.isdigit() and 0 <= int(suffix) < len(photos)
-    if text.startswith("pdf.page."):
-        pages = bundle.get("pdf_page_text") if isinstance(bundle.get("pdf_page_text"), list) else []
-        suffix = text.rsplit(".", 1)[-1]
-        return suffix.isdigit() and 0 <= int(suffix) < len(pages) and bool(str(pages[int(suffix)] or "").strip())
-    return any(
-        isinstance(photo, Mapping) and text in {photo.get("source_id"), photo.get("source_ref")} for photo in photos
-    )
+def _spec_ref_resolves(ref: Any, bundle: Mapping[str, Any], row: Mapping[str, Any]) -> bool:
+    """The cited seller text, photo finding, or PDF page states this spec."""
+    return _text_substantiates(_citation_text(ref, bundle), row)
 
 
 def _intake_spec_facts(specs: Any, bundle: Mapping[str, Any] | None = None) -> tuple[dict[str, float], str]:
-    """Intake columns only for a supported unit and a resolvable citation.
+    """Intake columns only when one substantiated value agrees.
 
-    Every observation stays in the notes. A number without that unit and citation
-    does not fill ``mfi_value``, ``density_value``, or ``moisture_pct``.
+    The cited text must state the property, the number, and the unit. Two
+    different values for the same property stay in the notes and fill no column.
     """
     evidence = bundle if isinstance(bundle, Mapping) else {}
     measures: dict[str, float] = {}
     notes: list[str] = []
+    seen: dict[str, set[float]] = {}
+    proven: dict[str, set[float]] = {}
     if not isinstance(specs, list):
         return measures, ""
     for row in specs:
@@ -449,15 +528,14 @@ def _intake_spec_facts(specs: Any, bundle: Mapping[str, Any] | None = None) -> t
         elif name in _MOISTURE_PROPERTIES or name.startswith("moisture"):
             target = "moisture_pct"
         number = _spec_float(row)
-        cited = any(_spec_ref_resolves(ref, evidence) for ref in refs)
-        if (
-            target
-            and number is not None
-            and target not in measures
-            and cited
-            and _spec_unit_supported(name, row.get("unit"))
-        ):
-            measures[target] = number
+        if target is None or number is None:
+            continue
+        seen.setdefault(target, set()).add(number)
+        if _spec_unit_supported(name, row.get("unit")) and any(_spec_ref_resolves(ref, evidence, row) for ref in refs):
+            proven.setdefault(target, set()).add(number)
+    for target, numbers in seen.items():
+        if len(numbers) == 1 and proven.get(target) == numbers:
+            measures[target] = next(iter(numbers))
     return measures, "\n".join(note for note in notes if note)
 
 

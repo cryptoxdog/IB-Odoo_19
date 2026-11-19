@@ -259,6 +259,26 @@ class TestBrokerOnePassScenarios(TransactionCase):
         self.assertEqual(lead.decision, "hot")
         self.assertEqual(lead.intake_id.quantity_per_load_lbs, _GROUNDED_LBS)
 
+    def test_planning_basis_round_trips_as_json_on_the_lead(self):
+        import json
+
+        module = importlib.import_module(_WEB_LEAD)
+        basis = module._planning_basis(module.PLANNING_DEFAULTS_V1)
+        encoded = json.dumps(basis)
+        self.assertEqual(json.loads(encoded)["policy_ref"], _PLANNING_POLICY_REF)
+        self.assertIn("full domestic 53-foot trailer", basis["trailers"])
+        lead = self.WebLead.create(
+            {
+                "lead_id": "PLAN-JSON-1",
+                "decision": "review",
+                "company_name": "Plan Co",
+                "evidence_bundle": {"planning_basis": basis},
+            }
+        )
+        stored = lead.evidence_bundle["planning_basis"]
+        self.assertEqual(json.loads(json.dumps(stored)), json.loads(encoded))
+        self.assertEqual(lead.estimated_lbs_per_load, 0)
+
     def test_assessment_retry_is_the_same_single_call(self):
         with economic_assessment_patch(side_effect=_recommend("hot")):
             lead = self.WebLead.create_from_cognito(
@@ -420,7 +440,7 @@ class TestRepresentationAlignmentDisplay(TransactionCase):
     def test_label_is_computed_and_the_view_displays_the_field(self):
         module = importlib.import_module(_WEB_LEAD)
         label = module.representation_alignment_label
-        confirmed = {
+        flags_without_evidence = {
             "seller": {"confirmation": "The photo and the specs cover the whole offered lot."},
             "representation_alignment": {
                 "status": "aligned",
@@ -432,19 +452,25 @@ class TestRepresentationAlignmentDisplay(TransactionCase):
                 "whole_lot_confirmed": True,
             },
         }
-        photo_only = {
+        confirmed = {
+            "seller": {
+                "confirmation": "The photo and the specs cover the whole offered lot.",
+                "material_description": "MFI 7.5 g/10min",
+            },
+            "photo_findings": [{"source_id": "photo-1"}],
+            "document_specifications": [_spec("MFI", 7.5, "g/10min")],
             "representation_alignment": {
                 "status": "aligned",
                 "representativeness": "confirmed_whole_lot",
                 "seller_confirmation_ref": "seller.confirmation",
-                "covers_photo": True,
+                "covers_photo": False,
                 "covers_specs": False,
                 "covers_whole_offered_lot": False,
                 "whole_lot_confirmed": False,
             },
         }
+        self.assertNotEqual(label(flags_without_evidence), "100/100")
         self.assertEqual(label(confirmed), "100/100")
-        self.assertNotEqual(label(photo_only), "100/100")
         from defusedxml import ElementTree
 
         displayed = False
@@ -502,28 +528,91 @@ class TestSpecPropagationToOpportunity(TransactionCase):
         self.assertTrue(opportunity)
         material = opportunity.opportunity_material_ids
         self.assertEqual(len(material), 1)
-        self.assertAlmostEqual(material.melt_flow_index, 7.5)
-        self.assertAlmostEqual(material.density, 0.941)
-        self.assertAlmostEqual(material.moisture_percent, 0.08)
+        self.assertFalse(material.melt_flow_index)
+        self.assertFalse(material.density)
+        self.assertFalse(material.moisture_percent)
+        self.assertFalse(lead.intake_id.mfi_value)
         self.assertIn("MFI", material.freeform_notes or "")
+        self.assertIn("7.5", material.freeform_notes or "")
         self.assertNotIn("ash", material.freeform_notes or "")
         self.assertEqual(material.quantity_per_load_lbs, _GROUNDED_LBS)
         self.assertNotIn(int(material.quantity_per_load_lbs), _PLANNING_NUMBERS)
 
-    def test_replay_replaces_the_previous_specification(self):
+    def test_substantiated_seller_text_fills_empty_columns(self):
+        stated = "HDPE pellets. MFI 7.5 g/10min. Density 0.941 g/cm3. Moisture 0.08 %."
         with economic_assessment_patch(side_effect=_recommend("hot"), document_specifications=_CITED_SPECS):
             lead = self.WebLead.create_from_cognito(
-                _payload("ONE-PASS-SPEC-REPLAY", material="HDPE pellets", weight=f"{_GROUNDED_LBS} lbs")
+                _payload("ONE-PASS-SPEC-PROVEN", material=stated, weight=f"{_GROUNDED_LBS} lbs")
             )
-        self.assertAlmostEqual(lead.crm_lead_id.opportunity_material_ids.melt_flow_index, 7.5)
+        material = lead.crm_lead_id.opportunity_material_ids
+        self.assertAlmostEqual(material.melt_flow_index, 7.5)
+        self.assertAlmostEqual(material.density, 0.941)
+        self.assertAlmostEqual(material.moisture_percent, 0.08)
+        self.assertAlmostEqual(lead.intake_id.mfi_value, 7.5)
+        self.assertAlmostEqual(lead.intake_id.density_value, 0.941)
+        self.assertAlmostEqual(lead.intake_id.moisture_pct, 0.08)
+
+    def test_two_values_for_one_property_stay_in_the_note(self):
+        stated = "HDPE pellets. MFI 7.5 g/10min. MFI 4.2 g/10min."
+        offered = [_spec("MFI", 7.5, "g/10min"), _spec("MFI", 4.2, "g/10min")]
+        with economic_assessment_patch(side_effect=_recommend("hot"), document_specifications=offered):
+            lead = self.WebLead.create_from_cognito(
+                _payload("ONE-PASS-SPEC-CONFLICT", material=stated, weight=f"{_GROUNDED_LBS} lbs")
+            )
+        material = lead.crm_lead_id.opportunity_material_ids
+        self.assertFalse(material.melt_flow_index)
+        self.assertFalse(lead.intake_id.mfi_value)
+        notes = material.freeform_notes or ""
+        self.assertIn("7.5", notes)
+        self.assertIn("4.2", notes)
+
+    def test_replay_replaces_the_owned_specification_and_keeps_later_notes(self):
+        stated = "HDPE pellets. MFI 7.5 g/10min. Density 0.941 g/cm3. Moisture 0.08 %."
+        with economic_assessment_patch(side_effect=_recommend("hot"), document_specifications=_CITED_SPECS):
+            lead = self.WebLead.create_from_cognito(
+                _payload("ONE-PASS-SPEC-REPLAY", material=stated, weight=f"{_GROUNDED_LBS} lbs")
+            )
+        material = lead.crm_lead_id.opportunity_material_ids
+        self.assertAlmostEqual(material.melt_flow_index, 7.5)
+        material.freeform_notes = f"{material.freeform_notes}\nBroker measured the lot on site."
         corrected = [_spec("MFI", 4.2, "g/10min"), _spec("density", 0.941, "g/cm3"), _spec("moisture", 0.08, "%")]
-        with economic_assessment_patch(side_effect=_recommend("hot"), document_specifications=corrected):
-            lead.action_retry_economic_assessment()
+        seller = dict((lead.evidence_bundle or {}).get("seller") or {})
+        seller["material_description"] = "HDPE pellets. MFI 4.2 g/10min. Density 0.941 g/cm3. Moisture 0.08 %."
+        bundle = dict(lead.evidence_bundle or {})
+        bundle["seller"] = seller
+        bundle["document_specifications"] = corrected
+        lead.evidence_bundle = bundle
         propagate = getattr(lead, "_propagate_one_pass_spec", None)
         self.assertTrue(callable(propagate))
         propagate(lead.crm_lead_id)
         material = lead.crm_lead_id.opportunity_material_ids
         self.assertAlmostEqual(material.melt_flow_index, 4.2)
+        notes = material.freeform_notes or ""
+        self.assertIn("4.2", notes)
+        self.assertIn("Broker measured the lot on site.", notes)
+        self.assertNotIn("7.5", notes)
         description = str(lead.crm_lead_id.description or "")
         self.assertIn("4.2", description)
         self.assertNotIn("7.5", description)
+
+    def test_human_entered_spec_is_not_replaced(self):
+        stated = "HDPE pellets. MFI 7.5 g/10min. Density 0.941 g/cm3. Moisture 0.08 %."
+        with economic_assessment_patch(side_effect=_recommend("hot"), document_specifications=_CITED_SPECS):
+            lead = self.WebLead.create_from_cognito(
+                _payload("ONE-PASS-SPEC-HUMAN", material=stated, weight=f"{_GROUNDED_LBS} lbs")
+            )
+        material = lead.crm_lead_id.opportunity_material_ids
+        material.melt_flow_index = 9.1
+        seller = dict((lead.evidence_bundle or {}).get("seller") or {})
+        seller["material_description"] = "HDPE pellets. MFI 4.2 g/10min. Density 0.941 g/cm3. Moisture 0.08 %."
+        bundle = dict(lead.evidence_bundle or {})
+        bundle["seller"] = seller
+        bundle["document_specifications"] = [
+            _spec("MFI", 4.2, "g/10min"),
+            _spec("density", 0.941, "g/cm3"),
+            _spec("moisture", 0.08, "%"),
+        ]
+        lead.evidence_bundle = bundle
+        lead._propagate_one_pass_spec(lead.crm_lead_id)
+        self.assertAlmostEqual(material.melt_flow_index, 9.1)
+        self.assertIn("4.2", material.freeform_notes or "")
