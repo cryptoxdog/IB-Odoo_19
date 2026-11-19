@@ -9,6 +9,7 @@
 # ═══════════════════════════════════════════════════════════
 from __future__ import annotations
 
+import base64
 import logging
 import re
 import uuid
@@ -65,6 +66,7 @@ from .evidence_keys import (
     KEY_REVIEW_REASONS,
     KEY_REVIEW_REQUIRED,
     KEY_STATUS,
+    KEY_VALIDATION_ISSUES,
     KEY_VISION,
     scrub_acquisition_secrets,
 )
@@ -92,6 +94,9 @@ _WEIGHT_KEYS_NOT_GROUNDED = frozenset({"estimated_lbs", "estimated_lbs_per_load"
 _MFI_PROPERTIES = frozenset({"mfi", "melt flow", "melt flow index", "melt index"})
 _DENSITY_PROPERTIES = frozenset({"density", "specific gravity"})
 _MOISTURE_PROPERTIES = frozenset({"moisture", "moisture content", "moisture pct"})
+_MFI_UNITS = frozenset({"g/10min", "dg/min"})
+_DENSITY_UNITS = frozenset({"g/cm3", "g/cm³", "g/cm^3", "g/cc", "g/ml"})
+_MOISTURE_UNITS = frozenset({"%", "percent", "pct", "wt%", "wt.%"})
 _WHOLE_LOT_PHRASE = re.compile(r"\b(?:entire|whole)\b.{0,48}\b(?:offered\s+lot|lot|load)\b", re.IGNORECASE)
 _PHOTO_WORD = re.compile(r"\b(?:photo|photos|picture|pictures|image|images)\b", re.IGNORECASE)
 _SPEC_WORD = re.compile(r"\b(?:spec|specs|specification|specifications|datasheet|data\s+sheet)\b", re.IGNORECASE)
@@ -122,19 +127,43 @@ def _seller_claims_for_broker(payload: Mapping[str, Any] | None) -> dict[str, An
     return claims
 
 
-def _catalog_for_broker(catalog: Mapping[str, tuple[CatalogEntry, ...]]) -> list[dict[str, str]]:
-    rows: list[dict[str, str]] = []
-    for kind, entries in catalog.items():
-        for entry in entries:
-            rows.append(
-                {
-                    "kind": str(kind),
-                    "code": entry.code,
-                    "name": entry.name,
-                    "description": entry.description or "",
-                }
-            )
-    return rows
+def _image_content_bytes(payload: Any) -> bytes:
+    """Decode an attachment's stored base64 payload into image bytes."""
+    raw = payload.encode("ascii", errors="ignore") if isinstance(payload, str) else payload
+    if not isinstance(raw, (bytes, bytearray)) or not raw:
+        return b""
+    try:
+        decoded = base64.b64decode(bytes(raw), validate=False)
+    except (ValueError, TypeError):
+        return b""
+    return decoded or b""
+
+
+def _pdf_page_strings(documents: list[dict[str, Any]]) -> list[str]:
+    """Page strings a caller already extracted. Bytes and empty pages stay out."""
+    pages: list[str] = []
+    for document in documents:
+        for page in document.get("pages") or []:
+            if not isinstance(page, Mapping):
+                continue
+            text = page.get("text")
+            if page.get("parse_status") == _PARSE_STATUS_PARSED and isinstance(text, str) and text.strip():
+                pages.append(text)
+    return pages
+
+
+def _reading_from_broker(result: Mapping[str, Any]) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """Material and photo rows from the one broker result, never a second call."""
+    inner = result.get("evidence_bundle") if isinstance(result.get("evidence_bundle"), Mapping) else {}
+    decisions = result.get("decision_inputs") if isinstance(result.get("decision_inputs"), Mapping) else {}
+    normalized = decisions.get("ai_normalized")
+    if not isinstance(normalized, Mapping):
+        normalized = inner.get("ai") if isinstance(inner.get("ai"), Mapping) else {}
+    material = {key: value for key, value in dict(normalized).items() if key not in _WEIGHT_KEYS_NOT_GROUNDED}
+    photos = inner.get("photo_findings")
+    if not isinstance(photos, list):
+        photos = inner.get("vision") if isinstance(inner.get("vision"), list) else []
+    return material, [dict(row) for row in photos if isinstance(row, Mapping)]
 
 
 def _grounded_load_lbs(quantity_evidence: QuantityEvidence | None) -> int:
@@ -161,17 +190,16 @@ def _broker_request_media(
         if content_type.startswith("image/"):
             source_ref = f"photo.{position}"
             stored = attachments.browse(row.get("ir_attachment_id")) if row.get("ir_attachment_id") else attachments
-            content = stored.datas if row.get("acquisition_status") == "success" and stored else None
+            content = (
+                _image_content_bytes(stored.datas) if row.get("acquisition_status") == "success" and stored else b""
+            )
             if content:
-                images.append(
-                    {
-                        "source_ref": source_ref,
-                        "source_id": row.get("source_id"),
-                        "content_type": content_type,
-                        "content_sha256": row.get("content_sha256"),
-                        "content_base64": content,
-                    }
-                )
+                image: dict[str, Any] = {}
+                image["source_ref"] = source_ref
+                image["source_id"] = row.get("source_id")
+                image["content_type"] = content_type
+                image["content"] = content
+                images.append(image)
             else:
                 error = row.get("error") if isinstance(row.get("error"), Mapping) else {}
                 omissions.append(
@@ -179,7 +207,11 @@ def _broker_request_media(
                         "source_ref": source_ref,
                         "kind": "photo",
                         "parse_status": "unknown",
-                        "reason": error.get("code") or row.get("analysis_status") or "image_unavailable",
+                        "reason": (
+                            "image_bytes_missing"
+                            if row.get("acquisition_status") == "success" and not error.get("code")
+                            else error.get("code") or row.get("analysis_status") or "image_unavailable"
+                        ),
                     }
                 )
             continue
@@ -248,29 +280,40 @@ def _assessment_record(result: Mapping[str, Any]) -> dict[str, Any]:
 def _apply_one_pass_evidence(
     bundle: dict[str, Any], result: Mapping[str, Any], media_omissions: list[dict[str, Any]]
 ) -> dict[str, Any]:
-    """Write one-pass facts into the existing bundle. Planning mass stays inside planning_basis."""
-    alignment = result.get("representation_alignment")
+    """Write the one broker bundle onto the lead. Planning mass stays inside planning_basis."""
+    inner = result.get("evidence_bundle") if isinstance(result.get("evidence_bundle"), Mapping) else {}
+    alignment = inner.get("alignment")
+    if not isinstance(alignment, Mapping):
+        alignment = result.get("representation_alignment")
     if not isinstance(alignment, Mapping):
         alignment = {}
         alignment["status"] = "unknown"
-        alignment["direction"] = "neutral_or_unknown"
         alignment["representativeness"] = "unknown"
         alignment["source_refs"] = []
     bundle["representation_alignment"] = dict(alignment)
     bundle["planning_basis"] = _planning_basis(PLANNING_DEFAULTS_V1)
     bundle["media_omissions"] = list(media_omissions)
-    specs = result.get("document_specifications")
+    specs = inner.get("document_specifications")
     bundle["document_specifications"] = list(specs) if isinstance(specs, list) else []
-    photos = result.get("photo_findings")
-    bundle["photo_findings"] = list(photos) if isinstance(photos, list) else []
-    field_evidence = result.get("field_evidence")
-    bundle["field_evidence"] = list(field_evidence) if isinstance(field_evidence, list) else []
-    model_conflicts = result.get("conflicts")
-    if isinstance(model_conflicts, list):
-        conflicts = list(bundle.get("conflicts") or [])
-        conflicts.extend(dict(item) for item in model_conflicts if isinstance(item, Mapping))
-        bundle["conflicts"] = conflicts
-    bundle[KEY_ECONOMIC_ASSESSMENT] = _assessment_record(result)
+    photos = inner.get("photo_findings")
+    if not isinstance(photos, list):
+        photos = inner.get("vision") if isinstance(inner.get("vision"), list) else []
+    bundle["photo_findings"] = list(photos)
+    pages = inner.get("pdf_page_text")
+    if isinstance(pages, list):
+        bundle["pdf_page_text"] = list(pages)
+    economic = inner.get(KEY_ECONOMIC_ASSESSMENT)
+    if isinstance(economic, Mapping) and economic.get(KEY_STATUS):
+        bundle[KEY_ECONOMIC_ASSESSMENT] = dict(economic)
+    else:
+        bundle[KEY_ECONOMIC_ASSESSMENT] = _assessment_record(result)
+    issues = result.get(KEY_VALIDATION_ISSUES)
+    if isinstance(issues, list):
+        bundle["broker_validation_issues"] = list(issues)
+    if result.get(KEY_STATUS):
+        bundle["broker_status"] = result.get(KEY_STATUS)
+    if result.get("reason"):
+        bundle["broker_reason"] = result.get("reason")
     return bundle
 
 
@@ -299,6 +342,15 @@ def representation_alignment_label(bundle: Mapping[str, Any] | None) -> str:
     refs = [str(item) for item in alignment.get("source_refs") or [] if item]
     if status != _ALIGNMENT_STATUS_ALIGNED or alignment.get("representativeness") != _REPRESENTATIVENESS_WHOLE_LOT:
         return label
+    citation = str(alignment.get("seller_confirmation_ref") or "")
+    covers_whole_lot = (
+        citation.startswith("seller.")
+        and alignment.get("covers_photo") is True
+        and alignment.get("covers_specs") is True
+        and alignment.get("covers_whole_offered_lot") is True
+    )
+    if covers_whole_lot or (alignment.get("whole_lot_confirmed") is True and citation.startswith("seller.")):
+        return "100/100"
     has_photo = any(ref.startswith("photo.") for ref in refs)
     has_spec = any(ref.startswith(("pdf.", "document.")) for ref in refs)
     text = _cited_seller_text(bundle or {}, refs)
@@ -332,8 +384,48 @@ def _spec_float(row: Mapping[str, Any]) -> float | None:
         return None
 
 
-def _intake_spec_facts(specs: Any) -> tuple[dict[str, float], str]:
-    """Existing intake columns for MFI, density, and moisture. Every other row stays in notes."""
+def _spec_unit_supported(name: str, unit: Any) -> bool:
+    key = str(unit or "").strip().casefold()
+    if name in _MFI_PROPERTIES:
+        return key in _MFI_UNITS
+    if name in _DENSITY_PROPERTIES:
+        return key in _DENSITY_UNITS
+    if name in _MOISTURE_PROPERTIES or name.startswith("moisture"):
+        return key in _MOISTURE_UNITS
+    return False
+
+
+def _spec_ref_resolves(ref: Any, bundle: Mapping[str, Any]) -> bool:
+    """A citation names seller text, an admitted photo, or an admitted PDF page."""
+    text = str(ref or "").strip()
+    if not text:
+        return False
+    if text.startswith("seller."):
+        seller = bundle.get("seller") if isinstance(bundle.get("seller"), Mapping) else {}
+        value = seller.get(text.split(".", 1)[1])
+        if isinstance(value, str):
+            return bool(value.strip())
+        return isinstance(value, (int, float)) and not isinstance(value, bool)
+    photos = bundle.get("photo_findings") if isinstance(bundle.get("photo_findings"), list) else []
+    if text.startswith("vision."):
+        suffix = text.split(".", 1)[1]
+        return suffix.isdigit() and 0 <= int(suffix) < len(photos)
+    if text.startswith("pdf.page."):
+        pages = bundle.get("pdf_page_text") if isinstance(bundle.get("pdf_page_text"), list) else []
+        suffix = text.rsplit(".", 1)[-1]
+        return suffix.isdigit() and 0 <= int(suffix) < len(pages) and bool(str(pages[int(suffix)] or "").strip())
+    return any(
+        isinstance(photo, Mapping) and text in {photo.get("source_id"), photo.get("source_ref")} for photo in photos
+    )
+
+
+def _intake_spec_facts(specs: Any, bundle: Mapping[str, Any] | None = None) -> tuple[dict[str, float], str]:
+    """Intake columns only for a supported unit and a resolvable citation.
+
+    Every observation stays in the notes. A number without that unit and citation
+    does not fill ``mfi_value``, ``density_value``, or ``moisture_pct``.
+    """
+    evidence = bundle if isinstance(bundle, Mapping) else {}
     measures: dict[str, float] = {}
     notes: list[str] = []
     if not isinstance(specs, list):
@@ -342,12 +434,13 @@ def _intake_spec_facts(specs: Any) -> tuple[dict[str, float], str]:
         if not isinstance(row, Mapping):
             continue
         name = _spec_property_name(row)
-        refs = ", ".join(str(item) for item in row.get("source_refs") or [])
+        refs = [str(item) for item in row.get("source_refs") or [] if item]
         detail = f"{row.get('property')}: {row.get('value')} {row.get('unit') or ''}".strip()
         if row.get("test_conditions"):
             detail += f" ({row.get('test_conditions')})"
         if refs:
-            detail += f" [{refs}]"
+            detail += f" [{', '.join(refs)}]"
+        notes.append(detail)
         target = None
         if name in _MFI_PROPERTIES:
             target = "mfi_value"
@@ -356,10 +449,15 @@ def _intake_spec_facts(specs: Any) -> tuple[dict[str, float], str]:
         elif name in _MOISTURE_PROPERTIES or name.startswith("moisture"):
             target = "moisture_pct"
         number = _spec_float(row)
-        if target and number is not None and target not in measures:
+        cited = any(_spec_ref_resolves(ref, evidence) for ref in refs)
+        if (
+            target
+            and number is not None
+            and target not in measures
+            and cited
+            and _spec_unit_supported(name, row.get("unit"))
+        ):
             measures[target] = number
-            continue
-        notes.append(detail)
     return measures, "\n".join(note for note in notes if note)
 
 
@@ -1199,21 +1297,17 @@ class PlasticosWebLead(models.Model):
             else:
                 log_lines.append("[BROKER] no provider configured.")
             broker_result = run_broker_inference(
-                planning_defaults=PLANNING_DEFAULTS_V1,
-                provider=provider,
-                case_id=self.lead_id,
-                seller_claims=_seller_claims_for_broker(triage_input),
-                quantity=quantity_evidence.to_dict() if quantity_evidence is not None else None,
-                catalog=_catalog_for_broker(catalog),
+                provider,
+                seller=_seller_claims_for_broker(triage_input),
                 images=images,
-                documents=documents,
-                media_omissions=media_omissions,
+                pdf_page_text=_pdf_page_strings(documents),
+                planning_defaults=PLANNING_DEFAULTS_V1,
+                catalog=catalog,
+                quantity_evidence=quantity_evidence,
             )
             if not isinstance(broker_result, Mapping):
                 broker_result = {}
-            material = broker_result.get("material") if isinstance(broker_result.get("material"), Mapping) else {}
-            ai_data = {key: value for key, value in dict(material).items() if key not in _WEIGHT_KEYS_NOT_GROUNDED}
-            vision_results: list[dict[str, Any]] = []
+            ai_data, vision_results = _reading_from_broker(broker_result)
             log_lines.append("[BROKER] one call. Text, vision, and economic providers were not called.")
 
             merged = self._merge_ai_and_vision(
@@ -1237,6 +1331,8 @@ class PlasticosWebLead(models.Model):
                     evidence_bundle["broker_corrections"] = broker_corrections
             else:
                 evidence_bundle = {"schema_version": "web-lead-evidence/v1", "run_id": run_id, "conflicts": []}
+            if is_packet_path:
+                evidence_bundle["seller"] = _seller_claims_for_broker(triage_input)
             evidence_bundle = _apply_one_pass_evidence(evidence_bundle, broker_result, media_omissions)
 
             grounded_lbs = _grounded_load_lbs(quantity_evidence)
@@ -1951,7 +2047,7 @@ class PlasticosWebLead(models.Model):
             web_lead_source_address(self.pickup_postal_code, self.pickup_place, self.pickup_location_text)
         )
         bundle = self.evidence_bundle if isinstance(self.evidence_bundle, Mapping) else {}
-        measures, spec_notes = _intake_spec_facts(bundle.get("document_specifications"))
+        measures, spec_notes = _intake_spec_facts(bundle.get("document_specifications"), bundle)
         intake_vals.update(measures)
         if spec_notes:
             intake_vals["intake_notes"] = spec_notes
@@ -2274,16 +2370,15 @@ class PlasticosWebLead(models.Model):
             provider = InferenceProvider(**spec) if spec else None
             images, documents, media_omissions = _broker_request_media(rec, list(bundle.get("attachments") or []))
             catalog = rec._material_catalog()
+            bundle["seller"] = _seller_claims_for_broker(rec.canonical_payload or {})
             broker_result = run_broker_inference(
-                planning_defaults=PLANNING_DEFAULTS_V1,
-                provider=provider,
-                case_id=rec.lead_id,
-                seller_claims=_seller_claims_for_broker(rec.canonical_payload or {}),
-                quantity=bundle.get("quantity"),
-                catalog=_catalog_for_broker(catalog),
+                provider,
+                seller=bundle["seller"],
                 images=images,
-                documents=documents,
-                media_omissions=media_omissions,
+                pdf_page_text=_pdf_page_strings(documents),
+                planning_defaults=PLANNING_DEFAULTS_V1,
+                catalog=catalog,
+                quantity_evidence=bundle.get("quantity"),
             )
             if not isinstance(broker_result, Mapping):
                 broker_result = {}
