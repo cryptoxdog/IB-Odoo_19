@@ -15,6 +15,7 @@ The provider result is the bundle ``_result`` returns. Specification fixtures ar
 from __future__ import annotations
 
 import base64
+import hashlib
 import importlib
 from contextlib import contextmanager
 from pathlib import Path
@@ -422,37 +423,57 @@ class TestBrokerOnePassScenarios(TransactionCase):
         self.assertTrue(any(item.get("reason") == "document_text_extraction_not_enabled" for item in omissions))
 
     def test_same_checksum_pdfs_remain_distinct(self):
-        copy_pdfs = getattr(self.env["crm.lead"], "_plasticos_copy_web_lead_pdfs", None)
-        if not callable(copy_pdfs):
-            self.skipTest("PDF copy is owned by the CRM bridge")
+        record_pdfs = getattr(self.env["crm.lead"], "_plasticos_record_web_lead_pdfs", None)
+        if not callable(record_pdfs):
+            self.skipTest("PDF recording is owned by the CRM bridge")
         lead = self.WebLead.create({"lead_id": "PDF-IDENTITY-1", "decision": "review", "company_name": "PDF Co"})
         opportunity = self.env["crm.lead"].create({"name": "PDF identity", "type": "opportunity"})
         lead.crm_lead_id = opportunity
         encoded = base64.b64encode(b"%PDF-1.4 identical")
+        stored = []
         for name in ("a.pdf", "b.pdf"):
-            self.env["ir.attachment"].create(
-                {
-                    "name": name,
-                    "datas": encoded,
-                    "mimetype": "application/pdf",
-                    "res_model": "plasticos.web.lead",
-                    "res_id": lead.id,
-                }
+            stored.append(
+                self.env["ir.attachment"].create(
+                    {
+                        "name": name,
+                        "datas": encoded,
+                        "mimetype": "application/pdf",
+                        "res_model": "plasticos.web.lead",
+                        "res_id": lead.id,
+                    }
+                )
             )
-        # The copy path is retired: both PDFs stay on the web lead and are named
-        # once in the opportunity description, including when their bytes match.
-        self.assertEqual(opportunity._plasticos_copy_web_lead_pdfs(), 0)
-        self.assertEqual(opportunity._plasticos_copy_web_lead_pdfs(), 0)
-        stored = self.env["ir.attachment"].search(
-            [
-                ("res_model", "=", "crm.lead"),
-                ("res_id", "=", opportunity.id),
-                ("mimetype", "=", "application/pdf"),
-            ]
-        )
-        self.assertEqual(len(stored), 0)
+        # Recording names each source attachment id and stores nothing new.
+        self.assertEqual(opportunity._plasticos_record_web_lead_pdfs(), 0)
         description = str(opportunity.description or "")
-        self.assertEqual(description.count("Source attachment [plasticos-pdf:"), 2)
+        self.assertIn(f"[plasticos-pdf:{stored[0].id}]", description)
+        self.assertIn(f"[plasticos-pdf:{stored[1].id}]", description)
+        # Replay is idempotent: one block, both originals stay on the lead.
+        self.assertEqual(opportunity._plasticos_record_web_lead_pdfs(), 0)
+        description = str(opportunity.description or "")
+        self.assertEqual(description.count(f"[plasticos-pdf:{stored[0].id}]"), 1)
+        self.assertEqual(description.count(f"[plasticos-pdf:{stored[1].id}]"), 1)
+        self.assertEqual(
+            len(
+                self.env["ir.attachment"].search(
+                    [
+                        ("res_model", "=", "plasticos.web.lead"),
+                        ("res_id", "=", lead.id),
+                        ("mimetype", "=", "application/pdf"),
+                    ]
+                )
+            ),
+            2,
+        )
+        self.assertFalse(
+            self.env["ir.attachment"].search(
+                [
+                    ("res_model", "=", "crm.lead"),
+                    ("res_id", "=", opportunity.id),
+                    ("mimetype", "=", "application/pdf"),
+                ]
+            )
+        )
 
 
 @tagged("post_install", "-at_install", "plasticos", "web_lead", "one_pass")
@@ -653,3 +674,289 @@ class TestSpecPropagationToOpportunity(TransactionCase):
         lead._propagate_one_pass_spec(lead.crm_lead_id)
         self.assertAlmostEqual(material.melt_flow_index, 9.1)
         self.assertIn("4.2", material.freeform_notes or "")
+
+
+class _OcrResponse:
+    def __init__(self, payload, status_code=200):
+        self.status_code = status_code
+        self._payload = payload
+
+    def raise_for_status(self):
+        return None
+
+    def json(self):
+        return self._payload
+
+
+def _ocr_response(pages, status_code=200):
+    """DeepSeek-shaped OCR envelope; a payload dict with an error key passes through raw."""
+    if isinstance(pages, dict) and "error" in pages:
+        return _OcrResponse(pages, status_code=status_code)
+    return _OcrResponse(
+        {
+            "id": "ocr-1",
+            "object": "ocr.result",
+            "purpose": "text_recognition",
+            "page_count": len(pages),
+            "pages": pages,
+        },
+        status_code=status_code,
+    )
+
+
+def _ocr_page(index, text, finish_reason="stop"):
+    return {"index": index, "text": text, "finish_reason": finish_reason}
+
+
+@tagged("post_install", "-at_install", "plasticos", "web_lead", "one_pass")
+class TestPdfOcrIntegration(TransactionCase):
+    """DeepSeek-hosted PDF OCR: admission, doc-scoped citations, replay, and failure visibility."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.WebLead = cls.env["plasticos.web.lead"]
+        cls.config = cls.env["plasticos.web.lead.config"].sudo().get_config()
+        cls.config.write({"deepseek_api_key": "test-ocr-key", "qualification_mode": "legacy"})
+
+    def setUp(self):
+        super().setUp()
+        if not one_pass_orchestration():
+            self.skipTest("ONE_PASS_ORCHESTRATION is absent")
+
+    def _pdf_attachment(self, lead, payload=b"%PDF-1.4", name="sheet.pdf"):
+        return self.env["ir.attachment"].create(
+            {
+                "name": name,
+                "datas": base64.b64encode(payload),
+                "mimetype": "application/pdf",
+                "res_model": "plasticos.web.lead",
+                "res_id": lead.id,
+            }
+        )
+
+    def test_ocr_rows_reach_the_broker_with_doc_scoped_citations(self):
+        module = importlib.import_module(_WEB_LEAD)
+        lead = self.WebLead.create({"lead_id": "OCR-MEDIA-1", "company_name": "OCR Co"})
+        content = b"%PDF-1.4 scanned sheet"
+        results = module.process_attachments(
+            lead=lead,
+            attachments=[
+                {
+                    "source_id": "src-a",
+                    "attachment_index": 0,
+                    "filename": "sheet.pdf",
+                    "content_type": "application/pdf",
+                    "size_bytes": len(content),
+                    "source_url": "https://files.example.test/sheet.pdf",
+                }
+            ],
+            allowed_hosts=("files.example.test",),
+            resolver=lambda _host: ["93.184.216.34"],
+            http_get=lambda *_args, **_kwargs: _plain_response(content),
+            ocr_api_key="test-ocr-key",
+            http_post=lambda _url, **_kwargs: _ocr_response(
+                [_ocr_page(0, "MFI 7.5 g/10min"), _ocr_page(1, "Density 0.941 g/cm3")]
+            ),
+        )
+        row = results[0]
+        self.assertEqual(row["acquisition_status"], "success")
+        self.assertEqual(row["analysis_status"], "extracted")
+        self.assertIsNone(row["error"])
+        self.assertEqual([page["parse_status"] for page in row["pages"]], ["parsed", "parsed"])
+        self.assertEqual([page["page_number"] for page in row["pages"]], [1, 2])
+
+        images, documents, omissions = module._broker_request_media(lead, results)
+        self.assertEqual(images, [])
+        self.assertEqual(omissions, [])
+        pages, sources = module._pdf_media(documents)
+        self.assertEqual(pages, ["MFI 7.5 g/10min", "Density 0.941 g/cm3"])
+        self.assertEqual([source["source_ref"] for source in sources], ["pdf.0", "pdf.0"])
+        self.assertEqual([source["page_number"] for source in sources], [1, 2])
+        self.assertEqual(sources[0]["attachment_id"], row["ir_attachment_id"])
+
+    def test_two_documents_with_identical_bytes_never_conflate_citations(self):
+        module = importlib.import_module(_WEB_LEAD)
+        bundle = {
+            "pdf_page_text": ["Cover A.", "MFI 7.5 g/10min", "Cover B.", "MFI 4.2 g/10min"],
+            "pdf_page_sources": [
+                {"source_ref": "pdf.0", "page_number": 1, "attachment_id": 1},
+                {"source_ref": "pdf.0", "page_number": 2, "attachment_id": 1},
+                {"source_ref": "pdf.1", "page_number": 1, "attachment_id": 2},
+                {"source_ref": "pdf.1", "page_number": 2, "attachment_id": 2},
+            ],
+        }
+        self.assertIn("7.5", module._citation_text("pdf.0.page.2", bundle))
+        self.assertIn("4.2", module._citation_text("pdf.1.page.2", bundle))
+        self.assertIn("Cover A.", module._citation_text("pdf.0.page.1", bundle))
+        self.assertIn("Cover B.", module._citation_text("pdf.1.page.1", bundle))
+        # A page that does not exist in the cited document resolves nowhere.
+        self.assertEqual(module._citation_text("pdf.0.page.9", bundle), "")
+        self.assertEqual(module._citation_text("pdf.3.page.1", bundle), "")
+        # Legacy flat citations keep their original meaning.
+        self.assertIn("7.5", module._citation_text("pdf.page.1", bundle))
+
+    def test_contradictory_pdf_specs_fill_no_column_and_stay_visible(self):
+        module = importlib.import_module(_WEB_LEAD)
+        bundle = {
+            "pdf_page_text": ["MFI 7.5 g/10min", "MFI 4.2 g/10min"],
+            "pdf_page_sources": [
+                {"source_ref": "pdf.0", "page_number": 1},
+                {"source_ref": "pdf.0", "page_number": 2},
+            ],
+        }
+        specs = [
+            {
+                "property": "MFI",
+                "value": 7.5,
+                "unit": "g/10min",
+                "test_conditions": None,
+                "source_refs": ["pdf.0.page.1"],
+            },
+            {
+                "property": "MFI",
+                "value": 4.2,
+                "unit": "g/10min",
+                "test_conditions": None,
+                "source_refs": ["pdf.0.page.2"],
+            },
+        ]
+        measures, notes = module._intake_spec_facts(specs, bundle)
+        self.assertNotIn("mfi_value", measures)
+        self.assertIn("7.5", notes)
+        self.assertIn("4.2", notes)
+        self.assertIn("pdf.0.page.1", notes)
+        self.assertIn("pdf.0.page.2", notes)
+
+    def test_replay_reuses_complete_ocr_and_recovers_legacy_rows(self):
+        module = importlib.import_module(_WEB_LEAD)
+        lead = self.WebLead.create({"lead_id": "OCR-REPLAY-1", "company_name": "Replay Co"})
+        attachment = self._pdf_attachment(lead, payload=b"%PDF-1.4 legacy sheet")
+        legacy_row = {
+            "source_id": "src-a",
+            "attachment_index": 0,
+            "filename": "sheet.pdf",
+            "content_type": "application/pdf",
+            "content_sha256": hashlib.sha256(b"%PDF-1.4 legacy sheet").hexdigest(),
+            "ir_attachment_id": attachment.id,
+            "acquisition_status": "success",
+            "analysis_status": "unsupported",
+            "error": {"code": "document_text_extraction_not_enabled", "message": "not enabled in V1"},
+            "pages": [],
+        }
+        post_path = "odoo.addons.plasticos_web_leads.models.attachment_processor.requests.post"
+        resolver_path = "odoo.addons.plasticos_web_leads.models.attachment_processor.resolve_host_addresses"
+        with (
+            patch(resolver_path, return_value=["93.184.216.34"]),
+            patch(post_path, side_effect=lambda _url, **_kwargs: _ocr_response([_ocr_page(0, "MFI 7.5 g/10min")])),
+        ):
+            refreshed = lead._refresh_pdf_ocr_rows([legacy_row], self.config, force=False)
+        self.assertEqual(refreshed[0]["ocr_status"], "complete")
+        self.assertIsNone(refreshed[0]["error"])
+        self.assertEqual(refreshed[0]["pages"][0]["text"], "MFI 7.5 g/10min")
+
+        # Ordinary replay: complete results for the unchanged revision cost nothing.
+        with patch(post_path, side_effect=AssertionError("a paid OCR call ran again")):
+            second = lead._refresh_pdf_ocr_rows([refreshed[0]], self.config, force=False)
+        self.assertEqual(second[0], refreshed[0])
+
+        # A changed revision is never mistaken for the previous result.
+        attachment.write({"datas": base64.b64encode(b"%PDF-1.4 revised sheet")})
+        with (
+            patch(resolver_path, return_value=["93.184.216.34"]),
+            patch(post_path, side_effect=lambda _url, **_kwargs: _ocr_response([_ocr_page(0, "MFI 4.2 g/10min")])),
+        ):
+            changed = lead._refresh_pdf_ocr_rows([refreshed[0]], self.config, force=False)
+        self.assertEqual(changed[0]["pages"][0]["text"], "MFI 4.2 g/10min")
+
+    def test_explicit_retry_reattempts_a_failed_extraction_only_when_forced(self):
+        module = importlib.import_module(_WEB_LEAD)
+        lead = self.WebLead.create({"lead_id": "OCR-RETRY-1", "company_name": "Retry Co"})
+        attachment = self._pdf_attachment(lead, payload=b"%PDF-1.4 locked sheet")
+        failed_row = {
+            "source_id": "src-a",
+            "attachment_index": 0,
+            "content_type": "application/pdf",
+            "content_sha256": hashlib.sha256(b"%PDF-1.4 locked sheet").hexdigest(),
+            "ir_attachment_id": attachment.id,
+            "acquisition_status": "success",
+            "ocr_attempted_sha256": hashlib.sha256(b"%PDF-1.4 locked sheet").hexdigest(),
+            "error": {"code": "document_text_extraction_failed", "message": "HTTP 503"},
+            "pages": [],
+        }
+        # Ordinary replay never re-pays a failed extraction.
+        with patch(
+            "odoo.addons.plasticos_web_leads.models.attachment_processor.requests.post",
+            side_effect=AssertionError("a failed extraction was retried without an explicit re-run"),
+        ):
+            ordinary = lead._refresh_pdf_ocr_rows([failed_row], self.config, force=False)
+        self.assertEqual(ordinary[0]["error"]["code"], "document_text_extraction_failed")
+
+        # An explicit re-run may read the saved original and try again.
+        with (
+            patch(
+                "odoo.addons.plasticos_web_leads.models.attachment_processor.resolve_host_addresses",
+                return_value=["93.184.216.34"],
+            ),
+            patch(
+                "odoo.addons.plasticos_web_leads.models.attachment_processor.requests.post",
+                side_effect=lambda _url, **_kwargs: _ocr_response([_ocr_page(0, "MFI 7.5 g/10min")]),
+            ),
+        ):
+            recovered = lead._refresh_pdf_ocr_rows([failed_row], self.config, force=True)
+        self.assertEqual(recovered[0]["ocr_status"], "complete")
+        self.assertIsNone(recovered[0]["error"])
+
+    def test_ocr_failure_stays_document_local_and_seller_evidence_survives(self):
+        module = importlib.import_module(_WEB_LEAD)
+        lead = self.WebLead.create({"lead_id": "OCR-FAIL-1", "company_name": "Fail Co"})
+        content = b"%PDF-1.4 encrypted sheet"
+        results = module.process_attachments(
+            lead=lead,
+            attachments=[
+                {
+                    "source_id": "src-a",
+                    "attachment_index": 0,
+                    "filename": "sheet.pdf",
+                    "content_type": "application/pdf",
+                    "size_bytes": len(content),
+                    "source_url": "https://files.example.test/sheet.pdf",
+                }
+            ],
+            allowed_hosts=("files.example.test",),
+            resolver=lambda _host: ["93.184.216.34"],
+            http_get=lambda *_args, **_kwargs: _plain_response(content),
+            ocr_api_key="test-ocr-key",
+            http_post=lambda _url, **_kwargs: _ocr_response(
+                {"error": {"message": "password protected", "code": "invalid_file_format_error"}}
+            ),
+        )
+        row = results[0]
+        self.assertEqual(row["acquisition_status"], "success")
+        self.assertEqual(row["error"]["code"], "document_text_extraction_failed")
+        self.assertIn("password protected", row["error"]["message"])
+        images, _documents, omissions = module._broker_request_media(lead, results)
+        self.assertEqual(images, [])
+        self.assertTrue(any(item.get("reason") == "document_text_extraction_failed" for item in omissions))
+        # The failure never erases seller evidence or the stored bytes.
+        stored = self.env["ir.attachment"].browse(row["ir_attachment_id"])
+        self.assertTrue(stored.exists())
+        self.assertEqual(module._image_content_bytes(stored.datas), content)
+
+
+class _PlainResponse:
+    def __init__(self, content):
+        self.content = content
+        self.status_code = 200
+        self.headers = {"Content-Type": "application/pdf"}
+
+    def raise_for_status(self):
+        return None
+
+    def iter_content(self, chunk_size):
+        del chunk_size
+        yield self.content
+
+
+def _plain_response(content):
+    return _PlainResponse(content)

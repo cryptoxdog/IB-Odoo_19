@@ -116,3 +116,83 @@ class TestTwoWebLeadsOneMaterial(TransactionCase):
         )
         self.assertEqual(pdf_first.res_model, "plasticos.web.lead")
         self.assertEqual(pdf_second.res_id, second.id)
+
+    def test_pdf_sourced_specs_keep_two_leads_separate(self):
+        """OCR-derived citations resolve per document; the two-lead isolation holds."""
+        opportunity = self.env["crm.lead"].create(
+            {"name": "PDF shared opportunity", "type": "opportunity", "description": "<p>Broker note.</p>"}
+        )
+        first = self._lead("WL-PDF-A", "HDPE pellets.", 7.5)
+        second = self._lead("WL-PDF-B", "HDPE pellets.", 4.2)
+        first.crm_lead_id = opportunity
+        second.crm_lead_id = opportunity
+        self._pdf(first, b"%PDF-1.4 lead-a", "a.pdf")
+        self._pdf(second, b"%PDF-1.4 lead-b", "b.pdf")
+
+        # Each lead's own bundle cites its own document's page 1 with a different value.
+        first_bundle = dict(first.evidence_bundle)
+        first_bundle["pdf_page_text"] = ["MFI 7.5 g/10min"]
+        first_bundle["pdf_page_sources"] = [{"source_ref": "pdf.0", "page_number": 1, "attachment_id": 1}]
+        first_bundle["document_specifications"] = [
+            {
+                "property": "MFI",
+                "value": 7.5,
+                "unit": "g/10min",
+                "test_conditions": None,
+                "source_refs": ["pdf.0.page.1"],
+                "conflicts": [],
+            }
+        ]
+        first.evidence_bundle = first_bundle
+        second_bundle = dict(second.evidence_bundle)
+        second_bundle["pdf_page_text"] = ["MFI 4.2 g/10min"]
+        second_bundle["pdf_page_sources"] = [{"source_ref": "pdf.0", "page_number": 1, "attachment_id": 2}]
+        second_bundle["document_specifications"] = [
+            {
+                "property": "MFI",
+                "value": 4.2,
+                "unit": "g/10min",
+                "test_conditions": None,
+                "source_refs": ["pdf.0.page.1"],
+                "conflicts": [],
+            }
+        ]
+        second.evidence_bundle = second_bundle
+
+        first._propagate_one_pass_spec(opportunity)
+        second._propagate_one_pass_spec(opportunity)
+        shared = self._description(opportunity)
+        self.assertEqual(shared.count(f"plasticos-spec plasticos-web-lead-{first.id}"), 1)
+        self.assertEqual(shared.count(f"plasticos-spec plasticos-web-lead-{second.id}"), 1)
+        self.assertIn("7.5", self._block(shared, first, "spec"))
+        self.assertIn("4.2", self._block(shared, second, "spec"))
+        self.assertIn("Broker note.", shared)
+        material = opportunity.opportunity_material_ids
+        self.assertEqual(len(material), 1)
+        self.assertAlmostEqual(material.melt_flow_index, 7.5)
+
+        # Replay of the first lead replaces only its own block, never the second's.
+        first._propagate_one_pass_spec(opportunity)
+        replayed = self._description(opportunity)
+        self.assertEqual(replayed.count(f"plasticos-spec plasticos-web-lead-{first.id}"), 1)
+        self.assertEqual(replayed.count(f"plasticos-spec plasticos-web-lead-{second.id}"), 1)
+        self.assertIn("4.2", self._block(replayed, second, "spec"))
+        self.assertIn("Broker note.", replayed)
+
+    def test_pdf_page_2_never_resolves_against_page_1_of_another_document(self):
+        """A doc-scoped citation resolves through the stored coordinates, not by chance."""
+        from odoo.addons.plasticos_crm_bridge.models.opportunity_material import _citation_text
+
+        bundle = {
+            "pdf_page_text": ["MFI 7.5 g/10min", "Density 0.941 g/cm3", "MFI 4.2 g/10min"],
+            "pdf_page_sources": [
+                {"source_ref": "pdf.0", "page_number": 1},
+                {"source_ref": "pdf.0", "page_number": 2},
+                {"source_ref": "pdf.1", "page_number": 2},
+            ],
+        }
+        self.assertIn("4.2", _citation_text("pdf.1.page.2", bundle))
+        self.assertIn("7.5", _citation_text("pdf.0.page.1", bundle))
+        self.assertIn("0.941", _citation_text("pdf.0.page.2", bundle))
+        self.assertEqual(_citation_text("pdf.0.page.9", bundle), "")
+        self.assertEqual(_citation_text("pdf.9.page.2", bundle), "")

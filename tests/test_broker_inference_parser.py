@@ -222,3 +222,118 @@ def test_provider_exception_does_not_raise():
 def test_run_broker_inference_rejects_removed_keywords():
     with pytest.raises(TypeError):
         run_broker_inference(_provider(), case_id="WL-1", seller_claims={}, documents=[])
+
+
+def _pdf_spec_row(value, unit, refs):
+    return {
+        "property": "MFI",
+        "value": value,
+        "unit": unit,
+        "test_conditions": "190C/2.16kg",
+        "source_refs": refs,
+        "conflicts": [],
+    }
+
+
+def _reply_with_specs(specs):
+    reply = _reply()
+    reply["document_specifications"] = specs
+    return reply
+
+
+def test_pdf_sources_mint_doc_scoped_keys_and_labels():
+    calls = []
+
+    def transport(provider, *, system_prompt, text_parts, images, max_tokens=4096):
+        calls.append({"system_prompt": system_prompt, "text_parts": list(text_parts), "images": list(images)})
+        return _reply_with_specs([_pdf_spec_row(7.5, "g/10min", ["pdf.0.page.2"])]), {"attempts": 1}
+
+    sources = [
+        {"source_ref": "pdf.0", "source_id": "src-a", "page_number": 1, "attachment_id": 11, "content_sha256": "a"},
+        {"source_ref": "pdf.0", "source_id": "src-a", "page_number": 2, "attachment_id": 11, "content_sha256": "a"},
+        {"source_ref": "pdf.1", "source_id": "src-b", "page_number": 1, "attachment_id": 12, "content_sha256": "b"},
+    ]
+    with patch.object(_ip, "call_structured_multimodal", side_effect=transport):
+        result = run_broker_inference(
+            _provider(),
+            seller={"material_description": "HDPE regrind"},
+            pdf_page_text=["Cover page text.", "MFI 7.5 g/10min.", "Density 0.941 g/cm3."],
+            pdf_page_sources=sources,
+            catalog=_CATALOG,
+        )
+
+    assert len(calls) == 1
+    prompt = calls[0]["system_prompt"] + "\n" + "\n".join(calls[0]["text_parts"])
+    # Labels carry the document and page identity the model must cite.
+    assert "PDF document pdf.0 page 2" in prompt
+    assert "PDF document pdf.1 page 1" in prompt
+    assert "pdf.0.page.2" in prompt
+    assert "pdf.1.page.1" in prompt
+    # With coordinates present, the flat legacy keys are not minted.
+    assert "pdf.page.0" not in prompt
+    specs = result["evidence_bundle"]["document_specifications"]
+    assert [row["source_refs"] for row in specs] == [["pdf.0.page.2"]]
+    assert result["evidence_bundle"]["pdf_page_sources"] == sources
+
+
+def test_pdf_doc_scoped_citation_cannot_land_on_another_document():
+    calls = []
+
+    def transport(provider, *, system_prompt, text_parts, images, max_tokens=4096):
+        calls.append({"system_prompt": system_prompt, "text_parts": list(text_parts), "images": list(images)})
+        return _reply_with_specs([_pdf_spec_row(7.5, "g/10min", ["pdf.1.page.1"])]), {"attempts": 1}
+
+    # Two documents share a page number 1; only the cited document's page states the value.
+    sources = [
+        {"source_ref": "pdf.0", "page_number": 1, "attachment_id": 11},
+        {"source_ref": "pdf.1", "page_number": 1, "attachment_id": 12},
+    ]
+    with patch.object(_ip, "call_structured_multimodal", side_effect=transport):
+        result = run_broker_inference(
+            _provider(),
+            seller={},
+            pdf_page_text=["Cover page.", "MFI 7.5 g/10min."],
+            pdf_page_sources=sources,
+            catalog=_CATALOG,
+        )
+
+    prompt = calls[0]["system_prompt"] + "\n" + "\n".join(calls[0]["text_parts"])
+    assert "PDF document pdf.0 page 1 (already extracted text; do not parse a file):\nCover page." in prompt
+    assert "PDF document pdf.1 page 1 (already extracted text; do not parse a file):\nMFI 7.5 g/10min." in prompt
+    assert [row["source_refs"] for row in result["evidence_bundle"]["document_specifications"]] == [["pdf.1.page.1"]]
+
+
+def test_pdf_sources_mismatch_fails_closed_to_flat_keys():
+    def transport(provider, *, system_prompt, text_parts, images, max_tokens=4096):
+        return _reply_with_specs([_pdf_spec_row(7.5, "g/10min", ["pdf.0.page.1"])]), {"attempts": 1}
+
+    with patch.object(_ip, "call_structured_multimodal", side_effect=transport):
+        result = run_broker_inference(
+            _provider(),
+            seller={},
+            pdf_page_text=["MFI 7.5 g/10min.", "Density 0.941 g/cm3."],
+            pdf_page_sources=[{"source_ref": "pdf.0", "page_number": 1}],
+            catalog=_CATALOG,
+        )
+
+    assert "pdf_page_sources_mismatch" in result["validation_issues"]
+    # Fail closed: no coordinates, so no doc-scoped key was minted or admitted.
+    assert result["evidence_bundle"]["document_specifications"] == []
+    assert result["evidence_bundle"]["pdf_page_sources"] == []
+
+
+def test_pdf_sources_with_unknown_shape_fail_closed():
+    def transport(provider, *, system_prompt, text_parts, images, max_tokens=4096):
+        return _reply_with_specs([_pdf_spec_row(7.5, "g/10min", ["docA.page.1"])]), {"attempts": 1}
+
+    with patch.object(_ip, "call_structured_multimodal", side_effect=transport):
+        result = run_broker_inference(
+            _provider(),
+            seller={},
+            pdf_page_text=["MFI 7.5 g/10min."],
+            pdf_page_sources=[{"source_ref": "docA", "page_number": 1}],
+            catalog=_CATALOG,
+        )
+
+    assert "pdf_page_sources_mismatch" in result["validation_issues"]
+    assert result["evidence_bundle"]["document_specifications"] == []

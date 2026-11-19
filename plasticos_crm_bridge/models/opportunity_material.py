@@ -151,7 +151,25 @@ def _citation_text(ref, bundle):
         if suffix.isdigit() and 0 <= int(suffix) < len(photos) and isinstance(photos[int(suffix)], dict):
             return _finding_text(photos[int(suffix)])
         return ""
+    pdf_doc_page = re.fullmatch(r"pdf\.(\d+)\.page\.(\d+)", text)
+    if pdf_doc_page:
+        # Document-scoped citations resolve through the stored coordinates:
+        # exactly one admitted page of the named document and page number.
+        pages = evidence.get("pdf_page_text") if isinstance(evidence.get("pdf_page_text"), list) else []
+        sources = evidence.get("pdf_page_sources") if isinstance(evidence.get("pdf_page_sources"), list) else []
+        document = f"pdf.{int(pdf_doc_page.group(1))}"
+        page_number = int(pdf_doc_page.group(2))
+        for index, source in enumerate(sources):
+            if not isinstance(source, dict):
+                continue
+            if str(source.get("source_ref") or "") == document and source.get("page_number") == page_number:
+                if 0 <= index < len(pages):
+                    return str(pages[index] or "").strip()
+                return ""
+        return ""
     if text.startswith("pdf.page."):
+        # Legacy flat citations keep their original meaning: a position in the
+        # admitted page list of the bundle that minted them.
         pages = evidence.get("pdf_page_text") if isinstance(evidence.get("pdf_page_text"), list) else []
         suffix = text.rsplit(".", 1)[-1]
         if suffix.isdigit() and 0 <= int(suffix) < len(pages):
