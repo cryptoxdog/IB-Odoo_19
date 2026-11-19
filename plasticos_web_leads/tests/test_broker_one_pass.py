@@ -18,7 +18,7 @@ import base64
 import importlib
 from contextlib import contextmanager
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from odoo.tests import TransactionCase, tagged
 
@@ -119,6 +119,19 @@ def _provider_body(disposition, specifications=None):
     }
 
 
+def _sample_disposition(sample):
+    """Disposition named by an older assessment fake. Unavailable stays a failure."""
+    if not isinstance(sample, dict):
+        return "review", False
+    if sample.get("status") == "unavailable":
+        return "review", True
+    assessment = sample.get("assessment") if isinstance(sample.get("assessment"), dict) else {}
+    named = assessment.get("recommended_disposition") or assessment.get("recommendation")
+    if named in {"hot", "review", "cold"}:
+        return named, False
+    return "review", False
+
+
 @contextmanager
 def economic_assessment_patch(*, side_effect=None, return_value=None, document_specifications=None):
     """Run the real broker function with the transport mocked.
@@ -127,26 +140,32 @@ def economic_assessment_patch(*, side_effect=None, return_value=None, document_s
     An absent provider is left absent when ``return_value`` is ``"no_provider"``.
     """
     disposition = "review"
+    unavailable = False
+    sample = None
     if side_effect is not None:
         sample = side_effect(qualification_signals={})
-        disposition = sample["assessment"]["recommended_disposition"]
+    elif isinstance(return_value, dict):
+        sample = return_value
+    if sample is not None:
+        disposition, unavailable = _sample_disposition(sample)
     specs = list(document_specifications or [])
 
     def transport(*_args, **_kwargs):
+        if unavailable:
+            raise RuntimeError("economic_provider_failed")
         return _provider_body(disposition, specs), {"attempts": 1}
 
     if return_value == "no_provider" or not one_pass_orchestration():
         fallback = side_effect or (lambda **_kwargs: return_value)
-        with patch(f"{_WEB_LEAD}.evaluate_economic_opportunity", side_effect=fallback):
+        with patch(f"{_WEB_LEAD}.evaluate_economic_opportunity", side_effect=fallback, create=True):
             yield
         return
 
     with (
         patch(_CONFIG, return_value=dict(_PROVIDER_SPEC)),
         patch(_TRANSPORT, side_effect=transport) as mocked,
-        patch(f"{_WEB_LEAD}.evaluate_economic_opportunity") as economic,
     ):
-        yield mocked, economic
+        yield mocked, MagicMock()
 
 
 def _payload(external_id, *, material, quantity="Two truckloads every month", weight=""):
