@@ -240,7 +240,8 @@ def parse_seller_mass(raw: str | None) -> SellerMass:
     if bare and not has_area:
         value = _strip_commas(bare.group())
         if value >= 1000.0:
-            return SellerMass(value, None, "bare_number:lbs_assumed")
+            # A unitless number is not a pound figure. The source records that it was seen.
+            return SellerMass(None, None, "bare_number:lbs_assumed")
 
     return SellerMass(None, None, "none")
 
@@ -262,7 +263,7 @@ def parse_explicit_weight_lbs(raw: str | None) -> tuple[float | None, str]:
 def replay_stored_mass(*, quantity_text: str | None, estimated_lbs: float | None = None) -> SellerMass:
     """Re-read stored seller text. Area text discards a previously stored pound figure."""
     parsed = parse_seller_mass(quantity_text)
-    if parsed.source == WEIGHT_SOURCE_AREA:
+    if parsed.source == WEIGHT_SOURCE_AREA or parsed.source.startswith("bare_number:"):
         return parsed
     if parsed.lbs:
         return parsed

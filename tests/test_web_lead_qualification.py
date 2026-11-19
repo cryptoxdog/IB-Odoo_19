@@ -405,6 +405,8 @@ def test_mass_basis_names_provenance():
     assert mass_basis("ai_text", 40000) == "inferred"
     assert mass_basis("area_not_mass", 0) == "unknown"
     assert mass_basis("explicit_lbs", 0) == "unknown"
+    assert mass_basis("bare_number:lbs_assumed", 10000) == "unknown"
+    assert mass_basis("range_lbs", 10000) == "seller_stated"
 
 
 def test_model_inferred_mass_does_not_create_intake():
