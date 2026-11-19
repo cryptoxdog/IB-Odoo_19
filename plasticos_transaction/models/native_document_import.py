@@ -41,6 +41,7 @@ def realize(importer, index, report, partner_by_cp, limit, commit, dry_run) -> b
 
     numbers = index.buysell_numbers()
     context = _load_context(importer)
+    pending_sales: dict[int, list[str]] = {}
     if not index.orders:
         # The source carries no order header at all, so no worksheet can
         # link to a native document. Nothing is written; every worksheet is
@@ -60,7 +61,6 @@ def realize(importer, index, report, partner_by_cp, limit, commit, dry_run) -> b
     else:
         selected = selected_worksheets(numbers, limit)
         selected_set = set(selected)
-        pending_sales: dict[int, list[str]] = {}
         for position, number in enumerate(selected, start=1):
             if dry_run:
                 report.skip("transactions")
@@ -91,12 +91,9 @@ def realize(importer, index, report, partner_by_cp, limit, commit, dry_run) -> b
             for sale_id in sale_ids:
                 pending_sales.setdefault(sale_id, []).extend(trailers)
             if commit and position % 200 == 0:
-                _confirm_sales(importer, report, pending_sales, context)
-                pending_sales.clear()
+                _confirm_ready_sales(importer, report, pending_sales, context)
                 importer.env.cr.commit()
                 _logger.info("ERP import committed through worksheet %s", position)
-        if not dry_run:
-            _confirm_sales(importer, report, pending_sales, context)
     for number in numbers:
         if number in selected_set:
             continue
@@ -105,7 +102,12 @@ def realize(importer, index, report, partner_by_cp, limit, commit, dry_run) -> b
         _exclude_worksheet_payables(index, context, number, "diagnostic_limit")
     _quarantine_outside_universe(importer, index, report, context, partner_by_cp, numbers, dry_run)
     if not dry_run:
+        # Credits are created after every other bill, and before any sale is
+        # confirmed, so the compiled transaction still receives them. A
+        # worksheet whose credit is still held is not confirmed at a commit
+        # boundary: a closed transaction cannot gain a bill afterwards.
         _flush_deferred_vendor_credits(importer, index, report, context)
+        _confirm_sales(importer, report, pending_sales, context)
     report.census = _census(index, context)
     reconciliation = report.census["payables_reconciliation"]
     if not reconciliation["closes"]:
@@ -1481,6 +1483,31 @@ def _move(importer, xml_id, values):
     record = model.create(values)
     importer._write_identity_marker(model, xml_id, record)
     return record
+
+
+def _confirm_ready_sales(importer, report, pending_sales, context) -> None:
+    """Confirm sales whose worksheets have no vendor credit still waiting.
+
+    The held sales stay in ``pending_sales`` until the credits exist. Confirming
+    them earlier would close the transaction without the credit.
+    """
+    waiting_sales: set[int] = set()
+    pending = context.get("pending_transactions") or {}
+    for item in context.get("deferred_vendor_credits") or []:
+        waiting_sales.update(pending.get(item[0]) or [])
+    ready = {sale_id: trailers for sale_id, trailers in pending_sales.items() if sale_id not in waiting_sales}
+    held_sales = {sale_id: trailers for sale_id, trailers in pending_sales.items() if sale_id in waiting_sales}
+    held_worksheets = {
+        number: sale_ids
+        for number, sale_ids in list(pending.items())
+        if any(sale_id in waiting_sales for sale_id in sale_ids)
+    }
+    for number in held_worksheets:
+        pending.pop(number, None)
+    _confirm_sales(importer, report, ready, context)
+    pending.update(held_worksheets)
+    pending_sales.clear()
+    pending_sales.update(held_sales)
 
 
 def _confirm_sales(importer, report, pending_sales, context):

@@ -2083,33 +2083,33 @@ class TestErpWorksheetImport(TransactionCase):
     def test_vendor_credit_links_the_named_batch_and_replay_does_not_rewrite_it(self):
         """ReverseBatchNo names one same-vendor payable. A second payable is not chosen by amount."""
         index = self._index()
-        original = _payable("pay-orig", "OUT", VENDOR, "40", "", "INV-O", batch="B-ORIG")
-        credit = _payable("pay-cred", "OUT", VENDOR, "-40", "", "INV-C", batch="B-CRED")
-        ambiguous = _payable("pay-amb", "OUT", VENDOR, "-15", "", "INV-A", batch="B-AMB")
+        original = _payable("pay-orig", "OUT", VENDOR, "40", "", "INV-O", batch="9001")
+        credit = _payable("pay-cred", "OUT", VENDOR, "-40", "", "INV-C", batch="9002")
+        ambiguous = _payable("pay-amb", "OUT", VENDOR, "-15", "", "INV-A", batch="9003")
         index.payables_by_buysell["OUT"] = [original, credit, ambiguous]
-        index.payables_by_batch["B-ORIG"] = [original]
-        index.payables_by_batch["B-AMB-TARGET"] = [
-            _payable("pay-a", "OTHER", VENDOR, "15", "", batch="B-AMB-TARGET"),
-            _payable("pay-b", "OTHER", VENDOR, "-15", "", batch="B-AMB-TARGET"),
+        index.payables_by_batch["9001"] = [original]
+        index.payables_by_batch["9004"] = [
+            _payable("pay-a", "OTHER", VENDOR, "15", "", batch="9004"),
+            _payable("pay-b", "OTHER", VENDOR, "-15", "", batch="9004"),
         ]
-        index.payables_batches["B-ORIG"] = {
-            "APBatchNo": "B-ORIG",
+        index.payables_batches["9001"] = {
+            "APBatchNo": "9001",
             "CpID": VENDOR,
             "InvoiceDt": "2022-04-01 00:00:00",
         }
-        index.payables_batches["B-CRED"] = {
-            "APBatchNo": "B-CRED",
+        index.payables_batches["9002"] = {
+            "APBatchNo": "9002",
             "CpID": VENDOR,
-            "ReverseBatchNo": "B-ORIG",
+            "ReverseBatchNo": "9001",
             "InvoiceDt": "2022-04-01 00:00:00",
         }
-        index.payables_batches["B-AMB"] = {
-            "APBatchNo": "B-AMB",
+        index.payables_batches["9003"] = {
+            "APBatchNo": "9003",
             "CpID": VENDOR,
-            "ReverseBatchNo": "B-AMB-TARGET",
+            "ReverseBatchNo": "9004",
             "InvoiceDt": "2022-04-01 00:00:00",
         }
-        index.payables_batches["B-AMB-TARGET"] = {"APBatchNo": "B-AMB-TARGET", "CpID": VENDOR}
+        index.payables_batches["9004"] = {"APBatchNo": "9004", "CpID": VENDOR}
         report = self._run(index)
 
         bill = self._order("account.move", "legacy_erp_ininv_pay_orig")
