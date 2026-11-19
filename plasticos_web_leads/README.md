@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_web_leads
 component_name: PlasticOS Web Leads
-module_version: 19.0.2.11.16
+module_version: 19.0.2.11.17
 layer: 2
 installable: true
 auto_install: true
@@ -87,8 +87,9 @@ States: `received`, `intake_created`, `skipped`, `error`.
 
 - No cron.
 - Python dependencies: `anthropic`, `openai`, `requests` (manifest `external_dependencies`).
-- `requests` is used only to download inbound attachments. HTTPS only, allowlisted hosts, public addresses, at most 10 files and 10 MB each.
+- `requests` downloads inbound attachments and uploads stored PDFs to the DeepSeek-hosted OCR endpoint. HTTPS only, allowlisted hosts, public addresses, at most 10 files and 10 MB each.
 - LLM calls happen only when the matching switch is on and the selected provider has a key.
+- Stored PDFs are recognized by DeepSeek OCR (`POST <deepseek_base_url>/v1/tools/ocr`, `purpose=text_recognition`) using the DeepSeek settings key or `DEEPSEEK_API_KEY`. OCR is preprocessing for the one broker call, never a second reasoning role. A page is admitted only when its `finish_reason` is `stop`; incomplete pages stay visible and never substantiate a fact. Complete results are cached against the stored revision; an explicit re-run re-attempts failures.
 - `data/logistics_ir_rules.xml` adds a logistics group and its record rules.
 - `auto_install` is true.
 
