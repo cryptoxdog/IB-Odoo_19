@@ -20,7 +20,12 @@ import copy
 import re
 from dataclasses import dataclass, field
 
-from .evidence_keys import ASSESSMENT_STATUS_ASSESSED
+from .evidence_keys import (
+    ASSESSMENT_STATUS_ASSESSED,
+    KEY_MASS_LABEL,
+    MASS_LABEL_GROUNDED,
+    MASS_LABEL_PLANNING,
+)
 from .evidence_reconciler import polymers_named
 from .triage_helpers import WEIGHT_SOURCE_AREA
 
@@ -82,6 +87,37 @@ _COMMERCIAL_PATTERN = re.compile("|".join(_COMMERCIAL_KEYWORDS), re.IGNORECASE)
 
 # Minimum qualifiers to reach HOT (FIX CE-06)
 _MIN_HOT_QUALIFIERS = 2
+
+# Same sentence intake_blockers uses. Unknown weight is this gap, not a disposition.
+_UNKNOWN_WEIGHT_INTAKE_BLOCKER = (
+    "Per-load weight is not stated or calculable from the seller's words; an intake would need an invented quantity."
+)
+
+
+def _one_pass_orchestration() -> bool:
+    """Lane D owns ``ONE_PASS_ORCHESTRATION`` on ``web_lead``. Absent means false.
+
+    A function-local import avoids a load cycle. An unreadable module is the
+    same as a missing flag: today's dispositions stay in place.
+    """
+    try:
+        from . import web_lead as web_lead_module
+    except Exception:  # noqa: BLE001 - an unreadable flag is absent, not a new disposition
+        return False
+    return bool(getattr(web_lead_module, "ONE_PASS_ORCHESTRATION", False))
+
+
+def _per_load_weight_unknown(weight_source: str, estimated_lbs: float) -> bool:
+    """Area text and a missing pound figure are not a per-load weight."""
+    return weight_source == WEIGHT_SOURCE_AREA or estimated_lbs <= 0
+
+
+def _signals_weight_unknown(signals: dict) -> bool:
+    scale = signals.get("scale") or {}
+    if scale.get("mass_basis") == MASS_BASIS_UNKNOWN:
+        return True
+    return not scale.get("load_weight_lbs")
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Result dataclass
@@ -242,8 +278,14 @@ def classify_lead(
     # ─────────────────────────────────────────────────────────────────────────
     # COLD GATE 5 — Weight unknown. A positive pound figure is usable even when
     # the source tag was omitted. Area text is never a pound figure.
+    # One-pass orchestration does not turn that missing weight into COLD.
+    # The flag is absent until Lane D sets it, so this gate stays as it is.
     # ─────────────────────────────────────────────────────────────────────────
-    if weight_source == WEIGHT_SOURCE_AREA or estimated_lbs <= 0:
+    weight_unknown = _per_load_weight_unknown(weight_source, estimated_lbs)
+    one_pass = _one_pass_orchestration()
+    if weight_unknown and one_pass:
+        reasons.append("Per-load weight is unknown. It is not a cold gate.")
+    elif weight_unknown:
         cold_gates.append("weight:unknown")
         reasons.append("No usable weight information — cannot qualify as HOT.")
 
@@ -278,27 +320,30 @@ def classify_lead(
     effective_hot_min = hot_min_lbs
 
     # ─────────────────────────────────────────────────────────────────────────
-    # Weight gate: must clear HOT threshold
+    # Weight gate: must clear HOT threshold.
+    # Unknown weight under one-pass is not compared, and it is not a qualifier.
+    # A zero-pound figure must not fall through into below-hot-threshold COLD.
     # ─────────────────────────────────────────────────────────────────────────
-    if estimated_lbs < effective_hot_min:
-        reasons.append(
-            f"Weight {estimated_lbs:,.0f} lbs is in warm zone (below HOT threshold of {effective_hot_min:,.0f} lbs)."
-        )
-        return ClassificationResult(
-            decision="cold",
-            reasons=reasons,
-            cold_gates_triggered=["weight:below_hot_threshold"],
-            weight_source=weight_source,
-            is_plastic=is_plastic_hint,
-            is_commercial_source=is_commercial_hint,
-            estimated_lbs=estimated_lbs,
-            effective_hot_min_lbs=effective_hot_min,
-            vision_evidence=vision_copy,
-        )
+    if not (one_pass and weight_unknown):
+        if estimated_lbs < effective_hot_min:
+            reasons.append(
+                f"Weight {estimated_lbs:,.0f} lbs is in warm zone "
+                f"(below HOT threshold of {effective_hot_min:,.0f} lbs)."
+            )
+            return ClassificationResult(
+                decision="cold",
+                reasons=reasons,
+                cold_gates_triggered=["weight:below_hot_threshold"],
+                weight_source=weight_source,
+                is_plastic=is_plastic_hint,
+                is_commercial_source=is_commercial_hint,
+                estimated_lbs=estimated_lbs,
+                effective_hot_min_lbs=effective_hot_min,
+                vision_evidence=vision_copy,
+            )
 
-    # Weight passes — add qualifier
-    hot_quals.append(f"weight:{weight_source}:{estimated_lbs:,.0f}lbs")
-    reasons.append(f"Weight {estimated_lbs:,.0f} lbs ≥ HOT threshold {effective_hot_min:,.0f} lbs.")
+        hot_quals.append(f"weight:{weight_source}:{estimated_lbs:,.0f}lbs")
+        reasons.append(f"Weight {estimated_lbs:,.0f} lbs ≥ HOT threshold {effective_hot_min:,.0f} lbs.")
 
     if economic_eligible:
         hot_quals.append("economic_policy:eligible")
@@ -437,12 +482,13 @@ QUALIFICATION_REF_PREFIXES = ("seller.", "quantity.", "ai.", "vision.", "conflic
 def mass_basis(weight_source: str | None, lbs: float | None) -> str:
     """Name how a per-load pound figure was obtained. Unknown mass stays unknown."""
     source = (weight_source or "").strip()
+    if source.startswith("bare_number:"):
+        return MASS_BASIS_UNKNOWN
     if not lbs or lbs <= 0 or source in ("", "none", WEIGHT_SOURCE_AREA):
         return MASS_BASIS_UNKNOWN
     if source.startswith("explicit_") or source in _SELLER_STATED_SOURCES:
         return MASS_BASIS_SELLER_STATED
-    if source.startswith(("unit_count:", "pallet_count", "bare_number:")):
-        # A seller count or bare number converted with a disclosed unit assumption.
+    if source.startswith(("unit_count:", "pallet_count")):
         return MASS_BASIS_CALCULATED
     return MASS_BASIS_INFERRED
 
@@ -515,6 +561,16 @@ def agreed_confident_polymer(vision: list[dict]) -> str:
         if isinstance(item, dict) and float(item.get("confidence") or 0.0) >= _VISION_POLYMER_MIN_CONFIDENCE
     ]
     return _agreed_polymer_hint(confident)
+
+
+def _recorded_mass_label(quantity: dict, basis: str) -> str:
+    """Planning versus grounded. Missing labels follow the mass basis; pounds stay put."""
+    label = quantity.get(KEY_MASS_LABEL)
+    if label in (MASS_LABEL_GROUNDED, MASS_LABEL_PLANNING):
+        return label
+    if basis == MASS_BASIS_SELLER_STATED:
+        return MASS_LABEL_GROUNDED
+    return MASS_LABEL_PLANNING
 
 
 def build_qualification_signals(
@@ -647,6 +703,7 @@ def build_qualification_signals(
             "load_weight_lbs": lbs or None,
             "load_weight_lbs_high": merged.get("estimated_lbs_high") or None,
             "mass_basis": basis,
+            KEY_MASS_LABEL: _recorded_mass_label(quantity, basis),
             "loads_per_month": loads_per_month,
             "supply_mode": supply_mode or "unclear",
             "recurring": supply_mode == "ongoing" or bool(loads_per_month),
@@ -682,6 +739,10 @@ def derive_final_disposition(
       5. Otherwise             → REVIEW.
     Every difference between the recommendation and the final disposition is
     recorded with its reason.
+
+    Unknown per-load weight is not step 3's review gap, and it is not a cold
+    decision, once ``ONE_PASS_ORCHESTRATION`` is true. While that flag is
+    absent or false, missing weight still keeps today's review result.
     """
     record = dict(assessment_record or {})
     assessment = record.get("assessment") if isinstance(record.get("assessment"), dict) else {}
@@ -692,6 +753,12 @@ def derive_final_disposition(
     contradictory = list(assessment.get("contradictory_evidence_refs") or [])
     confidence = float(assessment.get("confidence") or 0.0)
     reasons: list[str] = []
+    one_pass = _one_pass_orchestration()
+    weight_unknown = _signals_weight_unknown(signals)
+    intake_gaps = intake_blockers(signals)
+    disposition_gaps = list(intake_gaps)
+    if one_pass and weight_unknown:
+        disposition_gaps = [gap for gap in disposition_gaps if gap != _UNKNOWN_WEIGHT_INTAKE_BLOCKER]
 
     if record.get("status") != ASSESSMENT_STATUS_ASSESSED or recommendation is None:
         final = DISPOSITION_REVIEW
@@ -704,7 +771,7 @@ def derive_final_disposition(
         final = DISPOSITION_COLD
         reasons.append("Hard exclusion: " + ", ".join(signals["hard_exclusions"]) + ".")
     elif recommendation == DISPOSITION_HOT:
-        blockers = intake_blockers(signals)
+        blockers = list(disposition_gaps)
         if assessment.get("material_suitability") == MATERIAL_UNSUITABLE:
             blockers.append("The model judged the material unsuitable while recommending HOT.")
         if not supporting:
@@ -734,6 +801,11 @@ def derive_final_disposition(
         final = DISPOSITION_REVIEW
         reasons.append("The model recommended broker review.")
 
+    if one_pass and weight_unknown and final not in (DISPOSITION_REVIEW, DISPOSITION_COLD):
+        reasons.append(
+            "Per-load weight is unknown (economic_evidence:weight_unknown). It is not a review or cold disposition."
+        )
+
     high_priority = final == DISPOSITION_REVIEW and (
         recommendation == DISPOSITION_HOT or assessment.get("opportunity_signal") == SIGNAL_STRONG
     )
@@ -745,7 +817,7 @@ def derive_final_disposition(
         "override_reasons": reasons if recommendation is not None and recommendation != final else [],
         "reasons": reasons,
         "review_priority": "high" if high_priority else "normal",
-        "intake_ready": not intake_blockers(signals),
+        "intake_ready": not intake_gaps,
         "missing_information": sorted(
             set(signals.get("missing_information") or []) | set(assessment.get("missing_information") or [])
         ),
@@ -760,10 +832,7 @@ def intake_blockers(signals: dict) -> list[str]:
     scale = signals.get("scale") or {}
     blockers: list[str] = []
     if scale.get("mass_basis") not in _INTAKE_MASS_BASES or not scale.get("load_weight_lbs"):
-        blockers.append(
-            "Per-load weight is not stated or calculable from the seller's words; "
-            "an intake would need an invented quantity."
-        )
+        blockers.append(_UNKNOWN_WEIGHT_INTAKE_BLOCKER)
     if material.get("status") != MATERIAL_SUPPORTED:
         blockers.append("Material identity is not supported by seller, text, or confident photo evidence.")
     if signals.get("conflicts"):

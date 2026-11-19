@@ -185,6 +185,7 @@
                             <field name="filler_type_id"/>
                             <field name="quantity_per_load_lbs"/>
                             <field name="loads_per_month"/>
+                            <field name="source_web_lead_id" readonly="1"/>
                             <field name="melt_flow_index"/>
                             <field name="density"/>
                             <field name="moisture_percent"/>

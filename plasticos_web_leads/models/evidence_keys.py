@@ -44,6 +44,7 @@ KEY_PROVIDER = "provider"
 KEY_PROVIDER_EXTERNAL_ID = "provider_external_id"
 KEY_QUANTITY = "quantity"
 KEY_QUANTITY_PER_LOAD_LBS = "quantity_per_load_lbs"
+KEY_MASS_LABEL = "mass_label"
 KEY_REASON = "reason"
 KEY_REASONS = "reasons"
 KEY_RECONCILED_EVIDENCE = "reconciled_evidence"
@@ -72,6 +73,10 @@ KEY_RAW_PAYLOAD = "raw_payload"
 
 ASSESSMENT_STATUS_ASSESSED = "assessed"
 ASSESSMENT_STATUS_UNAVAILABLE = "unavailable"
+# Quantity mass is either seller-stated (grounded) or a planning label.
+# Planning figures are not copied onto quantity_per_load_lbs.
+MASS_LABEL_GROUNDED = "grounded"
+MASS_LABEL_PLANNING = "planning"
 # The provider answered, but the answer failed the response contract.
 ASSESSMENT_STATUS_INVALID = "invalid"
 

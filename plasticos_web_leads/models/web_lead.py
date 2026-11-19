@@ -2,16 +2,16 @@
 # Model : plasticos.web.lead
 # Purpose: Web lead ingestion with AI-powered triage pipeline:
 #          1. Receive a provider packet through the inbound adapter port
-#          2. Image analysis (1 Vision call per image)
-#          3. AI normalization of the seller text and those photo rows
-#          4. Commercial qualification: LLM recommends HOT/REVIEW/COLD,
-#             the deterministic validator decides (ADR-016 2026-11-11)
-#          5. HOT → intake (partner deferred to buyer-match)
-#             REVIEW → assigned broker clarification work, no intake
+#          2. One broker inference call (text, photos, and PDF page text together)
+#          3. Deterministic qualification decides HOT/REVIEW/COLD
+#          4. HOT with a grounded per-load weight → one intake
+#             HOT without that weight stays HOT in review, with no intake
 # ═══════════════════════════════════════════════════════════
 from __future__ import annotations
 
+import base64
 import logging
+import re
 import uuid
 from collections.abc import Mapping
 from datetime import UTC, datetime
@@ -34,12 +34,13 @@ from ..adapters.base import (
 )
 from ..adapters.registry import get_adapter
 from ..zip_place import resolve_pickup
-from . import ai_normalizer, image_analyzer
 from .attachment_processor import copy_successful_attachments_to_intake, process_attachments
 from .classification_engine import (
     DISPOSITION_COLD,
     DISPOSITION_HOT,
     DISPOSITION_REVIEW,
+    MASS_BASIS_CALCULATED,
+    MASS_BASIS_SELLER_STATED,
     QUALIFICATION_MODE_LEGACY,
     QUALIFICATION_MODE_LIVE,
     agreed_confident_polymer,
@@ -48,9 +49,9 @@ from .classification_engine import (
     derive_final_disposition,
     detect_hard_exclusions,
     detect_risk_indicators,
+    mass_basis,
 )
-from .economic_evaluator import evaluate_economic_opportunity
-from .economic_policy import evaluate_economic_eligibility
+from .economic_policy import PLANNING_DEFAULTS_V1, evaluate_economic_eligibility
 from .evidence_keys import (
     ASSESSMENT_STATUS_ASSESSED,
     ASSESSMENT_STATUS_UNAVAILABLE,
@@ -65,16 +66,478 @@ from .evidence_keys import (
     KEY_REVIEW_REASONS,
     KEY_REVIEW_REQUIRED,
     KEY_STATUS,
+    KEY_VALIDATION_ISSUES,
     KEY_VISION,
+    scrub_acquisition_secrets,
 )
 from .evidence_reconciler import reconcile_evidence
-from .inference_provider import InferenceProvider
+from .inference_provider import InferenceProvider, run_broker_inference
 from .material_catalog import CatalogEntry, accept_value, match_codes, match_distinct, split_phrase
 from .material_identity import merge_form_and_grade, split_material_code
 from .quantity_normalizer import QuantityEvidence, normalize_quantity_evidence
 from .triage_helpers import SINGLE_LOAD_REVIEW_CAP_LBS, WEIGHT_SOURCE_AREA, replay_stored_mass
 
 _logger = logging.getLogger(__name__)
+
+# One multimodal broker call replaces text normalization, per-image vision, and
+# the economic provider call. Lane A owns ``run_broker_inference``. Lane B owns
+# ``PLANNING_DEFAULTS_V1``. This flag is the switch those lanes read.
+ONE_PASS_ORCHESTRATION = True
+_PARSE_STATUS_PARSED = "parsed"
+_ALIGNMENT_STATUS_ALIGNED = "aligned"
+_REPRESENTATIVENESS_WHOLE_LOT = "confirmed_whole_lot"
+
+# Identity of Lane B's planning object. The pound figures stay inside that object.
+_PLANNING_POLICY_REF = "web-lead-planning-defaults/v1"
+_GROUNDED_MASS_BASES = frozenset({MASS_BASIS_SELLER_STATED, MASS_BASIS_CALCULATED})
+_WEIGHT_KEYS_NOT_GROUNDED = frozenset({"estimated_lbs", "estimated_lbs_per_load", "estimated_lbs_high", "lbs_source"})
+_MFI_PROPERTIES = frozenset({"mfi", "melt flow", "melt flow index", "melt index"})
+_DENSITY_PROPERTIES = frozenset({"density", "specific gravity"})
+_MOISTURE_PROPERTIES = frozenset({"moisture", "moisture content", "moisture pct"})
+_MFI_UNITS = frozenset({"g/10min", "dg/min"})
+_DENSITY_UNITS = frozenset({"g/cm3", "g/cm³", "g/cm^3", "g/cc", "g/ml"})
+_MOISTURE_UNITS = frozenset({"%", "percent", "pct", "wt%", "wt.%"})
+_WHOLE_LOT_PHRASE = re.compile(r"\b(?:entire|whole)\b.{0,48}\b(?:offered\s+lot|lot|load)\b", re.IGNORECASE)
+_PHOTO_WORD = re.compile(r"\b(?:photo|photos|picture|pictures|image|images)\b", re.IGNORECASE)
+_SPEC_WORD = re.compile(r"\b(?:spec|specs|specification|specifications|datasheet|data\s+sheet)\b", re.IGNORECASE)
+_ALIGNMENT_LABELS = {
+    "aligned": "Aligned",
+    "possible_variance": "Possible variance",
+    "offer_variance": "Offer variance",
+    "unknown": "Unknown",
+}
+
+
+def _json_ready(value: Any) -> Any:
+    """Ordinary JSON values. A planning dataclass is never stored."""
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    if isinstance(value, (list, tuple)):
+        return [_json_ready(item) for item in value]
+    if isinstance(value, Mapping):
+        return {str(key): _json_ready(item) for key, item in value.items()}
+    return str(value)
+
+
+def _planning_basis(defaults: Any) -> dict[str, Any]:
+    """Lane B's planning object, as JSON, for the evidence bundle only.
+
+    Pound figures are not copied onto a load-weight field.
+    """
+    if hasattr(defaults, "as_evidence"):
+        payload = defaults.as_evidence()
+    elif isinstance(defaults, Mapping):
+        payload = _json_ready(dict(defaults))
+    else:
+        payload = {}
+    if not isinstance(payload, dict):
+        payload = {}
+    payload.setdefault("policy_ref", _PLANNING_POLICY_REF)
+    return payload
+
+
+def _seller_claims_for_broker(payload: Mapping[str, Any] | None) -> dict[str, Any]:
+    """Seller facts for the one call, without signed URLs or contact channels."""
+    claims = scrub_acquisition_secrets(payload)
+    for key in ("contact_name", "contact_email", "contact_phone"):
+        claims.pop(key, None)
+    return claims
+
+
+def _image_content_bytes(payload: Any) -> bytes:
+    """Decode an attachment's stored base64 payload into image bytes."""
+    raw = payload.encode("ascii", errors="ignore") if isinstance(payload, str) else payload
+    if not isinstance(raw, (bytes, bytearray)) or not raw:
+        return b""
+    try:
+        decoded = base64.b64decode(bytes(raw), validate=False)
+    except (ValueError, TypeError):
+        return b""
+    return decoded or b""
+
+
+def _pdf_page_strings(documents: list[dict[str, Any]]) -> list[str]:
+    """Page strings a caller already extracted. Bytes and empty pages stay out."""
+    pages: list[str] = []
+    for document in documents:
+        for page in document.get("pages") or []:
+            if not isinstance(page, Mapping):
+                continue
+            text = page.get("text")
+            if page.get("parse_status") == _PARSE_STATUS_PARSED and isinstance(text, str) and text.strip():
+                pages.append(text)
+    return pages
+
+
+def _reading_from_broker(result: Mapping[str, Any]) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """Material and photo rows from the one broker result, never a second call."""
+    inner = result.get("evidence_bundle") if isinstance(result.get("evidence_bundle"), Mapping) else {}
+    decisions = result.get("decision_inputs") if isinstance(result.get("decision_inputs"), Mapping) else {}
+    normalized = decisions.get("ai_normalized")
+    if not isinstance(normalized, Mapping):
+        normalized = inner.get("ai") if isinstance(inner.get("ai"), Mapping) else {}
+    material = {key: value for key, value in dict(normalized).items() if key not in _WEIGHT_KEYS_NOT_GROUNDED}
+    photos = inner.get("photo_findings")
+    if not isinstance(photos, list):
+        photos = inner.get("vision") if isinstance(inner.get("vision"), list) else []
+    return material, [dict(row) for row in photos if isinstance(row, Mapping)]
+
+
+def _grounded_load_lbs(quantity_evidence: QuantityEvidence | None) -> int:
+    """Seller-stated or seller-calculated per-load pounds. Planning mass is not grounded."""
+    if quantity_evidence is None:
+        return 0
+    lbs = float(quantity_evidence.load_weight_lbs or 0)
+    if mass_basis(quantity_evidence.weight_source, lbs) not in _GROUNDED_MASS_BASES or lbs <= 0:
+        return 0
+    return int(lbs)
+
+
+def _broker_request_media(
+    lead: Any, rows: list[dict[str, Any]]
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    """Images for the one call, PDF pages already on the rows, and media that stayed unknown."""
+    images: list[dict[str, Any]] = []
+    documents: list[dict[str, Any]] = []
+    omissions: list[dict[str, Any]] = []
+    attachments = lead.env["ir.attachment"]
+    for index, row in enumerate(rows):
+        content_type = str(row.get("content_type") or "")
+        position = row.get("attachment_index", index)
+        if content_type.startswith("image/"):
+            source_ref = f"photo.{position}"
+            stored = attachments.browse(row.get("ir_attachment_id")) if row.get("ir_attachment_id") else attachments
+            content = (
+                _image_content_bytes(stored.datas) if row.get("acquisition_status") == "success" and stored else b""
+            )
+            if content:
+                image: dict[str, Any] = {}
+                image["source_ref"] = source_ref
+                image["source_id"] = row.get("source_id")
+                image["content_type"] = content_type
+                image["content"] = content
+                images.append(image)
+            else:
+                error = row.get("error") if isinstance(row.get("error"), Mapping) else {}
+                omissions.append(
+                    {
+                        "source_ref": source_ref,
+                        "kind": "photo",
+                        "parse_status": "unknown",
+                        "reason": (
+                            "image_bytes_missing"
+                            if row.get("acquisition_status") == "success" and not error.get("code")
+                            else error.get("code") or row.get("analysis_status") or "image_unavailable"
+                        ),
+                    }
+                )
+            continue
+        if content_type == "application/pdf":
+            source_ref = f"pdf.{position}"
+            pages = [dict(page) for page in row.get("pages") or [] if isinstance(page, Mapping)]
+            documents.append({"source_ref": source_ref, "source_id": row.get("source_id"), "pages": pages})
+            parsed = [page for page in pages if page.get("parse_status") == _PARSE_STATUS_PARSED and page.get("text")]
+            if not parsed:
+                error = row.get("error") if isinstance(row.get("error"), Mapping) else {}
+                omissions.append(
+                    {
+                        "source_ref": source_ref,
+                        "kind": "pdf",
+                        "parse_status": "unknown",
+                        "reason": error.get("code") or "document_text_extraction_not_enabled",
+                    }
+                )
+            continue
+        error = row.get("error") if isinstance(row.get("error"), Mapping) else {}
+        omissions.append(
+            {
+                "source_ref": f"file.{position}",
+                "kind": "file",
+                "parse_status": "unknown",
+                "reason": error.get("code") or row.get("analysis_status") or "unsupported",
+            }
+        )
+    return images, documents, omissions
+
+
+def _assessment_record(result: Mapping[str, Any]) -> dict[str, Any]:
+    """Map the one-pass qualification onto the assessment record the validator already reads."""
+    embedded = result.get("economic_assessment") or result.get(KEY_ECONOMIC_ASSESSMENT)
+    if isinstance(embedded, Mapping) and embedded.get(KEY_STATUS):
+        return dict(embedded)
+    qualification = result.get("qualification") if isinstance(result.get("qualification"), Mapping) else {}
+    recommendation = qualification.get("recommended_disposition")
+    known = recommendation in {DISPOSITION_HOT, DISPOSITION_REVIEW, DISPOSITION_COLD}
+    status = result.get(KEY_STATUS)
+    if status not in {ASSESSMENT_STATUS_ASSESSED, ASSESSMENT_STATUS_UNAVAILABLE, "invalid"}:
+        status = ASSESSMENT_STATUS_ASSESSED if known else ASSESSMENT_STATUS_UNAVAILABLE
+    contradictory = qualification.get("contradictory_evidence_refs")
+    if not isinstance(contradictory, list):
+        contradictory = qualification.get("negative_evidence_refs") or []
+    clarifications = qualification.get("recommended_clarification") or []
+    record: dict[str, Any] = {
+        "schema_version": result.get("schema_version") or "web-lead-broker-inference/v1",
+        KEY_STATUS: status,
+        KEY_ASSESSMENT: {
+            "recommended_disposition": recommendation if known else None,
+            "opportunity_signal": qualification.get("opportunity_signal") or "unknown",
+            "commercial_rationale": qualification.get("commercial_rationale") or "",
+            "supporting_evidence_refs": list(qualification.get("supporting_evidence_refs") or []),
+            "contradictory_evidence_refs": list(contradictory),
+            "missing_information": list(qualification.get("missing_information") or []),
+            "recommended_clarification": list(clarifications),
+            "clarifications": list(clarifications),
+        },
+    }
+    if status != ASSESSMENT_STATUS_ASSESSED:
+        record["reason"] = result.get("reason") or "broker_inference_unavailable"
+    return record
+
+
+def _apply_one_pass_evidence(
+    bundle: dict[str, Any], result: Mapping[str, Any], media_omissions: list[dict[str, Any]]
+) -> dict[str, Any]:
+    """Write the one broker bundle onto the lead. Planning mass stays inside planning_basis."""
+    inner = result.get("evidence_bundle") if isinstance(result.get("evidence_bundle"), Mapping) else {}
+    alignment = inner.get("alignment")
+    if not isinstance(alignment, Mapping):
+        alignment = result.get("representation_alignment")
+    if not isinstance(alignment, Mapping):
+        alignment = {}
+        alignment["status"] = "unknown"
+        alignment["representativeness"] = "unknown"
+        alignment["source_refs"] = []
+    bundle["representation_alignment"] = dict(alignment)
+    bundle["planning_basis"] = _planning_basis(PLANNING_DEFAULTS_V1)
+    bundle["media_omissions"] = list(media_omissions)
+    specs = inner.get("document_specifications")
+    bundle["document_specifications"] = list(specs) if isinstance(specs, list) else []
+    photos = inner.get("photo_findings")
+    if not isinstance(photos, list):
+        photos = inner.get("vision") if isinstance(inner.get("vision"), list) else []
+    bundle["photo_findings"] = list(photos)
+    pages = inner.get("pdf_page_text")
+    if isinstance(pages, list):
+        bundle["pdf_page_text"] = list(pages)
+    economic = inner.get(KEY_ECONOMIC_ASSESSMENT)
+    if isinstance(economic, Mapping) and economic.get(KEY_STATUS):
+        bundle[KEY_ECONOMIC_ASSESSMENT] = dict(economic)
+    else:
+        bundle[KEY_ECONOMIC_ASSESSMENT] = _assessment_record(result)
+    issues = result.get(KEY_VALIDATION_ISSUES)
+    if isinstance(issues, list):
+        bundle["broker_validation_issues"] = list(issues)
+    if result.get(KEY_STATUS):
+        bundle["broker_status"] = result.get(KEY_STATUS)
+    if result.get("reason"):
+        bundle["broker_reason"] = result.get("reason")
+    return bundle
+
+
+def _property_aliases(name: str) -> tuple[str, ...]:
+    if name in _MFI_PROPERTIES:
+        return ("melt flow index", "melt flow rate", "melt flow", "melt index", "mfi", "mfr")
+    if name in _DENSITY_PROPERTIES:
+        return ("specific gravity", "density")
+    if name in _MOISTURE_PROPERTIES or name.startswith("moisture"):
+        return ("moisture content", "moisture")
+    text = " ".join(name.split())
+    return (text,) if text else ()
+
+
+def _number_in_text(text: str, value: float) -> bool:
+    forms = {f"{value:g}", str(value)}
+    if value == int(value):
+        forms.add(str(int(value)))
+    for form in forms:
+        if re.search(rf"(?<![\d.]){re.escape(form)}(?![\d.])", text):
+            return True
+    return False
+
+
+def _unit_in_text(text: str, unit: Any) -> bool:
+    key = re.sub(r"\s+", "", str(unit or "").casefold())
+    if not key:
+        return False
+    return key in re.sub(r"\s+", "", text.casefold())
+
+
+def _text_substantiates(text: str, row: Mapping[str, Any]) -> bool:
+    """The cited text states this property, this number, and this unit."""
+    haystack = text.casefold()
+    name = _spec_property_name(row)
+    if not any(alias and alias in haystack for alias in _property_aliases(name)):
+        return False
+    number = _spec_float(row)
+    if number is None or not _number_in_text(haystack, number):
+        return False
+    return _unit_in_text(haystack, row.get("unit"))
+
+
+def _photo_finding_text(photo: Mapping[str, Any]) -> str:
+    skipped = {"source_id", "source_ref", "content", "content_type", "content_sha256"}
+    return "\n".join(str(value) for key, value in photo.items() if key not in skipped and isinstance(value, str))
+
+
+def _citation_text(ref: Any, bundle: Mapping[str, Any]) -> str:
+    text = str(ref or "").strip()
+    if not text:
+        return ""
+    if text.startswith("seller."):
+        seller = bundle.get("seller") if isinstance(bundle.get("seller"), Mapping) else {}
+        value = seller.get(text.split(".", 1)[1])
+        return value.strip() if isinstance(value, str) else ""
+    photos = bundle.get("photo_findings") if isinstance(bundle.get("photo_findings"), list) else []
+    if text.startswith("vision."):
+        suffix = text.split(".", 1)[1]
+        if suffix.isdigit() and 0 <= int(suffix) < len(photos) and isinstance(photos[int(suffix)], Mapping):
+            return _photo_finding_text(photos[int(suffix)])
+        return ""
+    if text.startswith("pdf.page."):
+        pages = bundle.get("pdf_page_text") if isinstance(bundle.get("pdf_page_text"), list) else []
+        suffix = text.rsplit(".", 1)[-1]
+        if suffix.isdigit() and 0 <= int(suffix) < len(pages):
+            return str(pages[int(suffix)] or "").strip()
+        return ""
+    for photo in photos:
+        if isinstance(photo, Mapping) and text in {photo.get("source_id"), photo.get("source_ref")}:
+            return _photo_finding_text(photo)
+    return ""
+
+
+def _admitted_photo(bundle: Mapping[str, Any]) -> bool:
+    photos = bundle.get("photo_findings")
+    if not isinstance(photos, list):
+        photos = bundle.get("vision") if isinstance(bundle.get("vision"), list) else []
+    return any(isinstance(photo, Mapping) and (photo.get("source_id") or photo.get("source_ref")) for photo in photos)
+
+
+def _seller_confirmation_text(bundle: Mapping[str, Any], alignment: Mapping[str, Any]) -> str:
+    ref = str(alignment.get("seller_confirmation_ref") or "").strip()
+    if not ref.startswith("seller."):
+        return ""
+    return _citation_text(ref, bundle)
+
+
+def _bundle_has_substantiated_spec(bundle: Mapping[str, Any]) -> bool:
+    rows = bundle.get("document_specifications")
+    if not isinstance(rows, list):
+        return False
+    for row in rows:
+        if not isinstance(row, Mapping):
+            continue
+        refs = row.get("source_refs") or []
+        if isinstance(refs, str):
+            refs = [refs]
+        if any(_text_substantiates(_citation_text(ref, bundle), row) for ref in refs):
+            return True
+    return False
+
+
+def representation_alignment_label(bundle: Mapping[str, Any] | None) -> str:
+    """Category label. 100/100 requires checked photo, spec, and seller coverage.
+
+    The model's own coverage flags are not verification. The score is a display
+    string and is not stored as a measurement.
+    """
+    evidence = bundle if isinstance(bundle, Mapping) else {}
+    alignment = evidence.get("representation_alignment")
+    if not isinstance(alignment, Mapping):
+        alignment = {}
+    status = str(alignment.get("status") or "unknown")
+    label = _ALIGNMENT_LABELS.get(status, status)
+    if status != _ALIGNMENT_STATUS_ALIGNED or alignment.get("representativeness") != _REPRESENTATIVENESS_WHOLE_LOT:
+        return label
+    confirmation = _seller_confirmation_text(evidence, alignment)
+    confirmed = (
+        _admitted_photo(evidence)
+        and _bundle_has_substantiated_spec(evidence)
+        and bool(_WHOLE_LOT_PHRASE.search(confirmation))
+        and bool(_PHOTO_WORD.search(confirmation))
+        and bool(_SPEC_WORD.search(confirmation))
+    )
+    if confirmed:
+        return "100/100"
+    return label
+
+
+def _spec_property_name(row: Mapping[str, Any]) -> str:
+    return " ".join(str(row.get("property") or "").casefold().replace("%", " ").split())
+
+
+def _spec_float(row: Mapping[str, Any]) -> float | None:
+    raw = row.get("value")
+    if isinstance(raw, bool) or raw is None or (isinstance(raw, str) and re.search(r"\bto\b|-", raw)):
+        return None
+    if isinstance(raw, (int, float)):
+        return float(raw)
+    text = str(raw).strip().replace(",", "")
+    if not text:
+        return None
+    try:
+        return float(text)
+    except ValueError:
+        return None
+
+
+def _spec_unit_supported(name: str, unit: Any) -> bool:
+    key = str(unit or "").strip().casefold()
+    if name in _MFI_PROPERTIES:
+        return key in _MFI_UNITS
+    if name in _DENSITY_PROPERTIES:
+        return key in _DENSITY_UNITS
+    if name in _MOISTURE_PROPERTIES or name.startswith("moisture"):
+        return key in _MOISTURE_UNITS
+    return False
+
+
+def _spec_ref_resolves(ref: Any, bundle: Mapping[str, Any], row: Mapping[str, Any]) -> bool:
+    """The cited seller text, photo finding, or PDF page states this spec."""
+    return _text_substantiates(_citation_text(ref, bundle), row)
+
+
+def _intake_spec_facts(specs: Any, bundle: Mapping[str, Any] | None = None) -> tuple[dict[str, float], str]:
+    """Intake columns only when one substantiated value agrees.
+
+    The cited text must state the property, the number, and the unit. Two
+    different values for the same property stay in the notes and fill no column.
+    """
+    evidence = bundle if isinstance(bundle, Mapping) else {}
+    measures: dict[str, float] = {}
+    notes: list[str] = []
+    seen: dict[str, set[float]] = {}
+    proven: dict[str, set[float]] = {}
+    if not isinstance(specs, list):
+        return measures, ""
+    for row in specs:
+        if not isinstance(row, Mapping):
+            continue
+        name = _spec_property_name(row)
+        refs = [str(item) for item in row.get("source_refs") or [] if item]
+        detail = f"{row.get('property')}: {row.get('value')} {row.get('unit') or ''}".strip()
+        if row.get("test_conditions"):
+            detail += f" ({row.get('test_conditions')})"
+        if refs:
+            detail += f" [{', '.join(refs)}]"
+        notes.append(detail)
+        target = None
+        if name in _MFI_PROPERTIES:
+            target = "mfi_value"
+        elif name in _DENSITY_PROPERTIES:
+            target = "density_value"
+        elif name in _MOISTURE_PROPERTIES or name.startswith("moisture"):
+            target = "moisture_pct"
+        number = _spec_float(row)
+        if target is None or number is None:
+            continue
+        seen.setdefault(target, set()).add(number)
+        if _spec_unit_supported(name, row.get("unit")) and any(_spec_ref_resolves(ref, evidence, row) for ref in refs):
+            proven.setdefault(target, set()).add(number)
+    for target, numbers in seen.items():
+        if len(numbers) == 1 and proven.get(target) == numbers:
+            measures[target] = next(iter(numbers))
+    return measures, "\n".join(note for note in notes if note)
+
 
 # Identity namespace of rejected inbound deliveries. Distinct from the packet
 # idempotency key so a later valid resubmission is admitted, not replayed.
@@ -301,6 +764,14 @@ class PlasticosWebLead(models.Model):
         readonly=True,
         help="Versioned deterministic, AI, and attachment evidence produced during triage.",
     )
+    representation_alignment_display = fields.Char(
+        string="Representation Alignment",
+        compute="_compute_representation_alignment_display",
+        help=(
+            "Display only. 100/100 appears only when the photo and the specs are cited as the whole "
+            "offered lot. This is not a stored score, a purity claim, or a weight."
+        ),
+    )
     review_status = fields.Selection(
         [
             ("pending", "Broker Review Pending"),
@@ -487,6 +958,12 @@ class PlasticosWebLead(models.Model):
         index=True,
         ondelete="set null",
     )
+
+    @api.depends("evidence_bundle")
+    def _compute_representation_alignment_display(self):
+        for record in self:
+            bundle = record.evidence_bundle if isinstance(record.evidence_bundle, Mapping) else None
+            record.representation_alignment_display = representation_alignment_label(bundle)
 
     @api.depends("review_snapshot_ids")
     def _compute_review_snapshot_count(self):
@@ -826,13 +1303,12 @@ class PlasticosWebLead(models.Model):
         """Execute the full AI triage pipeline on this web lead.
 
         Steps:
-          [VISION] 1. Image analysis (if enabled + images present)
-          [AI]     2. AI normalization of the seller text and those photo rows
-          [MERGE]  3. Merge that reading; the classifier still receives the photo rows
-          [CLASS]  4. Deterministic HOT/COLD classification
-          [WRITE]  5. Persist classification result
-          [HOT]    6. Create intake + notify admin
-          [IMG]    7. Submitted images are stored before this decision, HOT or COLD
+          [ATTACH] 1. Store admitted attachments. PDF page text is whatever the processor parsed.
+          [BROKER] 2. One multimodal call (``run_broker_inference``). No separate text, vision, or economic call.
+          [MERGE]  3. Merge the material reading. Photo findings stay in the evidence bundle.
+          [CLASS]  4. Deterministic qualification. The validator decides.
+          [WRITE]  5. Persist the decision, alignment, planning basis, and media omissions together.
+          [HOT]    6. Create one intake only when the per-load weight is grounded.
 
         ``packet`` is the in-memory admission packet and the only carrier of
         signed attachment URLs. A later re-triage has no packet: it reuses prior
@@ -869,63 +1345,48 @@ class PlasticosWebLead(models.Model):
                     f"source={quantity_evidence.weight_source} cadence={quantity_evidence.loads_per_month}"
                 )
 
-            vision_results: list[dict[str, Any]] = []
-            vision_provider_spec = config.get_inference_provider("vision_analysis") if config.vision_enabled else None
+            images: list[dict[str, Any]] = []
+            documents: list[dict[str, Any]] = []
+            media_omissions: list[dict[str, Any]] = []
             if is_packet_path:
                 packet_attachments = (
                     acquisition_rows(packet) if packet is not None else list(triage_input.get("attachments") or [])
                 )
-                analyzer = None
-                if vision_provider_spec:
-                    vision_provider = InferenceProvider(**vision_provider_spec)
-                    analyzer = lambda content, mimetype: image_analyzer.analyze_image_with_provider(
-                        content,
-                        content_type=mimetype,
-                        provider=vision_provider,
-                        catalog=catalog,
-                    )
-                    log_lines.append(f"[VISION] provider={vision_provider.provider}:{vision_provider.model}")
-
                 log_lines.append(f"[ATTACHMENTS] processing={len(packet_attachments)}")
                 attachment_evidence = process_attachments(
                     lead=self,
                     attachments=packet_attachments,
-                    analyzer=analyzer,
+                    analyzer=None,
                     evidence_bundle=self.evidence_bundle,
                     allowed_hosts=self._attachment_allowed_hosts(config),
                 )
-                vision_results = [
-                    row["analysis"]
-                    for row in attachment_evidence
-                    if row.get("analysis_type") == "image"
-                    and row.get("analysis_status") == "success"
-                    and row.get("analysis")
-                ]
+                images, documents, media_omissions = _broker_request_media(self, attachment_evidence)
             else:
                 urls = self.image_urls or []
                 if urls:
-                    log_lines.append(
-                        "[VISION] SKIPPED legacy URL path; only admitted attachment bytes are sent to providers."
-                    )
+                    log_lines.append("[ATTACHMENTS] SKIPPED legacy URL path; only admitted attachment bytes are sent.")
                 else:
-                    log_lines.append("[VISION] SKIPPED.")
+                    log_lines.append("[ATTACHMENTS] none.")
 
-            ai_data: dict[str, Any] = {}
-            text_provider_spec = config.get_inference_provider("text_normalization") if config.ai_enabled else None
-            if text_provider_spec:
-                log_lines.append("[AI] Running normalization.")
-                text_provider = InferenceProvider(**text_provider_spec)
-                ai_data = ai_normalizer.normalize_with_provider(
-                    raw_payload=triage_input,
-                    quantity_evidence=quantity_evidence,
-                    provider=text_provider,
-                    catalog=catalog,
-                    vision_results=vision_results,
-                )
-                provider_used = ai_data.pop("_provider_used", "unknown")
-                log_lines.append(f"[AI] provider={provider_used}:{text_provider.model}")
+            provider_spec = config.get_one_pass_provider()
+            provider = InferenceProvider(**provider_spec) if provider_spec else None
+            if provider is not None:
+                log_lines.append(f"[BROKER] provider={provider.provider}:{provider.model}")
             else:
-                log_lines.append("[AI] SKIPPED (disabled or no API keys).")
+                log_lines.append("[BROKER] no provider configured.")
+            broker_result = run_broker_inference(
+                provider,
+                seller=_seller_claims_for_broker(triage_input),
+                images=images,
+                pdf_page_text=_pdf_page_strings(documents),
+                planning_defaults=PLANNING_DEFAULTS_V1,
+                catalog=catalog,
+                quantity_evidence=quantity_evidence,
+            )
+            if not isinstance(broker_result, Mapping):
+                broker_result = {}
+            ai_data, vision_results = _reading_from_broker(broker_result)
+            log_lines.append("[BROKER] one call. Text, vision, and economic providers were not called.")
 
             merged = self._merge_ai_and_vision(
                 ai_data,
@@ -934,7 +1395,6 @@ class PlasticosWebLead(models.Model):
                 seller_payload=triage_input if is_packet_path else None,
                 catalog=catalog,
             )
-            evidence_bundle = None
             if is_packet_path and quantity_evidence is not None:
                 evidence_bundle = reconcile_evidence(
                     canonical_payload=triage_input,
@@ -947,6 +1407,17 @@ class PlasticosWebLead(models.Model):
                 log_lines.append(f"[RECONCILE] conflicts={len(evidence_bundle['conflicts'])}")
                 if broker_corrections:
                     evidence_bundle["broker_corrections"] = broker_corrections
+            else:
+                evidence_bundle = {"schema_version": "web-lead-evidence/v1", "run_id": run_id, "conflicts": []}
+            if is_packet_path:
+                evidence_bundle["seller"] = _seller_claims_for_broker(triage_input)
+            evidence_bundle = _apply_one_pass_evidence(evidence_bundle, broker_result, media_omissions)
+
+            grounded_lbs = _grounded_load_lbs(quantity_evidence)
+            if quantity_evidence is not None:
+                merged["estimated_lbs"] = grounded_lbs
+                if not grounded_lbs and quantity_evidence.weight_source != WEIGHT_SOURCE_AREA:
+                    merged["lbs_source"] = quantity_evidence.weight_source or "none"
 
             economic_eligibility = evaluate_economic_eligibility(
                 estimated_lbs=float(merged.get("estimated_lbs") or 0),
@@ -986,45 +1457,15 @@ class PlasticosWebLead(models.Model):
             log_lines.append(f"[CLASS] legacy_decision={result.decision}")
 
             mode = config.get_qualification_mode()
-            economic_assessment = None
+            economic_assessment = evidence_bundle.get(KEY_ECONOMIC_ASSESSMENT)
             qualification = None
-            if evidence_bundle is not None:
-                economic_provider_spec = (
-                    config.get_inference_provider("economic_evaluation") if config.ai_enabled else None
-                )
-                economic_provider = InferenceProvider(**economic_provider_spec) if economic_provider_spec else None
-                signals = None
-                if mode != QUALIFICATION_MODE_LEGACY:
-                    signals = self._qualification_signals(
-                        merged, evidence_bundle, economic_eligibility.to_dict(), config
-                    )
-                economic_assessment = evaluate_economic_opportunity(
-                    provider=economic_provider,
-                    canonical_payload=triage_input,
-                    evidence_bundle=evidence_bundle,
-                    eligibility=economic_eligibility.to_dict(),
-                    qualification_signals=signals,
-                    # Legacy order only: the model comments on an already-final decision.
-                    classification=(
-                        {
-                            KEY_DECISION: result.decision,
-                            KEY_REASONS: result.reasons,
-                            KEY_HOT_QUALIFIERS: result.hot_qualifiers_met,
-                        }
-                        if signals is None
-                        else None
-                    ),
-                )
-                evidence_bundle[KEY_ECONOMIC_ASSESSMENT] = economic_assessment
-                log_lines.append(f"[ECONOMIC] status={economic_assessment.get(KEY_STATUS)}")
-                if signals is not None:
-                    qualification = derive_final_disposition(assessment_record=economic_assessment, signals=signals)
-            elif mode == QUALIFICATION_MODE_LIVE:
-                # A lead without packet evidence cannot be qualified; it is never silently COLD.
-                qualification = derive_final_disposition(
-                    assessment_record=dict(status=ASSESSMENT_STATUS_UNAVAILABLE, reason="no_packet_evidence"),
-                    signals={},
-                )
+            log_lines.append(
+                f"[BROKER] status={economic_assessment.get(KEY_STATUS) if economic_assessment else 'missing'}"
+            )
+            signals = None
+            if mode != QUALIFICATION_MODE_LEGACY and economic_assessment is not None:
+                signals = self._qualification_signals(merged, evidence_bundle, economic_eligibility.to_dict(), config)
+                qualification = derive_final_disposition(assessment_record=economic_assessment, signals=signals)
             if qualification is not None:
                 qualification["routing_mode"] = mode
                 qualification["legacy_decision"] = result.decision
@@ -1036,6 +1477,7 @@ class PlasticosWebLead(models.Model):
             live = mode == QUALIFICATION_MODE_LIVE and qualification is not None
             decision = qualification["final_disposition"] if live else result.decision
 
+            defer_hot_intake = decision == DISPOSITION_HOT and grounded_lbs <= 0
             review_reasons = self._collect_review_reasons(
                 decision=decision,
                 live=live,
@@ -1046,6 +1488,8 @@ class PlasticosWebLead(models.Model):
                 evidence_bundle=evidence_bundle,
                 qualification=qualification,
             )
+            if defer_hot_intake:
+                review_reasons.append("Per-load weight is not grounded. The lead stays HOT and no intake is created.")
 
             decision_reasons = {
                 KEY_REASONS: qualification["reasons"] if live else result.reasons,
@@ -1070,20 +1514,39 @@ class PlasticosWebLead(models.Model):
                 "ai_normalized": ai_data,
                 "ai_vision_results": vision_results,
                 "ai_analysis": merged,
-                "estimated_lbs_per_load": int(merged.get("estimated_lbs") or 0),
-                "estimated_lbs_high": int(merged["estimated_lbs_high"]) if merged.get("estimated_lbs_high") else 0,
+                "estimated_lbs_per_load": grounded_lbs,
+                "estimated_lbs_high": (
+                    int(quantity_evidence.load_weight_lbs_high)
+                    if grounded_lbs and quantity_evidence is not None and quantity_evidence.load_weight_lbs_high
+                    else 0
+                ),
                 "estimated_loads_per_month": int(merged.get("loads_per_month") or 0),
                 "frequency": merged.get("frequency", ""),
                 "review_status": "clarification_required" if review_reasons else "pending",
                 "review_required_reason": "\n".join(sorted(set(review_reasons))) or False,
+                "evidence_bundle": evidence_bundle,
             }
-            if evidence_bundle is not None:
-                values["evidence_bundle"] = evidence_bundle
+            if defer_hot_intake:
+                values["state"] = "review_pending"
             self.write(values)
 
-            if decision == DISPOSITION_HOT:
+            if defer_hot_intake:
+                log_lines.append("[HOT] No grounded per-load weight. Intake waits. Review activity kept.")
+                self._schedule_lead_review_activity(
+                    config,
+                    summary=self._review_activity_summary(),
+                    note=(
+                        "<p>This HOT lead has no grounded per-load weight, so no intake was created. "
+                        "Any planning figure stays in the evidence bundle.</p>"
+                        f"<ul><li><b>Company:</b> {escape(self.company_name or 'Unknown')}</li></ul>"
+                        "<p><b>Action:</b> record the verified Lbs/Load, then Re-Run Triage or Promote to HOT.</p>"
+                    ),
+                )
+            elif decision == DISPOSITION_HOT:
                 log_lines.append("[HOT] Creating intake and scheduling human review.")
-                self._process_hot_lead_triage(merged, config)
+                intake_facts = dict(merged)
+                intake_facts["estimated_lbs"] = grounded_lbs
+                self._process_hot_lead_triage(intake_facts, config)
                 if evidence_bundle is not None:
                     copy_successful_attachments_to_intake(
                         lead=self, intake=self.intake_id, evidence_bundle=evidence_bundle
@@ -1514,14 +1977,23 @@ class PlasticosWebLead(models.Model):
                     KEY_REVIEW_REASONS: review_reasons,
                     KEY_VISION: result.vision_evidence,
                 },
-                "estimated_lbs_per_load": int(lbs),
-                "estimated_lbs_high": int(mass.lbs_high) if mass.lbs_high else 0,
+                "estimated_lbs_per_load": int(lbs) if lbs > 0 else 0,
+                "estimated_lbs_high": int(mass.lbs_high) if mass.lbs_high and lbs > 0 else 0,
                 "review_status": "clarification_required" if review_reasons else self.review_status,
                 "review_required_reason": "\n".join(sorted(set(review_reasons))) or False,
-                "state": "skipped" if result.decision != "hot" else self.state,
+                "state": "skipped" if result.decision != "hot" else "review_pending" if lbs <= 0 else self.state,
             }
         )
-        if result.decision != "hot":
+        if result.decision != "hot" or lbs <= 0:
+            if result.decision == "hot" and lbs <= 0:
+                self._schedule_lead_review_activity(
+                    config,
+                    summary=self._review_activity_summary(),
+                    note=(
+                        "<p>This HOT lead has no grounded per-load weight, so no intake was created.</p>"
+                        "<p><b>Action:</b> record the verified Lbs/Load, then Re-Run Triage or Promote to HOT.</p>"
+                    ),
+                )
             return
         merged = dict(analysis)
         merged["polymer"] = polymer
@@ -1652,6 +2124,11 @@ class PlasticosWebLead(models.Model):
         intake_vals.update(
             web_lead_source_address(self.pickup_postal_code, self.pickup_place, self.pickup_location_text)
         )
+        bundle = self.evidence_bundle if isinstance(self.evidence_bundle, Mapping) else {}
+        measures, spec_notes = _intake_spec_facts(bundle.get("document_specifications"), bundle)
+        intake_vals.update(measures)
+        if spec_notes:
+            intake_vals["intake_notes"] = spec_notes
 
         return self.env["plasticos.intake"].create(intake_vals)
 
@@ -1938,28 +2415,29 @@ class PlasticosWebLead(models.Model):
             )
         return True
 
-    def _write_recovered_assessment(self, assessment, history):
-        """Replace only the economic assessment inside a processed lead's evidence bundle.
+    def _write_recovered_assessment(self, assessment, history, extras=None):
+        """Replace the assessment, and the one-pass keys, inside a processed lead's bundle.
 
         Not reachable over RPC (leading underscore) and not driven by context:
-        the processed-lead write guard has no bypass. Seller facts, the
-        disposition, and every other evidence key are copied unchanged from
-        the stored bundle, never from the caller.
+        the processed-lead write guard has no bypass. Seller facts and the
+        disposition stay as stored. Planning mass is not written onto a load field.
         """
         self.ensure_one()
         bundle = dict(self.evidence_bundle or {})
         bundle[KEY_ECONOMIC_ASSESSMENT] = assessment
         bundle["economic_assessment_history"] = list(history)
+        for key, value in (extras or {}).items():
+            bundle[key] = value
         # Skips only this model's processed-lead guard; the ORM, ACLs, and tracking still apply.
         return super().write({"evidence_bundle": bundle})
 
     def action_retry_economic_assessment(self):
-        """Assessment-only recovery for a lead that already has an intake.
+        """One-pass recovery for a lead that already has an intake.
 
-        Re-runs the commercial assessment over stored evidence. It does not
-        re-read acquisition URLs, recreate attachments, intake, or opportunity,
-        change the disposition, or touch an approved snapshot. A lead without
-        an intake is reassessed with Re-Run Triage instead.
+        Re-runs the one broker call over stored evidence. It does not re-read
+        acquisition URLs, recreate attachments, intake, or opportunity, change
+        the disposition or the stored load weight, or touch an approved snapshot.
+        A lead without an intake is reassessed with Re-Run Triage instead.
         """
         config = self.env["plasticos.web.lead.config"].get_config()
         for rec in self:
@@ -1969,18 +2447,24 @@ class PlasticosWebLead(models.Model):
             bundle = dict(rec.evidence_bundle or {})
             if not bundle:
                 raise UserError("This lead has no stored evidence bundle to reassess.")
-            spec = config.get_inference_provider("economic_evaluation") if config.ai_enabled else None
+            spec = config.get_one_pass_provider()
             provider = InferenceProvider(**spec) if spec else None
-            merged = dict(rec.ai_analysis or {})
-            eligibility = ((rec.decision_reasons or {}).get(KEY_ECONOMIC_ELIGIBILITY)) or {}
-            signals = rec._qualification_signals(merged, bundle, eligibility, config)
-            assessment = evaluate_economic_opportunity(
-                provider=provider,
-                canonical_payload=rec.canonical_payload,
-                evidence_bundle=bundle,
-                eligibility=eligibility,
-                qualification_signals=signals,
+            images, documents, media_omissions = _broker_request_media(rec, list(bundle.get("attachments") or []))
+            catalog = rec._material_catalog()
+            bundle["seller"] = _seller_claims_for_broker(rec.canonical_payload or {})
+            broker_result = run_broker_inference(
+                provider,
+                seller=bundle["seller"],
+                images=images,
+                pdf_page_text=_pdf_page_strings(documents),
+                planning_defaults=PLANNING_DEFAULTS_V1,
+                catalog=catalog,
+                quantity_evidence=bundle.get("quantity"),
             )
+            if not isinstance(broker_result, Mapping):
+                broker_result = {}
+            stamped = _apply_one_pass_evidence(dict(bundle), broker_result, media_omissions)
+            assessment = stamped.get(KEY_ECONOMIC_ASSESSMENT) or {}
             previous = bundle.get(KEY_ECONOMIC_ASSESSMENT) or {}
             history = list(bundle.get("economic_assessment_history") or [])
             if previous:
@@ -1991,10 +2475,22 @@ class PlasticosWebLead(models.Model):
                         if key in previous
                     }
                 )
-            rec._write_recovered_assessment(assessment, history[-10:])
+            extras = {
+                key: stamped.get(key)
+                for key in (
+                    "representation_alignment",
+                    "planning_basis",
+                    "media_omissions",
+                    "document_specifications",
+                    "photo_findings",
+                    "field_evidence",
+                    "conflicts",
+                )
+            }
+            rec._write_recovered_assessment(assessment, history[-10:], extras)
             rec.message_post(
-                body=f"Economic assessment re-run: status {assessment.get(KEY_STATUS)}. "
-                "Disposition, intake, and approved snapshots are unchanged."
+                body=f"Broker inference re-run: status {assessment.get(KEY_STATUS)}. "
+                "Disposition, load weight, intake, and approved snapshots are unchanged."
             )
         return True
 

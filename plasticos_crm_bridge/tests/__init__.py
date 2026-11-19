@@ -5,6 +5,7 @@ from . import test_opportunity_material_copy
 from . import test_opportunity_migration
 from . import test_opportunity_release
 from . import test_web_lead_opportunity
+from . import test_two_web_lead_specification
 from . import test_bridge_counts_batch
 from . import test_web_lead_http_hot
 from . import test_opportunity_reach_contact

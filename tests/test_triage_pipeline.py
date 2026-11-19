@@ -8,6 +8,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import re
 import sys
 import types
 from unittest.mock import MagicMock, patch
@@ -25,6 +26,9 @@ def _load_module(name: str, package_prefix: str = "plasticos_web_leads.models"):
     mod = importlib.util.module_from_spec(spec)
     sys.modules[fqn] = mod
     sys.modules[name] = mod  # also as short name
+    parent = sys.modules.get(package_prefix)
+    if parent is not None:
+        setattr(parent, name, mod)
     spec.loader.exec_module(mod)
     return mod
 
@@ -149,10 +153,18 @@ class TestParseWeightLbs:
         assert lbs == 2 * 1800.0
         assert src == "unit_count:pallet"
 
-    def test_bare_large_number_assumed_lbs(self):
+    def test_bare_large_number_stays_unknown(self):
         lbs, src = parse_weight_lbs("42000")
-        assert lbs == 42_000.0
+        assert lbs == 0.0
         assert src == "bare_number:lbs_assumed"
+
+    def test_unitless_10000_is_not_a_load_weight(self):
+        mass = _th.parse_seller_mass("10000")
+        assert mass.lbs is None
+        assert mass.source == "bare_number:lbs_assumed"
+        replay = _th.replay_stored_mass(quantity_text="10000", estimated_lbs=10_000)
+        assert replay.lbs is None
+        assert replay.source == "bare_number:lbs_assumed"
 
     def test_bare_small_number_below_threshold(self):
         lbs, src = parse_weight_lbs("30")
@@ -946,10 +958,45 @@ def test_text_normalization_is_locked_to_deepseek_flash():
     )
 
 
+def _method_body(source, name):
+    return source.split(f"def {name}", 1)[1].split("\n    def ", 1)[0]
+
+
+def _one_pass_orchestration_enabled(source):
+    return re.search(r"^ONE_PASS_ORCHESTRATION\s*(?::[^\n=]+)?=\s*True\b", source, re.MULTILINE) is not None
+
+
+def _assert_one_provider_request(body):
+    assert body.count("run_broker_inference(") == 1
+    assert "normalize_with_provider(" not in body
+    assert "analyze_image_with_provider(" not in body
+    assert "evaluate_economic_opportunity(" not in body
+    assert "seller=" in body
+    assert "quantity_evidence=" in body
+    for removed in ("case_id=", "seller_claims=", "documents=", "media_omissions=", "_catalog_for_broker("):
+        assert removed not in body
+
+
 def test_vision_still_reaches_the_classifier_after_it_feeds_the_normalizer():
     with open(os.path.join(_models_dir, "web_lead.py"), encoding="utf-8") as handle:
         source = handle.read()
-    pipeline = source.split("def _run_triage_pipeline", 1)[1].split("\n    def ", 1)[0]
+    pipeline = _method_body(source, "_run_triage_pipeline")
+    if _one_pass_orchestration_enabled(source):
+        _assert_one_provider_request(pipeline)
+        _assert_one_provider_request(_method_body(source, "action_retry_economic_assessment"))
+        return
     assert pipeline.index("analyze_image_with_provider") < pipeline.index("normalize_with_provider")
     assert "vision_results=vision_results" in pipeline
     assert "vision_evidence=vision_results" in pipeline
+
+
+def test_planning_defaults_serialize_with_units():
+    basis = json.loads(json.dumps(_ep.PLANNING_DEFAULTS_V1.as_evidence()))
+    assert basis["policy_ref"] == "web-lead-planning-defaults/v1"
+    pallets = basis["weights"]["mixed_plastic_pallets"]
+    assert pallets["low_lb"] == 10000
+    assert pallets["high_lb"] == 12000
+    assert pallets["unit"] == "lb"
+    assert basis["weights"]["baled_film"]["lb"] == 36000
+    assert basis["weights"]["pellets"] == {"lb": 40000, "unit": "lb"}
+    assert "full domestic 53-foot trailer" in basis["trailers"]

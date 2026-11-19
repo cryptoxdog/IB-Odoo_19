@@ -12,7 +12,6 @@
     <record id="user_admin_ib" model="res.users">
       <field name="name">Igor Beylin</field>
       <field name="login">ib@scrapmanagement.com</field>
-      <field name="password">asd12345</field>
       <field name="email">ib@scrapmanagement.com</field>
       <!-- Internal user (not portal) — required for Settings / Apps install -->
       <field name="share" eval="False"/>
@@ -33,7 +32,6 @@
     <record id="user_admin_ab" model="res.users">
       <field name="name">Arthur Buyanovskiy</field>
       <field name="login">ab@scrapmanagement.com</field>
-      <field name="password">asd12345</field>
       <field name="email">ab@scrapmanagement.com</field>
       <field name="share" eval="False"/>
       <field name="partner_id" ref="partner_admin_ab"/>

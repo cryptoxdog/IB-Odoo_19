@@ -58,6 +58,9 @@
                             <i class="fa fa-hourglass-half" title="Pending"/> Awaiting Intake
                         </span>
                     </div>
+                    <div class="mt-1" invisible="representation_alignment_display != '100/100'">
+                        <span class="badge bg-success">100/100 representation alignment</span>
+                    </div>
                 </div>
 
                 <!-- REVIEW Lead Banner -->
