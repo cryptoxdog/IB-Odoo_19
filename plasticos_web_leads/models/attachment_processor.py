@@ -411,14 +411,28 @@ def pdf_pages_for_broker(
                 "finish_reason": finish,
             }
         )
+    if [row["page_index"] for row in rows] != list(range(len(rows))):
+        return [], _error(
+            OCR_ERROR_INVALID_RESPONSE,
+            "OCR page indexes must be unique and sequential from zero.",
+        )
     return rows, None
+
+
+def _ocr_pages_complete(pages: Any) -> bool:
+    """True only when every returned page parsed. A partial result is not reusable."""
+    return (
+        isinstance(pages, list)
+        and bool(pages)
+        and all(isinstance(page, Mapping) and page.get("parse_status") == OCR_PAGE_PARSED for page in pages)
+    )
 
 
 def ocr_row_decision(row: Mapping[str, Any], *, checksum: str | None, force: bool) -> str:
     """Replay policy for one stored PDF row: never pay twice for the same revision.
 
-    Returns ``OCR_DECISION_REUSE`` when complete pages already match the current
-    stored revision, ``OCR_DECISION_SKIP_FAILED`` when an extraction was already
+    Returns ``OCR_DECISION_REUSE`` when every page parsed and the pages match the
+    current stored revision, ``OCR_DECISION_SKIP_FAILED`` when an extraction was already
     attempted on this revision outside an explicit retry, and
     ``OCR_DECISION_EXTRACT`` otherwise (legacy rows without text, changed
     revisions, and explicit retries of failures).
@@ -426,11 +440,7 @@ def ocr_row_decision(row: Mapping[str, Any], *, checksum: str | None, force: boo
     if not isinstance(row, Mapping):
         return OCR_DECISION_EXTRACT
     checksum = str(checksum or "").strip()
-    pages = row.get("pages")
-    complete = False
-    if isinstance(pages, list):
-        complete = any(isinstance(page, Mapping) and page.get("parse_status") == OCR_PAGE_PARSED for page in pages)
-    if complete and checksum and str(row.get("ocr_source_sha256") or "") == checksum:
+    if _ocr_pages_complete(row.get("pages")) and checksum and str(row.get("ocr_source_sha256") or "") == checksum:
         return OCR_DECISION_REUSE
     if checksum and str(row.get("ocr_attempted_sha256") or "") == checksum:
         return OCR_DECISION_EXTRACT if force else OCR_DECISION_SKIP_FAILED
@@ -467,10 +477,15 @@ def extract_pdf_ocr_row(
         updated["ocr_status"] = "failed"
         return updated
     updated["pages"] = pages
-    updated["ocr_source_sha256"] = checksum
-    updated["ocr_status"] = "complete"
-    updated["analysis_status"] = OCR_ROW_STATUS_EXTRACTED
     updated["error"] = None
+    if _ocr_pages_complete(pages):
+        updated["ocr_source_sha256"] = checksum
+        updated["ocr_status"] = "complete"
+        updated["analysis_status"] = OCR_ROW_STATUS_EXTRACTED
+    else:
+        updated.pop("ocr_source_sha256", None)
+        updated["ocr_status"] = "incomplete"
+        updated["analysis_status"] = "incomplete"
     return updated
 
 
@@ -660,10 +675,14 @@ def process_attachments(
                 if ocr_error is not None:
                     result["error"] = ocr_error
                     result["ocr_status"] = "failed"
-                else:
+                elif _ocr_pages_complete(pages):
                     result["ocr_source_sha256"] = result["content_sha256"]
                     result["ocr_status"] = "complete"
                     result["analysis_status"] = OCR_ROW_STATUS_EXTRACTED
+                else:
+                    result.pop("ocr_source_sha256", None)
+                    result["ocr_status"] = "incomplete"
+                    result["analysis_status"] = "incomplete"
             else:
                 result["error"] = _error(
                     "document_text_extraction_not_enabled",

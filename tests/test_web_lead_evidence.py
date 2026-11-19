@@ -807,6 +807,47 @@ def test_ocr_incomplete_pages_stay_visible_but_never_admitted():
     assert pages[1]["text"] == "density 0.941"  # visible, never substantiating
 
 
+def test_ocr_rejects_duplicate_or_gapped_page_indexes():
+    for pages_in in (
+        [_ocr_page(0, "a"), _ocr_page(0, "b")],
+        [_ocr_page(0, "a"), _ocr_page(2, "b")],
+        [_ocr_page(1, "a"), _ocr_page(0, "b")],
+    ):
+
+        def fake_post(_url, pages_in=pages_in, **_kwargs):
+            return _OcrResponse(_ocr_envelope(pages_in))
+
+        pages, error = pdf_pages_for_broker(
+            b"%PDF-1.4", source_ref="pdf.0", api_key="test-key", http_post=fake_post, resolver=_public_resolver
+        )
+        assert pages == []
+        assert error["code"] == "document_text_extraction_invalid_response"
+
+
+def test_partial_ocr_is_not_reused_and_a_forced_retry_extracts_again():
+    partial = extract_pdf_ocr_row(
+        {
+            "source_id": "source-1",
+            "attachment_index": 0,
+            "content_type": "application/pdf",
+            "ir_attachment_id": 7,
+            "error": None,
+            "pages": [],
+        },
+        content=b"%PDF-1.4",
+        checksum="sha-a",
+        api_key="test-key",
+        http_post=lambda _url, **_kwargs: _OcrResponse(
+            _ocr_envelope([_ocr_page(0, "MFI 7.5 g/10min"), _ocr_page(1, "density", "length")])
+        ),
+        resolver=_public_resolver,
+    )
+    assert partial["ocr_status"] == "incomplete"
+    assert "ocr_source_sha256" not in partial
+    assert ocr_row_decision(partial, checksum="sha-a", force=False) == OCR_DECISION_SKIP_FAILED
+    assert ocr_row_decision(partial, checksum="sha-a", force=True) == OCR_DECISION_EXTRACT
+
+
 def test_ocr_http_200_error_object_is_a_document_failure():
     def fake_post(_url, **_kwargs):
         return _OcrResponse(
