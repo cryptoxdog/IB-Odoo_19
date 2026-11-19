@@ -26,6 +26,9 @@ def _load_module(name: str, package_prefix: str = "plasticos_web_leads.models"):
     mod = importlib.util.module_from_spec(spec)
     sys.modules[fqn] = mod
     sys.modules[name] = mod  # also as short name
+    parent = sys.modules.get(package_prefix)
+    if parent is not None:
+        setattr(parent, name, mod)
     spec.loader.exec_module(mod)
     return mod
 
@@ -150,10 +153,18 @@ class TestParseWeightLbs:
         assert lbs == 2 * 1800.0
         assert src == "unit_count:pallet"
 
-    def test_bare_large_number_assumed_lbs(self):
+    def test_bare_large_number_stays_unknown(self):
         lbs, src = parse_weight_lbs("42000")
-        assert lbs == 42_000.0
+        assert lbs == 0.0
         assert src == "bare_number:lbs_assumed"
+
+    def test_unitless_10000_is_not_a_load_weight(self):
+        mass = _th.parse_seller_mass("10000")
+        assert mass.lbs is None
+        assert mass.source == "bare_number:lbs_assumed"
+        replay = _th.replay_stored_mass(quantity_text="10000", estimated_lbs=10_000)
+        assert replay.lbs is None
+        assert replay.source == "bare_number:lbs_assumed"
 
     def test_bare_small_number_below_threshold(self):
         lbs, src = parse_weight_lbs("30")
