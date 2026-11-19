@@ -45,6 +45,19 @@ class PlanningDefaultsV1:
             return None
         return float(seller_lbs)
 
+    def as_evidence(self) -> dict[str, Any]:
+        """JSON values for the evidence bundle. Not a load weight."""
+        low, high = self.mixed_plastic_pallets_lbs
+        weights: dict[str, Any] = {}
+        weights["mixed_plastic_pallets"] = {"low_lb": low, "high_lb": high, "unit": "lb"}
+        weights["baled_film"] = {"lb": self.baled_film_lbs, "unit": "lb"}
+        weights["pellets"] = {"lb": self.pellets_lbs, "unit": "lb"}
+        payload: dict[str, Any] = {}
+        payload["policy_ref"] = self.policy_ref
+        payload["weights"] = weights
+        payload["trailers"] = list(self.trailers)
+        return payload
+
 
 PLANNING_DEFAULTS_V1 = PlanningDefaultsV1()
 

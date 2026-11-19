@@ -267,6 +267,22 @@ def _analysis_is_error_shaped(analysis: Any) -> bool:
     return not isinstance(analysis, Mapping) or bool(analysis.get("error"))
 
 
+def pdf_pages_for_broker(_content: bytes, *, source_ref: str) -> list[dict[str, Any]]:
+    """Page rows for one stored PDF, passed into the single broker request.
+
+    This worktree does not import pypdf, pypdfium2, or pdfminer, so the page
+    text stays unknown. The caller keeps the bytes. Scanned PDFs are not OCR'd.
+    """
+    return [
+        {
+            "source_ref": f"{source_ref}.page",
+            "page_number": None,
+            "text": None,
+            "parse_status": "unknown",
+        }
+    ]
+
+
 def process_attachments(
     *,
     lead: Any,
@@ -429,6 +445,8 @@ def process_attachments(
         else:
             result["analysis_type"] = "document" if mimetype == "application/pdf" else "unsupported"
             result["analysis_status"] = "unsupported"
+            if mimetype == "application/pdf":
+                result["pages"] = pdf_pages_for_broker(content, source_ref=f"pdf.{result['attachment_index']}")
             result["error"] = _error(
                 "document_text_extraction_not_enabled",
                 "Document text extraction is not enabled in V1.",
