@@ -17,6 +17,10 @@ class PlasticosTransactionLoadBridge(models.Model):
     )
     load_count = fields.Integer(compute="_compute_load_count")
 
+    def _pickup_partners_from_loads(self):
+        """Pickup partners stored on this transaction's loads."""
+        return self.load_ids.mapped("pickup_partner_id")
+
     @api.depends("load_ids")
     def _compute_load_count(self):
         for rec in self:

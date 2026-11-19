@@ -3,6 +3,12 @@
 
 One run writes the current set. Read stdout or .l9/odools/diagnostics.jsonl.
 Run again only after an edit, to see whether those diagnostics are gone.
+
+Analyzer limit (2026-11-18): OLS02001 ``markupsafe not found`` rows on offer,
+web_leads, logistics and documents_native are an OdooLS analyzer limitation,
+not a runner defect — this runner passes ``.venv/bin/python`` and that
+interpreter imports markupsafe, while no OdooLS log names another interpreter.
+Do not add a diagnostic_filters entry for them.
 """
 
 from __future__ import annotations

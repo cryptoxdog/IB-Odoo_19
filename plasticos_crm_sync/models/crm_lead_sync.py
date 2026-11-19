@@ -5,6 +5,21 @@ from odoo import api, fields, models
 _logger = logging.getLogger(__name__)
 
 
+class _Row:
+    """One paged lead for the Company Type backfill worker.
+
+    Module-level so OdooLS does not read it as a model declared inside a
+    function (OLS03024).
+    """
+
+    __slots__ = ("description", "lead", "tag_ids")
+
+    def __init__(self, lead):
+        self.lead = lead
+        self.description = lead.description
+        self.tag_ids = lead.tag_ids.ids
+
+
 class CrmLeadSync(models.Model):
     _inherit = "crm.lead"
 
@@ -70,18 +85,22 @@ class CrmLeadSync(models.Model):
                 cache[canonical] = tag.id if tag and tag is not MISSING_ROLE_TAG_BINDING else None
             return cache[canonical]
 
-        class _Row:
-            __slots__ = ("description", "lead", "tag_ids")
-
-            def __init__(self, lead):
-                self.lead = lead
-                self.description = lead.description
-                self.tag_ids = lead.tag_ids.ids
-
         def link(row, tag_id):
             row.lead.write({"tag_ids": [(4, tag_id)]})
 
-        leads = self.with_context(active_test=False, tracking_disable=True).search([("vanillasoft_id", "!=", False)])
-        counts = backfill_company_type_tags((_Row(lead) for lead in leads), tag_for, link)
+        leads = self.with_context(active_test=False, tracking_disable=True)
+        last_id = 0
+        rows = []
+        while True:
+            page = leads.search(
+                [("vanillasoft_id", "!=", False), ("id", ">", last_id)],
+                order="id ASC",
+                limit=80,
+            )
+            if not page:
+                break
+            last_id = page[-1].id
+            rows.extend(_Row(lead) for lead in page)
+        counts = backfill_company_type_tags(rows, tag_for, link)
         _logger.info("VanillaSoft Company Type CRM tag backfill: %s", counts)
         return counts
