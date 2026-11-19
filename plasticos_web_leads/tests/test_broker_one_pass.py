@@ -423,33 +423,57 @@ class TestBrokerOnePassScenarios(TransactionCase):
         self.assertTrue(any(item.get("reason") == "document_text_extraction_not_enabled" for item in omissions))
 
     def test_same_checksum_pdfs_remain_distinct(self):
-        copy_pdfs = getattr(self.env["crm.lead"], "_plasticos_copy_web_lead_pdfs", None)
-        if not callable(copy_pdfs):
-            self.skipTest("PDF copy is owned by the CRM bridge")
+        record_pdfs = getattr(self.env["crm.lead"], "_plasticos_record_web_lead_pdfs", None)
+        if not callable(record_pdfs):
+            self.skipTest("PDF recording is owned by the CRM bridge")
         lead = self.WebLead.create({"lead_id": "PDF-IDENTITY-1", "decision": "review", "company_name": "PDF Co"})
         opportunity = self.env["crm.lead"].create({"name": "PDF identity", "type": "opportunity"})
         lead.crm_lead_id = opportunity
         encoded = base64.b64encode(b"%PDF-1.4 identical")
+        stored = []
         for name in ("a.pdf", "b.pdf"):
-            self.env["ir.attachment"].create(
-                {
-                    "name": name,
-                    "datas": encoded,
-                    "mimetype": "application/pdf",
-                    "res_model": "plasticos.web.lead",
-                    "res_id": lead.id,
-                }
+            stored.append(
+                self.env["ir.attachment"].create(
+                    {
+                        "name": name,
+                        "datas": encoded,
+                        "mimetype": "application/pdf",
+                        "res_model": "plasticos.web.lead",
+                        "res_id": lead.id,
+                    }
+                )
             )
-        self.assertEqual(opportunity._plasticos_copy_web_lead_pdfs(), 2)
-        self.assertEqual(opportunity._plasticos_copy_web_lead_pdfs(), 0)
-        stored = self.env["ir.attachment"].search(
-            [
-                ("res_model", "=", "crm.lead"),
-                ("res_id", "=", opportunity.id),
-                ("mimetype", "=", "application/pdf"),
-            ]
+        # Recording names each source attachment id and stores nothing new.
+        self.assertEqual(record_pdfs(), 0)
+        description = str(opportunity.description or "")
+        self.assertIn(f"[plasticos-pdf:{stored[0].id}]", description)
+        self.assertIn(f"[plasticos-pdf:{stored[1].id}]", description)
+        # Replay is idempotent: one block, both originals stay on the lead.
+        self.assertEqual(record_pdfs(), 0)
+        description = str(opportunity.description or "")
+        self.assertEqual(description.count(f"[plasticos-pdf:{stored[0].id}]"), 1)
+        self.assertEqual(description.count(f"[plasticos-pdf:{stored[1].id}]"), 1)
+        self.assertEqual(
+            len(
+                self.env["ir.attachment"].search(
+                    [
+                        ("res_model", "=", "plasticos.web.lead"),
+                        ("res_id", "=", lead.id),
+                        ("mimetype", "=", "application/pdf"),
+                    ]
+                )
+            ),
+            2,
         )
-        self.assertEqual(len(stored), 2)
+        self.assertFalse(
+            self.env["ir.attachment"].search(
+                [
+                    ("res_model", "=", "crm.lead"),
+                    ("res_id", "=", opportunity.id),
+                    ("mimetype", "=", "application/pdf"),
+                ]
+            )
+        )
 
 
 @tagged("post_install", "-at_install", "plasticos", "web_lead", "one_pass")
@@ -610,14 +634,18 @@ class TestSpecPropagationToOpportunity(TransactionCase):
         )
         propagate = getattr(lead, "_propagate_one_pass_spec", None)
         self.assertTrue(callable(propagate))
-        propagate(lead.crm_lead_id)
+        opportunity = lead.crm_lead_id
+        propagate(opportunity)
         material = lead.crm_lead_id.opportunity_material_ids
         self.assertAlmostEqual(material.melt_flow_index, 4.2)
         notes = material.freeform_notes or ""
         self.assertIn("4.2", notes)
         self.assertIn("Broker measured the lot on site.", notes)
         self.assertNotIn("7.5", notes)
-        description = str(lead.crm_lead_id.description or "")
+        # The bridge's own tests invalidate the description cache before reading
+        # the block a propagation wrote (see test_two_web_lead_specification).
+        opportunity.invalidate_recordset(["description"])
+        description = str(opportunity.description or "")
         start = description.find('class="plasticos-spec"')
         end = description.find("</div>", start)
         block = description[start:end]
