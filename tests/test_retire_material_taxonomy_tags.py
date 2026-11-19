@@ -36,11 +36,18 @@ def _module_constant(name: str) -> str:
     raise AssertionError(f"{name} not found in the migration")
 
 
+def _version_tuple(version: str) -> tuple[int, ...]:
+    return tuple(int(part) for part in version.split("."))
+
+
 def test_taxonomy_file_is_gone_and_not_loaded():
     assert not (BASE / "data" / "material_taxonomy.xml").exists()
     manifest = ast.literal_eval((BASE / "__manifest__.py").read_text(encoding="utf-8"))
     assert "data/material_taxonomy.xml" not in manifest["data"]
-    assert manifest["version"] == "19.0.1.1.15"
+    # MIGRATION pins the 19.0.1.1.15 retirement directory. The live manifest may
+    # move past it without a new migration (PR 542 bumped plasticos_base to
+    # 19.0.1.1.16), so compare versions instead of pinning the manifest.
+    assert _version_tuple(manifest["version"]) >= _version_tuple(MIGRATION.parent.name)
 
 
 PARTNER_TAGS_RETIRED = (

@@ -12,7 +12,12 @@ class TestApprovedProfileRemoval(TransactionCase):
         super().setUpClass()
         cls.env = cls.env(context=dict(cls.env.context, tracking_disable=True))
         suffix = uuid.uuid4().hex[:8].upper()
-        cls.company = cls.env["res.partner"].create({"name": f"Approved Profile Parent {suffix}", "is_company": True})
+        # No f-string braces in these create dicts: tests/test_odoo_test_setup_validity.py
+        # captures the dict with a brace-bounded regex and must see "parent_id".
+        cls.group = cls.env["res.partner"].create({"name": "Approved Profile Group " + suffix, "is_company": True})
+        cls.company = cls.env["res.partner"].create(
+            {"name": "Approved Profile Site " + suffix, "is_company": True, "parent_id": cls.group.id}
+        )
         cls.polymer = cls.env["plasticos.polymer"].create(
             {"name": f"Approved Removal Polymer {suffix}", "code": f"arp-{suffix.lower()}"}
         )
