@@ -971,6 +971,10 @@ def _assert_one_provider_request(body):
     assert "normalize_with_provider(" not in body
     assert "analyze_image_with_provider(" not in body
     assert "evaluate_economic_opportunity(" not in body
+    assert "seller=" in body
+    assert "quantity_evidence=" in body
+    for removed in ("case_id=", "seller_claims=", "documents=", "media_omissions=", "_catalog_for_broker("):
+        assert removed not in body
 
 
 def test_vision_still_reaches_the_classifier_after_it_feeds_the_normalizer():
