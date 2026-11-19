@@ -214,6 +214,10 @@ def normalize_quantity_evidence(
 
     load_weight = chosen.lbs
     weight_source = chosen.source
+    if weight_source.startswith("bare_number:"):
+        # Unitless seller text is unknown mass. It is not a planning default and not a load weight.
+        load_weight = None
+        chosen = SellerMass(None, None, weight_source, chosen.assumptions)
     inventory_count, inventory_unit = _inventory(quantity, cadence_period)
     unit = chosen.source.split(":", 1)[1] if chosen.source.startswith("unit_count:") else ""
     unit_weight = UNIT_WEIGHTS_LBS.get(unit, 0.0)
