@@ -1,7 +1,9 @@
 SET NOCOUNT ON;
 /* PayablesBatch — PrePay=1 batches stay out of vendor bills. Comment is not worksheet notes.
-   Header columns after PrePay are read for source batch identity and reconciliation only;
-   no Odoo field is written from them (mapping_status.py). Column names and types:
+   Header columns after PrePay are read for source batch identity and reconciliation.
+   ReverseBatchNo is the exception: a vendor credit created in the same run can store it as
+   account.move reversed_entry_id when it names exactly one payable of the same vendor.
+   An existing draft is not rewritten. Column names and types:
    diagnostics/q4_columns.csv (INFORMATION_SCHEMA of the restored database). */
 SELECT
   RTRIM(APBatchNo) AS APBatchNo,
@@ -17,6 +19,7 @@ SELECT
   InvoiceNo,
   CONVERT(varchar(19), InvoiceDt, 120) AS InvoiceDt,
   CONVERT(varchar(19), DueDate, 120) AS DueDate,
-  ReversedFxAmt
+  ReversedFxAmt,
+  ReverseBatchNo
 FROM dbo.PayablesBatch
 ORDER BY APBatchNo;
