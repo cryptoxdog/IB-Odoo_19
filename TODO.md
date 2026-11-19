@@ -1,3 +1,11 @@
+## Issue unblock (session reference)
+
+**Cluster:** cryptoxdog/IB-Odoo_19#508
+**Owning fix:** branch fix/seeded-admin-passwords (seeded res.users password fields removed; rotation still operator-owned)
+**Next:** operator rotates the two admin passwords on production and Odoo.sh staging; issues 217, 353, 354, and 495 stay open for a human decision
+**Pickup:** BLOCKED_PICKUP — write to namespace ib-odoo-19 was denied
+
+
 # PlasticOS TODO
 
 ## Before the ERP migration continues
