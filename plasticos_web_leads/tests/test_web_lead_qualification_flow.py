@@ -235,12 +235,14 @@ class TestShadowAndAssessmentRecovery(TransactionCase):
             lead = self.WebLead.create_from_cognito(_payload("Q-SHADOW-001", quantity="Two truckloads every month"))
         qualification = lead.decision_reasons["qualification"]
         self.assertEqual(qualification["routing_mode"], "shadow")
+        self.assertEqual(lead.decision, qualification["legacy_decision"])
         if one_pass_orchestration():
             self.assertEqual(qualification["final_disposition"], "hot")
+            self.assertEqual(lead.state, "review_pending")
+            self.assertFalse(lead.intake_id)
         else:
             self.assertEqual(qualification["final_disposition"], "review")
-        self.assertEqual(lead.decision, qualification["legacy_decision"])
-        self.assertNotEqual(lead.state, "review_pending")
+            self.assertNotEqual(lead.state, "review_pending")
 
     # WL-14 / WL-19 / G1 / G2
     def test_assessment_retry_after_intake_unblocks_approval_and_keeps_snapshots_immutable(self):

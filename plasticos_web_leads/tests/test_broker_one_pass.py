@@ -35,6 +35,7 @@ _ALIGNMENT_VIEWS = (
     _MODULE_ROOT / "views" / "web_lead_views.xml",
     _MODULE_ROOT / "views" / "web_lead_ux.xml",
 )
+_CAPTURED_PROMPTS: list[str] = []
 _PROVIDER_SPEC: dict[str, object] = {}
 _PROVIDER_SPEC["provider"] = "openai"
 _PROVIDER_SPEC["transport"] = "openai_compatible"
@@ -86,10 +87,10 @@ def _provider_body(disposition, specifications=None):
     """One provider reply. The real parser keeps only cited specification records."""
     specs = list(specifications or [])
     normalization: dict[str, object] = {}
-    normalization["polymer"] = "HDPE"
+    normalization["polymer"] = None
     normalization["confidence"] = 0.9
     normalization["estimated_lbs_per_load"] = None
-    normalization["is_plastic"] = disposition != "cold"
+    normalization["is_plastic"] = None
     return {
         "normalization": normalization,
         "vision": [],
@@ -150,7 +151,10 @@ def economic_assessment_patch(*, side_effect=None, return_value=None, document_s
         disposition, unavailable = _sample_disposition(sample)
     specs = list(document_specifications or [])
 
-    def transport(*_args, **_kwargs):
+    def transport(*_args, **kwargs):
+        parts = [str(kwargs.get("system_prompt") or "")]
+        parts.extend(str(part) for part in (kwargs.get("text_parts") or []))
+        _CAPTURED_PROMPTS.append("\n".join(parts))
         if unavailable:
             raise RuntimeError("economic_provider_failed")
         return _provider_body(disposition, specs), {"attempts": 1}
@@ -597,10 +601,12 @@ class TestSpecPropagationToOpportunity(TransactionCase):
         corrected = [_spec("MFI", 4.2, "g/10min"), _spec("density", 0.941, "g/cm3"), _spec("moisture", 0.08, "%")]
         seller = dict((lead.evidence_bundle or {}).get("seller") or {})
         seller["material_description"] = "HDPE pellets. MFI 4.2 g/10min. Density 0.941 g/cm3. Moisture 0.08 %."
-        bundle = dict(lead.evidence_bundle or {})
-        bundle["seller"] = seller
-        bundle["document_specifications"] = corrected
-        lead.evidence_bundle = bundle
+        bundle = lead.evidence_bundle or {}
+        lead._write_recovered_assessment(
+            bundle.get("economic_assessment") or {},
+            bundle.get("economic_assessment_history") or [],
+            {"seller": seller, "document_specifications": corrected},
+        )
         propagate = getattr(lead, "_propagate_one_pass_spec", None)
         self.assertTrue(callable(propagate))
         propagate(lead.crm_lead_id)
@@ -627,14 +633,19 @@ class TestSpecPropagationToOpportunity(TransactionCase):
         material.melt_flow_index = 9.1
         seller = dict((lead.evidence_bundle or {}).get("seller") or {})
         seller["material_description"] = "HDPE pellets. MFI 4.2 g/10min. Density 0.941 g/cm3. Moisture 0.08 %."
-        bundle = dict(lead.evidence_bundle or {})
-        bundle["seller"] = seller
-        bundle["document_specifications"] = [
-            _spec("MFI", 4.2, "g/10min"),
-            _spec("density", 0.941, "g/cm3"),
-            _spec("moisture", 0.08, "%"),
-        ]
-        lead.evidence_bundle = bundle
+        bundle = lead.evidence_bundle or {}
+        lead._write_recovered_assessment(
+            bundle.get("economic_assessment") or {},
+            bundle.get("economic_assessment_history") or [],
+            {
+                "seller": seller,
+                "document_specifications": [
+                    _spec("MFI", 4.2, "g/10min"),
+                    _spec("density", 0.941, "g/cm3"),
+                    _spec("moisture", 0.08, "%"),
+                ],
+            },
+        )
         lead._propagate_one_pass_spec(lead.crm_lead_id)
         self.assertAlmostEqual(material.melt_flow_index, 9.1)
         self.assertIn("4.2", material.freeform_notes or "")

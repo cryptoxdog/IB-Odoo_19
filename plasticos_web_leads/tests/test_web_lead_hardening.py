@@ -17,7 +17,7 @@ from odoo.exceptions import AccessError, ConcurrencyError, UserError, Validation
 from odoo.tests import TransactionCase, tagged
 
 from ..models.review_snapshot import snapshot_content_hash
-from .test_broker_one_pass import _recommend, economic_assessment_patch, one_pass_orchestration
+from .test_broker_one_pass import _CAPTURED_PROMPTS, _recommend, economic_assessment_patch, one_pass_orchestration
 
 _ATTACHMENT_PROCESSOR = "odoo.addons.plasticos_web_leads.models.attachment_processor"
 _WEB_LEAD = "odoo.addons.plasticos_web_leads.models.web_lead"
@@ -307,8 +307,12 @@ class TestAcquisitionSecretsAndDestinations(_WebLeadCase):
                 {"ai_enabled": False, "openai_api_key": False, "text_inference_provider": previous_text_provider}
             )
 
-        self.assertIn("prompt", captured, "text normalization ran")
-        self.assertNotIn("SECRET-SIGNED-TOKEN", captured["prompt"])
+        if one_pass_orchestration():
+            self.assertTrue(_CAPTURED_PROMPTS, "the broker call ran")
+            self.assertNotIn("SECRET-SIGNED-TOKEN", "\n".join(_CAPTURED_PROMPTS))
+        else:
+            self.assertIn("prompt", captured, "text normalization ran")
+            self.assertNotIn("SECRET-SIGNED-TOKEN", captured["prompt"])
         self.assertNotIn("SECRET-SIGNED-TOKEN", json.dumps(lead.canonical_payload))
         self.assertNotIn("source_url", json.dumps(lead.canonical_payload["attachments"]))
         self.assertNotIn("SECRET-SIGNED-TOKEN", json.dumps(lead.evidence_bundle))
@@ -407,7 +411,7 @@ class TestAcquisitionSecretsAndDestinations(_WebLeadCase):
         self.assertEqual(row["acquisition_status"], "success", "stored evidence is preserved")
         if one_pass_orchestration():
             self.assertEqual(row["analysis_status"], "not_run")
-            self.assertNotIn("error", row)
+            self.assertFalse(row.get("error"))
         else:
             self.assertEqual(row["analysis_status"], "failed")
             self.assertEqual(row["error"]["code"], "image_analysis_error")
