@@ -205,8 +205,12 @@ class OdooAudit:
                 if "required=True" in content[match.end() : match.end() + 200]:
                     self.model_fields[model_name][field_name]["required"] = True
 
+            # Only a field named exactly state or status is the model state field.
+            # Without the word boundary the regex indexes the trailing "state" of
+            # journey_binding_state / allocation_state and judges those tokens
+            # against the wrong selection.
             state_match = re.search(
-                r"(state|status)\s*=\s*fields\.Selection\(\s*\[(.*?)\]",
+                r"\b(state|status)\s*=\s*fields\.Selection\(\s*\[(.*?)\]",
                 content,
                 re.DOTALL,
             )
@@ -791,6 +795,12 @@ class OdooAudit:
                     inv_match = re.search(r'invisible="([^"]+)"', line)
                     if inv_match and current_model and current_model in self.state_models:
                         condition = inv_match.group(1)
+                        state_field = self.state_models[current_model]["field"]
+                        # Quoted tokens are only judged when the condition names the
+                        # state field itself; a condition on another Selection
+                        # (journey_binding_state, allocation_state) is not evidence.
+                        if not re.search(rf"\b{re.escape(state_field)}\b", condition):
+                            continue
                         valid_states = self.state_models[current_model]["values"]
                         for state in re.findall(r"'(\w+)'", condition):
                             if state not in valid_states and valid_states:
