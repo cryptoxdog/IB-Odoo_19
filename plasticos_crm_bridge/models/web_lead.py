@@ -118,8 +118,8 @@ class PlasticosWebLeadCRM(models.Model):
         """Copy one-pass specs, PDF text, and the original PDF onto an existing opportunity.
 
         A planning weight is not a load quantity. A numerical sheet column is written
-        only for a supported unit and a resolvable evidence ref. Replay replaces the
-        previous specification block from this lead with the corrected records.
+        only when the cited text states that property, number, and unit. Replay
+        replaces the previous bounded specification block from this lead.
         """
         self.ensure_one()
         if not opportunity:

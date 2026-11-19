@@ -592,8 +592,11 @@ class TestSpecPropagationToOpportunity(TransactionCase):
         self.assertIn("Broker measured the lot on site.", notes)
         self.assertNotIn("7.5", notes)
         description = str(lead.crm_lead_id.description or "")
-        self.assertIn("4.2", description)
-        self.assertNotIn("7.5", description)
+        start = description.find('data-plasticos-spec="1"')
+        end = description.find("</div>", start)
+        block = description[start:end]
+        self.assertIn("4.2", block)
+        self.assertNotIn("7.5", block)
 
     def test_human_entered_spec_is_not_replaced(self):
         stated = "HDPE pellets. MFI 7.5 g/10min. Density 0.941 g/cm3. Moisture 0.08 %."

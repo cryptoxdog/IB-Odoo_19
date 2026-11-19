@@ -47,7 +47,15 @@ LINE_SPEC_FIELDS = (
     "filler_type_id",
 )
 _SPEC_NOTE_HEADING = "Web-lead specification"
+_SPEC_NOTE_END = "End web-lead specification"
 _SPEC_NUMBER = re.compile(r"\d+(?:\.\d+)?|\.\d+")
+_GENERATED_SPEC_LINE = re.compile(r"^(?:Representation|[A-Za-z][^:\n]{0,40}):\s+\S")
+_FINDING_SKIPPED = frozenset({"source_id", "source_ref", "content", "content_type", "content_sha256"})
+_FIELD_ALIASES = {
+    "melt_flow_index": ("melt flow index", "melt flow rate", "melt flow", "melt index", "mfi", "mfr"),
+    "density": ("specific gravity", "density"),
+    "moisture_percent": ("moisture content", "moisture"),
+}
 _PROPERTY_FIELDS = {}
 for _name, _field in (
     ("mfi", "melt_flow_index"),
@@ -57,6 +65,7 @@ for _name, _field in (
     ("melt flow rate", "melt_flow_index"),
     ("mfr", "melt_flow_index"),
     ("density", "density"),
+    ("specific gravity", "density"),
     ("moisture", "moisture_percent"),
     ("moisture content", "moisture_percent"),
     ("moisture percent", "moisture_percent"),
@@ -97,29 +106,66 @@ def _condition_key(value):
     return " ".join(str(value or "").casefold().split())
 
 
-def _ref_resolves(ref, bundle):
-    """A citation names seller text, an admitted photo, or an admitted PDF page."""
+def _number_in_text(text, value):
+    forms = {f"{value:g}", str(value)}
+    if value == int(value):
+        forms.add(str(int(value)))
+    for form in forms:
+        if re.search(rf"(?<![\d.]){re.escape(form)}(?![\d.])", text):
+            return True
+    return False
+
+
+def _text_substantiates(text, row):
+    """The cited text states this property, this number, and this unit."""
+    haystack = str(text or "").casefold()
+    field = _property_field(row.get("property"))
+    aliases = _FIELD_ALIASES.get(field, ())
+    if not any(alias and alias in haystack for alias in aliases):
+        return False
+    number = _spec_number(row.get("value"))
+    if number is None or not _number_in_text(haystack, number):
+        return False
+    unit = _unit_key(row.get("unit"))
+    return bool(unit) and unit in re.sub(r"\s+", "", haystack)
+
+
+def _finding_text(photo):
+    return "\n".join(
+        str(value) for key, value in photo.items() if key not in _FINDING_SKIPPED and isinstance(value, str)
+    )
+
+
+def _citation_text(ref, bundle):
     text = str(ref or "").strip()
     evidence = bundle if isinstance(bundle, dict) else {}
     if not text:
-        return False
+        return ""
     if text.startswith("seller."):
         seller = evidence.get("seller") if isinstance(evidence.get("seller"), dict) else {}
         value = seller.get(text.split(".", 1)[1])
-        if isinstance(value, str):
-            return bool(value.strip())
-        return isinstance(value, (int, float)) and not isinstance(value, bool)
+        return value.strip() if isinstance(value, str) else ""
     photos = evidence.get("photo_findings") if isinstance(evidence.get("photo_findings"), list) else []
     if text.startswith("vision."):
         suffix = text.split(".", 1)[1]
-        return suffix.isdigit() and 0 <= int(suffix) < len(photos)
+        if suffix.isdigit() and 0 <= int(suffix) < len(photos) and isinstance(photos[int(suffix)], dict):
+            return _finding_text(photos[int(suffix)])
+        return ""
     if text.startswith("pdf.page."):
         pages = evidence.get("pdf_page_text") if isinstance(evidence.get("pdf_page_text"), list) else []
         suffix = text.rsplit(".", 1)[-1]
-        return suffix.isdigit() and 0 <= int(suffix) < len(pages) and bool(str(pages[int(suffix)] or "").strip())
-    return any(
-        isinstance(photo, dict) and text in {photo.get("source_id"), photo.get("source_ref")} for photo in photos
-    )
+        if suffix.isdigit() and 0 <= int(suffix) < len(pages):
+            return str(pages[int(suffix)] or "").strip()
+        return ""
+    for photo in photos:
+        if isinstance(photo, dict) and text in {photo.get("source_id"), photo.get("source_ref")}:
+            return _finding_text(photo)
+    return ""
+
+
+def _ref_resolves(ref, bundle, row):
+    """The cited seller text, photo finding, or PDF page states this spec."""
+    return _text_substantiates(_citation_text(ref, bundle), row)
 
 
 def _row_is_cited(row, bundle):
@@ -128,29 +174,31 @@ def _row_is_cited(row, bundle):
         refs = [refs]
     if not isinstance(refs, (list, tuple)):
         return False
-    return any(_ref_resolves(ref, bundle) for ref in refs)
+    return any(_ref_resolves(ref, bundle, row) for ref in refs)
 
 
 def _column_updates(rows, bundle=None):
-    """One number per column when every cited, compatible row agrees."""
+    """One substantiated number per column. Two values promote neither."""
     grouped = {name: [] for name in _COLUMN_UNITS}
+    seen = {name: set() for name in _COLUMN_UNITS}
     for row in rows:
-        if not isinstance(row, dict) or not _row_is_cited(row, bundle):
+        if not isinstance(row, dict):
             continue
         field = _property_field(row.get("property"))
-        if field is None or _unit_key(row.get("unit")) not in _COLUMN_UNITS[field]:
-            continue
         number = _spec_number(row.get("value"))
-        if number is None:
+        if field is None or number is None:
+            continue
+        seen[field].add(number)
+        if not _row_is_cited(row, bundle) or _unit_key(row.get("unit")) not in _COLUMN_UNITS[field]:
             continue
         grouped[field].append((number, _condition_key(row.get("test_conditions"))))
     updates = {}
     for field, samples in grouped.items():
-        if not samples:
+        if len(seen[field]) != 1 or not samples:
             continue
         numbers = {number for number, _condition in samples}
         conditions = {condition for _number, condition in samples}
-        if len(numbers) == 1 and len(conditions) == 1:
+        if numbers == seen[field] and len(conditions) == 1:
             updates[field] = samples[0][0]
     return updates
 
@@ -196,11 +244,52 @@ def _specification_note(rows, representation):
         lines.append(f"Representation: {representation}")
     if not lines:
         return ""
-    return "\n".join([_SPEC_NOTE_HEADING, *lines])
+    return "\n".join([_SPEC_NOTE_HEADING, *lines, _SPEC_NOTE_END])
+
+
+def _generated_block_end(text, start):
+    marker = text.find(_SPEC_NOTE_END, start)
+    if marker >= 0:
+        return marker + len(_SPEC_NOTE_END)
+    pos = start + len(_SPEC_NOTE_HEADING)
+    if pos < len(text) and text[pos] == "\n":
+        pos += 1
+    while pos < len(text):
+        newline = text.find("\n", pos)
+        line_end = len(text) if newline < 0 else newline
+        if not _GENERATED_SPEC_LINE.match(text[pos:line_end].strip()):
+            break
+        pos = len(text) if newline < 0 else newline + 1
+    return pos
+
+
+def _specification_block(text):
+    start = text.find(_SPEC_NOTE_HEADING)
+    if start < 0:
+        return ""
+    end = text.find(_SPEC_NOTE_END, start)
+    if end >= 0:
+        return text[start:end]
+    return text[start : _generated_block_end(text, start)]
+
+
+def _owned_column_numbers(notes):
+    """Numbers the previous generated block recorded for this web lead."""
+    owned = {}
+    for line in _specification_block(notes or "").splitlines():
+        if ":" not in line:
+            continue
+        label, rest = line.split(":", 1)
+        field = _property_field(label)
+        token = rest.strip().split(" ", 1)[0] if rest.strip() else ""
+        number = _spec_number(token)
+        if field and number is not None and field not in owned:
+            owned[field] = number
+    return owned
 
 
 def _replace_specification_note(existing, note):
-    """Replace the previous web-lead specification block. Earlier notes stay."""
+    """Replace only the bounded web-lead specification block. Text after it stays."""
     text = existing or ""
     start = text.find(_SPEC_NOTE_HEADING)
     if start < 0:
@@ -208,9 +297,9 @@ def _replace_specification_note(existing, note):
             return text
         return f"{text.rstrip()}\n{note}".strip() if text.strip() else note
     prefix = text[:start].rstrip()
-    if not note:
-        return prefix
-    return f"{prefix}\n{note}".strip() if prefix else note
+    suffix = text[_generated_block_end(text, start) :].strip()
+    parts = [part for part in (prefix, (note or "").strip(), suffix) if part]
+    return "\n".join(parts)
 
 
 def _finite_positive(value):
@@ -409,19 +498,26 @@ class PlasticosOpportunityMaterial(models.Model):
         return material
 
     def apply_web_lead_specification(self, specifications, representation, grounded_lbs, bundle=None):
-        """Write cited spec columns and replace this lead's specification note.
+        """Write a substantiated spec into an empty column and replace this block.
 
-        A numerical column is written only with a supported unit and a resolvable
-        evidence ref. The observation, unit, conditions, provenance, and conflicts
-        stay on the note even when the column is left empty. Replay replaces the
-        previous specification note. This does not create an offer. An unknown or
-        planning weight is not written into ``quantity_per_load_lbs``.
+        The cited text must state the property, the number, and the unit. Two
+        values for one property fill no column. An existing number is replaced
+        only when this web lead's previous block recorded that number and the
+        new evidence is a substantiated correction. A human-entered value stays.
+        Replay replaces only the bounded note. Planning weight is not written
+        into ``quantity_per_load_lbs``.
         """
         self.ensure_one()
         rows = [row for row in specifications or [] if isinstance(row, dict)]
+        owned = _owned_column_numbers(self.freeform_notes or "")
         vals = {}
         for field_name, number in _column_updates(rows, bundle).items():
-            vals[field_name] = number
+            current = _spec_number(self[field_name])
+            previous = owned.get(field_name)
+            if current is None:
+                vals[field_name] = number
+            elif previous is not None and math.isclose(current, previous) and not math.isclose(current, number):
+                vals[field_name] = number
         grounded = _finite_positive(grounded_lbs)
         if grounded and not self.quantity_per_load_lbs:
             vals["quantity_per_load_lbs"] = grounded
