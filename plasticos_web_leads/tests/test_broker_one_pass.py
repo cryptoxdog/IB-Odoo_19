@@ -617,7 +617,7 @@ class TestSpecPropagationToOpportunity(TransactionCase):
         self.assertIn("Broker measured the lot on site.", notes)
         self.assertNotIn("7.5", notes)
         description = str(lead.crm_lead_id.description or "")
-        start = description.find('data-plasticos-spec="1"')
+        start = description.find('class="plasticos-spec"')
         end = description.find("</div>", start)
         block = description[start:end]
         self.assertIn("4.2", block)

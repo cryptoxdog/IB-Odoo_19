@@ -6,8 +6,9 @@ Markup = importlib.import_module("markupsafe").Markup
 
 # The copy below is the real propagation. Bridge tests wait on this flag.
 SPEC_PROPAGATION = True
-_SPEC_MARKER = 'data-plasticos-spec="1"'
-_PDF_MARKER = 'data-plasticos-pdf="1"'
+# A class survives Html attribute sanitization. A data-* attribute is removed, so replay cannot find the block.
+_SPEC_MARKER = 'class="plasticos-spec"'
+_PDF_MARKER = 'class="plasticos-pdf"'
 _MAX_SPEC_ROWS = 40
 _MAX_PDF_PAGES = 12
 _MAX_PAGE_CHARS = 1500
@@ -173,15 +174,17 @@ def _spec_sheet(opportunity):
 
 def _replace_marked_block(current, marker, block):
     """Replace the previous block that carries this marker. The first copy is not frozen."""
-    token = f"<div {marker}>"
-    start = current.find(token)
+    start = current.find(marker)
     if start < 0:
         if not block:
             return current
         return f"{current}{block}" if current else block
+    open_tag = current.rfind("<div", 0, start)
+    if open_tag < 0:
+        open_tag = start
     end = current.find("</div>", start)
     tail = "" if end < 0 else current[end + len("</div>") :]
-    head = current[:start]
+    head = current[:open_tag]
     if not block:
         return f"{head}{tail}"
     return f"{head}{block}{tail}"
@@ -215,7 +218,7 @@ def _spec_html(rows, representation):
         items.append(Markup("<li>%s</li>") % f"{omitted} further specification rows remain on the web lead.")
     if not items:
         return Markup("")
-    return Markup('<div data-plasticos-spec="1"><ul>%s</ul></div>') % Markup("").join(items)
+    return Markup('<div class="plasticos-spec"><ul>%s</ul></div>') % Markup("").join(items)
 
 
 def _pdf_html(pages):
@@ -237,7 +240,7 @@ def _pdf_html(pages):
         items.append(Markup("<li>%s</li>") % f"{remaining} further PDF pages remain on the attached PDF.")
     if not items:
         return Markup("")
-    return Markup('<div data-plasticos-pdf="1"><ul>%s</ul></div>') % Markup("").join(items)
+    return Markup('<div class="plasticos-pdf"><ul>%s</ul></div>') % Markup("").join(items)
 
 
 def _spec_pair(row):
