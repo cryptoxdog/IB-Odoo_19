@@ -965,7 +965,19 @@ DISPOSITIONS: dict[str, dict[str, dict]] = {
         "FxRate": {"status": UNMAPPED, "reason": NOT_PROJECTED, "identity_role": "none"},
         "FxDiscountAmt": {"status": UNMAPPED, "reason": NOT_PROJECTED, "identity_role": "none"},
         "DoNotExport": {"status": UNMAPPED, "reason": NOT_PROJECTED, "identity_role": "none"},
-        "ReverseBatchNo": {"status": UNMAPPED, "reason": NOT_PROJECTED, "identity_role": "none"},
+        "ReverseBatchNo": {
+            "status": VERIFIED,
+            "target_model": "account.move",
+            "target_field": "reversed_entry_id (vendor credit only, set when the credit is created)",
+            "transformation": (
+                "exact APBatchNo of another header; that header has one payable; "
+                "the payable vendor and the header vendor match the credit vendor. "
+                "Amounts are never used to choose a bill. An existing draft is not rewritten."
+            ),
+            "required": False,
+            "null_behavior": "blank, zero, or an unresolved target -> credit stays unlinked and is reported",
+            "identity_role": "original vendor bill",
+        },
     },
     "Receipt": {
         "ReceiptID": {

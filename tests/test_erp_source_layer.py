@@ -1184,6 +1184,7 @@ PAYABLES_BATCH_COLUMNS = [
     "InvoiceDt",
     "DueDate",
     "ReversedFxAmt",
+    "ReverseBatchNo",
 ]
 
 
@@ -1236,6 +1237,7 @@ def test_payables_batch_direct_read_keeps_exact_decimals_null_and_blank():
         "2022-03-16 00:00:00",
         "2022-03-16 00:00:00",
         None,
+        None,
     )
     connection = _FakeConnection({"PayablesBatch": (header, [row]), "Payables": (["PayableID"], [])})
     source = reader.DatabaseSource(connect=lambda: connection, label=SOURCE_LABEL)
@@ -1246,6 +1248,7 @@ def test_payables_batch_direct_read_keeps_exact_decimals_null_and_blank():
     assert batch["FXAmount"] == "-9366.52", "money stays an exact decimal string"
     assert batch["PrePay"] == "0" and batch["PostedInAccting"] == "1" and batch["NumofItems"] == "1"
     assert batch["ReversedFxAmt"] is None, "SQL NULL stays None"
+    assert batch["ReverseBatchNo"] is None, "SQL NULL stays None"
     assert batch["APTerms"] == "", "a blank stays a blank"
     assert all(value is None or isinstance(value, str) for value in batch.values())
 

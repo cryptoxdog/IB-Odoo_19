@@ -68,6 +68,7 @@ __all__ = [
     "selected_worksheets",
     "payable_identity",
     "payable_matches_purchase",
+    "vendor_credit_original",
     "payables_reconciliation",
     "purchase_bill_lines",
     "unit_priced_quantity",
@@ -831,6 +832,70 @@ def payable_matches_purchase(payable_amount: float, rows: list[dict]) -> bool:
     """True when this payable is the worksheet purchase total, not a side charge."""
     total = sum(_number(row.get("PAmount")) for row in rows)
     return bool(total) and abs(abs(payable_amount) - abs(total)) < 0.02
+
+
+def _batch_ref(value) -> str:
+    """A batch number. Blank, zero, and a non-numeric token are no reference."""
+    text = "" if value is None else str(value).strip()
+    if not text or not any(ch.isdigit() for ch in text) or set(text) <= {"0"}:
+        return ""
+    return text
+
+
+def _party_ref(value) -> str:
+    text = "" if value is None else str(value).strip()
+    return "" if not text or not any(ch.isalnum() for ch in text) else text
+
+
+def vendor_credit_original(credit: dict, batches: dict, payables_by_batch: dict) -> tuple[str | None, str]:
+    """The one original payable named by ``PayablesBatch.ReverseBatchNo``.
+
+    The reversed batch must exist, must contain exactly one payable, and that
+    payable must be a positive vendor bill whose vendor matches the credit and
+    the reversed header. Amount magnitude does not choose the bill. A credit,
+    a zero, or any other mismatch is unresolved.
+    """
+    batch_no = _batch_ref(credit.get("APBatchNo"))
+    header = batches.get(batch_no) if batch_no else None
+    reverse = _batch_ref((header or {}).get("ReverseBatchNo"))
+    if not reverse:
+        return None, "no ReverseBatchNo"
+    if reverse == batch_no:
+        return None, f"ReverseBatchNo {reverse} names its own batch"
+    if reverse not in batches:
+        return None, f"ReverseBatchNo {reverse} is not a batch header"
+    candidates = list(payables_by_batch.get(reverse) or [])
+    if len(candidates) != 1:
+        return None, f"ReverseBatchNo {reverse} has {len(candidates)} payables; original bill is not unique"
+    original = candidates[0]
+    original_id = _party_ref(original.get("PayableID"))
+    credit_id = _party_ref(credit.get("PayableID"))
+    if not original_id or original_id == credit_id:
+        return None, f"ReverseBatchNo {reverse} has no distinct original payable"
+    credit_vendor = _party_ref(credit.get("CpID"))
+    original_vendor = _party_ref(original.get("CpID"))
+    header_vendor = _party_ref((batches.get(reverse) or {}).get("CpID"))
+    if not credit_vendor or credit_vendor != original_vendor:
+        return (
+            None,
+            f"ReverseBatchNo {reverse} payable {original_id} vendor {original_vendor or 'blank'}"
+            f" is not the credit vendor {credit_vendor or 'blank'}",
+        )
+    if header_vendor and header_vendor != credit_vendor:
+        return None, f"ReverseBatchNo {reverse} header vendor {header_vendor} is not the credit vendor {credit_vendor}"
+    if _number(original.get("Amount")) <= 0:
+        return None, f"ReverseBatchNo {reverse} payable {original_id} is not a positive vendor bill"
+    return original_id, ""
+
+
+def cohort_has_uncommitted_credits(deferred_credits) -> bool:
+    """True when vendor credits are still only in memory.
+
+    A cohort commit must not run while this is true: the other documents of
+    those worksheets would persist and the credits would vanish if the process
+    stopped before the final flush.
+    """
+    return bool(deferred_credits)
 
 
 def _number(value: str | None) -> float:

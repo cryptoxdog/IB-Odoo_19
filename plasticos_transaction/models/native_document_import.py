@@ -41,6 +41,7 @@ def realize(importer, index, report, partner_by_cp, limit, commit, dry_run) -> b
 
     numbers = index.buysell_numbers()
     context = _load_context(importer)
+    pending_sales: dict[int, list[str]] = {}
     if not index.orders:
         # The source carries no order header at all, so no worksheet can
         # link to a native document. Nothing is written; every worksheet is
@@ -60,7 +61,6 @@ def realize(importer, index, report, partner_by_cp, limit, commit, dry_run) -> b
     else:
         selected = selected_worksheets(numbers, limit)
         selected_set = set(selected)
-        pending_sales: dict[int, list[str]] = {}
         for position, number in enumerate(selected, start=1):
             if dry_run:
                 report.skip("transactions")
@@ -90,13 +90,10 @@ def realize(importer, index, report, partner_by_cp, limit, commit, dry_run) -> b
                 continue
             for sale_id in sale_ids:
                 pending_sales.setdefault(sale_id, []).extend(trailers)
-            if commit and position % 200 == 0:
-                _confirm_sales(importer, report, pending_sales, context)
-                pending_sales.clear()
+            if commit and position % 200 == 0 and _cohort_commit_ready(context):
+                _confirm_ready_sales(importer, report, pending_sales, context)
                 importer.env.cr.commit()
                 _logger.info("ERP import committed through worksheet %s", position)
-        if not dry_run:
-            _confirm_sales(importer, report, pending_sales, context)
     for number in numbers:
         if number in selected_set:
             continue
@@ -104,6 +101,13 @@ def realize(importer, index, report, partner_by_cp, limit, commit, dry_run) -> b
         report.skip("transaction_lines", len(index.detail_ids(number)))
         _exclude_worksheet_payables(index, context, number, "diagnostic_limit")
     _quarantine_outside_universe(importer, index, report, context, partner_by_cp, numbers, dry_run)
+    if not dry_run:
+        # Credits are created after every other bill, and before any sale is
+        # confirmed, so the compiled transaction still receives them. A
+        # worksheet whose credit is still held is not confirmed at a commit
+        # boundary: a closed transaction cannot gain a bill afterwards.
+        _flush_deferred_vendor_credits(importer, index, report, context)
+        _confirm_sales(importer, report, pending_sales, context)
     report.census = _census(index, context)
     reconciliation = report.census["payables_reconciliation"]
     if not reconciliation["closes"]:
@@ -118,6 +122,15 @@ def realize(importer, index, report, partner_by_cp, limit, commit, dry_run) -> b
     return True
 
 
+def _cohort_commit_ready(context) -> bool:
+    """A cohort commit may land only when no vendor credit is still memory-only."""
+    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
+        cohort_has_uncommitted_credits,
+    )
+
+    return not cohort_has_uncommitted_credits(context.get("deferred_vendor_credits"))
+
+
 def _discard_worksheet(context, number: str) -> None:
     """Forget everything a rolled-back worksheet routed: its documents, bills, pending verdicts and rows."""
     context["documents"].pop(number, None)
@@ -127,6 +140,9 @@ def _discard_worksheet(context, number: str) -> None:
     context["billed_payables"] = [item for item in context["billed_payables"] if item[0] != number]
     context["expense_rows"] = [item for item in context["expense_rows"] if item[0] != number]
     context["quarantine"] = [entry for entry in context["quarantine"] if entry["worksheet"] != number]
+    context["deferred_vendor_credits"] = [
+        item for item in context.get("deferred_vendor_credits") or [] if item[0] != number
+    ]
 
 
 def _exclude_worksheet_payables(index, context, number: str, reason: str) -> None:
@@ -206,6 +222,7 @@ def _census(index, context) -> dict:
     limited = census["payables_excluded"]["by_reason"].get("diagnostic_limit")
     census["payables_unselected"] = dict(limited) if limited else {"rows": 0, "amount": 0.0}
     census["worksheets_rejected"] = sorted(rejected)
+    census["unresolved_vendor_credits"] = list(context.get("unresolved_vendor_credits") or [])
     return census
 
 
@@ -1225,15 +1242,106 @@ def _quarantine_worksheet_payables(index, context, report, number: str, reason: 
         _quarantine(context, report, row, number, reason, NOT_REALIZED)
 
 
+def _flush_deferred_vendor_credits(importer, index, report, context) -> None:
+    """Create held vendor credits after the bills they may reverse exist.
+
+    A credit whose original payable is itself still held waits for that credit.
+    One pass that makes no progress writes the rest without a link.
+    """
+    from odoo.addons.plasticos_partner_import.erp.native_orders import vendor_credit_original  # noqa: PLC0415
+
+    waiting = list(context.get("deferred_vendor_credits") or [])
+    context["deferred_vendor_credits"] = []
+    held = {(row.get("PayableID") or "").strip() for _number, row, *_rest in waiting}
+    progressed = True
+    while waiting and progressed:
+        progressed = False
+        still = []
+        for item in waiting:
+            _number, row, *_rest = item
+            origin_id, _reason = vendor_credit_original(
+                row,
+                getattr(index, "payables_batches", {}) or {},
+                getattr(index, "payables_by_batch", {}) or {},
+            )
+            payable_id = (row.get("PayableID") or "").strip()
+            if origin_id and origin_id in held and origin_id != payable_id:
+                still.append(item)
+                continue
+            _write_held_vendor_credit(importer, index, report, context, item)
+            held.discard(payable_id)
+            progressed = True
+        waiting = still
+    for item in waiting:
+        _write_held_vendor_credit(importer, index, report, context, item)
+
+
+def _write_held_vendor_credit(importer, index, report, context, item) -> None:
+    """Write one held credit. A failed create is quarantined so reconciliation still closes."""
+    from odoo.addons.plasticos_partner_import.erp.native_orders import NOT_REALIZED  # noqa: PLC0415
+
+    number, row, amount, account, partner_id, bucket, documents, freight = item
+    payable_id = (row.get("PayableID") or "").strip()
+    try:
+        with importer.env.cr.savepoint():
+            _write_purchase_bill(
+                importer,
+                index,
+                report,
+                context,
+                number,
+                row,
+                amount,
+                account,
+                partner_id,
+                bucket,
+                documents,
+                freight,
+                False,
+            )
+    except Exception as exc:  # noqa: BLE001 - one credit must not abort the load or drop its identity
+        _logger.info("ERP vendor credit %s was not written: %s", payable_id or number, exc)
+        _quarantine(
+            context,
+            report,
+            row,
+            number,
+            f"vendor credit was not written ({type(exc).__name__})",
+            NOT_REALIZED,
+        )
+
+
 def _write_purchase_bill(
-    importer, index, report, context, number, row, amount, account, partner_id, bucket, documents, freight: bool
+    importer,
+    index,
+    report,
+    context,
+    number,
+    row,
+    amount,
+    account,
+    partner_id,
+    bucket,
+    documents,
+    freight: bool,
+    hold_credit: bool = True,
 ) -> None:
     """One draft vendor bill or credit. A negative amount is a vendor credit.
 
     Material bills and blank-account bills are this same document. Freight is
-    the one named exception: its line is freight, not material.
+    the one named exception: its line is freight, not material. Credits wait
+    until the other bills of the run exist, so a ReverseBatchNo can name a bill
+    created later in the same run. An existing credit is not rewritten.
     """
-    from odoo.addons.plasticos_partner_import.erp.native_orders import vendor_bill_header_facts  # noqa: PLC0415
+    if hold_credit and amount < 0:
+        context.setdefault("deferred_vendor_credits", []).append(
+            (number, row, amount, account, partner_id, bucket, documents, freight)
+        )
+        return
+    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
+        vendor_bill_header_facts,
+        vendor_credit_original,
+    )
 
     payable_id = (row.get("PayableID") or "").strip()
     batch = (row.get("APBatchNo") or "").strip()
@@ -1256,20 +1364,54 @@ def _write_purchase_bill(
         ]
     else:
         lines = _vendor_bill_lines(importer, context, report, index, account, number, amount, row)
-    move = _move(
-        importer,
-        f"legacy_erp_ininv_{_token(payable_id)}",
-        {
-            "move_type": "in_refund" if amount < 0 else "in_invoice",
-            "partner_id": partner_id,
-            "journal_id": context["purchase_journal"].id,
-            "invoice_date": invoice_date or False,
-            "invoice_origin": number,
-            "ref": facts["ref"],
-            "invoice_line_ids": lines,
-            **_vendor_due_terms(importer, context, report, batch, facts),
-        },
-    )
+    credit_xmlid = f"legacy_erp_ininv_{_token(payable_id)}"
+    values = {
+        "move_type": "in_refund" if amount < 0 else "in_invoice",
+        "partner_id": partner_id,
+        "journal_id": context["purchase_journal"].id,
+        "invoice_date": invoice_date or False,
+        "invoice_origin": number,
+        "ref": facts["ref"],
+        "invoice_line_ids": lines,
+        **_vendor_due_terms(importer, context, report, batch, facts),
+    }
+    origin_id = ""
+    origin_reason = ""
+    original = None
+    existing = None
+    if amount < 0:
+        origin_id, origin_reason = vendor_credit_original(
+            row,
+            getattr(index, "payables_batches", {}) or {},
+            getattr(index, "payables_by_batch", {}) or {},
+        )
+        existing = _existing(importer, "account.move", credit_xmlid)
+        if origin_id:
+            original = _existing(importer, "account.move", f"legacy_erp_ininv_{_token(origin_id)}")
+        if existing is None and original is not None and original.partner_id.id == partner_id:
+            values["reversed_entry_id"] = original.id
+    move = _move(importer, credit_xmlid, values)
+    if amount < 0 and not move.reversed_entry_id:
+        if existing is not None:
+            origin_reason = "existing draft left unchanged"
+        elif original is not None and original.partner_id.id != partner_id:
+            origin_reason = "imported vendors differ"
+        elif not origin_reason:
+            origin_reason = "original bill is not imported"
+        context.setdefault("unresolved_vendor_credits", []).append(
+            {"payable_id": payable_id, "amount": amount, "reason": origin_reason}
+        )
+        report.anomaly(
+            "Payables",
+            payable_id,
+            f"unresolved vendor credit: {origin_reason}; amount {amount:.2f}",
+        )
+    elif amount < 0 and existing is not None and original is not None and move.reversed_entry_id.id != original.id:
+        report.anomaly(
+            "Payables",
+            payable_id,
+            f"unresolved vendor credit: existing draft already reverses a different bill; amount {amount:.2f}",
+        )
     if documents is not None:
         documents["freight_bills" if freight else "bills"].append(move.id)
     context["billed_payables"].append((number, payable_id))
@@ -1355,6 +1497,31 @@ def _move(importer, xml_id, values):
     record = model.create(values)
     importer._write_identity_marker(model, xml_id, record)
     return record
+
+
+def _confirm_ready_sales(importer, report, pending_sales, context) -> None:
+    """Confirm sales whose worksheets have no vendor credit still waiting.
+
+    The held sales stay in ``pending_sales`` until the credits exist. Confirming
+    them earlier would close the transaction without the credit.
+    """
+    waiting_sales: set[int] = set()
+    pending = context.get("pending_transactions") or {}
+    for item in context.get("deferred_vendor_credits") or []:
+        waiting_sales.update(pending.get(item[0]) or [])
+    ready = {sale_id: trailers for sale_id, trailers in pending_sales.items() if sale_id not in waiting_sales}
+    held_sales = {sale_id: trailers for sale_id, trailers in pending_sales.items() if sale_id in waiting_sales}
+    held_worksheets = {
+        number: sale_ids
+        for number, sale_ids in list(pending.items())
+        if any(sale_id in waiting_sales for sale_id in sale_ids)
+    }
+    for number in held_worksheets:
+        pending.pop(number, None)
+    _confirm_sales(importer, report, ready, context)
+    pending.update(held_worksheets)
+    pending_sales.clear()
+    pending_sales.update(held_sales)
 
 
 def _confirm_sales(importer, report, pending_sales, context):

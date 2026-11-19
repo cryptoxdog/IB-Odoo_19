@@ -21,6 +21,7 @@ from erp.native_orders import (  # noqa: E402
     UNAPPROVED,
     UNBILLABLE,
     amount_drift,
+    cohort_has_uncommitted_credits,
     commission_recipients,
     credit_line_terms,
     declined_price_basis,
@@ -46,6 +47,7 @@ from erp.native_orders import (  # noqa: E402
     unit_priced_quantity,
     vendor_bill_due_terms,
     vendor_bill_header_facts,
+    vendor_credit_original,
     with_worksheet,
     worksheet_commission,
     worksheet_log,
@@ -252,6 +254,76 @@ def test_zero_weight_unit_price_is_exact_each_quantity_and_units_are_ignored():
     ]
     assert zero_weight_exceptions([{"SWeight": "0", "SAmount": "0", "SPrice": "5"}], "sale") == []
     assert unit_priced_quantity("0.30", "0.10")[1] == 3
+
+
+def test_vendor_credit_uses_only_an_explicit_reverse_batch():
+    batches = {
+        "107184": {"APBatchNo": "107184", "CpID": "2213"},
+        "107200": {"APBatchNo": "107200", "CpID": "2213", "ReverseBatchNo": "107184"},
+        "107367": {"APBatchNo": "107367", "CpID": "2213", "ReverseBatchNo": "107184"},
+        "900": {"APBatchNo": "900", "CpID": "2213", "ReverseBatchNo": "NULL"},
+        "901": {"APBatchNo": "901", "CpID": "2213", "ReverseBatchNo": "901"},
+        "902": {"APBatchNo": "902", "CpID": "1495", "ReverseBatchNo": "107184"},
+    }
+    one = {"107184": [{"PayableID": "591398", "CpID": "2213", "Amount": "9366.52"}]}
+    original, reason = vendor_credit_original(
+        {"PayableID": "591476", "APBatchNo": "107200", "CpID": "2213", "Amount": "-9366.52"},
+        batches,
+        one,
+    )
+    assert original == "591398" and reason == ""
+    # A different amount still names the same bill. Amounts do not choose it.
+    different, _reason = vendor_credit_original(
+        {"PayableID": "591476", "APBatchNo": "107200", "CpID": "2213", "Amount": "-1.00"},
+        batches,
+        one,
+    )
+    assert different == "591398"
+    many = {
+        "107184": [
+            {"PayableID": "1", "CpID": "2213", "Amount": "10"},
+            {"PayableID": "2", "CpID": "2213", "Amount": "-10"},
+        ]
+    }
+    missed, missed_reason = vendor_credit_original(
+        {"PayableID": "3", "APBatchNo": "107367", "CpID": "2213", "Amount": "-10"},
+        batches,
+        many,
+    )
+    assert missed is None and "not unique" in missed_reason
+    blank, blank_reason = vendor_credit_original(
+        {"PayableID": "4", "APBatchNo": "900", "CpID": "2213", "Amount": "-5"},
+        batches,
+        one,
+    )
+    assert blank is None and blank_reason == "no ReverseBatchNo"
+    itself, itself_reason = vendor_credit_original(
+        {"PayableID": "5", "APBatchNo": "901", "CpID": "2213", "Amount": "-5"},
+        batches,
+        one,
+    )
+    assert itself is None and "own batch" in itself_reason
+    other_vendor, vendor_reason = vendor_credit_original(
+        {"PayableID": "6", "APBatchNo": "902", "CpID": "1495", "Amount": "-9366.52"},
+        batches,
+        one,
+    )
+    assert other_vendor is None and "not the credit vendor" in vendor_reason
+    same_sign, same_sign_reason = vendor_credit_original(
+        {"PayableID": "7", "APBatchNo": "107200", "CpID": "2213", "Amount": "-10"},
+        batches,
+        {"107184": [{"PayableID": "591399", "CpID": "2213", "Amount": "-1"}]},
+    )
+    assert same_sign is None and "not a positive vendor bill" in same_sign_reason
+    zero_bill, zero_reason = vendor_credit_original(
+        {"PayableID": "8", "APBatchNo": "107200", "CpID": "2213", "Amount": "-10"},
+        batches,
+        {"107184": [{"PayableID": "591400", "CpID": "2213", "Amount": "0"}]},
+    )
+    assert zero_bill is None and "not a positive vendor bill" in zero_reason
+    assert cohort_has_uncommitted_credits([("53797",)]) is True
+    assert cohort_has_uncommitted_credits([]) is False
+    assert cohort_has_uncommitted_credits(None) is False
 
 
 def test_frozen_wksdetail_zero_weight_census_is_two_sales_and_fourteen_purchases():

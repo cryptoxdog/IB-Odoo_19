@@ -2079,3 +2079,52 @@ class TestErpWorksheetImport(TransactionCase):
             bill.action_post()
         self.assertEqual(unit_line.quantity, 2, "a historical draft line cannot be rewritten")
         self.assertEqual(bill.state, "draft", "a historical vendor bill cannot be posted")
+
+    def test_vendor_credit_links_the_named_batch_and_replay_does_not_rewrite_it(self):
+        """ReverseBatchNo names one same-vendor payable. A second payable is not chosen by amount."""
+        index = self._index()
+        original = _payable("pay-orig", "OUT", VENDOR, "40", "", "INV-O", batch="9001")
+        credit = _payable("pay-cred", "OUT", VENDOR, "-40", "", "INV-C", batch="9002")
+        ambiguous = _payable("pay-amb", "OUT", VENDOR, "-15", "", "INV-A", batch="9003")
+        index.payables_by_buysell["OUT"] = [original, credit, ambiguous]
+        index.payables_by_batch["9001"] = [original]
+        index.payables_by_batch["9004"] = [
+            _payable("pay-a", "OTHER", VENDOR, "15", "", batch="9004"),
+            _payable("pay-b", "OTHER", VENDOR, "-15", "", batch="9004"),
+        ]
+        index.payables_batches["9001"] = {
+            "APBatchNo": "9001",
+            "CpID": VENDOR,
+            "InvoiceDt": "2022-04-01 00:00:00",
+        }
+        index.payables_batches["9002"] = {
+            "APBatchNo": "9002",
+            "CpID": VENDOR,
+            "ReverseBatchNo": "9001",
+            "InvoiceDt": "2022-04-01 00:00:00",
+        }
+        index.payables_batches["9003"] = {
+            "APBatchNo": "9003",
+            "CpID": VENDOR,
+            "ReverseBatchNo": "9004",
+            "InvoiceDt": "2022-04-01 00:00:00",
+        }
+        index.payables_batches["9004"] = {"APBatchNo": "9004", "CpID": VENDOR}
+        report = self._run(index)
+
+        bill = self._order("account.move", "legacy_erp_ininv_pay_orig")
+        cred = self._order("account.move", "legacy_erp_ininv_pay_cred")
+        ambiguous_move = self._order("account.move", "legacy_erp_ininv_pay_amb")
+        self.assertEqual(bill.move_type, "in_invoice")
+        self.assertEqual(cred.move_type, "in_refund")
+        self.assertEqual(cred.state, "draft")
+        self.assertEqual(cred.reversed_entry_id, bill)
+        self.assertAlmostEqual(cred.amount_total, 40.0, places=2)
+        self.assertFalse(ambiguous_move.reversed_entry_id)
+        self.assertTrue(any(item["key"] == "pay-amb" and "not unique" in item["detail"] for item in report.anomalies))
+
+        self._run(index)
+        self.assertEqual(cred.reversed_entry_id, bill)
+        self.assertAlmostEqual(cred.amount_total, 40.0, places=2)
+        self.assertEqual(cred.state, "draft")
+        self.assertEqual(len(self._marked("account.move", "legacy_erp_ininv_pay_cred")), 1)

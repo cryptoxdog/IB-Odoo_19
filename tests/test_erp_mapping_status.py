@@ -126,6 +126,7 @@ PAYABLES_BATCH_PROJECTED = {
     "InvoiceDt",
     "DueDate",
     "ReversedFxAmt",
+    "ReverseBatchNo",
 }
 
 
@@ -151,7 +152,7 @@ def test_payables_batch_header_columns_written_are_exactly_the_bill_header_facts
     """Bills stay one per PayableID; only their date, vendor invoice number, terms and due date come from the header."""
     rows = [row for row in status.rows if row["source_table"] == "PayablesBatch"]
     verified = {row["source_field"] for row in rows if row["status"] == "VERIFIED"}
-    assert verified == {"APBatchNo", "PrePay", "InvoiceDt", "InvoiceNo", "DueDate", "APTerms"}
+    assert verified == {"APBatchNo", "PrePay", "InvoiceDt", "InvoiceNo", "DueDate", "APTerms", "ReverseBatchNo"}
     written = {"InvoiceDt": "invoice_date", "InvoiceNo": "ref", "DueDate": "invoice_date_due"}
     for row in rows:
         if row["status"] != "VERIFIED":
@@ -161,6 +162,10 @@ def test_payables_batch_header_columns_written_are_exactly_the_bill_header_facts
             assert row["target_field"].startswith(written[row["source_field"]]), row
         elif row["source_field"] == "APTerms":
             assert row["target_field"] == "invoice_payment_term_id" and "never created" in row["transformation"]
+        elif row["source_field"] == "ReverseBatchNo":
+            assert row["target_model"] == "account.move", row
+            assert row["target_field"].startswith("reversed_entry_id"), row
+            assert "Amounts are never used" in row["transformation"]
         else:
             assert row["target_model"] == "—", row
         if row["status"] == "NEEDS_CORRECTION":
