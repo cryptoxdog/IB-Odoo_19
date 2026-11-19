@@ -634,20 +634,14 @@ class TestSpecPropagationToOpportunity(TransactionCase):
         )
         propagate = getattr(lead, "_propagate_one_pass_spec", None)
         self.assertTrue(callable(propagate))
-        opportunity = lead.crm_lead_id
-        propagate(opportunity)
+        propagate(lead.crm_lead_id)
         material = lead.crm_lead_id.opportunity_material_ids
         self.assertAlmostEqual(material.melt_flow_index, 4.2)
         notes = material.freeform_notes or ""
         self.assertIn("4.2", notes)
         self.assertIn("Broker measured the lot on site.", notes)
         self.assertNotIn("7.5", notes)
-        # The description write is pending in this env's cache (the creation path
-        # ran in the SUPERUSER env); flush before reading so the assertion sees
-        # the stored block, exactly like the bridge's own replay regression.
-        self.env.flush_all()
-        opportunity.invalidate_recordset(["description"])
-        description = str(opportunity.description or "")
+        description = str(lead.crm_lead_id.description or "")
         start = description.find('class="plasticos-spec"')
         end = description.find("</div>", start)
         block = description[start:end]
