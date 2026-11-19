@@ -5,6 +5,21 @@ from odoo import api, fields, models
 _logger = logging.getLogger(__name__)
 
 
+class _Row:
+    """One paged lead for the Company Type backfill worker.
+
+    Module-level so OdooLS does not read it as a model declared inside a
+    function (OLS03024).
+    """
+
+    __slots__ = ("description", "lead", "tag_ids")
+
+    def __init__(self, lead):
+        self.lead = lead
+        self.description = lead.description
+        self.tag_ids = lead.tag_ids.ids
+
+
 class CrmLeadSync(models.Model):
     _inherit = "crm.lead"
 
@@ -69,14 +84,6 @@ class CrmLeadSync(models.Model):
                 tag = role_tag_binding(self.env, canonical, xmlid) if xmlid else None
                 cache[canonical] = tag.id if tag and tag is not MISSING_ROLE_TAG_BINDING else None
             return cache[canonical]
-
-        class _Row:
-            __slots__ = ("description", "lead", "tag_ids")
-
-            def __init__(self, lead):
-                self.lead = lead
-                self.description = lead.description
-                self.tag_ids = lead.tag_ids.ids
 
         def link(row, tag_id):
             row.lead.write({"tag_ids": [(4, tag_id)]})
