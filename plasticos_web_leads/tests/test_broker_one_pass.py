@@ -18,7 +18,7 @@ import base64
 import importlib
 from contextlib import contextmanager
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from odoo.tests import TransactionCase, tagged
 
@@ -35,6 +35,7 @@ _ALIGNMENT_VIEWS = (
     _MODULE_ROOT / "views" / "web_lead_views.xml",
     _MODULE_ROOT / "views" / "web_lead_ux.xml",
 )
+_CAPTURED_PROMPTS: list[str] = []
 _PROVIDER_SPEC: dict[str, object] = {}
 _PROVIDER_SPEC["provider"] = "openai"
 _PROVIDER_SPEC["transport"] = "openai_compatible"
@@ -86,10 +87,10 @@ def _provider_body(disposition, specifications=None):
     """One provider reply. The real parser keeps only cited specification records."""
     specs = list(specifications or [])
     normalization: dict[str, object] = {}
-    normalization["polymer"] = "HDPE"
+    normalization["polymer"] = None
     normalization["confidence"] = 0.9
     normalization["estimated_lbs_per_load"] = None
-    normalization["is_plastic"] = disposition != "cold"
+    normalization["is_plastic"] = None
     return {
         "normalization": normalization,
         "vision": [],
@@ -119,6 +120,19 @@ def _provider_body(disposition, specifications=None):
     }
 
 
+def _sample_disposition(sample):
+    """Disposition named by an older assessment fake. Unavailable stays a failure."""
+    if not isinstance(sample, dict):
+        return "review", False
+    if sample.get("status") == "unavailable":
+        return "review", True
+    assessment = sample.get("assessment") if isinstance(sample.get("assessment"), dict) else {}
+    named = assessment.get("recommended_disposition") or assessment.get("recommendation")
+    if named in {"hot", "review", "cold"}:
+        return named, False
+    return "review", False
+
+
 @contextmanager
 def economic_assessment_patch(*, side_effect=None, return_value=None, document_specifications=None):
     """Run the real broker function with the transport mocked.
@@ -127,26 +141,35 @@ def economic_assessment_patch(*, side_effect=None, return_value=None, document_s
     An absent provider is left absent when ``return_value`` is ``"no_provider"``.
     """
     disposition = "review"
+    unavailable = False
+    sample = None
     if side_effect is not None:
         sample = side_effect(qualification_signals={})
-        disposition = sample["assessment"]["recommended_disposition"]
+    elif isinstance(return_value, dict):
+        sample = return_value
+    if sample is not None:
+        disposition, unavailable = _sample_disposition(sample)
     specs = list(document_specifications or [])
 
-    def transport(*_args, **_kwargs):
+    def transport(*_args, **kwargs):
+        parts = [str(kwargs.get("system_prompt") or "")]
+        parts.extend(str(part) for part in (kwargs.get("text_parts") or []))
+        _CAPTURED_PROMPTS.append("\n".join(parts))
+        if unavailable:
+            raise RuntimeError("economic_provider_failed")
         return _provider_body(disposition, specs), {"attempts": 1}
 
     if return_value == "no_provider" or not one_pass_orchestration():
         fallback = side_effect or (lambda **_kwargs: return_value)
-        with patch(f"{_WEB_LEAD}.evaluate_economic_opportunity", side_effect=fallback):
+        with patch(f"{_WEB_LEAD}.evaluate_economic_opportunity", side_effect=fallback, create=True):
             yield
         return
 
     with (
         patch(_CONFIG, return_value=dict(_PROVIDER_SPEC)),
         patch(_TRANSPORT, side_effect=transport) as mocked,
-        patch(f"{_WEB_LEAD}.evaluate_economic_opportunity") as economic,
     ):
-        yield mocked, economic
+        yield mocked, MagicMock()
 
 
 def _payload(external_id, *, material, quantity="Two truckloads every month", weight=""):
@@ -578,10 +601,12 @@ class TestSpecPropagationToOpportunity(TransactionCase):
         corrected = [_spec("MFI", 4.2, "g/10min"), _spec("density", 0.941, "g/cm3"), _spec("moisture", 0.08, "%")]
         seller = dict((lead.evidence_bundle or {}).get("seller") or {})
         seller["material_description"] = "HDPE pellets. MFI 4.2 g/10min. Density 0.941 g/cm3. Moisture 0.08 %."
-        bundle = dict(lead.evidence_bundle or {})
-        bundle["seller"] = seller
-        bundle["document_specifications"] = corrected
-        lead.evidence_bundle = bundle
+        bundle = lead.evidence_bundle or {}
+        lead._write_recovered_assessment(
+            bundle.get("economic_assessment") or {},
+            bundle.get("economic_assessment_history") or [],
+            {"seller": seller, "document_specifications": corrected},
+        )
         propagate = getattr(lead, "_propagate_one_pass_spec", None)
         self.assertTrue(callable(propagate))
         propagate(lead.crm_lead_id)
@@ -592,8 +617,11 @@ class TestSpecPropagationToOpportunity(TransactionCase):
         self.assertIn("Broker measured the lot on site.", notes)
         self.assertNotIn("7.5", notes)
         description = str(lead.crm_lead_id.description or "")
-        self.assertIn("4.2", description)
-        self.assertNotIn("7.5", description)
+        start = description.find('class="plasticos-spec"')
+        end = description.find("</div>", start)
+        block = description[start:end]
+        self.assertIn("4.2", block)
+        self.assertNotIn("7.5", block)
 
     def test_human_entered_spec_is_not_replaced(self):
         stated = "HDPE pellets. MFI 7.5 g/10min. Density 0.941 g/cm3. Moisture 0.08 %."
@@ -605,14 +633,19 @@ class TestSpecPropagationToOpportunity(TransactionCase):
         material.melt_flow_index = 9.1
         seller = dict((lead.evidence_bundle or {}).get("seller") or {})
         seller["material_description"] = "HDPE pellets. MFI 4.2 g/10min. Density 0.941 g/cm3. Moisture 0.08 %."
-        bundle = dict(lead.evidence_bundle or {})
-        bundle["seller"] = seller
-        bundle["document_specifications"] = [
-            _spec("MFI", 4.2, "g/10min"),
-            _spec("density", 0.941, "g/cm3"),
-            _spec("moisture", 0.08, "%"),
-        ]
-        lead.evidence_bundle = bundle
+        bundle = lead.evidence_bundle or {}
+        lead._write_recovered_assessment(
+            bundle.get("economic_assessment") or {},
+            bundle.get("economic_assessment_history") or [],
+            {
+                "seller": seller,
+                "document_specifications": [
+                    _spec("MFI", 4.2, "g/10min"),
+                    _spec("density", 0.941, "g/cm3"),
+                    _spec("moisture", 0.08, "%"),
+                ],
+            },
+        )
         lead._propagate_one_pass_spec(lead.crm_lead_id)
         self.assertAlmostEqual(material.melt_flow_index, 9.1)
         self.assertIn("4.2", material.freeform_notes or "")

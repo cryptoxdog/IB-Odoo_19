@@ -339,6 +339,7 @@ class CrmLeadPlastOS(models.Model):
                 target_id=profile.id,
                 sources=sources,
             )
+        self._plasticos_record_web_lead_pdfs()
         if crm_copied or profile_copied:
             self.message_post(
                 body=(
@@ -347,6 +348,24 @@ class CrmLeadPlastOS(models.Model):
                 )
             )
         return {"crm": crm_copied, "material_profile": profile_copied}
+
+    def _plasticos_record_web_lead_pdfs(self):
+        """Record each web-lead PDF by source attachment id. Do not copy the file.
+
+        The web lead's ``ir.attachment`` stays the only stored original. The
+        opportunity description names that id inside the lead's own PDF block.
+        Identical bytes are a different document when the source id differs.
+        """
+        self.ensure_one()
+        for web_lead in self.web_lead_ids:
+            record = getattr(web_lead, "_record_pdf_association", None)
+            if callable(record):
+                record(self)
+        return 0
+
+    def _plasticos_copy_web_lead_pdfs(self):
+        """Retired copy path. Callers record the source attachment and store nothing new."""
+        return self._plasticos_record_web_lead_pdfs()
 
     def action_sync_commercial_images(self):
         """Reconcile images currently available from linked commercial sources."""
@@ -993,6 +1012,10 @@ class CrmLeadPlastOS(models.Model):
             if lead.type != "opportunity" or lead.opportunity_material_ids or not lead.material_profile_id:
                 continue
             Material.copy_from_profile(lead, lead.material_profile_id)
+            for web_lead in lead.web_lead_ids:
+                propagate = getattr(web_lead, "_propagate_one_pass_spec", None)
+                if callable(propagate):
+                    propagate(lead)
 
     def _plasticos_mark_won(self):
         """Move to the native Won stage. Creates no order."""
