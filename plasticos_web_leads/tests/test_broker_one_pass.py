@@ -444,12 +444,12 @@ class TestBrokerOnePassScenarios(TransactionCase):
                 )
             )
         # Recording names each source attachment id and stores nothing new.
-        self.assertEqual(record_pdfs(), 0)
+        self.assertEqual(opportunity._plasticos_record_web_lead_pdfs(), 0)
         description = str(opportunity.description or "")
         self.assertIn(f"[plasticos-pdf:{stored[0].id}]", description)
         self.assertIn(f"[plasticos-pdf:{stored[1].id}]", description)
         # Replay is idempotent: one block, both originals stay on the lead.
-        self.assertEqual(record_pdfs(), 0)
+        self.assertEqual(opportunity._plasticos_record_web_lead_pdfs(), 0)
         description = str(opportunity.description or "")
         self.assertEqual(description.count(f"[plasticos-pdf:{stored[0].id}]"), 1)
         self.assertEqual(description.count(f"[plasticos-pdf:{stored[1].id}]"), 1)
@@ -642,8 +642,10 @@ class TestSpecPropagationToOpportunity(TransactionCase):
         self.assertIn("4.2", notes)
         self.assertIn("Broker measured the lot on site.", notes)
         self.assertNotIn("7.5", notes)
-        # The bridge's own tests invalidate the description cache before reading
-        # the block a propagation wrote (see test_two_web_lead_specification).
+        # The description write is pending in this env's cache (the creation path
+        # ran in the SUPERUSER env); flush before reading so the assertion sees
+        # the stored block, exactly like the bridge's own replay regression.
+        self.env.flush_all()
         opportunity.invalidate_recordset(["description"])
         description = str(opportunity.description or "")
         start = description.find('class="plasticos-spec"')
