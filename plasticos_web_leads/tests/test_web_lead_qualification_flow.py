@@ -8,12 +8,10 @@ creates, and what it must not create.
 
 from __future__ import annotations
 
-from unittest.mock import patch
-
 from odoo.exceptions import UserError
 from odoo.tests import TransactionCase, tagged
 
-_WEB_LEAD = "odoo.addons.plasticos_web_leads.models.web_lead"
+from .test_broker_one_pass import economic_assessment_patch, one_pass_orchestration
 
 
 def _payload(external_id, *, material="HDPE pellets", quantity="", weight="", source="Manufacturing production scrap"):
@@ -81,7 +79,7 @@ class TestLiveQualificationRouting(TransactionCase):
         )
 
     def _admit(self, payload, recommend):
-        with patch(f"{_WEB_LEAD}.evaluate_economic_opportunity", side_effect=recommend):
+        with economic_assessment_patch(side_effect=recommend):
             return self.WebLead.create_from_cognito(payload)
 
     def _lead_activities(self, lead):
@@ -115,7 +113,11 @@ class TestLiveQualificationRouting(TransactionCase):
         lead = self._admit(
             _payload("Q-REV-001", quantity="Two truckloads every month"), _recommend("hot", signal="strong")
         )
-        self.assertEqual(lead.decision, "review")
+        if one_pass_orchestration():
+            # Unknown per-load weight stays HOT and does not open an intake.
+            self.assertEqual(lead.decision, "hot")
+        else:
+            self.assertEqual(lead.decision, "review")
         self.assertEqual(lead.state, "review_pending")
         self.assertEqual(lead.review_status, "clarification_required")
         self.assertFalse(lead.intake_id)
@@ -124,8 +126,12 @@ class TestLiveQualificationRouting(TransactionCase):
         self.assertEqual(lead.estimated_lbs_per_load, 0)
         qualification = lead.decision_reasons["qualification"]
         self.assertEqual(qualification["model_recommendation"], "hot")
-        self.assertTrue(qualification["overridden"])
-        self.assertEqual(qualification["review_priority"], "high")
+        if one_pass_orchestration():
+            self.assertFalse(qualification["overridden"])
+            self.assertEqual(qualification["review_priority"], "normal")
+        else:
+            self.assertTrue(qualification["overridden"])
+            self.assertEqual(qualification["review_priority"], "high")
         activities = self._lead_activities(lead)
         self.assertEqual(len(activities), 1)
         self.assertEqual(activities.user_id, self.reviewer)
@@ -156,7 +162,7 @@ class TestLiveQualificationRouting(TransactionCase):
         self.assertEqual(lead.decision, "review")
         self.assertEqual(lead.state, "review_pending")
         self.assertFalse(lead.intake_id)
-        with patch(f"{_WEB_LEAD}.evaluate_economic_opportunity", side_effect=_recommend("hot")):
+        with economic_assessment_patch(side_effect=_recommend("hot")):
             lead.action_retry_triage()
         self.assertEqual(lead.decision, "hot")
         self.assertTrue(lead.intake_id)
@@ -225,17 +231,20 @@ class TestShadowAndAssessmentRecovery(TransactionCase):
         )
 
     def test_shadow_records_the_qualification_without_changing_routing(self):
-        with patch(f"{_WEB_LEAD}.evaluate_economic_opportunity", side_effect=_recommend("hot")):
+        with economic_assessment_patch(side_effect=_recommend("hot")):
             lead = self.WebLead.create_from_cognito(_payload("Q-SHADOW-001", quantity="Two truckloads every month"))
         qualification = lead.decision_reasons["qualification"]
         self.assertEqual(qualification["routing_mode"], "shadow")
-        self.assertEqual(qualification["final_disposition"], "review")
+        if one_pass_orchestration():
+            self.assertEqual(qualification["final_disposition"], "hot")
+        else:
+            self.assertEqual(qualification["final_disposition"], "review")
         self.assertEqual(lead.decision, qualification["legacy_decision"])
         self.assertNotEqual(lead.state, "review_pending")
 
     # WL-14 / WL-19 / G1 / G2
     def test_assessment_retry_after_intake_unblocks_approval_and_keeps_snapshots_immutable(self):
-        with patch(f"{_WEB_LEAD}.evaluate_economic_opportunity", side_effect=_unavailable):
+        with economic_assessment_patch(side_effect=_unavailable):
             lead = self.WebLead.create_from_cognito(_payload("Q-RETRY-001", weight="40000 lbs"))
         self.assertEqual(lead.decision, "hot")
         intake = lead.intake_id
@@ -243,7 +252,7 @@ class TestShadowAndAssessmentRecovery(TransactionCase):
         with self.assertRaises(UserError):
             lead.action_approve_for_commercial_preparation()
 
-        with patch(f"{_WEB_LEAD}.evaluate_economic_opportunity", side_effect=_recommend("hot")):
+        with economic_assessment_patch(side_effect=_recommend("hot")):
             lead.action_retry_economic_assessment()
         self.assertEqual(lead.evidence_bundle["economic_assessment"]["status"], "assessed")
         self.assertEqual(lead.evidence_bundle["economic_assessment_history"][0]["status"], "unavailable")
@@ -255,7 +264,7 @@ class TestShadowAndAssessmentRecovery(TransactionCase):
         self.assertEqual(len(snapshot), 1)
         content_hash = snapshot.content_hash
 
-        with patch(f"{_WEB_LEAD}.evaluate_economic_opportunity", side_effect=_recommend("review")):
+        with economic_assessment_patch(side_effect=_recommend("review")):
             lead.action_retry_economic_assessment()
         self.assertEqual(snapshot.content_hash, content_hash)
         self.assertEqual(lead.review_snapshot_ids, snapshot)
@@ -296,7 +305,7 @@ class TestQualificationHandoffIntegrity(TransactionCase):
         )
 
     def _admit(self, payload, recommend):
-        with patch(f"{_WEB_LEAD}.evaluate_economic_opportunity", side_effect=recommend):
+        with economic_assessment_patch(side_effect=recommend):
             return self.WebLead.create_from_cognito(payload)
 
     # Finding 1
@@ -327,7 +336,7 @@ class TestQualificationHandoffIntegrity(TransactionCase):
         self.assertEqual(lead.state, "review_pending")
         submitted = dict(lead.canonical_payload)
         lead.write({"quantity_text": "Two truckloads every month, 40,000 lbs each"})
-        with patch(f"{_WEB_LEAD}.evaluate_economic_opportunity", side_effect=_recommend("hot")):
+        with economic_assessment_patch(side_effect=_recommend("hot")):
             lead.action_retry_triage()
         self.assertEqual(lead.decision, "hot")
         self.assertEqual(lead.intake_id.quantity_per_load_lbs, 40000)
@@ -345,7 +354,7 @@ class TestQualificationHandoffIntegrity(TransactionCase):
             with self.assertRaises(UserError):
                 lead.with_context(**{context_key: True}).write({"evidence_bundle": {"forged": True}})
         self.assertEqual(dict(lead.evidence_bundle), original)
-        with patch(f"{_WEB_LEAD}.evaluate_economic_opportunity", side_effect=_recommend("review")):
+        with economic_assessment_patch(side_effect=_recommend("review")):
             lead.action_retry_economic_assessment()
         self.assertEqual(lead.evidence_bundle["seller"], original["seller"])
         self.assertEqual(lead.evidence_bundle["quantity"], original["quantity"])
