@@ -8,6 +8,7 @@ validation, and the disposition validator), not a provider.
 
 from __future__ import annotations
 
+import inspect
 import sys
 import types
 from pathlib import Path
@@ -360,8 +361,9 @@ def test_malformed_provider_output_is_invalid_and_routes_review():
         provider = "fake"
         model = "fake-model"
 
-    import plasticos_web_leads.models.economic_evaluator as evaluator
-
+    # The suite loads this model through more than one path. Patch the module
+    # object the function actually runs, not a second import of the same name.
+    evaluator = inspect.getmodule(evaluate_economic_opportunity)
     original = evaluator.call_structured_text
     evaluator.call_structured_text = lambda *args, **kwargs: ({"opportunity_signal": "strong"}, {})
     original_meta = evaluator.provider_audit_metadata
@@ -403,6 +405,8 @@ def test_mass_basis_names_provenance():
     assert mass_basis("ai_text", 40000) == "inferred"
     assert mass_basis("area_not_mass", 0) == "unknown"
     assert mass_basis("explicit_lbs", 0) == "unknown"
+    assert mass_basis("bare_number:lbs_assumed", 10000) == "unknown"
+    assert mass_basis("range_lbs", 10000) == "seller_stated"
 
 
 def test_model_inferred_mass_does_not_create_intake():

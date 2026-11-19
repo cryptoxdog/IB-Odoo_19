@@ -14,6 +14,8 @@ from odoo import Command
 from odoo.exceptions import AccessError
 from odoo.tests import TransactionCase, tagged
 
+from .test_broker_one_pass import one_pass_orchestration
+
 _WEB_LEAD = "odoo.addons.plasticos_web_leads.models.web_lead"
 
 
@@ -49,15 +51,18 @@ class TestWebLeadConfigPrivilege(TransactionCase):
         )
 
     def test_internal_user_is_denied_before_any_provider_call(self):
+        broker = (
+            f"{_WEB_LEAD}.run_broker_inference"
+            if one_pass_orchestration()
+            else f"{_WEB_LEAD}.ai_normalizer.normalize_with_provider"
+        )
         with (
-            patch(f"{_WEB_LEAD}.ai_normalizer.normalize_with_provider") as normalize,
-            patch(f"{_WEB_LEAD}.evaluate_economic_opportunity") as economic,
+            patch(broker) as provider_call,
             self.assertRaises(AccessError),
             self.env.cr.savepoint(),
         ):
             self.lead.with_user(self.internal_user).action_retry_triage()
-        normalize.assert_not_called()
-        economic.assert_not_called()
+        provider_call.assert_not_called()
         self.assertEqual(self.lead.state, "error")
 
     def test_internal_user_cannot_read_provider_key_through_config(self):
@@ -66,6 +71,11 @@ class TestWebLeadConfigPrivilege(TransactionCase):
             config.get_inference_provider("text_normalization")
 
     def test_settings_admin_still_reaches_the_provider(self):
+        if one_pass_orchestration():
+            with patch(f"{_WEB_LEAD}.run_broker_inference", return_value={"status": "skipped"}) as broker:
+                self.lead.with_user(self.admin).action_retry_triage()
+            broker.assert_called_once()
+            return
         with (
             patch(
                 f"{_WEB_LEAD}.ai_normalizer.normalize_with_provider",

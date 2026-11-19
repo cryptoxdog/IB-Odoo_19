@@ -19,7 +19,8 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from .inference_provider import InferenceProvider, call_structured_vision, provider_audit_metadata, safe_provider_error
-from .material_catalog import CatalogEntry, labeled_list
+from .material_catalog import CatalogEntry, accept_value, labeled_list, match_codes
+from .triage_helpers import coerce_bool
 
 _logger = logging.getLogger(__name__)
 
@@ -164,6 +165,88 @@ def analyze_image_with_provider(
     result["provider"] = provider_audit_metadata(provider, role="vision_analysis")
     result["call_metadata"] = metadata
     return result
+
+
+_VISION_CODE_FIELDS = (
+    ("observed_form", "form"),
+    ("observed_material_grade", "material_grade"),
+    ("observed_color", "color"),
+    ("observed_polymer_hint", "polymer"),
+    ("observed_packaging", "packaging"),
+)
+_VISION_TEXT_FIELDS = (
+    "material_form_observed",
+    "commercial_color",
+    "containment",
+    "support_unit",
+    "contamination_notes",
+    "cleanliness",
+    "quantity_notes",
+)
+_VISION_WEIGHT_FIELDS = (
+    "estimated_lbs",
+    "estimated_lbs_per_load",
+    "quantity_per_load_lbs",
+    "load_weight_lbs",
+)
+
+
+def _vision_text(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
+def validate_vision_observation(
+    raw: Mapping[str, Any],
+    *,
+    catalog: Mapping[str, Sequence[CatalogEntry]] | None = None,
+) -> dict[str, Any]:
+    """Sanitize one photo reading. A photo never becomes a lot weight."""
+    cleaned: dict[str, Any] = {}
+    for field, kind in _VISION_CODE_FIELDS:
+        value = raw.get(field)
+        if catalog is None:
+            cleaned[field] = _vision_text(value)
+        else:
+            cleaned[field] = accept_value(value, catalog.get(kind, ()))
+    for field in _VISION_TEXT_FIELDS:
+        cleaned[field] = _vision_text(raw.get(field))
+
+    attributes = raw.get("observed_attributes")
+    if catalog is None:
+        if isinstance(attributes, list):
+            codes = [text for text in (_vision_text(item) for item in attributes) if text]
+            cleaned["observed_attributes"] = codes or None
+        else:
+            cleaned["observed_attributes"] = _vision_text(attributes)
+    else:
+        if isinstance(attributes, list):
+            attribute_text = " ".join(str(item) for item in attributes)
+        else:
+            attribute_text = str(attributes or "")
+        reusable = "reusable"
+        matched = [
+            code for code in match_codes(attribute_text, catalog.get("attribute", ())) if code.casefold() != reusable
+        ]
+        cleaned["observed_attributes"] = matched or None
+
+    try:
+        confidence = float(raw.get("confidence"))
+    except (TypeError, ValueError):
+        confidence = None
+    if confidence is not None:
+        confidence = max(0.0, min(1.0, confidence))
+    cleaned["confidence"] = confidence
+    if confidence is None or confidence < _MIN_CONFIDENCE_THRESHOLD:
+        cleaned["observed_polymer_hint"] = None
+
+    for flag in ("contamination_visible", "quantity_visible"):
+        cleaned[flag] = coerce_bool(raw.get(flag)) if flag in raw else None
+    for field in _VISION_WEIGHT_FIELDS:
+        cleaned.pop(field, None)
+    return cleaned
 
 
 def merge_vision_results(

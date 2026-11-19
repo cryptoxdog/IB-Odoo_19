@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch
-
 from odoo.tests import TransactionCase, tagged
 
-_WEB_LEAD = "odoo.addons.plasticos_web_leads.models.web_lead"
+from .test_broker_one_pass import economic_assessment_patch
+
 _ASSESSED = {"status": "assessed", "assessment": {"recommendation": "broker_review", "clarifications": []}}
 
 
@@ -40,7 +39,7 @@ class TestWebLeadMaterialGrade(TransactionCase):
         cls.grade_pallets = cls.env.ref("plasticos_material_profile.material_grade_pallets")
 
     def _lead(self, external_id, description, weight):
-        with patch(f"{_WEB_LEAD}.evaluate_economic_opportunity", return_value=dict(_ASSESSED)):
+        with economic_assessment_patch(return_value=dict(_ASSESSED)):
             return self.WebLead.create_from_cognito(_payload(external_id, description, weight))
 
     def test_pallet_lead_creates_an_intake_with_the_pallets_grade(self):
