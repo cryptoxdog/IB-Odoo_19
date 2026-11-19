@@ -7,8 +7,8 @@ Markup = importlib.import_module("markupsafe").Markup
 # The copy below is the real propagation. Bridge tests wait on this flag.
 SPEC_PROPAGATION = True
 # A class survives Html attribute sanitization. A data-* attribute is removed, so replay cannot find the block.
-_SPEC_MARKER = 'class="plasticos-spec"'
-_PDF_MARKER = 'class="plasticos-pdf"'
+_SPEC_KIND = "spec"
+_PDF_KIND = "pdf"
 _MAX_SPEC_ROWS = 40
 _MAX_PDF_PAGES = 12
 _MAX_PAGE_CHARS = 1500
@@ -120,27 +120,50 @@ class PlasticosWebLeadCRM(models.Model):
 
         A planning weight is not a load quantity. A numerical sheet column is written
         only when the cited text states that property, number, and unit. Replay
-        replaces the previous bounded specification block from this lead.
+        replaces this lead's description block and leaves every other lead's block.
+        The one material row keeps the first lead that wrote a substantiated column.
         """
         self.ensure_one()
         if not opportunity:
             return
         bundle = self.evidence_bundle if isinstance(self.evidence_bundle, dict) else {}
         rows = _spec_rows(bundle)
-        pages = _pdf_pages(bundle)
         representation = _representation_text(bundle.get("representation_alignment"))
-        _append_marked_html(opportunity, _SPEC_MARKER, _spec_html(rows, representation))
-        _append_marked_html(opportunity, _PDF_MARKER, _pdf_html(pages))
-        copy_pdfs = getattr(opportunity, "_plasticos_copy_web_lead_pdfs", None)
-        if callable(copy_pdfs):
-            copy_pdfs()
+        _append_marked_html(opportunity, _marker(_SPEC_KIND, self.id), _spec_html(rows, representation, self.id))
+        self._record_pdf_association(opportunity)
         material = opportunity.opportunity_material_ids[:1]
         if not material and rows:
             material = _spec_sheet(opportunity)
         if not material:
             return
         grounded = _seller_grounded_load_lbs(bundle)
-        material.apply_web_lead_specification(rows, representation, grounded, bundle)
+        material.apply_web_lead_specification(rows, representation, grounded, bundle, web_lead=self)
+
+    def _record_pdf_association(self, opportunity):
+        """Name this lead's source PDF attachments inside its own description block.
+
+        The web lead keeps the only ``ir.attachment``. Replay replaces this block
+        and does not store a second original.
+        """
+        self.ensure_one()
+        if not opportunity:
+            return
+        bundle = self.evidence_bundle if isinstance(self.evidence_bundle, dict) else {}
+        block = _pdf_html(_pdf_pages(bundle), self.id, self._source_pdf_attachments())
+        _append_marked_html(opportunity, _marker(_PDF_KIND, self.id), block)
+
+    def _source_pdf_attachments(self):
+        self.ensure_one()
+        if not isinstance(self.id, int):
+            return self.env["ir.attachment"]
+        return self.env["ir.attachment"].search(
+            [
+                ("res_model", "=", "plasticos.web.lead"),
+                ("res_id", "=", self.id),
+                ("mimetype", "=", "application/pdf"),
+                ("res_field", "=", False),
+            ]
+        )
 
     def _crm_opportunity_description(self):
         """HTML-escaped summary of submitted facts; computed estimates are labelled, empty values omitted."""
@@ -204,7 +227,13 @@ def _spec_rows(bundle):
     return [row for row in rows if isinstance(row, dict)]
 
 
-def _spec_html(rows, representation):
+def _marker(kind, lead_id):
+    """Class token the HTML sanitizer keeps, unique to one lead and one block."""
+    token = f"plasticos-{kind} plasticos-web-lead-{int(lead_id)}"
+    return Markup(f'class="{token}"')
+
+
+def _spec_html(rows, representation, lead_id):
     shown = rows[:_MAX_SPEC_ROWS]
     items = []
     for row in shown:
@@ -218,10 +247,10 @@ def _spec_html(rows, representation):
         items.append(Markup("<li>%s</li>") % f"{omitted} further specification rows remain on the web lead.")
     if not items:
         return Markup("")
-    return Markup('<div class="plasticos-spec"><ul>%s</ul></div>') % Markup("").join(items)
+    return Markup("<div %s><ul>%s</ul></div>") % (_marker(_SPEC_KIND, lead_id), Markup("").join(items))
 
 
-def _pdf_html(pages):
+def _pdf_html(pages, lead_id, attachments):
     items = []
     used = 0
     shown = 0
@@ -238,9 +267,11 @@ def _pdf_html(pages):
     remaining = len(pages) - shown
     if remaining:
         items.append(Markup("<li>%s</li>") % f"{remaining} further PDF pages remain on the attached PDF.")
+    for attachment in attachments:
+        items.append(Markup("<li>Source attachment [plasticos-pdf:%s]</li>") % attachment.id)
     if not items:
         return Markup("")
-    return Markup('<div class="plasticos-pdf"><ul>%s</ul></div>') % Markup("").join(items)
+    return Markup("<div %s><ul>%s</ul></div>") % (_marker(_PDF_KIND, lead_id), Markup("").join(items))
 
 
 def _spec_pair(row):

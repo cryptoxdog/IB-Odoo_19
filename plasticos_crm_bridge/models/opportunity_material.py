@@ -302,6 +302,13 @@ def _replace_specification_note(existing, note):
     return "\n".join(parts)
 
 
+_CLAIMED_COLUMNS = frozenset({"melt_flow_index", "density", "moisture_percent", "quantity_per_load_lbs"})
+
+
+def _claimed_specification(vals):
+    return bool(_CLAIMED_COLUMNS & set(vals))
+
+
 def _finite_positive(value):
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return None
@@ -352,6 +359,13 @@ class PlasticosOpportunityMaterial(models.Model):
         readonly=True,
         ondelete="set null",
         help="Profile this copy was taken from. Edits here do not write that profile.",
+    )
+    source_web_lead_id = fields.Many2one(
+        "plasticos.web.lead",
+        string="Source Web Lead",
+        index=True,
+        ondelete="set null",
+        help="This row's numerical specifications belong to that lead.",
     )
     polymer_id = fields.Many2one(
         "plasticos.polymer",
@@ -497,17 +511,22 @@ class PlasticosOpportunityMaterial(models.Model):
                 opportunity.write(address)
         return material
 
-    def apply_web_lead_specification(self, specifications, representation, grounded_lbs, bundle=None):
+    def apply_web_lead_specification(self, specifications, representation, grounded_lbs, bundle=None, web_lead=None):
         """Write a substantiated spec into an empty column and replace this block.
 
         The cited text must state the property, the number, and the unit. Two
         values for one property fill no column. An existing number is replaced
         only when this web lead's previous block recorded that number and the
         new evidence is a substantiated correction. A human-entered value stays.
-        Replay replaces only the bounded note. Planning weight is not written
-        into ``quantity_per_load_lbs``.
+        The first lead that writes a substantiated column owns the row. Another
+        linked lead leaves the columns and the note unchanged. Replay replaces
+        only the bounded note. Planning weight is not written into
+        ``quantity_per_load_lbs``.
         """
         self.ensure_one()
+        caller = web_lead[:1] if web_lead else self.env["plasticos.web.lead"]
+        if self.source_web_lead_id and caller and self.source_web_lead_id != caller:
+            return
         rows = [row for row in specifications or [] if isinstance(row, dict)]
         owned = _owned_column_numbers(self.freeform_notes or "")
         vals = {}
@@ -525,6 +544,8 @@ class PlasticosOpportunityMaterial(models.Model):
         replaced = _replace_specification_note(self.freeform_notes or "", note)
         if replaced != (self.freeform_notes or ""):
             vals["freeform_notes"] = replaced or False
+        if caller and not self.source_web_lead_id and _claimed_specification(vals):
+            vals["source_web_lead_id"] = caller.id
         if vals:
             self.with_context(**{SUPPLIER_OFFER_OPTIONAL: True}).write(vals)
 

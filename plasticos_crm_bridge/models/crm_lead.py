@@ -339,7 +339,7 @@ class CrmLeadPlastOS(models.Model):
                 target_id=profile.id,
                 sources=sources,
             )
-        self._plasticos_copy_web_lead_pdfs()
+        self._plasticos_record_web_lead_pdfs()
         if crm_copied or profile_copied:
             self.message_post(
                 body=(
@@ -349,56 +349,23 @@ class CrmLeadPlastOS(models.Model):
             )
         return {"crm": crm_copied, "material_profile": profile_copied}
 
-    def _plasticos_copy_web_lead_pdfs(self):
-        """Copy each original web-lead PDF onto this opportunity once.
+    def _plasticos_record_web_lead_pdfs(self):
+        """Record each web-lead PDF by source attachment id. Do not copy the file.
 
-        Identity is the source attachment id in ``[plasticos-pdf:<id>]``.
+        The web lead's ``ir.attachment`` stays the only stored original. The
+        opportunity description names that id inside the lead's own PDF block.
         Identical bytes are a different document when the source id differs.
-        Images stay on the existing commercial-image copy.
         """
         self.ensure_one()
-        if not isinstance(self.id, int):
-            return 0
-        attachment = self.env["ir.attachment"]
-        existing = attachment.search(
-            [
-                ("res_model", "=", "crm.lead"),
-                ("res_id", "=", self.id),
-                ("mimetype", "=", "application/pdf"),
-            ]
-        )
-        copied = 0
-        lead_ids = self.web_lead_ids.ids
-        pdfs = (
-            attachment.search(
-                [
-                    ("res_model", "=", "plasticos.web.lead"),
-                    ("res_id", "in", lead_ids),
-                    ("mimetype", "=", "application/pdf"),
-                    ("res_field", "=", False),
-                ]
-            )
-            if lead_ids
-            else attachment.browse()
-        )
-        for pdf in pdfs:
-            marker = f"[plasticos-pdf:{pdf.id}]"
-            if any(marker in (row.description or "") for row in existing):
-                continue
-            description = (pdf.description or "").strip()
-            if marker not in description:
-                description = f"{description} {marker}".strip()
-            created = pdf.copy(
-                {
-                    "res_model": "crm.lead",
-                    "res_id": self.id,
-                    "res_field": False,
-                    "description": description,
-                }
-            )
-            existing |= created
-            copied += 1
-        return copied
+        for web_lead in self.web_lead_ids:
+            record = getattr(web_lead, "_record_pdf_association", None)
+            if callable(record):
+                record(self)
+        return 0
+
+    def _plasticos_copy_web_lead_pdfs(self):
+        """Retired copy path. Callers record the source attachment and store nothing new."""
+        return self._plasticos_record_web_lead_pdfs()
 
     def action_sync_commercial_images(self):
         """Reconcile images currently available from linked commercial sources."""
