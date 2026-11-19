@@ -1,9 +1,9 @@
-"""Native documents.document helpers for cross-module tests.
+"""Native documents.document helpers for this addon's tests.
 
-plasticos_commission tests exercise the sales-dashboard native branch without a
-documents dependency, so the Enterprise model string lives here: the commission
-test calls these helpers from inside the test function and never names the
-model (OLS03001 stays clean without adding a module depends).
+The Enterprise model string lives in one place so callers never hardcode it.
+The sales-dashboard native branch in plasticos_commission resolves the model
+through the dashboard's own ``_doc_checklist_source`` interface and names the
+string locally, mirroring ``plasticos_commission/models/sales_dashboard.py``.
 """
 
 from __future__ import annotations
@@ -20,20 +20,14 @@ def native_model_installed(env) -> bool:
     return NATIVE_MODEL in env
 
 
-def create_native_document(env, *, name: str, folder, datas: bytes, doc_type: str, transaction=None):
-    """Create a documents.document through its owning module.
-
-    ``transaction`` is optional: the commission test links the document to its
-    transaction; the helper's own test creates an unattached one.
-    """
+def create_native_document(env, *, name: str, folder, datas: bytes, doc_type: str):
+    """Create an unattached documents.document through its owning module."""
     vals = {
         "name": name,
         "folder_id": folder.id,
         "datas": datas,
         "doc_type": doc_type,
     }
-    if transaction is not None:
-        vals["transaction_id"] = transaction.id
     return env[NATIVE_MODEL].create(vals)
 
 
