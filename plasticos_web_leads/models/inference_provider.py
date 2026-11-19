@@ -769,16 +769,14 @@ def _document_specifications(
         if not refs:
             issues.append("specification_uncited")
             continue
-        kept.append(
-            {
-                "property": prop,
-                "value": value,
-                "unit": _spec_text(item.get("unit"), 40),
-                "test_conditions": _spec_text(item.get("test_conditions"), 200),
-                "source_refs": refs,
-                "conflicts": _spec_conflicts(item.get("conflicts")),
-            }
-        )
+        record: dict[str, Any] = {}
+        record["property"] = prop
+        record["value"] = value
+        record["unit"] = _spec_text(item.get("unit"), 40)
+        record["test_conditions"] = _spec_text(item.get("test_conditions"), 200)
+        record["source_refs"] = refs
+        record["conflicts"] = _spec_conflicts(item.get("conflicts"))
+        kept.append(record)
     return kept
 
 
