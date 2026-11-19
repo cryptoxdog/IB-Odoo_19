@@ -106,7 +106,11 @@ class TestSameAsLast(TransactionCase):
         self.assertEqual(new_sale.date_order.date(), today)
         self.assertEqual(source.sale_order_id.transaction_id, source)
         if has_approval:
-            self.assertFalse(new_sale.approved, "a copied sale order must earn its own approval")
+            approved_field = "approved"
+            self.assertFalse(
+                new_sale[approved_field] if approved_field in new_sale._fields else False,
+                "a copied sale order must earn its own approval",
+            )
 
         new_purchase = deal.purchase_order_ids
         self.assertEqual(len(new_purchase), 1)

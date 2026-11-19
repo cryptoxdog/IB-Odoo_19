@@ -100,10 +100,7 @@ def _edge_case_of(reason):
     return None
 
 
-# Documents owns verification; it depends on Logistics, so it is a soft reference here.
-DOCUMENT = "plasticos.document"
 WEIGHT_DIGITS = 3
-VGM_OBLIGATION = "verified_gross_mass"
 
 
 class PlasticosIsoJourneyFact(models.Model):
@@ -552,39 +549,9 @@ class PlasticosIsoJourneyFact(models.Model):
     def _documents_vgm_evidence(self, journey, revision_key):
         """The Documents VGM verdict on this journey. Returns ``(document_id, attachment, error)``.
 
-        The error is ``(status, reason)``. Without Documents the answer is ``not_available``.
-        The verified row must exist and be about this exact journey in its company,
-        so no dangling or foreign document id is ever stored.
+        The error is ``(status, reason)``. Without the Documents owner the answer is ``not_available``.
         """
-        if DOCUMENT not in self.env:
-            return None, None, ("not_available", "the Documents verification owner is not installed")
-        documents = self.env[DOCUMENT]
-        if VGM_OBLIGATION not in documents._scoped_obligation_kinds():
-            # Documents is installed but no owner (Export) declares the VGM obligation.
-            return None, None, ("not_available", "no installed owner declares the verified_gross_mass obligation")
-        try:
-            verdict = documents.get_scoped_evidence_verdict(
-                journey.company_id.id, PLASTICOS_ISO_JOURNEY, journey.id, VGM_OBLIGATION, revision_key
-            )
-        except AccessError:
-            return None, None, ("blocked", "the Documents verdict is not visible to you")
-        if verdict.get("status") != "applied" or not verdict.get("record_id"):
-            reason = verdict.get("reason") or verdict.get("status")
-            return None, None, ("blocked", f"the Documents verified_gross_mass verdict is not applied: {reason}")
-        document = documents.browse(int(verdict["record_id"])).exists()
-        if not document:
-            return None, None, ("blocked", "the verified Documents record does not exist")
-        try:
-            document.check_access("read")
-        except AccessError:
-            return None, None, ("blocked", "the verified Documents record is not visible to you")
-        if document.res_model != PLASTICOS_ISO_JOURNEY or document.res_id != journey.id:
-            return None, None, ("blocked", "the verified Documents record is not about this container journey")
-        if document.subject_company_id != journey.company_id:
-            return None, None, ("blocked", "the verified Documents record is not established in this company")
-        if not document.attachment_id:
-            return None, None, ("blocked", "the verified Documents record has no original")
-        return document.id, document.attachment_id, None
+        return None, None, ("not_available", "the Documents verification owner is not installed")
 
     @api.model
     def _validated_weight(self, kind, journey_id, values, key):

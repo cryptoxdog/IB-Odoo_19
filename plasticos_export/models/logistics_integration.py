@@ -177,6 +177,22 @@ class PlasticosLogisticsRequestExport(models.Model):
             "source_fingerprint": revision._notice_fingerprint(),
         }
 
+    def _export_link(self, load):
+        """The unreleased cargo link that sets this load's export window."""
+        link_model = self.env[EXPORT_CARGO_LINK]
+        link = link_model.search(
+            [("source_load_id", "=", load.id), ("state", "!=", "released")],
+            order="id desc",
+            limit=1,
+        )
+        if not link and load.sale_order_id:
+            link = link_model.search(
+                [("sale_order_id", "=", load.sale_order_id.id), ("state", "!=", "released")],
+                order="id desc",
+                limit=1,
+            )
+        return link
+
 
 class PlasticosLoadExport(models.Model):
     _inherit = "plasticos.load"
