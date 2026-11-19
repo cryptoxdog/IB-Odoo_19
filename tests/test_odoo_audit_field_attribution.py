@@ -511,7 +511,8 @@ def test_depends_on_a_model_without_a_repo_definition_is_not_checked(tmp_path: P
 # check_state_machine used to index the trailing "state" of a *_state Selection
 # as the model state field, so allocation_state tokens like held/committed were
 # judged against journey_binding_state values. Only a field named exactly state
-# or status is the state field, and only a condition naming it is judged.
+# or status is the state field, and only tokens compared against it are judged:
+# a mixed condition judges its state clause but never the other Selection's.
 
 SLOT_STATES = """
 class SampleSlot(models.Model):
@@ -584,6 +585,44 @@ def test_an_illegal_token_on_a_field_named_state_still_fails(tmp_path: Path):
             "cargo_form",
             "sample.cargo",
             '<form><header><button name="action_bad" type="object" invisible="state == \'bogus\'"/></header></form>',
+        ),
+    )
+    findings = _state_findings(root)
+    assert [(e["model"], e["invalid_state"]) for e in findings] == [("sample.cargo", "bogus")]
+
+
+def test_a_mixed_condition_judges_only_the_state_clause(tmp_path: Path):
+    # The condition names the state field, so the clause gate passes; the
+    # journey_binding_state token belongs to the other Selection's clause and
+    # must not be judged against the state values.
+    root = _tree(tmp_path)
+    _write(root, "sample_states/models/cargo.py", CARGO_STATES)
+    _views(
+        root,
+        "sample_ui",
+        _view(
+            "cargo_form",
+            "sample.cargo",
+            '<form><header><button name="action_mixed" type="object" invisible="state == \'done\' and '
+            "journey_binding_state == 'active'\"/></header></form>",
+        ),
+    )
+    assert _state_findings(root) == []
+
+
+def test_a_mixed_condition_still_flags_an_illegal_state_token(tmp_path: Path):
+    # The negative twin: clause attribution must not silence a real illegal
+    # state value inside a mixed condition.
+    root = _tree(tmp_path)
+    _write(root, "sample_states/models/cargo.py", CARGO_STATES)
+    _views(
+        root,
+        "sample_ui",
+        _view(
+            "cargo_form",
+            "sample.cargo",
+            '<form><header><button name="action_mixed_bad" type="object" invisible="state == \'bogus\' and '
+            "journey_binding_state == 'active'\"/></header></form>",
         ),
     )
     findings = _state_findings(root)
