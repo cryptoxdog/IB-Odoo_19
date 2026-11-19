@@ -652,23 +652,32 @@ class TestSpecPropagationToOpportunity(TransactionCase):
         self.assertIn("4.2", material.freeform_notes or "")
 
 
+class _OcrResponse:
+    def __init__(self, payload, status_code=200):
+        self.status_code = status_code
+        self._payload = payload
+
+    def raise_for_status(self):
+        return None
+
+    def json(self):
+        return self._payload
+
+
 def _ocr_response(pages, status_code=200):
-    class _Response:
-        status_code = status_code
-
-        def raise_for_status(self):
-            return None
-
-        def json(self):
-            return {
-                "id": "ocr-1",
-                "object": "ocr.result",
-                "purpose": "text_recognition",
-                "page_count": len(pages),
-                "pages": pages,
-            }
-
-    return _Response()
+    """DeepSeek-shaped OCR envelope; a payload dict with an error key passes through raw."""
+    if isinstance(pages, dict) and "error" in pages:
+        return _OcrResponse(pages, status_code=status_code)
+    return _OcrResponse(
+        {
+            "id": "ocr-1",
+            "object": "ocr.result",
+            "purpose": "text_recognition",
+            "page_count": len(pages),
+            "pages": pages,
+        },
+        status_code=status_code,
+    )
 
 
 def _ocr_page(index, text, finish_reason="stop"):

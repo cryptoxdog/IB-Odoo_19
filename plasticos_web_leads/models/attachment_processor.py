@@ -344,8 +344,9 @@ def pdf_pages_for_broker(
             allow_redirects=False,
         )
     except Exception as exc:  # Network/timeout/client errors are attachment-local.
-        _logger.warning("OCR request failed for %s: %s", source_ref, type(exc).__name__)
-        return [], _error(OCR_ERROR_FAILED, f"OCR request failed ({type(exc).__name__}).")
+        _logger.warning("OCR request failed for %s: %s", source_ref, exc)
+        detail = " ".join(str(exc).split())[:160]
+        return [], _error(OCR_ERROR_FAILED, f"OCR request failed ({type(exc).__name__}): {detail}")
 
     status = int(getattr(response, "status_code", 0) or 0)
     if status in _REDIRECT_STATUSES:
