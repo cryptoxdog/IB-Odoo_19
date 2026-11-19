@@ -2000,7 +2000,11 @@ class TestErpWorksheetImport(TransactionCase):
         return self.env[model_name].browse(data.res_id)
 
     def test_zero_weight_unit_price_replays_drafts_and_leaves_posted_or_edited_documents(self):
-        """Zero weight and an exact unit price becomes each-quantity. Units is not a quantity."""
+        """Zero weight and an exact unit price becomes each-quantity. Replay does not rewrite it.
+
+        Historical ERP journal lines are immutable and the bill cannot be posted.
+        ``WKSDetail.Units`` is not the quantity.
+        """
         index = self._index()
         self._add_order(index, "u-so", "SO-U", "SO", CUSTOMER)
         self._add_order(index, "u-po", "PO-U", "PO", VENDOR)
@@ -2059,19 +2063,19 @@ class TestErpWorksheetImport(TransactionCase):
 
         replay = self._run(index)
         self.assertEqual(len(invoice.invoice_line_ids), 2)
+        self.assertEqual(unit_line.quantity, 2)
         self.assertAlmostEqual(invoice.amount_total, 100.0, places=2)
         self.assertEqual(len(bill.invoice_line_ids), 2)
-        self.assertFalse(any("posted" in item["detail"] for item in replay.anomalies))
-
-        unit_line.write({"quantity": 7})
-        self._run(index)
-        self.assertEqual(unit_line.quantity, 7, "an edited draft line is not rewritten")
-        self.assertEqual(len(invoice.invoice_line_ids), 2, "an edited draft does not gain a replacement line")
-
-        bill.action_post()
-        index.lines["d-unit"]["PPrice"] = "10"
-        index.lines["d-unit"]["PAmount"] = "20"
-        self._run(index)
-        self.assertEqual(bill.state, "posted")
-        self.assertAlmostEqual(bill.amount_total, 60.0, places=2)
         self.assertEqual(bill_unit.quantity, 2)
+        self.assertAlmostEqual(bill.amount_total, 60.0, places=2)
+        self.assertEqual(invoice.state, "draft")
+        self.assertEqual(bill.state, "draft")
+
+        from odoo.exceptions import UserError
+
+        with self.assertRaises(UserError):
+            unit_line.write({"quantity": 7})
+        with self.assertRaises(UserError):
+            bill.action_post()
+        self.assertEqual(unit_line.quantity, 2, "a historical draft line cannot be rewritten")
+        self.assertEqual(bill.state, "draft", "a historical vendor bill cannot be posted")

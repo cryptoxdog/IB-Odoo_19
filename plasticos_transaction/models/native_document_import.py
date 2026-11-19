@@ -893,22 +893,19 @@ def _customer_invoice(importer, report, context, partner_by_cp, number, buysell,
     invoice_date = _date(buysell.get("InvoiceDt"))
     if not invoice_date:
         report.anomaly("BuySell", number, "no source invoice date; customer invoice left undated")
-    return _complete_unaltered_draft(
-        _move(
-            importer,
-            f"legacy_erp_outinv_{_token(number)}",
-            {
-                "move_type": "out_refund" if signed < 0 else "out_invoice",
-                "partner_id": partner_id,
-                "journal_id": context["sale_journal"].id,
-                "invoice_date": (invoice_date or "")[:10] or False,
-                "invoice_origin": number,
-                "ref": number,
-                "invoice_user_id": (context.get("salesperson") or {}).get(number) or False,
-                "invoice_line_ids": commands,
-            },
-        ),
-        commands,
+    return _move(
+        importer,
+        f"legacy_erp_outinv_{_token(number)}",
+        {
+            "move_type": "out_refund" if signed < 0 else "out_invoice",
+            "partner_id": partner_id,
+            "journal_id": context["sale_journal"].id,
+            "invoice_date": (invoice_date or "")[:10] or False,
+            "invoice_origin": number,
+            "ref": number,
+            "invoice_user_id": (context.get("salesperson") or {}).get(number) or False,
+            "invoice_line_ids": commands,
+        },
     )
 
 
@@ -1254,22 +1251,19 @@ def _write_purchase_bill(
         ]
     else:
         lines = _vendor_bill_lines(importer, context, report, index, account, number, amount, row)
-    move = _complete_unaltered_draft(
-        _move(
-            importer,
-            f"legacy_erp_ininv_{_token(payable_id)}",
-            {
-                "move_type": "in_refund" if amount < 0 else "in_invoice",
-                "partner_id": partner_id,
-                "journal_id": context["purchase_journal"].id,
-                "invoice_date": invoice_date or False,
-                "invoice_origin": number,
-                "ref": facts["ref"],
-                "invoice_line_ids": lines,
-                **_vendor_due_terms(importer, context, report, batch, facts),
-            },
-        ),
-        lines,
+    move = _move(
+        importer,
+        f"legacy_erp_ininv_{_token(payable_id)}",
+        {
+            "move_type": "in_refund" if amount < 0 else "in_invoice",
+            "partner_id": partner_id,
+            "journal_id": context["purchase_journal"].id,
+            "invoice_date": invoice_date or False,
+            "invoice_origin": number,
+            "ref": facts["ref"],
+            "invoice_line_ids": lines,
+            **_vendor_due_terms(importer, context, report, batch, facts),
+        },
     )
     if documents is not None:
         documents["freight_bills" if freight else "bills"].append(move.id)
@@ -1356,53 +1350,6 @@ def _move(importer, xml_id, values):
     record = model.create(values)
     importer._write_identity_marker(model, xml_id, record)
     return record
-
-
-def _same_draft_line(line, vals) -> bool:
-    """True when an existing draft line is still the imported product, quantity, price, and account."""
-    if line.display_type not in (False, "product"):
-        return False
-    product_id = vals.get("product_id")
-    if product_id and line.product_id.id != product_id:
-        return False
-    if abs((line.quantity or 0.0) - float(vals.get("quantity") or 0.0)) > 1e-6:
-        return False
-    if abs((line.price_unit or 0.0) - float(vals.get("price_unit") or 0.0)) > 1e-6:
-        return False
-    account_id = vals.get("account_id")
-    if account_id and line.account_id.id != account_id:
-        return False
-    name = (vals.get("name") or "").strip()
-    if name and (line.name or "").strip() != name:
-        return False
-    return True
-
-
-def _complete_unaltered_draft(move, commands):
-    """Add source lines a draft is missing. Posted and altered drafts are left as they are.
-
-    A draft is altered when one of its invoice lines is not one of the lines this
-    import would write. Existing lines are not rewritten, the move is not posted,
-    and a second pass with the same lines writes nothing.
-    """
-    if move is None or move.state != "draft" or not commands:
-        return move
-    if any(line.reconciled for line in move.line_ids):
-        return move
-    computed = [command[2] for command in commands]
-    used: set[int] = set()
-    for line in move.invoice_line_ids:
-        match = next(
-            (index for index, vals in enumerate(computed) if index not in used and _same_draft_line(line, vals)),
-            None,
-        )
-        if match is None:
-            return move
-        used.add(match)
-    missing = [Command.create(computed[index]) for index in range(len(computed)) if index not in used]
-    if missing:
-        move.with_context(**_import_context()).write({"invoice_line_ids": missing})
-    return move
 
 
 def _confirm_sales(importer, report, pending_sales, context):
