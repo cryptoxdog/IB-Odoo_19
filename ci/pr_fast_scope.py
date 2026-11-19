@@ -198,7 +198,7 @@ def _apply(
     if _is_doc(current) or _is_inert(current):
         acc.docs.append(current)
         return
-    if current.endswith(".py"):
+    if current.endswith(".py") or _is_addon_resource(current):
         acc.absence.append(current)
         return
     acc.unknown.append(f"{current}: unclassified path")
@@ -366,7 +366,11 @@ def _references(tree: ast.AST, rel: str, dotted: str | None) -> bool:
         if isinstance(node, ast.Constant) and isinstance(node.value, str) and node.value in targets:
             return True
         for imported in _imported_modules(node):
-            if dotted and (imported == dotted or imported.startswith(dotted + ".")):
+            if not dotted:
+                continue
+            if imported == dotted or imported.startswith(dotted + "."):
+                return True
+            if "." in imported and dotted.endswith("." + imported):
                 return True
     return False
 
@@ -375,7 +379,11 @@ def _imported_modules(node: ast.AST) -> list[str]:
     if isinstance(node, ast.Import):
         return [alias.name for alias in node.names]
     if isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
-        return [node.module]
+        found = [node.module]
+        for alias in node.names:
+            if alias.name and alias.name != "*":
+                found.append(f"{node.module}.{alias.name}")
+        return found
     return []
 
 
@@ -428,6 +436,14 @@ def _is_requirements(path: str) -> bool:
 
 def _is_gate(path: str) -> bool:
     return path.startswith("plasticos_gate/") or path == "ci/with_github_read_token.py"
+
+
+_ADDON_RESOURCE_SUFFIXES = {".css", ".csv", ".js", ".po", ".pot", ".scss", ".xml", ".yaml", ".yml"}
+
+
+def _is_addon_resource(path: str) -> bool:
+    """A non-Python file inside a PlasticOS addon. No pure-Python suite can execute it."""
+    return path.startswith("plasticos_") and "/" in path and Path(path).suffix.lower() in _ADDON_RESOURCE_SUFFIXES
 
 
 def _is_doc(path: str) -> bool:

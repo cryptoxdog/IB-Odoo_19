@@ -57,14 +57,15 @@ def fetch_default_branch() -> str:
     repo = os.environ.get("GITHUB_REPOSITORY", "")
     if not repo or "/" not in repo:
         raise SystemExit("nightly cannot resolve the repository default branch")
-    request = urllib.request.Request(
-        f"https://api.github.com/repos/{repo}",
-        headers={
-            "Accept": "application/vnd.github+json",
-            "Authorization": f"Bearer {os.environ.get('GITHUB_TOKEN', '')}",
-            "User-Agent": "plasticos-nightly-full-python",
-        },
-    )
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "plasticos-nightly-full-python",
+    }
+    token = os.environ.get("GITHUB_TOKEN", "").strip()
+    if not token:
+        raise SystemExit("nightly requires GITHUB_TOKEN to read the default branch")
+    headers["Authorization"] = f"Bearer {token}"
+    request = urllib.request.Request(f"https://api.github.com/repos/{repo}", headers=headers)
     try:
         with urllib.request.urlopen(request, timeout=30) as response:
             payload = json.load(response)

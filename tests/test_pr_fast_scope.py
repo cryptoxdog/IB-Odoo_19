@@ -109,6 +109,24 @@ def test_a_none_constant_does_not_select_a_non_python_path(tmp_path: Path) -> No
     assert receipt["unknown_paths"] == []
 
 
+def test_addon_resource_without_a_quoting_test_is_not_applicable(tmp_path: Path) -> None:
+    receipt = classify([("M", "plasticos_base/views/foo.xml", None)], tmp_path)
+    assert receipt["status"] == "not_applicable"
+    assert receipt["structural_absence"] == ["plasticos_base/views/foo.xml"]
+    assert receipt["unknown_paths"] == []
+
+
+def test_short_import_alias_selects_the_addon_module(tmp_path: Path) -> None:
+    _write(tmp_path, "plasticos_partner_import/erp/mapping_status.py", "VALUE = 1\n")
+    _write(
+        tmp_path,
+        "tests/test_erp.py",
+        "from erp import mapping_status\n\ndef test_status():\n    assert mapping_status.VALUE == 1\n",
+    )
+    receipt = classify([("M", "plasticos_partner_import/erp/mapping_status.py", None)], tmp_path)
+    assert receipt["scoped_nonmarker_tests"] == ["tests/test_erp.py"]
+
+
 def test_a_substring_mention_does_not_select_a_test(tmp_path: Path) -> None:
     _write(tmp_path, "pkg/mod.py", "VALUE = 1\n")
     _write(tmp_path, "tests/test_mod.py", "note = 'see pkg/mod for context'\n\ndef test_mod():\n    assert note\n")
