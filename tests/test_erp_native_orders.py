@@ -21,6 +21,7 @@ from erp.native_orders import (  # noqa: E402
     UNAPPROVED,
     UNBILLABLE,
     amount_drift,
+    cohort_has_uncommitted_credits,
     commission_recipients,
     declined_price_basis,
     freight_vendor_id,
@@ -305,6 +306,21 @@ def test_vendor_credit_uses_only_an_explicit_reverse_batch():
         one,
     )
     assert other_vendor is None and "not the credit vendor" in vendor_reason
+    same_sign, same_sign_reason = vendor_credit_original(
+        {"PayableID": "7", "APBatchNo": "107200", "CpID": "2213", "Amount": "-10"},
+        batches,
+        {"107184": [{"PayableID": "591399", "CpID": "2213", "Amount": "-1"}]},
+    )
+    assert same_sign is None and "not a positive vendor bill" in same_sign_reason
+    zero_bill, zero_reason = vendor_credit_original(
+        {"PayableID": "8", "APBatchNo": "107200", "CpID": "2213", "Amount": "-10"},
+        batches,
+        {"107184": [{"PayableID": "591400", "CpID": "2213", "Amount": "0"}]},
+    )
+    assert zero_bill is None and "not a positive vendor bill" in zero_reason
+    assert cohort_has_uncommitted_credits([("53797",)]) is True
+    assert cohort_has_uncommitted_credits([]) is False
+    assert cohort_has_uncommitted_credits(None) is False
 
 
 def test_frozen_wksdetail_zero_weight_census_is_two_sales_and_fourteen_purchases():

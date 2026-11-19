@@ -840,8 +840,9 @@ def vendor_credit_original(credit: dict, batches: dict, payables_by_batch: dict)
     """The one original payable named by ``PayablesBatch.ReverseBatchNo``.
 
     The reversed batch must exist, must contain exactly one payable, and that
-    payable's vendor must match the credit and the reversed header. Amounts
-    are not read. Anything else is unresolved.
+    payable must be a positive vendor bill whose vendor matches the credit and
+    the reversed header. Amount magnitude does not choose the bill. A credit,
+    a zero, or any other mismatch is unresolved.
     """
     batch_no = _batch_ref(credit.get("APBatchNo"))
     header = batches.get(batch_no) if batch_no else None
@@ -871,7 +872,19 @@ def vendor_credit_original(credit: dict, batches: dict, payables_by_batch: dict)
         )
     if header_vendor and header_vendor != credit_vendor:
         return None, f"ReverseBatchNo {reverse} header vendor {header_vendor} is not the credit vendor {credit_vendor}"
+    if _number(original.get("Amount")) <= 0:
+        return None, f"ReverseBatchNo {reverse} payable {original_id} is not a positive vendor bill"
     return original_id, ""
+
+
+def cohort_has_uncommitted_credits(deferred_credits) -> bool:
+    """True when vendor credits are still only in memory.
+
+    A cohort commit must not run while this is true: the other documents of
+    those worksheets would persist and the credits would vanish if the process
+    stopped before the final flush.
+    """
+    return bool(deferred_credits)
 
 
 def _number(value: str | None) -> float:

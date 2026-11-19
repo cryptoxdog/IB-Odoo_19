@@ -90,7 +90,7 @@ def realize(importer, index, report, partner_by_cp, limit, commit, dry_run) -> b
                 continue
             for sale_id in sale_ids:
                 pending_sales.setdefault(sale_id, []).extend(trailers)
-            if commit and position % 200 == 0:
+            if commit and position % 200 == 0 and _cohort_commit_ready(context):
                 _confirm_ready_sales(importer, report, pending_sales, context)
                 importer.env.cr.commit()
                 _logger.info("ERP import committed through worksheet %s", position)
@@ -120,6 +120,15 @@ def realize(importer, index, report, partner_by_cp, limit, commit, dry_run) -> b
     if commit and not dry_run:
         importer.env.cr.commit()
     return True
+
+
+def _cohort_commit_ready(context) -> bool:
+    """A cohort commit may land only when no vendor credit is still memory-only."""
+    from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
+        cohort_has_uncommitted_credits,
+    )
+
+    return not cohort_has_uncommitted_credits(context.get("deferred_vendor_credits"))
 
 
 def _discard_worksheet(context, number: str) -> None:
