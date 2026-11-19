@@ -8,6 +8,7 @@ key). The line's ``PONumber`` then selects ``PO`` where ``Source`` is ``SO`` or
 from __future__ import annotations
 
 import html
+from decimal import Decimal, InvalidOperation
 
 from .limits import resolve_limit
 
@@ -69,6 +70,8 @@ __all__ = [
     "payable_matches_purchase",
     "payables_reconciliation",
     "purchase_bill_lines",
+    "unit_priced_quantity",
+    "zero_weight_exceptions",
     "quarantined_payable",
     "reconciliation_gap",
     "sale_note",
@@ -713,21 +716,92 @@ def unit_price(amount: str | None, weight: str | None, price: str | None) -> flo
     return _number(price)
 
 
+def _decimal(value) -> Decimal | None:
+    """Exact source money. Blank and the extract's NULL token are zero. A bad token is None."""
+    if isinstance(value, Decimal):
+        return value
+    text = "" if value is None else str(value).strip()
+    if not text or text.upper() == "NULL":
+        return Decimal(0)
+    try:
+        return Decimal(text)
+    except InvalidOperation:
+        return None
+
+
+def unit_priced_quantity(amount, price) -> tuple[str, Decimal | None, str]:
+    """Integer each-quantity for a zero-weight line: ``amount / price``.
+
+    ``WKSDetail.Units`` is not an input. Quantity 1 is not a substitute.
+    Returns ``("empty", None, "")``, ``("unit", quantity, "")``, or
+    ``("invalid", None, reason)``. ``quantity`` is the signed integer that
+    reconciles: ``quantity * price == amount``.
+    """
+    amount_d = _decimal(amount)
+    price_d = _decimal(price)
+    if amount_d is None or price_d is None:
+        return "invalid", None, "amount or unit price is not a decimal"
+    if amount_d == 0:
+        return "empty", None, ""
+    if price_d == 0:
+        return "invalid", None, "zero weight, nonzero amount, no unit price"
+    quantity = amount_d / price_d
+    if quantity != quantity.to_integral_value() or quantity * price_d != amount_d or quantity == 0:
+        return "invalid", None, "amount is not an exact multiple of the unit price"
+    return "unit", quantity, ""
+
+
+def zero_weight_exceptions(rows: list[dict], side: str) -> list[dict]:
+    """Invalid zero-weight lines. Each row names the source identity, amount, and reason."""
+    prefix = "S" if side == "sale" else "P"
+    found = []
+    for row in rows:
+        weight, _uom = native_quantity(row.get(f"{prefix}Weight"), row.get(f"{prefix}WeightUOM"))
+        if weight:
+            continue
+        kind, _quantity, reason = unit_priced_quantity(row.get(f"{prefix}Amount"), row.get(f"{prefix}Price"))
+        if kind != "invalid":
+            continue
+        found.append(
+            {
+                "detail_id": (row.get("DetailID") or "").strip(),
+                "side": side,
+                "amount": "" if row.get(f"{prefix}Amount") is None else str(row.get(f"{prefix}Amount")).strip(),
+                "reason": reason,
+            }
+        )
+    return found
+
+
 def purchase_bill_lines(rows: list[dict]) -> list[dict]:
     """Buy-side worksheet quantity and rate for a vendor bill.
 
-    ``PWeight`` is the quantity. The rate is ``PAmount / PWeight``. A stored
-    price with no weight uses ``PAmount / PPrice`` as the quantity. The payable
-    lump (one unit at the full amount) is not a weight.
+    ``PWeight`` is the quantity. The rate is ``PAmount / PWeight``. A zero weight
+    with a nonzero amount is an each-quantity only when ``PAmount / PPrice`` is
+    an exact integer. Anything else is omitted here and reported by
+    ``zero_weight_exceptions``. The payable lump is not a weight.
     """
     lines = []
     for row in rows:
-        amount = _number(row.get("PAmount"))
         weight, uom = native_quantity(row.get("PWeight"), row.get("PWeightUOM"))
-        price = _number(row.get("PPrice"))
-        if not weight and amount and price:
-            weight = amount / price
-        if not weight or not amount:
+        if not weight:
+            kind, quantity, _reason = unit_priced_quantity(row.get("PAmount"), row.get("PPrice"))
+            price_d = _decimal(row.get("PPrice"))
+            if kind != "unit" or quantity is None or price_d is None:
+                continue
+            lines.append(
+                {
+                    "quantity": float(abs(quantity)),
+                    "price_unit": float(abs(price_d)),
+                    "uom": "E",
+                    "grade": (row.get("GradeID") or "").strip(),
+                    "description": (row.get("InvoiceDesc") or "").strip(),
+                    "detail_id": (row.get("DetailID") or "").strip(),
+                }
+            )
+            continue
+        amount = _number(row.get("PAmount"))
+        if not amount:
             continue
         lines.append(
             {

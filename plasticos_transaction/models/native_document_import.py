@@ -848,13 +848,27 @@ def _customer_invoice(importer, report, context, partner_by_cp, number, buysell,
     partner_id = partner_ids.pop()
     if not partner_id:
         return None
+    from odoo.addons.plasticos_partner_import.erp.native_orders import unit_priced_quantity  # noqa: PLC0415
+
     commands = []
     for rows in sale_groups.values():
         for detail_id, line, _header in rows:
             product = _product(importer, context, line.get("GradeID"), line.get("InvoiceDesc"))
             weight, uom_code, price = _line_terms(context, report, detail_id, line, "sale")
             if not weight:
-                continue
+                kind, quantity, reason = unit_priced_quantity(line.get("SAmount"), line.get("SPrice"))
+                if kind != "unit" or quantity is None:
+                    if kind == "invalid":
+                        amount_text = "" if line.get("SAmount") is None else str(line.get("SAmount")).strip()
+                        report.anomaly(
+                            "WKSDetail",
+                            detail_id,
+                            f"sale {reason}; amount {amount_text or 'blank'}",
+                        )
+                    continue
+                weight = float(quantity)
+                price = float(str(line.get("SPrice")).strip())
+                uom_code = "E"
             vals = {
                 "product_id": product.id,
                 "name": (line.get("InvoiceDesc") or "").strip() or product.display_name,
@@ -879,19 +893,22 @@ def _customer_invoice(importer, report, context, partner_by_cp, number, buysell,
     invoice_date = _date(buysell.get("InvoiceDt"))
     if not invoice_date:
         report.anomaly("BuySell", number, "no source invoice date; customer invoice left undated")
-    return _move(
-        importer,
-        f"legacy_erp_outinv_{_token(number)}",
-        {
-            "move_type": "out_refund" if signed < 0 else "out_invoice",
-            "partner_id": partner_id,
-            "journal_id": context["sale_journal"].id,
-            "invoice_date": (invoice_date or "")[:10] or False,
-            "invoice_origin": number,
-            "ref": number,
-            "invoice_user_id": (context.get("salesperson") or {}).get(number) or False,
-            "invoice_line_ids": commands,
-        },
+    return _complete_unaltered_draft(
+        _move(
+            importer,
+            f"legacy_erp_outinv_{_token(number)}",
+            {
+                "move_type": "out_refund" if signed < 0 else "out_invoice",
+                "partner_id": partner_id,
+                "journal_id": context["sale_journal"].id,
+                "invoice_date": (invoice_date or "")[:10] or False,
+                "invoice_origin": number,
+                "ref": number,
+                "invoice_user_id": (context.get("salesperson") or {}).get(number) or False,
+                "invoice_line_ids": commands,
+            },
+        ),
+        commands,
     )
 
 
@@ -966,16 +983,25 @@ def _customer_adjustments(importer, index, report, context, partner_by_cp, numbe
         documents["credits"].append(move.id)
 
 
-def _vendor_bill_lines(importer, context, index, material, number, amount, row):
+def _vendor_bill_lines(importer, context, report, index, material, number, amount, row):
     """Worksheet buy quantity when this payable is the purchase total."""
     from odoo.addons.plasticos_partner_import.erp.native_orders import (  # noqa: PLC0415
         payable_matches_purchase,
         purchase_bill_lines,
+        zero_weight_exceptions,
     )
 
     item = (row.get("ItemID") or "").strip()
     details = [index.lines[detail_id] for detail_id in index.detail_ids(number)]
-    specs = purchase_bill_lines(details) if item in ("", "0") and payable_matches_purchase(amount, details) else []
+    matched = item in ("", "0") and payable_matches_purchase(amount, details)
+    if matched:
+        for exc in zero_weight_exceptions(details, "purchase"):
+            report.anomaly(
+                "WKSDetail",
+                exc["detail_id"] or number,
+                f"purchase {exc['reason']}; amount {exc['amount'] or 'blank'}",
+            )
+    specs = purchase_bill_lines(details) if matched else []
     if not specs:
         product, description = _worksheet_material(importer, context, index, number)
         label = description or (product.display_name if product else "") or (row.get("InvoiceNo") or "").strip()
@@ -1227,20 +1253,23 @@ def _write_purchase_bill(
             )
         ]
     else:
-        lines = _vendor_bill_lines(importer, context, index, account, number, amount, row)
-    move = _move(
-        importer,
-        f"legacy_erp_ininv_{_token(payable_id)}",
-        {
-            "move_type": "in_refund" if amount < 0 else "in_invoice",
-            "partner_id": partner_id,
-            "journal_id": context["purchase_journal"].id,
-            "invoice_date": invoice_date or False,
-            "invoice_origin": number,
-            "ref": facts["ref"],
-            "invoice_line_ids": lines,
-            **_vendor_due_terms(importer, context, report, batch, facts),
-        },
+        lines = _vendor_bill_lines(importer, context, report, index, account, number, amount, row)
+    move = _complete_unaltered_draft(
+        _move(
+            importer,
+            f"legacy_erp_ininv_{_token(payable_id)}",
+            {
+                "move_type": "in_refund" if amount < 0 else "in_invoice",
+                "partner_id": partner_id,
+                "journal_id": context["purchase_journal"].id,
+                "invoice_date": invoice_date or False,
+                "invoice_origin": number,
+                "ref": facts["ref"],
+                "invoice_line_ids": lines,
+                **_vendor_due_terms(importer, context, report, batch, facts),
+            },
+        ),
+        lines,
     )
     if documents is not None:
         documents["freight_bills" if freight else "bills"].append(move.id)
@@ -1327,6 +1356,53 @@ def _move(importer, xml_id, values):
     record = model.create(values)
     importer._write_identity_marker(model, xml_id, record)
     return record
+
+
+def _same_draft_line(line, vals) -> bool:
+    """True when an existing draft line is still the imported product, quantity, price, and account."""
+    if line.display_type not in (False, "product"):
+        return False
+    product_id = vals.get("product_id")
+    if product_id and line.product_id.id != product_id:
+        return False
+    if abs((line.quantity or 0.0) - float(vals.get("quantity") or 0.0)) > 1e-6:
+        return False
+    if abs((line.price_unit or 0.0) - float(vals.get("price_unit") or 0.0)) > 1e-6:
+        return False
+    account_id = vals.get("account_id")
+    if account_id and line.account_id.id != account_id:
+        return False
+    name = (vals.get("name") or "").strip()
+    if name and (line.name or "").strip() != name:
+        return False
+    return True
+
+
+def _complete_unaltered_draft(move, commands):
+    """Add source lines a draft is missing. Posted and altered drafts are left as they are.
+
+    A draft is altered when one of its invoice lines is not one of the lines this
+    import would write. Existing lines are not rewritten, the move is not posted,
+    and a second pass with the same lines writes nothing.
+    """
+    if move is None or move.state != "draft" or not commands:
+        return move
+    if any(line.reconciled for line in move.line_ids):
+        return move
+    computed = [command[2] for command in commands]
+    used: set[int] = set()
+    for line in move.invoice_line_ids:
+        match = next(
+            (index for index, vals in enumerate(computed) if index not in used and _same_draft_line(line, vals)),
+            None,
+        )
+        if match is None:
+            return move
+        used.add(match)
+    missing = [Command.create(computed[index]) for index in range(len(computed)) if index not in used]
+    if missing:
+        move.with_context(**_import_context()).write({"invoice_line_ids": missing})
+    return move
 
 
 def _confirm_sales(importer, report, pending_sales, context):

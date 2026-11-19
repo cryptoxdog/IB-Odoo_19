@@ -1998,3 +1998,80 @@ class TestErpWorksheetImport(TransactionCase):
         )
         self.assertTrue(data, xml_id)
         return self.env[model_name].browse(data.res_id)
+
+    def test_zero_weight_unit_price_replays_drafts_and_leaves_posted_or_edited_documents(self):
+        """Zero weight and an exact unit price becomes each-quantity. Units is not a quantity."""
+        index = self._index()
+        self._add_order(index, "u-so", "SO-U", "SO", CUSTOMER)
+        self._add_order(index, "u-po", "PO-U", "PO", VENDOR)
+        weighted = _line("d-weight", "90001", "lk-so-w", "lk-po-w", "100", "50", "100", "20")
+        weighted["SPrice"] = "0.50"
+        weighted["PPrice"] = "0.20"
+        unit = _line("d-unit", "90001", "lk-so-u", "lk-po-u", "0", "50", "0", "40")
+        unit["SPrice"] = "25"
+        unit["PPrice"] = "20"
+        unit["Units"] = "9"
+        invalid = _line("d-bad", "90001", "lk-so-b", "lk-po-b", "0", "10", "0", "0")
+        invalid["SPrice"] = "3"
+        invalid["PPrice"] = "0"
+        invalid["Units"] = "1"
+        for line_key, detail, order_number in (
+            ("lk-so-w", weighted, "SO-U"),
+            ("lk-po-w", weighted, "PO-U"),
+            ("lk-so-u", unit, "SO-U"),
+            ("lk-po-u", unit, "PO-U"),
+            ("lk-so-b", invalid, "SO-U"),
+            ("lk-po-b", invalid, "PO-U"),
+        ):
+            if line_key.startswith("lk-so"):
+                self._add_line(index, line_key, order_number, detail)
+            else:
+                index.order_lines[line_key] = {"PONumber": order_number}
+        index.buysells["90001"] = _buysell("90001", "2022-02-18 00:00:00", InvoiceDt="2022-04-01 00:00:00")
+        index.payables_by_buysell["90001"] = [
+            _payable("pay-unit", "90001", VENDOR, "60", "50100", "PO-U", batch="B-UNIT", item="0")
+        ]
+        report = self._run(index)
+
+        invoice = self._order("account.move", "legacy_erp_outinv_90001")
+        each = self.env.ref("uom.product_uom_unit")
+        unit_line = invoice.invoice_line_ids.filtered(lambda line: line.quantity == 2)
+        weighted_line = invoice.invoice_line_ids.filtered(lambda line: line.quantity == 100)
+        self.assertEqual(invoice.state, "draft")
+        self.assertEqual(len(invoice.invoice_line_ids), 2, "the invalid line is not quantity 1")
+        self.assertEqual(unit_line.product_uom_id, each)
+        self.assertAlmostEqual(unit_line.price_unit, 25.0)
+        self.assertAlmostEqual(invoice.amount_total, 100.0, places=2)
+        self.assertEqual(weighted_line.product_uom_id, self.env.ref("uom.product_uom_lb"))
+        self.assertTrue(
+            any(
+                item["key"] == "d-bad" and "amount 10" in item["detail"] and "not an exact multiple" in item["detail"]
+                for item in report.anomalies
+            )
+        )
+        bill = self._order("account.move", "legacy_erp_ininv_pay_unit")
+        bill_unit = bill.invoice_line_ids.filtered(lambda line: line.quantity == 2)
+        self.assertEqual(bill.state, "draft")
+        self.assertEqual(len(bill.invoice_line_ids), 2)
+        self.assertEqual(bill_unit.product_uom_id, each)
+        self.assertAlmostEqual(bill_unit.price_unit, 20.0)
+        self.assertAlmostEqual(bill.amount_total, 60.0, places=2)
+
+        replay = self._run(index)
+        self.assertEqual(len(invoice.invoice_line_ids), 2)
+        self.assertAlmostEqual(invoice.amount_total, 100.0, places=2)
+        self.assertEqual(len(bill.invoice_line_ids), 2)
+        self.assertFalse(any("posted" in item["detail"] for item in replay.anomalies))
+
+        unit_line.write({"quantity": 7})
+        self._run(index)
+        self.assertEqual(unit_line.quantity, 7, "an edited draft line is not rewritten")
+        self.assertEqual(len(invoice.invoice_line_ids), 2, "an edited draft does not gain a replacement line")
+
+        bill.action_post()
+        index.lines["d-unit"]["PPrice"] = "10"
+        index.lines["d-unit"]["PAmount"] = "20"
+        self._run(index)
+        self.assertEqual(bill.state, "posted")
+        self.assertAlmostEqual(bill.amount_total, 60.0, places=2)
+        self.assertEqual(bill_unit.quantity, 2)
