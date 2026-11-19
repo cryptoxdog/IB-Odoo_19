@@ -482,12 +482,13 @@ QUALIFICATION_REF_PREFIXES = ("seller.", "quantity.", "ai.", "vision.", "conflic
 def mass_basis(weight_source: str | None, lbs: float | None) -> str:
     """Name how a per-load pound figure was obtained. Unknown mass stays unknown."""
     source = (weight_source or "").strip()
+    if source.startswith("bare_number:"):
+        return MASS_BASIS_UNKNOWN
     if not lbs or lbs <= 0 or source in ("", "none", WEIGHT_SOURCE_AREA):
         return MASS_BASIS_UNKNOWN
     if source.startswith("explicit_") or source in _SELLER_STATED_SOURCES:
         return MASS_BASIS_SELLER_STATED
-    if source.startswith(("unit_count:", "pallet_count", "bare_number:")):
-        # A seller count or bare number converted with a disclosed unit assumption.
+    if source.startswith(("unit_count:", "pallet_count")):
         return MASS_BASIS_CALCULATED
     return MASS_BASIS_INFERRED
 

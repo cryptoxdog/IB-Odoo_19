@@ -7,14 +7,14 @@ obtain a pass) and ``l9.contract/unknown-and-degradation@1`` (an absent flag sta
 not a success).
 
 While ``ONE_PASS_ORCHESTRATION`` is absent or false, every scenario in this module skips.
-Bridge scenarios also skip until ``SPEC_PROPAGATION`` is true. Today's callers keep patching
-``evaluate_economic_opportunity``. When the flag is true, triage calls ``run_broker_inference``
-once on this module; that replacement returns the same assessment record plus
-``economic_assessment``, and may carry ``document_specifications`` and ``representation_alignment``.
+Bridge scenarios also skip until ``SPEC_PROPAGATION`` is true. When the flag is true, triage
+calls the real ``run_broker_inference``. These tests mock only ``call_structured_multimodal``.
+The provider result is the bundle ``_result`` returns. Specification fixtures are lists of records.
 """
 
 from __future__ import annotations
 
+import base64
 import importlib
 from contextlib import contextmanager
 from pathlib import Path
@@ -35,13 +35,36 @@ _ALIGNMENT_VIEWS = (
     _MODULE_ROOT / "views" / "web_lead_views.xml",
     _MODULE_ROOT / "views" / "web_lead_ux.xml",
 )
-_SPEC_FACTS = {
-    "mfi": 7.5,
-    "density": 0.941,
-    "moisture": 0.08,
-    "notes": "Seller notes: natural pellets, no print.",
-    "extracted_pdf_text": "PDF page 1: melt flow 7.5 g/10 min, density 0.941.",
-}
+_PROVIDER_SPEC: dict[str, object] = {}
+_PROVIDER_SPEC["provider"] = "openai"
+_PROVIDER_SPEC["transport"] = "openai_compatible"
+_PROVIDER_SPEC["api_key"] = "test-not-sent"
+_PROVIDER_SPEC["model"] = "test-model"
+_PROVIDER_SPEC["base_url"] = None
+_PROVIDER_SPEC["workspace_id"] = None
+_PROVIDER_SPEC["temperature"] = 0.0
+_TRANSPORT = "odoo.addons.plasticos_web_leads.models.inference_provider.call_structured_multimodal"
+_CONFIG = "odoo.addons.plasticos_web_leads.models.web_lead_config.PlasticosWebLeadConfig.get_one_pass_provider"
+_SELLER_REF = "seller.material_description"
+
+
+def _spec(prop, value, unit, *, cited=True):
+    record = {}
+    record["property"] = prop
+    record["value"] = value
+    record["unit"] = unit
+    record["test_conditions"] = "190C/2.16kg" if prop == "MFI" else None
+    record["source_refs"] = [_SELLER_REF] if cited else ["model.guess"]
+    record["conflicts"] = []
+    return record
+
+
+_CITED_SPECS = [
+    _spec("MFI", 7.5, "g/10min"),
+    _spec("density", 0.941, "g/cm3"),
+    _spec("moisture", 0.08, "%"),
+]
+_UNCITED_SPEC = _spec("ash", 12, "%", cited=False)
 
 
 def one_pass_orchestration():
@@ -59,53 +82,71 @@ def spec_propagation():
     return getattr(module, "SPEC_PROPAGATION", False) is True
 
 
-def _cite_hot_assessment(assessment):
-    """A HOT recommendation with no citation is forced back to REVIEW. Supply one."""
-    if not isinstance(assessment, dict):
-        return assessment
-    core = {key: value for key, value in assessment.items() if key != "economic_assessment"}
-    body = core.get("assessment")
-    if not isinstance(body, dict):
-        return {**core, "economic_assessment": core}
-    if body.get("recommended_disposition") == "hot" and not body.get("supporting_evidence_refs"):
-        body = dict(body)
-        body["supporting_evidence_refs"] = ["seller.material_description"]
-        core["assessment"] = body
-    return {**core, "economic_assessment": core}
+def _provider_body(disposition, specifications=None):
+    """One provider reply. The real parser keeps only cited specification records."""
+    specs = list(specifications or [])
+    normalization: dict[str, object] = {}
+    normalization["polymer"] = "HDPE"
+    normalization["confidence"] = 0.9
+    normalization["estimated_lbs_per_load"] = None
+    normalization["is_plastic"] = disposition != "cold"
+    return {
+        "normalization": normalization,
+        "vision": [],
+        "economic": {
+            "recommended_disposition": disposition,
+            "opportunity_signal": "strong" if disposition == "hot" else "unknown",
+            "confidence": 0.9,
+            "material_suitability": "unsuitable" if disposition == "cold" else "supported",
+            "commercial_rationale": "deterministic test recommendation",
+            "supporting_evidence_refs": [_SELLER_REF],
+            "contradictory_evidence_refs": [],
+            "missing_information": [],
+            "recommended_clarification": [],
+            "disposition_rationale": "test",
+        },
+        "alignment": {
+            "status": "unknown",
+            "representativeness": "unknown",
+            "score": 20,
+            "seller_confirmation_ref": None,
+            "covers_photo": False,
+            "covers_specs": False,
+            "covers_whole_offered_lot": False,
+        },
+        "quality_availability_question": None,
+        "document_specifications": specs,
+    }
 
 
 @contextmanager
 def economic_assessment_patch(*, side_effect=None, return_value=None, document_specifications=None):
-    """Patch the commercial assessment the live pipeline actually calls.
+    """Run the real broker function with the transport mocked.
 
-    The flag-off path patches ``evaluate_economic_opportunity`` only. The flag-on
-    path also patches ``run_broker_inference`` and returns that same record.
-    ``document_specifications`` is attached only when a caller supplies it.
+    ``side_effect`` is ``_recommend(disposition)``. Specification rows are a list.
+    An absent provider is left absent when ``return_value`` is ``"no_provider"``.
     """
+    disposition = "review"
+    if side_effect is not None:
+        sample = side_effect(qualification_signals={})
+        disposition = sample["assessment"]["recommended_disposition"]
+    specs = list(document_specifications or [])
 
-    def _assessment(*args, **kwargs):
-        if side_effect is not None:
-            try:
-                return side_effect(*args, **kwargs)
-            except TypeError:
-                return side_effect(**kwargs)
-        return return_value
+    def transport(*_args, **_kwargs):
+        return _provider_body(disposition, specs), {"attempts": 1}
 
-    economic = patch(f"{_WEB_LEAD}.evaluate_economic_opportunity", side_effect=_assessment)
-    if not one_pass_orchestration():
-        with economic:
+    if return_value == "no_provider" or not one_pass_orchestration():
+        fallback = side_effect or (lambda **_kwargs: return_value)
+        with patch(f"{_WEB_LEAD}.evaluate_economic_opportunity", side_effect=fallback):
             yield
         return
 
-    def _broker(*args, **kwargs):
-        published = _cite_hot_assessment(_assessment(*args, **kwargs))
-        if document_specifications is not None and isinstance(published, dict):
-            published = dict(published)
-            published["document_specifications"] = dict(document_specifications)
-        return published
-
-    with economic, patch(f"{_WEB_LEAD}.run_broker_inference", side_effect=_broker):
-        yield
+    with (
+        patch(_CONFIG, return_value=dict(_PROVIDER_SPEC)),
+        patch(_TRANSPORT, side_effect=transport) as mocked,
+        patch(f"{_WEB_LEAD}.evaluate_economic_opportunity") as economic,
+    ):
+        yield mocked, economic
 
 
 def _payload(external_id, *, material, quantity="Two truckloads every month", weight=""):
@@ -170,29 +211,6 @@ def _planning_basis(bundle):
     return basis
 
 
-def _parent_map(root):
-    parents = {}
-    for parent in root.iter():
-        for child in list(parent):
-            parents[child] = parent
-    return parents
-
-
-_CONDITION_ATTRS = ("invisible", "t-if", "t-elif", "column_invisible")
-
-
-def _condition_blob(element, parents):
-    """Condition attributes from the element up, plus the 100/100 text itself."""
-    chunks = []
-    node = element
-    while node is not None:
-        chunks.extend(node.attrib[name] for name in _CONDITION_ATTRS if node.attrib.get(name))
-        if node.text and "100/100" in node.text:
-            chunks.append(node.text)
-        node = parents.get(node)
-    return " ".join(chunks)
-
-
 @tagged("post_install", "-at_install", "plasticos", "web_lead", "one_pass")
 class TestBrokerOnePassScenarios(TransactionCase):
     """Scenarios that run only after ONE_PASS_ORCHESTRATION is true."""
@@ -230,31 +248,14 @@ class TestBrokerOnePassScenarios(TransactionCase):
 
         return calls, patch.object(model, "_process_hot_lead_triage", wrapper)
 
-    def _role_patches(self, recommend):
-        normalize = patch(f"{_WEB_LEAD}.ai_normalizer.normalize_with_provider")
-        vision = patch(f"{_WEB_LEAD}.image_analyzer.analyze_image_with_provider")
-        economic = patch(f"{_WEB_LEAD}.evaluate_economic_opportunity")
-
-        def broker(*args, **kwargs):
-            try:
-                assessment = recommend(*args, **kwargs)
-            except TypeError:
-                assessment = recommend(**kwargs)
-            return _cite_hot_assessment(assessment)
-
-        one_call = patch(f"{_WEB_LEAD}.run_broker_inference", side_effect=broker)
-        return normalize, vision, economic, one_call
-
     def test_one_provider_request_not_three(self):
-        normalize, vision, economic, one_call = self._role_patches(_recommend("hot"))
-        with normalize as normalize_mock, vision as vision_mock, economic as economic_mock, one_call as broker:
+        with economic_assessment_patch(side_effect=_recommend("hot")) as mocks:
             lead = self.WebLead.create_from_cognito(
                 _payload("ONE-PASS-001", material="HDPE pellets", weight=f"{_GROUNDED_LBS} lbs")
             )
-        broker.assert_called_once()
-        normalize_mock.assert_not_called()
-        vision_mock.assert_not_called()
-        economic_mock.assert_not_called()
+        transport, economic = mocks
+        transport.assert_called_once()
+        economic.assert_not_called()
         self.assertEqual(lead.decision, "hot")
         self.assertEqual(lead.intake_id.quantity_per_load_lbs, _GROUNDED_LBS)
 
@@ -264,13 +265,11 @@ class TestBrokerOnePassScenarios(TransactionCase):
                 _payload("ONE-PASS-RETRY-001", material="HDPE pellets", weight=f"{_GROUNDED_LBS} lbs")
             )
         self.assertTrue(lead.intake_id)
-        normalize, vision, economic, one_call = self._role_patches(_recommend("hot"))
-        with normalize as normalize_mock, vision as vision_mock, economic as economic_mock, one_call as broker:
+        with economic_assessment_patch(side_effect=_recommend("hot")) as mocks:
             lead.action_retry_economic_assessment()
-        broker.assert_called_once()
-        normalize_mock.assert_not_called()
-        vision_mock.assert_not_called()
-        economic_mock.assert_not_called()
+        transport, economic = mocks
+        transport.assert_called_once()
+        economic.assert_not_called()
         self.assertEqual(self.env["plasticos.intake"].search_count([("source_lead_id", "=", lead.id)]), 1)
 
     def test_hot_without_grounded_weight_does_not_create_an_intake(self):
@@ -328,50 +327,134 @@ class TestBrokerOnePassScenarios(TransactionCase):
                     if isinstance(value, (int, float)):
                         self.assertNotIn(int(value), _PLANNING_NUMBERS, key)
 
+    def test_absent_provider_is_review_evidence_not_an_error(self):
+        lead = self.WebLead.create_from_cognito(_payload("ONE-PASS-NOPROVIDER", material="HDPE pellets"))
+        self.assertNotEqual(lead.state, "error")
+        self.assertEqual(lead.decision, "review")
+        bundle = lead.evidence_bundle or {}
+        assessment = bundle.get("economic_assessment") or {}
+        self.assertEqual(assessment.get("status"), "unavailable")
+        self.assertEqual(lead.estimated_lbs_per_load, 0)
+
+    def test_cold_recommendation_keeps_the_evidence(self):
+        offered = [*_CITED_SPECS, _UNCITED_SPEC]
+        with economic_assessment_patch(side_effect=_recommend("cold"), document_specifications=offered):
+            lead = self.WebLead.create_from_cognito(
+                _payload("ONE-PASS-COLD", material="copper scrap", quantity="scrap metal", weight="")
+            )
+        self.assertNotEqual(lead.state, "error")
+        self.assertEqual(lead.decision, "cold")
+        specs = (lead.evidence_bundle or {}).get("document_specifications") or []
+        self.assertTrue(any(row.get("property") == "MFI" for row in specs if isinstance(row, dict)))
+        self.assertFalse(any(row.get("property") == "ash" for row in specs if isinstance(row, dict)))
+        self.assertTrue((lead.evidence_bundle or {}).get("economic_assessment"))
+
+    def test_image_bytes_are_admitted_and_pdf_text_stays_unknown(self):
+        module = importlib.import_module(_WEB_LEAD)
+        prepare = getattr(module, "_broker_request_media", None)
+        self.assertTrue(callable(prepare))
+        raw = b"\xff\xd8\xff\xd9"
+        attachment = self.env["ir.attachment"].create(
+            {
+                "name": "lot.jpg",
+                "datas": base64.b64encode(raw),
+                "mimetype": "image/jpeg",
+            }
+        )
+        images, _documents, omissions = prepare(
+            self.env["plasticos.web.lead"],
+            [
+                {
+                    "content_type": "image/jpeg",
+                    "acquisition_status": "success",
+                    "ir_attachment_id": attachment.id,
+                    "source_id": "photo-1",
+                },
+                {"content_type": "application/pdf", "source_id": "pdf-1", "pages": []},
+            ],
+        )
+        self.assertEqual(images[0]["content"], raw)
+        self.assertTrue(str(images[0]["content_type"]).startswith("image/"))
+        self.assertNotIn("content_base64", images[0])
+        self.assertTrue(any(item.get("reason") == "document_text_extraction_not_enabled" for item in omissions))
+
+    def test_same_checksum_pdfs_remain_distinct(self):
+        copy_pdfs = getattr(self.env["crm.lead"], "_plasticos_copy_web_lead_pdfs", None)
+        if not callable(copy_pdfs):
+            self.skipTest("PDF copy is owned by the CRM bridge")
+        lead = self.WebLead.create({"lead_id": "PDF-IDENTITY-1", "decision": "review", "company_name": "PDF Co"})
+        opportunity = self.env["crm.lead"].create({"name": "PDF identity", "type": "opportunity"})
+        lead.crm_lead_id = opportunity
+        encoded = base64.b64encode(b"%PDF-1.4 identical")
+        for name in ("a.pdf", "b.pdf"):
+            self.env["ir.attachment"].create(
+                {
+                    "name": name,
+                    "datas": encoded,
+                    "mimetype": "application/pdf",
+                    "res_model": "plasticos.web.lead",
+                    "res_id": lead.id,
+                }
+            )
+        self.assertEqual(opportunity._plasticos_copy_web_lead_pdfs(), 2)
+        self.assertEqual(opportunity._plasticos_copy_web_lead_pdfs(), 0)
+        stored = self.env["ir.attachment"].search(
+            [
+                ("res_model", "=", "crm.lead"),
+                ("res_id", "=", opportunity.id),
+                ("mimetype", "=", "application/pdf"),
+            ]
+        )
+        self.assertEqual(len(stored), 2)
+
 
 @tagged("post_install", "-at_install", "plasticos", "web_lead", "one_pass")
 class TestRepresentationAlignmentDisplay(TransactionCase):
-    """100/100 is a view condition, not a model score (WL-INV-001, WL-INV-002)."""
+    """The model computes 100/100. The view displays that field (WL-INV-001, WL-INV-002)."""
 
     def setUp(self):
         super().setUp()
         if not one_pass_orchestration():
             self.skipTest("ONE_PASS_ORCHESTRATION is absent")
 
-    def test_one_hundred_only_when_alignment_is_confirmed_for_the_whole_lot(self):
-        allowed = {path.resolve() for path in _ALIGNMENT_VIEWS}
-        offenders = []
-        viewed = []
-        for path in _MODULE_ROOT.rglob("*"):
-            if path.suffix not in {".xml", ".py", ".js"} or "__pycache__" in path.parts or "tests" in path.parts:
-                continue
-            text = path.read_text(encoding="utf-8")
-            if "100/100" not in text:
-                continue
-            if path.resolve() not in allowed:
-                offenders.append(str(path.relative_to(_MODULE_ROOT)))
-            else:
-                viewed.append(path)
-        self.assertFalse(offenders, f"100/100 display is views-only: {offenders}")
-        self.assertTrue(viewed, "100/100 display is missing from the web-lead views")
+    def test_label_is_computed_and_the_view_displays_the_field(self):
+        module = importlib.import_module(_WEB_LEAD)
+        label = module.representation_alignment_label
+        confirmed = {
+            "seller": {"confirmation": "The photo and the specs cover the whole offered lot."},
+            "representation_alignment": {
+                "status": "aligned",
+                "representativeness": "confirmed_whole_lot",
+                "seller_confirmation_ref": "seller.confirmation",
+                "covers_photo": True,
+                "covers_specs": True,
+                "covers_whole_offered_lot": True,
+                "whole_lot_confirmed": True,
+            },
+        }
+        photo_only = {
+            "representation_alignment": {
+                "status": "aligned",
+                "representativeness": "confirmed_whole_lot",
+                "seller_confirmation_ref": "seller.confirmation",
+                "covers_photo": True,
+                "covers_specs": False,
+                "covers_whole_offered_lot": False,
+                "whole_lot_confirmed": False,
+            },
+        }
+        self.assertEqual(label(confirmed), "100/100")
+        self.assertNotEqual(label(photo_only), "100/100")
         from defusedxml import ElementTree
 
-        for path in viewed:
+        displayed = False
+        for path in _ALIGNMENT_VIEWS:
             root = ElementTree.parse(path).getroot()
-            parents = _parent_map(root)
-            gated = False
             for element in root.iter():
-                own = " ".join([*(element.attrib.values()), element.text or "", element.tail or ""])
-                if "100/100" not in own:
-                    continue
-                blob = _condition_blob(element, parents)
-                self.assertIn("aligned", blob)
-                self.assertIn("confirmed_whole_lot", blob)
-                self.assertIn("seller", blob)
-                self.assertIn("photo", blob)
-                self.assertIn("spec", blob)
-                gated = True
-            self.assertTrue(gated, path.name)
+                blob = " ".join([*(element.attrib.values()), element.text or ""])
+                if "representation_alignment_display" in blob:
+                    displayed = True
+        self.assertTrue(displayed, "the view must display representation_alignment_display")
 
 
 @tagged("post_install", "-at_install", "plasticos", "web_lead", "one_pass")
@@ -400,30 +483,47 @@ class TestSpecPropagationToOpportunity(TransactionCase):
         if not one_pass_orchestration():
             self.skipTest("ONE_PASS_ORCHESTRATION is absent")
 
-    def test_spec_facts_and_pdf_text_survive_onto_the_opportunity(self):
-        with economic_assessment_patch(side_effect=_recommend("hot"), document_specifications=_SPEC_FACTS):
+    def _spec_map(self, lead):
+        rows = (lead.evidence_bundle or {}).get("document_specifications") or []
+        self.assertIsInstance(rows, list)
+        return {row.get("property"): row for row in rows if isinstance(row, dict)}
+
+    def test_cited_specs_are_kept_and_an_uncited_number_is_refused(self):
+        offered = [*_CITED_SPECS, _UNCITED_SPEC]
+        with economic_assessment_patch(side_effect=_recommend("hot"), document_specifications=offered):
             lead = self.WebLead.create_from_cognito(
-                _payload(
-                    "ONE-PASS-SPEC-001",
-                    material="HDPE pellets",
-                    weight=f"{_GROUNDED_LBS} lbs",
-                )
+                _payload("ONE-PASS-SPEC-001", material="HDPE pellets", weight=f"{_GROUNDED_LBS} lbs")
             )
-        specs = (lead.evidence_bundle or {}).get("document_specifications") or {}
-        self.assertEqual(specs.get("mfi"), _SPEC_FACTS["mfi"])
-        self.assertEqual(specs.get("density"), _SPEC_FACTS["density"])
-        self.assertEqual(specs.get("moisture"), _SPEC_FACTS["moisture"])
-        self.assertEqual(specs.get("notes"), _SPEC_FACTS["notes"])
-        self.assertEqual(specs.get("extracted_pdf_text"), _SPEC_FACTS["extracted_pdf_text"])
+        specs = self._spec_map(lead)
+        self.assertEqual(specs["MFI"]["value"], 7.5)
+        self.assertEqual(specs["MFI"]["unit"], "g/10min")
+        self.assertNotIn("ash", specs)
         opportunity = lead.crm_lead_id
         self.assertTrue(opportunity)
         material = opportunity.opportunity_material_ids
         self.assertEqual(len(material), 1)
-        self.assertAlmostEqual(material.melt_flow_index, _SPEC_FACTS["mfi"])
-        self.assertAlmostEqual(material.density, _SPEC_FACTS["density"])
-        self.assertAlmostEqual(material.moisture_percent, _SPEC_FACTS["moisture"])
-        self.assertIn(_SPEC_FACTS["notes"], material.freeform_notes or "")
-        preserved = f"{opportunity.description or ''} {material.freeform_notes or ''}"
-        self.assertIn(_SPEC_FACTS["extracted_pdf_text"], preserved)
+        self.assertAlmostEqual(material.melt_flow_index, 7.5)
+        self.assertAlmostEqual(material.density, 0.941)
+        self.assertAlmostEqual(material.moisture_percent, 0.08)
+        self.assertIn("MFI", material.freeform_notes or "")
+        self.assertNotIn("ash", material.freeform_notes or "")
         self.assertEqual(material.quantity_per_load_lbs, _GROUNDED_LBS)
         self.assertNotIn(int(material.quantity_per_load_lbs), _PLANNING_NUMBERS)
+
+    def test_replay_replaces_the_previous_specification(self):
+        with economic_assessment_patch(side_effect=_recommend("hot"), document_specifications=_CITED_SPECS):
+            lead = self.WebLead.create_from_cognito(
+                _payload("ONE-PASS-SPEC-REPLAY", material="HDPE pellets", weight=f"{_GROUNDED_LBS} lbs")
+            )
+        self.assertAlmostEqual(lead.crm_lead_id.opportunity_material_ids.melt_flow_index, 7.5)
+        corrected = [_spec("MFI", 4.2, "g/10min"), _spec("density", 0.941, "g/cm3"), _spec("moisture", 0.08, "%")]
+        with economic_assessment_patch(side_effect=_recommend("hot"), document_specifications=corrected):
+            lead.action_retry_economic_assessment()
+        propagate = getattr(lead, "_propagate_one_pass_spec", None)
+        self.assertTrue(callable(propagate))
+        propagate(lead.crm_lead_id)
+        material = lead.crm_lead_id.opportunity_material_ids
+        self.assertAlmostEqual(material.melt_flow_index, 4.2)
+        description = str(lead.crm_lead_id.description or "")
+        self.assertIn("4.2", description)
+        self.assertNotIn("7.5", description)
