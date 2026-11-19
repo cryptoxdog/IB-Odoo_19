@@ -23,6 +23,7 @@ from erp.native_orders import (  # noqa: E402
     amount_drift,
     cohort_has_uncommitted_credits,
     commission_recipients,
+    credit_line_terms,
     declined_price_basis,
     freight_vendor_id,
     header_for_line,
@@ -237,6 +238,8 @@ def test_zero_weight_unit_price_is_exact_each_quantity_and_units_are_ignored():
     assert line["price_unit"] == 20
     assert line["uom"] == "E"
     assert unit_priced_quantity("-50", "25")[1] == -2
+    assert credit_line_terms(-2, 25) == (2.0, 25.0)
+    assert credit_line_terms(2, -25) == (2.0, 25.0)
     assert (
         purchase_bill_lines([{"PWeight": "0", "PAmount": "10", "PPrice": "3", "Units": "1", "DetailID": "bad"}]) == []
     )

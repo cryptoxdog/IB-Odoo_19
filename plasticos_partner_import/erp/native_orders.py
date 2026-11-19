@@ -752,6 +752,17 @@ def unit_priced_quantity(amount, price) -> tuple[str, Decimal | None, str]:
     return "unit", quantity, ""
 
 
+def credit_line_terms(quantity: float, price: float) -> tuple[float, float]:
+    """Positive quantity and price for one credit-note line.
+
+    ``unit_priced_quantity`` keeps the source sign so ``quantity * price``
+    still equals the source amount. A refund stores that magnitude; the move
+    type carries the direction. A negative quantity with a positive price would
+    otherwise leave a negative subtotal on an ``out_refund``.
+    """
+    return abs(float(quantity)), abs(float(price))
+
+
 def zero_weight_exceptions(rows: list[dict], side: str) -> list[dict]:
     """Invalid zero-weight lines. Each row names the source identity, amount, and reason."""
     prefix = "S" if side == "sale" else "P"
