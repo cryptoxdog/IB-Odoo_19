@@ -152,11 +152,12 @@ case "$MODE" in
     scope_runtime="$(printf '%s\n' "$scope" | sed -n 's/^runtime=//p')"
     log "scope: $(printf '%s\n' "$scope" | sed -n 's/^reason=//p')"
     # Wave 1: local counterparts of ci.yml's static and baseline collectors.
-    # The pure-Python suite stays in ci.yml. make pr and the pre-push gate
-    # (pr-validate -> make pr-check) do not run it.
+    # ci.yml pure-python-tests is the PR-fast lane. Unfiltered pytest tests/
+    # is the Staging nightly workflow. make pr and the pre-push gate
+    # (pr-validate -> make pr-check) do not run either pytest lane.
     targets=()
     if [ "$scope_audit" != "0" ]; then targets+=(audit audit-baseline); else log "→ audits skipped: only documentation changed"; fi
-    log "→ pytest skipped: ci.yml pure-python-tests runs the suite"
+    log "→ pytest skipped: ci.yml runs the PR-fast lane; the full Odoo-free suite is nightly"
     # Bash 3.2 (macOS /bin/bash) treats "${targets[@]}" as unbound under
     # set -u when the array is empty. A documentation-only scope leaves it
     # empty: both collectors are skipped, and that is a successful gate.
