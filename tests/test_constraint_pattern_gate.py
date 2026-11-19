@@ -4,6 +4,12 @@ models.Constraint and models.UniqueIndex enforce uniqueness through the ORM and
 raise ValidationError, so they need no create() pre-check. The checker must
 stay silent on them and keep warning on a _sql_constraints unique that has no
 create() search.
+
+The synthetic module sources interpolate the ``_ODOO_IMPORT_*`` fragments
+instead of carrying literal ``from odoo`` lines: tests/conftest.py
+collect-ignores any test module whose lines match its import heuristic, and a
+literal import line inside a string would silently deactivate this whole file
+under pure-Python CI.
 """
 
 from __future__ import annotations
@@ -15,6 +21,12 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "ci"))
 
 from check_constraint_patterns import check_sql_constraints_without_create_override  # noqa: E402
+
+# Odoo import lines as constants, so no physical line of this file starts with
+# ``from odoo`` / ``import odoo`` (see the module docstring).
+_ODOO_IMPORT_FIELDS = "from odoo import fields, models"
+_ODOO_IMPORT_API_FIELDS = "from odoo import api, fields, models"
+_ODOO_IMPORT_EXCEPTIONS = "from odoo.exceptions import ValidationError"
 
 
 def _scan(tmp_path: Path, source: str) -> list[str]:
@@ -28,8 +40,8 @@ def test_models_constraint_unique_is_silent(tmp_path: Path, monkeypatch):
     monkeypatch.setattr("check_constraint_patterns.WORKSPACE", tmp_path)
     issues = _scan(
         tmp_path,
-        """
-        from odoo import fields, models
+        f"""
+        {_ODOO_IMPORT_FIELDS}
 
         class SampleRule(models.Model):
             _name = "sample.rule"
@@ -47,8 +59,8 @@ def test_models_unique_index_is_silent(tmp_path: Path, monkeypatch):
     monkeypatch.setattr("check_constraint_patterns.WORKSPACE", tmp_path)
     issues = _scan(
         tmp_path,
-        """
-        from odoo import fields, models
+        f"""
+        {_ODOO_IMPORT_FIELDS}
 
         class SampleRule(models.Model):
             _name = "sample.rule"
@@ -67,8 +79,8 @@ def test_sql_constraints_unique_without_create_search_is_reported(tmp_path: Path
     monkeypatch.setattr("check_constraint_patterns.WORKSPACE", tmp_path)
     issues = _scan(
         tmp_path,
-        """
-        from odoo import fields, models
+        f"""
+        {_ODOO_IMPORT_FIELDS}
 
         class SampleRule(models.Model):
             _name = "sample.rule"
@@ -85,9 +97,9 @@ def test_sql_constraints_unique_with_a_create_search_is_clean(tmp_path: Path, mo
     monkeypatch.setattr("check_constraint_patterns.WORKSPACE", tmp_path)
     issues = _scan(
         tmp_path,
-        """
-        from odoo import api, fields, models
-        from odoo.exceptions import ValidationError
+        f"""
+        {_ODOO_IMPORT_API_FIELDS}
+        {_ODOO_IMPORT_EXCEPTIONS}
 
         class SampleRule(models.Model):
             _name = "sample.rule"
