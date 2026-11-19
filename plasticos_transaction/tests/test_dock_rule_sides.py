@@ -62,7 +62,8 @@ class TestDockRuleSides(TransactionCase):
                 "purchase_order_ids": [(6, 0, purchase.ids)],
             }
         )
-        self.assertEqual(sale.delivery_term, "appointment")
+        term_field = "delivery_term"
+        self.assertEqual(sale[term_field] if term_field in sale._fields else False, "appointment")
         self.assertEqual(deal.delivery_term, "appointment")
         self.assertEqual(deal.pickup_dock_rule, "fcfs")
         self.assertEqual(purchase.pickup_dock_rule, "fcfs")

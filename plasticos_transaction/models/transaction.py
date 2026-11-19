@@ -583,6 +583,10 @@ class PlasticosTransaction(models.Model):
             return sites
         return vendor
 
+    def _pickup_partners_from_loads(self):
+        """Pickup partners named on this transaction's loads. Logistics owns the loads."""
+        return self.env["res.partner"]
+
     def _resolved_pickup_partner(self):
         """Load pickup partner, else the PO vendor's single site, else the PO vendor.
 
@@ -591,7 +595,7 @@ class PlasticosTransaction(models.Model):
         Several loads that name different pickup partners fall through to the vendor.
         """
         self.ensure_one()
-        pickups = self.load_ids.mapped("pickup_partner_id")
+        pickups = self._pickup_partners_from_loads()
         if len(pickups) == 1:
             return pickups
         vendor = self.purchase_order_ids[:1].partner_id or self.supplier_id

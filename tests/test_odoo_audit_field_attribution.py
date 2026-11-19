@@ -504,3 +504,137 @@ def test_depends_on_a_model_without_a_repo_definition_is_not_checked(tmp_path: P
         """,
     )
     assert _invalid_depends(root) == []
+
+
+# ── State machine attribution ───────────────────────────────────────────────
+#
+# check_state_machine used to index the trailing "state" of a *_state Selection
+# as the model state field, so allocation_state tokens like held/committed were
+# judged against journey_binding_state values. Only a field named exactly state
+# or status is the state field, and only tokens compared against it are judged:
+# a mixed condition judges its state clause but never the other Selection's.
+
+SLOT_STATES = """
+class SampleSlot(models.Model):
+    _name = "sample.slot"
+
+    journey_binding_state = fields.Selection([("unbound", "Unbound"), ("active", "Active")])
+    allocation_state = fields.Selection([("available", "Available"), ("committed", "Committed"), ("held", "Held")])
+"""
+
+CARGO_STATES = """
+class SampleCargo(models.Model):
+    _name = "sample.cargo"
+
+    state = fields.Selection([("draft", "Draft"), ("done", "Done")])
+    journey_binding_state = fields.Selection([("unbound", "Unbound"), ("active", "Active")])
+"""
+
+
+def _state_findings(root: Path) -> list[dict]:
+    audit = OdooAudit(root)
+    with contextlib.redirect_stdout(io.StringIO()):
+        errors = audit.run_all_checks()
+    return [e for e in errors if e["type"] == "INVALID_STATE_VALUE"]
+
+
+def test_allocation_and_binding_tokens_are_clean_on_a_model_without_state(tmp_path: Path):
+    # Mirrors plasticos_export/views/allocation_views.xml: journey_binding_state
+    # and allocation_state are not the state field, so their tokens are not judged.
+    root = _tree(tmp_path)
+    _write(root, "sample_states/models/slot.py", SLOT_STATES)
+    _views(
+        root,
+        "sample_ui",
+        _view(
+            "slot_form",
+            "sample.slot",
+            """<form><header>
+            <button name="action_commit" type="object" invisible="not active or allocation_state == 'held'"/>
+            <button name="action_release" type="object" invisible="allocation_state not in ('committed', 'held')"/>
+            <button name="action_bind" type="object" invisible="journey_binding_state == 'active'"/>
+            </header></form>""",
+        ),
+    )
+    assert _state_findings(root) == []
+
+
+def test_a_token_on_another_selection_of_a_state_model_is_clean(tmp_path: Path):
+    root = _tree(tmp_path)
+    _write(root, "sample_states/models/cargo.py", CARGO_STATES)
+    _views(
+        root,
+        "sample_ui",
+        _view(
+            "cargo_form",
+            "sample.cargo",
+            '<form><header><button name="action_bind" type="object" invisible="journey_binding_state == \'active\'"/>'
+            "</header></form>",
+        ),
+    )
+    assert _state_findings(root) == []
+
+
+def test_an_illegal_token_on_a_field_named_state_still_fails(tmp_path: Path):
+    root = _tree(tmp_path)
+    _write(root, "sample_states/models/cargo.py", CARGO_STATES)
+    _views(
+        root,
+        "sample_ui",
+        _view(
+            "cargo_form",
+            "sample.cargo",
+            '<form><header><button name="action_bad" type="object" invisible="state == \'bogus\'"/></header></form>',
+        ),
+    )
+    findings = _state_findings(root)
+    assert [(e["model"], e["invalid_state"]) for e in findings] == [("sample.cargo", "bogus")]
+
+
+def test_a_mixed_condition_judges_only_the_state_clause(tmp_path: Path):
+    # The condition names the state field, so the clause gate passes; the
+    # journey_binding_state token belongs to the other Selection's clause and
+    # must not be judged against the state values.
+    root = _tree(tmp_path)
+    _write(root, "sample_states/models/cargo.py", CARGO_STATES)
+    _views(
+        root,
+        "sample_ui",
+        _view(
+            "cargo_form",
+            "sample.cargo",
+            '<form><header><button name="action_mixed" type="object" invisible="state == \'done\' and '
+            "journey_binding_state == 'active'\"/></header></form>",
+        ),
+    )
+    assert _state_findings(root) == []
+
+
+def test_a_mixed_condition_still_flags_an_illegal_state_token(tmp_path: Path):
+    # The negative twin: clause attribution must not silence a real illegal
+    # state value inside a mixed condition.
+    root = _tree(tmp_path)
+    _write(root, "sample_states/models/cargo.py", CARGO_STATES)
+    _views(
+        root,
+        "sample_ui",
+        _view(
+            "cargo_form",
+            "sample.cargo",
+            '<form><header><button name="action_mixed_bad" type="object" invisible="state == \'bogus\' and '
+            "journey_binding_state == 'active'\"/></header></form>",
+        ),
+    )
+    findings = _state_findings(root)
+    assert [(e["model"], e["invalid_state"]) for e in findings] == [("sample.cargo", "bogus")]
+
+
+def test_export_allocation_view_has_no_invalid_state_value_rows(monkeypatch):
+    """The three MODERATE rows on allocation_views.xml came from indexing
+    journey_binding_state as the slot state field; the real tree must be clean."""
+    monkeypatch.chdir(ROOT)
+    audit = OdooAudit(".")
+    with contextlib.redirect_stdout(io.StringIO()):
+        errors = audit.run_all_checks()
+    rows = [e for e in errors if e["type"] == "INVALID_STATE_VALUE" and e["file"].endswith("allocation_views.xml")]
+    assert rows == []
