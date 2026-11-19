@@ -8,6 +8,7 @@ validation, and the disposition validator), not a provider.
 
 from __future__ import annotations
 
+import inspect
 import sys
 import types
 from pathlib import Path
@@ -360,8 +361,9 @@ def test_malformed_provider_output_is_invalid_and_routes_review():
         provider = "fake"
         model = "fake-model"
 
-    import plasticos_web_leads.models.economic_evaluator as evaluator
-
+    # The suite loads this model through more than one path. Patch the module
+    # object the function actually runs, not a second import of the same name.
+    evaluator = inspect.getmodule(evaluate_economic_opportunity)
     original = evaluator.call_structured_text
     evaluator.call_structured_text = lambda *args, **kwargs: ({"opportunity_signal": "strong"}, {})
     original_meta = evaluator.provider_audit_metadata
