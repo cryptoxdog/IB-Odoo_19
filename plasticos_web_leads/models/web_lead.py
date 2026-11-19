@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import logging
 import re
 import uuid
@@ -34,7 +35,13 @@ from ..adapters.base import (
 )
 from ..adapters.registry import get_adapter
 from ..zip_place import resolve_pickup
-from .attachment_processor import copy_successful_attachments_to_intake, process_attachments
+from .attachment_processor import (
+    OCR_DECISION_EXTRACT,
+    copy_successful_attachments_to_intake,
+    extract_pdf_ocr_row,
+    ocr_row_decision,
+    process_attachments,
+)
 from .classification_engine import (
     DISPOSITION_COLD,
     DISPOSITION_HOT,
@@ -156,17 +163,45 @@ def _image_content_bytes(payload: Any) -> bytes:
     return decoded or b""
 
 
-def _pdf_page_strings(documents: list[dict[str, Any]]) -> list[str]:
-    """Page strings a caller already extracted. Bytes and empty pages stay out."""
+def _pdf_media(documents: list[dict[str, Any]]) -> tuple[list[str], list[dict[str, Any]]]:
+    """Admitted page strings plus their document/page coordinates, in lockstep.
+
+    Only complete pages are admitted. Index ``i`` of both lists describes the
+    same page, so a ``pdf.<document>.page.<page>`` citation resolves to exactly
+    one stored attachment page and can never land on another document.
+    """
     pages: list[str] = []
+    sources: list[dict[str, Any]] = []
     for document in documents:
+        source_ref = str(document.get("source_ref") or "")
+        source_id = str(document.get("source_id") or "")
         for page in document.get("pages") or []:
             if not isinstance(page, Mapping):
                 continue
             text = page.get("text")
             if page.get("parse_status") == _PARSE_STATUS_PARSED and isinstance(text, str) and text.strip():
                 pages.append(text)
-    return pages
+                sources.append(
+                    {
+                        "source_ref": source_ref,
+                        "source_id": source_id,
+                        "page_number": page.get("page_number"),
+                        "attachment_id": page.get("attachment_id"),
+                        "content_sha256": page.get("content_sha256"),
+                        "recognition_status": page.get("recognition_status"),
+                    }
+                )
+    return pages, sources
+
+
+def _pdf_row_omission_reason(pages: list[dict[str, Any]]) -> str:
+    """Visible reason for a PDF that admitted no page. Incomplete beats failed beats absent."""
+    statuses = {page.get("parse_status") for page in pages if isinstance(page, Mapping)}
+    if "incomplete" in statuses:
+        return "ocr_page_incomplete"
+    if "failed" in statuses:
+        return "ocr_page_failed"
+    return ""
 
 
 def _reading_from_broker(result: Mapping[str, Any]) -> tuple[dict[str, Any], list[dict[str, Any]]]:
@@ -244,7 +279,11 @@ def _broker_request_media(
                         "source_ref": source_ref,
                         "kind": "pdf",
                         "parse_status": "unknown",
-                        "reason": error.get("code") or "document_text_extraction_not_enabled",
+                        "reason": (
+                            error.get("code")
+                            or _pdf_row_omission_reason(pages)
+                            or "document_text_extraction_not_enabled"
+                        ),
                     }
                 )
             continue
@@ -319,6 +358,9 @@ def _apply_one_pass_evidence(
     pages = inner.get("pdf_page_text")
     if isinstance(pages, list):
         bundle["pdf_page_text"] = list(pages)
+    sources = inner.get("pdf_page_sources")
+    if isinstance(sources, list):
+        bundle["pdf_page_sources"] = list(sources)
     economic = inner.get(KEY_ECONOMIC_ASSESSMENT)
     if isinstance(economic, Mapping) and economic.get(KEY_STATUS):
         bundle[KEY_ECONOMIC_ASSESSMENT] = dict(economic)
@@ -393,7 +435,25 @@ def _citation_text(ref: Any, bundle: Mapping[str, Any]) -> str:
         if suffix.isdigit() and 0 <= int(suffix) < len(photos) and isinstance(photos[int(suffix)], Mapping):
             return _photo_finding_text(photos[int(suffix)])
         return ""
+    pdf_doc_page = re.fullmatch(r"pdf\.(\d+)\.page\.(\d+)", text)
+    if pdf_doc_page:
+        # A document-scoped citation resolves through the stored coordinates:
+        # exactly one admitted page of the named document and page number.
+        pages = bundle.get("pdf_page_text") if isinstance(bundle.get("pdf_page_text"), list) else []
+        sources = bundle.get("pdf_page_sources") if isinstance(bundle.get("pdf_page_sources"), list) else []
+        document = f"pdf.{int(pdf_doc_page.group(1))}"
+        page_number = int(pdf_doc_page.group(2))
+        for index, source in enumerate(sources):
+            if not isinstance(source, Mapping):
+                continue
+            if str(source.get("source_ref") or "") == document and source.get("page_number") == page_number:
+                if 0 <= index < len(pages):
+                    return str(pages[index] or "").strip()
+                return ""
+        return ""
     if text.startswith("pdf.page."):
+        # Legacy flat citations keep their original meaning: a position in the
+        # admitted page list of the bundle that minted them.
         pages = bundle.get("pdf_page_text") if isinstance(bundle.get("pdf_page_text"), list) else []
         suffix = text.rsplit(".", 1)[-1]
         if suffix.isdigit() and 0 <= int(suffix) < len(pages):
@@ -1299,11 +1359,56 @@ class PlasticosWebLead(models.Model):
             provider_hosts = ()
         return config.get_attachment_allowed_hosts(provider_hosts)
 
-    def _run_triage_pipeline(self, packet: WebLeadPacket | None = None):
+    def _refresh_pdf_ocr_rows(
+        self, rows: list[dict[str, Any]], config: Any, *, force: bool = False
+    ) -> list[dict[str, Any]]:
+        """Admit stored PDFs to OCR from their saved bytes without a paid repeat.
+
+        A row whose complete pages match the current stored revision is reused
+        as-is. A legacy row without text (``document_text_extraction_not_enabled``)
+        becomes eligible. A failed attempt on the same revision is retried only
+        on an explicit re-run (``force``); a changed revision is always
+        re-extracted. OCR failures stay document-local on the row.
+        """
+        if not rows:
+            return []
+        Attachment = self.env["ir.attachment"]
+        api_key = str((config._deepseek_api_key() if config else "") or "")
+        base_url = str((config.deepseek_base_url if config else "") or "")
+        refreshed: list[dict[str, Any]] = []
+        for row in rows:
+            if not isinstance(row, Mapping) or str(row.get("content_type") or "") != "application/pdf":
+                refreshed.append(dict(row))
+                continue
+            attachment_id = row.get("ir_attachment_id")
+            if not attachment_id:
+                refreshed.append(dict(row))
+                continue
+            stored = Attachment.browse(attachment_id)
+            content = _image_content_bytes(stored.datas) if stored.exists() else b""
+            if not content:
+                refreshed.append(dict(row))
+                continue
+            checksum = hashlib.sha256(content).hexdigest()
+            if ocr_row_decision(row, checksum=checksum, force=force) != OCR_DECISION_EXTRACT:
+                refreshed.append(dict(row))
+                continue
+            refreshed.append(
+                extract_pdf_ocr_row(
+                    row,
+                    content=content,
+                    checksum=checksum,
+                    api_key=api_key,
+                    base_url=base_url,
+                )
+            )
+        return refreshed
+
+    def _run_triage_pipeline(self, packet: WebLeadPacket | None = None, force_pdf_ocr: bool = False):
         """Execute the full AI triage pipeline on this web lead.
 
         Steps:
-          [ATTACH] 1. Store admitted attachments. PDF page text is whatever the processor parsed.
+          [ATTACH] 1. Store admitted attachments. PDF page text comes from the DeepSeek OCR seam.
           [BROKER] 2. One multimodal call (``run_broker_inference``). No separate text, vision, or economic call.
           [MERGE]  3. Merge the material reading. Photo findings stay in the evidence bundle.
           [CLASS]  4. Deterministic qualification. The validator decides.
@@ -1313,6 +1418,11 @@ class PlasticosWebLead(models.Model):
         ``packet`` is the in-memory admission packet and the only carrier of
         signed attachment URLs. A later re-triage has no packet: it reuses prior
         successful acquisitions and records the rest as unavailable.
+
+        Stored PDFs are recognized from their saved bytes, never by fetching the
+        signed URL again. Complete results for an unchanged revision are reused
+        without a paid call; a failed extraction is re-attempted only on an
+        explicit re-run (``force_pdf_ocr``).
         """
         self.ensure_one()
         config = self.env["plasticos.web.lead.config"].get_config()
@@ -1359,7 +1469,10 @@ class PlasticosWebLead(models.Model):
                     analyzer=None,
                     evidence_bundle=self.evidence_bundle,
                     allowed_hosts=self._attachment_allowed_hosts(config),
+                    ocr_api_key=config._deepseek_api_key(),
+                    ocr_base_url=config.deepseek_base_url,
                 )
+                attachment_evidence = self._refresh_pdf_ocr_rows(attachment_evidence, config, force=force_pdf_ocr)
                 images, documents, media_omissions = _broker_request_media(self, attachment_evidence)
             else:
                 urls = self.image_urls or []
@@ -1374,11 +1487,13 @@ class PlasticosWebLead(models.Model):
                 log_lines.append(f"[BROKER] provider={provider.provider}:{provider.model}")
             else:
                 log_lines.append("[BROKER] no provider configured.")
+            pdf_pages, pdf_sources = _pdf_media(documents)
             broker_result = run_broker_inference(
                 provider,
                 seller=_seller_claims_for_broker(triage_input),
                 images=images,
-                pdf_page_text=_pdf_page_strings(documents),
+                pdf_page_text=pdf_pages,
+                pdf_page_sources=pdf_sources,
                 planning_defaults=PLANNING_DEFAULTS_V1,
                 catalog=catalog,
                 quantity_evidence=quantity_evidence,
@@ -2449,11 +2564,13 @@ class PlasticosWebLead(models.Model):
             images, documents, media_omissions = _broker_request_media(rec, list(bundle.get("attachments") or []))
             catalog = rec._material_catalog()
             bundle["seller"] = _seller_claims_for_broker(rec.canonical_payload or {})
+            pdf_pages, pdf_sources = _pdf_media(documents)
             broker_result = run_broker_inference(
                 provider,
                 seller=bundle["seller"],
                 images=images,
-                pdf_page_text=_pdf_page_strings(documents),
+                pdf_page_text=pdf_pages,
+                pdf_page_sources=pdf_sources,
                 planning_defaults=PLANNING_DEFAULTS_V1,
                 catalog=catalog,
                 quantity_evidence=bundle.get("quantity"),
@@ -2480,6 +2597,8 @@ class PlasticosWebLead(models.Model):
                     "media_omissions",
                     "document_specifications",
                     "photo_findings",
+                    "pdf_page_text",
+                    "pdf_page_sources",
                     "field_evidence",
                     "conflicts",
                 )
@@ -2560,11 +2679,16 @@ class PlasticosWebLead(models.Model):
     # ═══════════════════════════════════════════════════════════
 
     def action_retry_triage(self):
-        """Re-run the full AI triage pipeline (reassessment for a lead with no intake)."""
+        """Re-run the full AI triage pipeline (reassessment for a lead with no intake).
+
+        An explicit re-run also re-attempts previously failed PDF extractions
+        from the saved attachment bytes; complete results are reused without a
+        new OCR call.
+        """
         for rec in self:
             if rec.state not in ("error", "skipped", "received", "review_pending"):
                 raise UserError("Only errored, skipped, received, or review-pending leads can be re-triaged.")
-            rec._run_triage_pipeline()
+            rec._run_triage_pipeline(force_pdf_ocr=True)
 
     def action_retry_processing(self):
         """Retry processing a lead that errored.
@@ -2575,7 +2699,7 @@ class PlasticosWebLead(models.Model):
         for rec in self:
             if rec.state != "error":
                 raise UserError("Only errored leads can be retried.")
-            rec._run_triage_pipeline()
+            rec._run_triage_pipeline(force_pdf_ocr=True)
 
     def action_force_create_intake(self):
         """Manual intake creation. Same validated path as Promote to HOT: rationale and verified weight."""
