@@ -38,7 +38,11 @@ gh api /repos/gitleaks/gitleaks-action/git/ref/tags/v2 | python3 -c \
 
 ## Pure-Python tests
 
-`ci.yml` runs `python3 -m pytest tests/`. Collection ignores are in `tests/conftest.py`. Do not maintain a hand-written list of test files in the workflow.
+`ci.yml` job `Pure Python Tests` runs the PR-fast lane (`PLASTICOS_CI_TIER=pr_fast`): every `adversarial_contract` test under `tests/`, plus a fail-closed structural selection of other pure-Python modules when the diff proves them. It does not run unfiltered `pytest tests/`.
+
+`.github/workflows/nightly-full-python.yml` runs that unfiltered Odoo-free suite once per day at `17 7 * * *` UTC, and on a manual dispatch, only from `refs/heads/Staging`. The job name is `Nightly Full Python Suite`. It does not run Odoo ORM tests.
+
+Collection ignores stay in `tests/conftest.py`. Do not put a hand-written list of test files in either workflow.
 
 ## CI Gate Phase Structure (fail-slow)
 

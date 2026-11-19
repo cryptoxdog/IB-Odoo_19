@@ -1,0 +1,48 @@
+# Staging-only full Odoo-free pytest suite.
+# This is not a pull-request check and it does not run Odoo ORM tests.
+# Schedule fires on the repository default branch, which must remain Staging.
+
+name: Nightly Full Python Suite
+
+on:
+  schedule:
+    - cron: '17 7 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-full-python-staging
+  cancel-in-progress: false
+
+jobs:
+  full-python-suite:
+    name: Nightly Full Python Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PLASTICOS_CONTRACT_CI: "1"
+      PLASTICOS_CI_TIER: nightly_full
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803  # v6
+        with:
+          ref: ${{ github.sha }}
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install --only-binary ":all:" pytest==8.3.5 pytest-timeout==2.4.0 pytest-cov==5.0.0 "requests>=2.28.0" defusedxml==0.7.1 pyyaml==6.0.3 pre-commit==4.7.0
+
+      - name: Run the full Odoo-free suite
+        run: python3 ci/nightly_full_run.py
+
+      - name: Upload nightly evidence for this run and attempt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: nightly-full-python-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/pytest/
+          retention-days: 14
+          if-no-files-found: error

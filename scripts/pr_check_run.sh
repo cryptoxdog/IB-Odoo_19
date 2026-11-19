@@ -16,7 +16,7 @@
 # untracked files) and decides: the static audits run when any non-documentation
 # path changed. The pure-Python suite (make test / make test-scoped) does not
 # run here. make pr and the pre-push gate both call this full mode, and
-# GitHub ci.yml pure-python-tests runs pytest tests/ on the PR. Docker smoke
+# GitHub ci.yml pure-python-tests runs the PR-fast lane, not pytest tests/. Docker smoke
 # runs when an addon load input or an installer input changed. It clones the
 # pinned fixture and upgrades the roster; it does not install from an empty
 # database. The Odoo runtime tests (make runtime-test -> make test-module /
@@ -25,7 +25,7 @@
 # (make pr-nosmoke) and PR_CHECK_SKIP_SMOKE=1 skip both. A scope of smoke=0
 # does not skip them: a change to an addon's own tests needs no smoke but still
 # runs that addon's tests.
-# Every doubt keeps the audit. GitHub ci.yml still runs pytest tests/ on the PR.
+# Every doubt keeps the audit. GitHub ci.yml runs the PR-fast lane; nightly runs pytest tests/.
 #
 # Env:
 #   PR_BASE=<branch>          publication base (default: Staging)
