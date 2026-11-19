@@ -26,6 +26,11 @@ class MaterialProfileCRMBridge(models.Model):
     def _plasticos_owner_error(self):
         return "A material profile needs a facility partner or a lead-owned facility profile."
 
+    def _referenced_by_approved_lot(self):
+        """An approved lot names this profile, so removal archives it instead of deleting it."""
+        self.ensure_one()
+        return bool(self.env["plasticos.opportunity.approval"].search_count([("material_profile_id", "=", self.id)]))
+
     @api.constrains("partner_id", "facility_profile_id")
     def _check_profile_owner(self):
         return super()._check_profile_owner()

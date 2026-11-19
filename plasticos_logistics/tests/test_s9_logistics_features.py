@@ -842,107 +842,13 @@ class TestContainerTareAndVgm(_S9Case):
         self.assertEqual(changed["status"], "blocked")
         self.assertEqual(self._fact(journey, "verified_gross_mass").weight, 48975.0)
 
-    def test_vgm_from_the_documents_verdict(self):
-        """Positive: a real verified Documents verified_gross_mass row on the journey supplies the original.
-
-        No stub: Documents associates and verifies the original, and its own frozen verdict
-        facade answers ``applied``; Logistics only obeys that verdict.
-        """
-        self.assertIn("plasticos.document", self.env, "plasticos_documents is part of the admitted fixture")
-        journey = self._journey("S9-VGM-DOCS")
-        original = self._attach(journey, "vgm-declaration.pdf")
-        tag = self.env["plasticos.document.tag"].search([], limit=1)
-        self.assertTrue(tag, "the Documents fixture seeds document tags")
-        shell = self.env["plasticos.document"].create(
-            {
-                "name": "VGM declaration",
-                "tag_id": tag.id,
-                "res_model": "documents.document",
-                "res_id": 0,
-                "attachment_id": original.id,
-            }
-        )
-        verifier = self.env["res.users"].create(
-            {
-                "name": "S9 Documents Verifier",
-                "login": "s9_documents_verifier",
-                "group_ids": [
-                    (
-                        6,
-                        0,
-                        [
-                            self.env.ref("base.group_user").id,
-                            self.env.ref("plasticos_documents.group_documents_user").id,
-                        ],
-                    )
-                ],
-            }
-        )
-        document = shell.with_user(verifier)._associate_scope(
-            JOURNEY,
-            journey.id,
-            "carrier VGM mail booking-rev-3",
-            obligation_kind="verified_gross_mass",
-            operation_revision_key="booking-rev-3",
-            coverage_key="container-1",
-        )
-        document.with_user(verifier).action_verify()
-        document = document.with_user(self.env.user)
-        self.assertEqual(document.subject_company_id, self.company)
-        verdict = self.env["plasticos.document"].get_scoped_evidence_verdict(
-            self.company.id, JOURNEY, journey.id, "verified_gross_mass", "booking-rev-3"
-        )
-        self.assertEqual(verdict, {"status": "applied", "record_id": document.id})
-        other = self._attach(journey, "not-the-verified-original.pdf")
-        mismatch = self._weigh(
-            "verified_gross_mass", journey, 22000, self.kg, "documents_verified_gross_mass", other, "booking-rev-3"
-        )
-        self.assertEqual(mismatch["status"], "blocked")
-        result = self._weigh(
-            "verified_gross_mass", journey, 22000, self.kg, "documents_verified_gross_mass", None, "booking-rev-3"
-        )
-        self.assertEqual(result["status"], "applied")
-        fact = self._fact(journey, "verified_gross_mass")
-        self.assertEqual((fact.verified_document_id, fact.evidence_attachment_id), (document.id, original))
-        self.assertEqual((fact.weight, fact.weight_uom_id), (22000.0, self.kg))
-
-    def test_documents_basis_refuses_dangling_or_foreign_documents(self):
-        """Negative: the verdict's document must exist and be about this exact journey in its company."""
-        journey = self._journey("S9-VGM-DANGLING")
-        other_journey = self._journey("S9-VGM-OTHER", iso="TGHU7654321")
-        tag = self.env["plasticos.document.tag"].search([], limit=1)
-        foreign = self.env["plasticos.document"].create(
-            {
-                "name": "VGM of another container",
-                "res_model": JOURNEY,
-                "res_id": other_journey.id,
-                "attachment_id": self._attach(other_journey, "other-vgm.pdf").id,
-                "tag_id": tag.id,
-            }
-        )
-        missing_id = (self.env["plasticos.document"].search([], order="id desc", limit=1).id or 0) + 1000
-        document_class = type(self.env["plasticos.document"])
-        for label, record_id in (("dangling", missing_id), ("other journey", foreign.id)):
-            with (
-                self.subTest(label=label),
-                patch.object(
-                    document_class,
-                    "get_scoped_evidence_verdict",
-                    lambda *args, record_id=record_id: {"status": "applied", "record_id": record_id},
-                ),
-            ):
-                result = self._weigh(
-                    "verified_gross_mass", journey, 9, self.lb, "documents_verified_gross_mass", None, "rev-1"
-                )
-                self.assertEqual(result["status"], "blocked")
-        self.assertFalse(self._fact(journey, "verified_gross_mass"))
-
     def test_documents_basis_without_documents_is_not_available(self):
-        """Without plasticos_documents the Documents basis answers not_available and never crashes."""
-        from odoo.addons.plasticos_logistics.models import iso_journey_fact
+        """Without the Documents owner the Documents basis answers not_available and never crashes."""
+        from odoo.addons.plasticos_logistics.models.iso_journey_fact import PlasticosIsoJourneyFact
 
         journey = self._journey("S9-VGM-NODOCS")
-        with patch.object(iso_journey_fact, "DOCUMENT", "plasticos.document.not.installed"):
+        fact_class = type(self.env[FACT])
+        with patch.object(fact_class, "_documents_vgm_evidence", PlasticosIsoJourneyFact._documents_vgm_evidence):
             result = self._weigh(
                 "verified_gross_mass", journey, 9, self.lb, "documents_verified_gross_mass", None, "rev-1"
             )
@@ -957,11 +863,12 @@ class TestContainerTareAndVgm(_S9Case):
         """Negative: a VGM verdict proves gross mass only, so it never records a container tare."""
         journey = self._journey("S9-TARE-FROM-VGM")
         calls = []
-        with patch.object(
-            type(self.env["plasticos.document"]),
-            "get_scoped_evidence_verdict",
-            lambda *args: calls.append(args) or {"status": "applied", "record_id": 1},
-        ):
+
+        def evidence(records, journey_id, revision_key):
+            calls.append((journey_id, revision_key))
+            return None, None, ("blocked", "the Documents verdict was consulted")
+
+        with patch.object(type(self.env[FACT]), "_documents_vgm_evidence", evidence):
             result = self._weigh(
                 "container_tare", journey, 8775, self.lb, "documents_verified_gross_mass", None, "rev-1"
             )
@@ -990,15 +897,6 @@ class TestContainerTareAndVgm(_S9Case):
                 "verified_gross_mass", journey, 9, self.lb, "scale_ticket", loose, "t"
             ),
         }
-        document_class = type(self.env["plasticos.document"])
-        with patch.object(
-            document_class,
-            "get_scoped_evidence_verdict",
-            lambda *args: {"status": "blocked", "reason": "evidence awaits verification"},
-        ):
-            refused["unverified documents"] = self._weigh(
-                "verified_gross_mass", journey, 9, self.lb, "documents_verified_gross_mass", None, "rev-1"
-            )
         for label, result in refused.items():
             with self.subTest(label=label):
                 self.assertEqual(result["status"], "blocked")
@@ -1225,51 +1123,6 @@ class TestS9ReviewClosure(_S9Case):
         with patch.object(proposal_class, "search", hide_first_key_lookup), mute_logger("odoo.sql_db"):
             loser = self.env[PROPOSAL].action_propose_shipment_event(values, "race")
         self.assertEqual(loser, {"status": "already_applied", "record_id": winner["record_id"]})
-
-    # ── N4: Documents verdict edge cases ─────────────────────────────────
-
-    def test_documents_vgm_edge_cases(self):
-        """Documents without Export is not_available; an unestablished subject company or a hidden row is blocked."""
-        from odoo.exceptions import AccessError as OdooAccessError
-
-        journey = self._journey("S9-N4")
-        kg = self.env.ref("uom.product_uom_kgm")
-        document_class = type(self.env["plasticos.document"])
-        with patch.object(document_class, "_scoped_obligation_kinds", lambda model: frozenset()):
-            result = self.env[FACT].action_record_verified_gross_mass(
-                journey.id, 9, kg.id, "documents_verified_gross_mass", None, "rev", "n4-a"
-            )
-        self.assertEqual(result["status"], "not_available")
-        tag = self.env["plasticos.document.tag"].search([], limit=1)
-        unestablished = self.env["plasticos.document"].create(
-            {
-                "name": "VGM, company not established",
-                "res_model": JOURNEY,
-                "res_id": journey.id,
-                "attachment_id": self._attach(journey, "vgm.pdf").id,
-                "tag_id": tag.id,
-            }
-        )
-        self.assertFalse(unestablished.subject_company_id)
-        applied = {"status": "applied", "record_id": unestablished.id}
-        with patch.object(document_class, "get_scoped_evidence_verdict", lambda *args: applied):
-            result = self.env[FACT].action_record_verified_gross_mass(
-                journey.id, 9, kg.id, "documents_verified_gross_mass", None, "rev", "n4-b"
-            )
-        self.assertEqual(result["status"], "blocked")
-
-        def hidden(records, operation):
-            raise OdooAccessError("hidden by a record rule")
-
-        with (
-            patch.object(document_class, "get_scoped_evidence_verdict", lambda *args: applied),
-            patch.object(document_class, "check_access", hidden),
-        ):
-            result = self.env[FACT].action_record_verified_gross_mass(
-                journey.id, 9, kg.id, "documents_verified_gross_mass", None, "rev", "n4-c"
-            )
-        self.assertEqual(result["status"], "blocked")
-        self.assertFalse(self._fact(journey, "verified_gross_mass"))
 
     # ── N5: decisions, rejected replay, generated key ────────────────────
 

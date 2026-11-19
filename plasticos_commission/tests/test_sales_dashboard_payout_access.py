@@ -13,6 +13,12 @@ from unittest.mock import patch
 from odoo import Command, fields
 from odoo.tests import TransactionCase, tagged
 
+# The Enterprise document model string is resolved by name, mirroring the
+# dashboard's own _doc_checklist_source lookup in
+# plasticos_commission/models/sales_dashboard.py: commission needs no documents
+# dependency, and no cross-addon tests import, for the native branch.
+NATIVE_MODEL = "documents.document"
+
 
 @tagged("post_install", "-at_install")
 class TestSalesDashboardPayoutAccess(TransactionCase):
@@ -77,7 +83,7 @@ class TestSalesDashboardDocumentChecklist(TransactionCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        if "plasticos.document" not in cls.env or "documents.document" not in cls.env:
+        if "plasticos.document" not in cls.env or NATIVE_MODEL not in cls.env:
             raise AssertionError("BLOCKED: PlasticOS Documents and Enterprise Documents must be installed")
         cls.env = cls.env(context=dict(cls.env.context, tracking_disable=True))
         cls.supplier = cls.env["res.partner"].create({"name": "Checklist Supplier", "supplier_rank": 1})
@@ -137,7 +143,7 @@ class TestSalesDashboardDocumentChecklist(TransactionCase):
             {
                 "name": code,
                 "tag_id": self.tags[code].id,
-                "res_model": "documents.document",
+                "res_model": NATIVE_MODEL,
                 "res_id": 0,
                 "attachment_id": attachment.id,
             }
@@ -201,7 +207,7 @@ class TestSalesDashboardDocumentChecklist(TransactionCase):
     def test_native_branch_reads_the_native_projection_only_without_business_rows(self):
         tx, _loads = self._trade()
         folder = self.env.ref("plasticos_documents_native.folder_plasticos_inbox")
-        self.env["documents.document"].create(
+        self.env[NATIVE_MODEL].create(
             {
                 "name": "native-bol.pdf",
                 "folder_id": folder.id,
@@ -212,7 +218,7 @@ class TestSalesDashboardDocumentChecklist(TransactionCase):
         )
         dashboard = type(self.env["plasticos.sales.dashboard"])
         self.assertEqual(self._dashboard(tx).doc_bol, "missing")
-        with patch.object(dashboard, "_doc_checklist_source", lambda model: "documents.document"):
+        with patch.object(dashboard, "_doc_checklist_source", lambda model: NATIVE_MODEL):
             self.assertEqual(self._dashboard(tx).doc_bol, "pending")
         with patch.object(dashboard, "_doc_checklist_source", lambda model: False):
             self.assertEqual(self._dashboard(tx).doc_bol, "missing")

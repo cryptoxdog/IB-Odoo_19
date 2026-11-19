@@ -54,10 +54,9 @@ class ResUsers(models.Model):
         if not group or group._name != "res.groups":
             return self.browse()
         # A cron run and a user who cannot read other users' access rights must resolve the same owner.
-        elevated = self.sudo()  # sudo: read-only group membership lookup, returns one user id
-        return self.browse(
-            elevated.search(self._plasticos_escalation_domain(group, company), order="id ASC", limit=1).id
-        )
+        elevated = self.sudo()  # sudo: read-only group membership lookup; the returned user is not sudo
+        found = elevated.search(self._plasticos_escalation_domain(group, company), order="id ASC", limit=1)
+        return self.browse(found.ids)
 
     @api.model
     def _plasticos_escalation_owner_is_eligible(self, user, group_xmlid, companies=None):

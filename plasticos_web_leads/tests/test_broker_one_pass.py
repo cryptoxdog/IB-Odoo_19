@@ -439,7 +439,9 @@ class TestBrokerOnePassScenarios(TransactionCase):
                     "res_id": lead.id,
                 }
             )
-        self.assertEqual(opportunity._plasticos_copy_web_lead_pdfs(), 2)
+        # The copy path is retired: both PDFs stay on the web lead and are named
+        # once in the opportunity description, including when their bytes match.
+        self.assertEqual(opportunity._plasticos_copy_web_lead_pdfs(), 0)
         self.assertEqual(opportunity._plasticos_copy_web_lead_pdfs(), 0)
         stored = self.env["ir.attachment"].search(
             [
@@ -448,7 +450,9 @@ class TestBrokerOnePassScenarios(TransactionCase):
                 ("mimetype", "=", "application/pdf"),
             ]
         )
-        self.assertEqual(len(stored), 2)
+        self.assertEqual(len(stored), 0)
+        description = str(opportunity.description or "")
+        self.assertEqual(description.count("Source attachment [plasticos-pdf:"), 2)
 
 
 @tagged("post_install", "-at_install", "plasticos", "web_lead", "one_pass")
@@ -617,7 +621,7 @@ class TestSpecPropagationToOpportunity(TransactionCase):
         self.assertIn("Broker measured the lot on site.", notes)
         self.assertNotIn("7.5", notes)
         description = str(lead.crm_lead_id.description or "")
-        start = description.find('class="plasticos-spec"')
+        start = description.find("plasticos-spec plasticos-web-lead-")
         end = description.find("</div>", start)
         block = description[start:end]
         self.assertIn("4.2", block)

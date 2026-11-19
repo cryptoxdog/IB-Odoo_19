@@ -4,10 +4,13 @@ Check for Odoo constraint anti-patterns.
 
 Detects:
 1. @api.constrains for unique field checks (WRONG - runs after SQL INSERT)
-2. SQL unique constraints without create()/write() override (raises IntegrityError)
+2. Raw _sql_constraints unique constraints without a create() search (raises IntegrityError)
 3. assertRaises with tuple of exceptions (Odoo 19 requires single class)
 
-The CORRECT pattern for unique constraints:
+models.Constraint and models.UniqueIndex enforce uniqueness through the ORM and
+raise ValidationError, so they need no create() pre-check and are not flagged.
+
+The CORRECT pattern for a raw _sql_constraints unique:
 - Override create() with @api.model_create_multi
 - Check for duplicates BEFORE calling super()
 - This raises ValidationError before SQL constraint fires
@@ -109,10 +112,13 @@ def check_api_constrains_for_unique(path: Path) -> list[str]:
 
 def check_sql_constraints_without_create_override(path: Path) -> list[str]:
     """
-    Check for SQL unique constraints without create()/write() override.
+    Check for raw _sql_constraints unique constraints without create()/write() override.
 
-    ANTI-PATTERN: Having models.Constraint("unique(field)") or _sql_constraints
-    without overriding create() to check before SQL INSERT.
+    ANTI-PATTERN: A raw _sql_constraints unique fires at SQL INSERT, so without
+    a create() search it raises IntegrityError instead of ValidationError.
+
+    NOT FLAGGED: models.Constraint and models.UniqueIndex definitions — the ORM
+    converts those to ValidationError before the SQL constraint fires.
     """
     issues: list[str] = []
     content = path.read_text()
@@ -121,18 +127,14 @@ def check_sql_constraints_without_create_override(path: Path) -> list[str]:
     if "/tests/" in str(path) or path.name.startswith("test_"):
         return issues
 
-    # Find SQL unique constraints
-    # Pattern 1: models.Constraint("unique(field)", ...)
-    constraint_matches = re.findall(r'models\.Constraint\(\s*["\']unique\((\w+)\)["\']', content)
-
-    # Pattern 2: _sql_constraints = [...("name", "unique(field)", "msg")...]
+    # Raw _sql_constraints unique definitions only.
     sql_constraint_matches = re.findall(
         r'_sql_constraints\s*=\s*\[.*?["\']unique\((\w+)\)["\']',
         content,
         re.DOTALL,
     )
 
-    unique_fields = set(constraint_matches + sql_constraint_matches)
+    unique_fields = set(sql_constraint_matches)
 
     if not unique_fields:
         return issues
@@ -235,7 +237,7 @@ def main():
         has_errors = True
 
     if sql_constraint_issues:
-        print("WARNING: SQL unique constraints without create() pre-check:")
+        print("WARNING: _sql_constraints unique constraints without create() pre-check:")
         print("\n".join(sql_constraint_issues))
         print()
         print("  NOTE: Add create()/write() override to check before SQL INSERT")

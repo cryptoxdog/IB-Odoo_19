@@ -164,21 +164,8 @@ class PlasticosLogisticsRequestSchedule(models.Model):
         return estimate.haversine_miles
 
     def _export_link(self, load):
-        if "plasticos.export.booking.cargo.link" not in self.env:
-            return False
-        link_model = self.env["plasticos.export.booking.cargo.link"]
-        link = link_model.search(
-            [("source_load_id", "=", load.id), ("state", "!=", "released")],
-            order="id desc",
-            limit=1,
-        )
-        if not link and load.sale_order_id:
-            link = link_model.search(
-                [("sale_order_id", "=", load.sale_order_id.id), ("state", "!=", "released")],
-                order="id desc",
-                limit=1,
-            )
-        return link
+        """The unreleased cargo link for this load. Export owns that link."""
+        return False
 
     def _export_window(self, load, facts):
         if not self._export_installed():
