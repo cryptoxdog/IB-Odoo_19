@@ -157,18 +157,257 @@ rules:
       plasticos_gate: pr-check
 
   - id: plasticos-raw-sql-review
+    # `$SQL, ...` used to exclude this rule entirely: the ellipsis matches zero
+    # extra arguments, so every one-argument execute was a pattern-not. Match
+    # exactly one argument, and keep the Odoo/psycopg identifier composers.
     patterns:
       - pattern-either:
-          - pattern: self.env.cr.execute(...)
-          - pattern: self._cr.execute(...)
-      - pattern-not: self.env.cr.execute($SQL, ...)
-      - pattern-not: self._cr.execute($SQL, ...)
+          - pattern: self.env.cr.execute($SQL)
+          - pattern: self._cr.execute($SQL)
+      - pattern-not: self.env.cr.execute(SQL(...))
+      - pattern-not: self._cr.execute(SQL(...))
+      - pattern-not: self.env.cr.execute(sql.SQL(...))
+      - pattern-not: self._cr.execute(sql.SQL(...))
+      - pattern-not: self.env.cr.execute(sql.SQL(...).format(...))
+      - pattern-not: self._cr.execute(sql.SQL(...).format(...))
+      - pattern-not: self.env.cr.execute(SQL(...).format(...))
+      - pattern-not: self._cr.execute(SQL(...).format(...))
     message: "Raw SQL requires review. Prefer ORM unless justified and parameterized."
     languages: [python]
     severity: WARNING
     metadata:
       category: orm_safety
       confidence: MEDIUM
+      plasticos_gate: review
+
+  # Indirect interpolation and request-controlled SQL/domains. The four execute
+  # rules above only see a literal built inside the execute call. These do not
+  # copy UNJUSTIFIED_SUDO, and they do not treat a value inside a fixed domain
+  # or a bound SQL parameter as the unsafe shape.
+  - id: plasticos-sql-indirect-interpolation
+    pattern-either:
+      - pattern-inside: |
+          $QUERY = f"...{...}..."
+          ...
+          $CR.execute($QUERY, ...)
+      - pattern-inside: |
+          $QUERY = f"{...}"
+          ...
+          $CR.execute($QUERY, ...)
+      - pattern-inside: |
+          $QUERY = "...".format(...)
+          ...
+          $CR.execute($QUERY, ...)
+      - pattern-inside: |
+          $QUERY = "..." % ...
+          ...
+          $CR.execute($QUERY, ...)
+      - patterns:
+          - pattern-inside: |
+              $QUERY = "..." + $REST
+              ...
+              $CR.execute($QUERY, ...)
+          - pattern-not-inside: |
+              $QUERY = "..." + "..."
+              ...
+              $CR.execute($QUERY, ...)
+      - patterns:
+          - pattern: $CR.execute($Q % $A, ...)
+          - pattern-not: $CR.execute("..." % $A, ...)
+      - patterns:
+          - pattern: $CR.execute($Q.format(...), ...)
+          - pattern-not: $CR.execute("...".format(...), ...)
+          - pattern-not: $CR.execute(sql.SQL(...).format(...), ...)
+          - pattern-not: $CR.execute(SQL(...).format(...), ...)
+      - patterns:
+          - pattern: $CR.execute($Q + $R, ...)
+          - pattern-not: $CR.execute("..." + $R, ...)
+          - pattern-not: $CR.execute($Q + "...", ...)
+      # sql.SQL(f"..."), unlike sql.SQL("...").format(sql.Identifier(...)),
+      # interpolates before the composer binds identifiers.
+      - pattern: $CR.execute(sql.SQL(f"...{...}..."))
+      - pattern: $CR.execute(sql.SQL(f"{...}"))
+      - pattern: $CR.execute(SQL(f"...{...}..."))
+      - pattern: $CR.execute(SQL(f"{...}"))
+      - pattern: sql.SQL(f"...{...}...")
+      - pattern: SQL(f"...{...}...")
+    message: "Interpolated SQL reaches execute outside the literal-in-call rules. Pass values as parameters, or compose identifiers with SQL.identifier."
+    languages: [python]
+    # Not admitted to the required ERROR gate. .github/governance/promotion-policy.yaml
+    # requires observation and approval, and .github/governance/semgrep-policy.yaml
+    # defaults to advisory. No owner admission is recorded for this new rule.
+    severity: WARNING
+    metadata:
+      category: injection
+      confidence: HIGH
+      plasticos_gate: review
+
+  - id: plasticos-sql-request-query
+    pattern-either:
+      - pattern: $CR.execute(request.params.get(...), ...)
+      - pattern: $CR.execute(request.params[...], ...)
+      - pattern: $CR.execute(request.httprequest.args.get(...), ...)
+      - pattern: $CR.execute(request.httprequest.args[...], ...)
+      - pattern: $CR.execute(request.httprequest.form.get(...), ...)
+      - pattern: $CR.execute(request.httprequest.values.get(...), ...)
+      - pattern: $CR.execute(request.get_json_data(...), ...)
+      - pattern-inside: |
+          $QUERY = request.params.get(...)
+          ...
+          $CR.execute($QUERY, ...)
+      - pattern-inside: |
+          $QUERY = request.params[...]
+          ...
+          $CR.execute($QUERY, ...)
+      - pattern-inside: |
+          $QUERY = json.loads(request.httprequest.get_data(...))
+          ...
+          $CR.execute($QUERY, ...)
+      - pattern-inside: |
+          $QUERY = json.loads(request.httprequest.data)
+          ...
+          $CR.execute($QUERY, ...)
+      - pattern-inside: |
+          $RAW = request.httprequest.get_data(...)
+          ...
+          $QUERY = json.loads($RAW)
+          ...
+          $CR.execute($QUERY, ...)
+      - pattern-inside: |
+          $BODY = json.loads(request.httprequest.get_data(...))
+          ...
+          $CR.execute($BODY.get(...), ...)
+      - pattern-inside: |
+          $BODY = json.loads(request.httprequest.get_data(...) or ...)
+          ...
+          $CR.execute($BODY.get(...), ...)
+      - pattern-inside: |
+          $BODY = json.loads(request.httprequest.get_data(...) or ...)
+          ...
+          $QUERY = $BODY.get(...)
+          ...
+          $CR.execute($QUERY, ...)
+      - pattern-inside: |
+          $RAW = request.httprequest.get_data(...)
+          ...
+          $BODY = json.loads($RAW)
+          ...
+          $CR.execute($BODY.get(...), ...)
+      - pattern-inside: |
+          $RAW = request.httprequest.get_data(...)
+          ...
+          $BODY = json.loads($RAW)
+          ...
+          $QUERY = $BODY.get(...)
+          ...
+          $CR.execute($QUERY, ...)
+      - pattern: $CR.execute(sql.SQL(request.params.get(...)))
+      - pattern: $CR.execute(sql.SQL(request.params[...]))
+      - pattern: $CR.execute(SQL(request.params.get(...)))
+      - pattern: sql.SQL(request.params.get(...))
+      - pattern: SQL(request.params.get(...))
+      - pattern-inside: |
+          $QUERY = sql.SQL(request.params.get(...))
+          ...
+          $CR.execute($QUERY, ...)
+      - pattern-inside: |
+          $QUERY = SQL(request.params.get(...))
+          ...
+          $CR.execute($QUERY, ...)
+    message: "Request data is the SQL text passed to execute. Bind it as a parameter."
+    languages: [python]
+    # Not admitted to the required ERROR gate. See plasticos-sql-indirect-interpolation.
+    severity: WARNING
+    metadata:
+      category: injection
+      confidence: HIGH
+      plasticos_gate: review
+
+  - id: plasticos-request-search-domain
+    pattern-either:
+      - pattern: $M.search(request.params.get(...), ...)
+      - pattern: $M.search(request.params[...], ...)
+      - pattern: $M.search(json.loads(request.httprequest.get_data(...)), ...)
+      - pattern: $M.search(json.loads(request.httprequest.data), ...)
+      - pattern: $M.search_count(request.params.get(...), ...)
+      - pattern: $M.search_count(request.params[...], ...)
+      - pattern: $M.read_group(request.params.get(...), ...)
+      - pattern: $M.filtered_domain(request.params.get(...))
+      - pattern: $M.search_read(request.params.get(...), ...)
+      - pattern: $M.search_read(request.params[...], ...)
+      - pattern: $M.search_read(json.loads(request.httprequest.get_data(...)), ...)
+      - pattern: $M.search_read(json.loads(request.httprequest.data), ...)
+      - pattern-inside: |
+          $DOMAIN = request.params.get(...)
+          ...
+          $M.search($DOMAIN, ...)
+      - pattern-inside: |
+          $DOMAIN = request.params[...]
+          ...
+          $M.search($DOMAIN, ...)
+      - pattern-inside: |
+          $DOMAIN = json.loads(request.httprequest.get_data(...))
+          ...
+          $M.search($DOMAIN, ...)
+      - pattern-inside: |
+          $DOMAIN = json.loads(request.httprequest.get_data(...) or ...)
+          ...
+          $M.search($DOMAIN, ...)
+      - pattern-inside: |
+          $DOMAIN = json.loads(request.httprequest.get_data(...) or ...)
+          ...
+          $M.search_count($DOMAIN, ...)
+      - pattern-inside: |
+          $DOMAIN = json.loads(request.httprequest.data)
+          ...
+          $M.search($DOMAIN, ...)
+      - pattern-inside: |
+          $DOMAIN = json.loads(request.httprequest.get_data(...))
+          ...
+          $M.search_count($DOMAIN, ...)
+      - pattern-inside: |
+          $DOMAIN = request.params.get(...)
+          ...
+          $M.search_count($DOMAIN, ...)
+      - pattern-inside: |
+          $DOMAIN = request.params.get(...)
+          ...
+          $M.search_read($DOMAIN, ...)
+      - pattern-inside: |
+          $DOMAIN = json.loads(request.httprequest.get_data(...) or ...)
+          ...
+          $M.search_read($DOMAIN, ...)
+      - pattern-inside: |
+          $BODY = json.loads(request.httprequest.get_data(...) or ...)
+          ...
+          $M.search($BODY.get(...), ...)
+      - pattern-inside: |
+          $BODY = json.loads(request.httprequest.get_data(...) or ...)
+          ...
+          $M.search_count($BODY.get(...), ...)
+      - pattern-inside: |
+          $BODY = json.loads(request.httprequest.get_data(...) or ...)
+          ...
+          $M.search_read($BODY.get(...), ...)
+      - pattern-inside: |
+          $BODY = json.loads(request.httprequest.get_data(...) or ...)
+          ...
+          $DOMAIN = $BODY.get(...)
+          ...
+          $M.search($DOMAIN, ...)
+      - pattern-inside: |
+          $BODY = json.loads(request.httprequest.get_data(...) or ...)
+          ...
+          $DOMAIN = $BODY.get(...)
+          ...
+          $M.search_read($DOMAIN, ...)
+    message: "A request payload is the search domain. Put request values inside a fixed domain literal."
+    languages: [python]
+    # Not admitted to the required ERROR gate. See plasticos-sql-indirect-interpolation.
+    severity: WARNING
+    metadata:
+      category: injection
+      confidence: HIGH
       plasticos_gate: review
 
   # ---------------------------------------------------------------------------
@@ -202,7 +441,9 @@ rules:
     paths:
       exclude:
         - "ci/**"
-        - "tests/**"
+        - "/tests/**"
+        - "plasticos_*/tests/**"
+        - "docs/**/tests/**"
     message: "Use self.env['model.name'], not self.env.get(...), in Odoo model code."
     languages: [python]
     severity: ERROR
@@ -241,7 +482,9 @@ rules:
     pattern: raise NotImplementedError(...)
     paths:
       exclude:
-        - "tests/**"
+        - "/tests/**"
+        - "plasticos_*/tests/**"
+        - "docs/**/tests/**"
         - "**/test_*.py"
     message: "Production Odoo code must not ship NotImplementedError stubs."
     languages: [python]
@@ -258,8 +501,12 @@ rules:
         - "plasticos_*/models/**/*.py"
         - "plasticos_*/controllers/**/*.py"
         - "plasticos_*/wizards/**/*.py"
+        - ".semgrep/tests/positive.py"
+        - ".semgrep/tests/negative.py"
       exclude:
-        - "tests/**"
+        - "/tests/**"
+        - "plasticos_*/tests/**"
+        - "docs/**/tests/**"
     message: "Production path contains TODO/stub marker. Implement, remove, or document as an approved deferral."
     languages: [python]
     severity: WARNING
@@ -276,7 +523,9 @@ rules:
     pattern-regex: "(?i)(api[_-]?key|secret|token|password|passwd|pwd)\\s*=\\s*['\"][^'\"]{8,}['\"]"
     paths:
       exclude:
-        - "tests/**"
+        - "/tests/**"
+        - "plasticos_*/tests/**"
+        - "docs/**/tests/**"
         - "**/*.md"
         - "**/*.mdc"
     message: "Possible hardcoded secret. Use .env or Odoo system parameters."
@@ -296,6 +545,8 @@ rules:
     paths:
       include:
         - "plasticos_*/migrations/**/*.py"
+        - ".semgrep/tests/positive.py"
+        - ".semgrep/tests/negative.py"
     message: "Destructive migration requires explicit approval and rollback plan."
     languages: [python]
     severity: ERROR
@@ -309,6 +560,7 @@ rules:
     paths:
       include:
         - "plasticos_*/migrations/**/*.sql"
+        - ".semgrep/tests/odoo19.xml"
     message: "Destructive migration requires explicit approval and rollback plan."
     languages: [generic]
     severity: ERROR
@@ -328,6 +580,7 @@ rules:
     paths:
       include:
         - "plasticos_*/**/*.xml"
+        - ".semgrep/tests/odoo19.xml"
     message: "Odoo 19 views must use <list>, not <tree>."
     languages: [generic]
     severity: ERROR
@@ -341,6 +594,7 @@ rules:
     paths:
       include:
         - "plasticos_*/**/*.xml"
+        - ".semgrep/tests/odoo19.xml"
     message: "Odoo 19 view_mode should use list, not tree."
     languages: [generic]
     severity: ERROR
@@ -354,6 +608,7 @@ rules:
     paths:
       include:
         - "plasticos_*/**/*.xml"
+        - ".semgrep/tests/odoo19.xml"
     message: "Odoo 19 XML should use direct invisible/readonly/required expressions, not attrs/states."
     languages: [generic]
     severity: ERROR
@@ -367,6 +622,7 @@ rules:
     paths:
       include:
         - "plasticos_*/**/*.xml"
+        - ".semgrep/tests/odoo19.xml"
     message: "Use t-out instead of t-esc in Odoo 19 QWeb templates."
     languages: [generic]
     severity: ERROR
@@ -380,6 +636,7 @@ rules:
     paths:
       include:
         - "plasticos_*/**/*.xml"
+        - ".semgrep/tests/odoo19.xml"
     message: "numbercall on ir.cron is deprecated. Omit it."
     languages: [generic]
     severity: ERROR
@@ -389,11 +646,12 @@ rules:
       plasticos_gate: pr-check
 
   - id: plasticos-xml-groups-category-id
-    pattern-regex: '<record[^>]+model="res\\.groups"[^>]*>[\\s\\S]*?<field name="category_id"'
+    pattern-regex: "<record[^>]+model=\"res\\.groups\"[^>]*>[\\s\\S]*?<field name=\"category_id\""
     paths:
       include:
         - "plasticos_*/security/**/*.xml"
         - "plasticos_*/data/**/*.xml"
+        - ".semgrep/tests/odoo19.xml"
     message: "category_id on res.groups is removed in Odoo 19. Use privilege_id instead."
     languages: [generic]
     severity: ERROR
@@ -414,6 +672,8 @@ rules:
     paths:
       include:
         - "plasticos_*/**/*.py"
+        - ".semgrep/tests/positive.py"
+        - ".semgrep/tests/negative.py"
     message: "Namespace drift: class name uses Plastos* — rename to Plasticos*."
     languages: [python]
     severity: ERROR
@@ -428,6 +688,8 @@ rules:
     paths:
       include:
         - "plasticos_*/**/*.py"
+        - ".semgrep/tests/positive.py"
+        - ".semgrep/tests/negative.py"
     message: "x_ prefixed field detected. Use clean module field names (e.g. x_trucker_id → trucker_id)."
     languages: [python]
     severity: ERROR
@@ -442,6 +704,7 @@ rules:
     paths:
       include:
         - "plasticos_*/**/*.xml"
+        - ".semgrep/tests/odoo19.xml"
     message: "decoration-secondary is invalid. Use decoration-info/success/warning/danger/muted."
     languages: [generic]
     severity: ERROR
@@ -456,6 +719,7 @@ rules:
     paths:
       include:
         - "plasticos_*/**/*.xml"
+        - ".semgrep/tests/odoo19.xml"
     message: "string= is invalid on <search>. Remove it (Odoo 19 RNG)."
     languages: [generic]
     severity: ERROR
@@ -472,6 +736,7 @@ rules:
     paths:
       include:
         - "plasticos_*/**/*.xml"
+        - ".semgrep/tests/odoo19.xml"
     message: 'string= is invalid on <group name="group_by"> in search views. Remove it (Odoo 19 RNG).'
     languages: [generic]
     severity: ERROR
@@ -486,6 +751,7 @@ rules:
     paths:
       include:
         - "plasticos_*/**/*.xml"
+        - ".semgrep/tests/odoo19.xml"
     message: "Nested double quotes in eval. Use single quotes inside: eval=\"[ref('module.id')]\"."
     languages: [generic]
     severity: ERROR
@@ -501,6 +767,7 @@ rules:
     paths:
       include:
         - "plasticos_*/**/*cron.xml"
+        - ".semgrep/tests/odoo19.xml"
     message: 'cron model_id ref missing module prefix. Use ref="plasticos_module.model_plasticos_x".'
     languages: [generic]
     severity: ERROR
@@ -520,6 +787,8 @@ rules:
     paths:
       include:
         - "plasticos_*/**/*.py"
+        - ".semgrep/tests/positive.py"
+        - ".semgrep/tests/negative.py"
     message: "Custom partner role boolean is forbidden. Use native customer_rank/supplier_rank."
     languages: [python]
     severity: ERROR
