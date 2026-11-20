@@ -42,13 +42,13 @@ SUPPLIER_YES = {vp.STATUS_HOT, vp.STATUS_WARM, vp.STATUS_RESIST}
 
 
 # ── The rule (D32/D33): every status × role combination ─────────────────────
-@pytest.mark.parametrize(("status", "roles"), itertools.product(ALL_STATUSES, ("Buyer", "Buyer/Supplier")))
+@pytest.mark.parametrize(("status", "roles"), list(itertools.product(ALL_STATUSES, ("Buyer", "Buyer/Supplier"))))
 def test_buyer_becomes_a_partner_except_at_the_five_excluded_statuses(status, roles):
     allowed = vp.partner_allowed(status, vp.parse_roles(roles), approved=False)
     assert allowed is (status not in BUYER_NO)
 
 
-@pytest.mark.parametrize(("status", "roles"), itertools.product(ALL_STATUSES, ("Supplier", "", "Unknown")))
+@pytest.mark.parametrize(("status", "roles"), list(itertools.product(ALL_STATUSES, ("Supplier", "", "Unknown"))))
 def test_supplier_only_or_unspecified_needs_hot_warm_or_resist(status, roles):
     allowed = vp.partner_allowed(status, vp.parse_roles(roles), approved=False)
     assert allowed is (status in SUPPLIER_YES)

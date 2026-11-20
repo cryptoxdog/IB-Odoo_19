@@ -101,7 +101,8 @@ jobs:
         if: steps.gov.outputs.enabled == 'true'
         run: |
           set -euo pipefail
-          pip install --upgrade pip semgrep
+          # Versions from the Core toolchain lock (ci/core-toolchain-lock.json).
+          pip install pip==26.2.1 semgrep==1.171.0
           # SDK semgrep-normalize requires --provider-version (invoke-sdk input).
           PROVIDER_VERSION="$(python3 -c 'import semgrep,sys; print(getattr(semgrep,"__VERSION__",None) or getattr(semgrep,"__version__","unknown"))')"
           if [ -z "${PROVIDER_VERSION}" ] || [ "${PROVIDER_VERSION}" = "None" ]; then

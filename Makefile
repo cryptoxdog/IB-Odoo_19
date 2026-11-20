@@ -185,7 +185,7 @@ VENV ?= .venv
 venv:
 	@echo "→ Building $(VENV) (python3.12, pinned dev toolchain)..."
 	python3.12 -m venv $(VENV)
-	@$(VENV)/bin/python -m pip install --quiet --upgrade pip
+	@$(VENV)/bin/python -m pip install --quiet pip==26.2.1  # Core toolchain lock
 	$(VENV)/bin/python -m pip install -r requirements-dev.txt
 	@echo ""
 	@echo "✅ $(VENV) ready:"
@@ -326,7 +326,7 @@ deps-check:
 lock-deps:
 	@echo "→ Resolving requirements.txt in a clean venv and freezing constraints.txt ..."
 	python3 -m venv /tmp/lock-deps-venv
-	@/tmp/lock-deps-venv/bin/pip install --quiet --upgrade pip
+	@/tmp/lock-deps-venv/bin/pip install --quiet pip==26.2.1  # Core toolchain lock
 	/tmp/lock-deps-venv/bin/pip install --quiet -r requirements.txt
 	@{ echo "# constraints.txt — transitive dependency lock for Dockerfile installs (SonarCloud S8541/S8544)"; \
 	   echo "# Regenerate: make lock-deps  (resolves requirements.txt in a clean venv and freezes)"; \

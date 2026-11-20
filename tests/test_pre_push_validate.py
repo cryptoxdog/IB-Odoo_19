@@ -73,7 +73,7 @@ def _base_env(tmp_path: Path) -> dict[str, str]:
 
 
 def _push_env(head: str, **extra: str) -> dict[str, str]:
-    """The variables pre-commit 4.7.0 exports for an ordinary update push."""
+    """The variables pre-commit (4.4.0, the Core toolchain lock) exports for an ordinary update push."""
     env = {
         "PRE_COMMIT_FROM_REF": "0" * 39 + "1",
         "PRE_COMMIT_TO_REF": head,
