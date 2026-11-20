@@ -16,6 +16,7 @@ executes them. A path outside that class stays unknown.
 from __future__ import annotations
 
 import ast
+import re
 from pathlib import Path
 
 SCHEMA = "plasticos.pr-fast-scope.v1"
@@ -41,11 +42,24 @@ COVERED_BY_MANDATORY = {
 }
 
 CRITICAL_EXACT = {
-    "constraints.txt",
-    "pyproject.toml",
     "tests/__init__.py",
     "tests/common.py",
 }
+
+#: Dependency and toolchain manifests (operator/CTO decision 2026-11-20). A change
+#: to one has no bounded structural set, so it selects the whole Odoo-free suite
+#: instead of failing as unknown, mirroring the local rule in
+#: scripts/pr_check_scope.py. requirements*.txt is matched by _is_requirements.
+TOOLCHAIN_MANIFESTS = {
+    ".pre-commit-config.yaml",
+    "constraints.txt",
+    "pyproject.toml",
+}
+
+#: A changed workflow line that only installs or pins a tool. A workflow outside
+#: COVERED_BY_MANDATORY counts as a toolchain manifest only when every changed
+#: line is one of these or a comment; any other workflow edit stays unknown.
+_TOOL_INSTALL_LINE = re.compile(r"\bpip install\b|\bGITLEAKS_VERSION\b|\bpython-version\b")
 
 HARNESS_MEDIATORS = {"tests/__init__.py", "tests/common.py", "tests/conftest.py"}
 
@@ -134,6 +148,10 @@ def classify(
     index = _index_tests(root)
     for code, path, new_path in entries:
         _apply(acc, root, index, patches or {}, code, path, new_path)
+    if acc.toolchain and not acc.unknown:
+        # The whole Odoo-free suite: every test module; _split_selected still
+        # routes Odoo-importing modules out of the pure-Python lane.
+        acc.selected.update(rel for rel, _tree in index if _is_test_module(rel))
     return _finish(acc, root, base_sha, observed_head or declared_head)
 
 
@@ -149,6 +167,30 @@ class _Acc:
         self.scanner: list[str] = []
         self.gate: list[str] = []
         self.unknown: list[str] = []
+        self.toolchain: list[str] = []
+
+
+def is_toolchain_manifest(path: str) -> bool:
+    """True for a dependency or toolchain manifest that selects the whole suite."""
+    return _is_requirements(path) or path in TOOLCHAIN_MANIFESTS
+
+
+def workflow_install_only(patch: str) -> bool:
+    """True when every changed line of a workflow patch is a tool install, a pin or a comment."""
+    changed = [
+        line[1:].strip()
+        for line in patch.splitlines()
+        if line.startswith(("+", "-")) and not line.startswith(("+++", "---"))
+    ]
+    changed = [line for line in changed if line]
+    installs = [line for line in changed if not line.startswith("#")]
+    if not installs:
+        return False
+    return all(_TOOL_INSTALL_LINE.search(line) for line in installs)
+
+
+def _is_workflow(path: str) -> bool:
+    return path.startswith(".github/workflows/") and path.endswith((".yml", ".yaml"))
 
 
 def _apply(
@@ -179,7 +221,17 @@ def _apply(
         acc.deleted.append(path)
         _add_structural(acc, index, path)
         return
-    if _is_requirements(current) or current in CRITICAL_EXACT:
+    if is_toolchain_manifest(current):
+        acc.toolchain.append(current)
+        return
+    if _is_workflow(current) and current not in COVERED_BY_MANDATORY:
+        patch = patches.get(current)
+        if patch is None or not workflow_install_only(patch):
+            acc.unknown.append(f"{current}: workflow change is not limited to tool installs")
+            return
+        acc.toolchain.append(current)
+        return
+    if current in CRITICAL_EXACT:
         acc.unknown.append(f"{current}: shared harness or dependency input has no proven bounded pure-Python set")
         return
     if current in COVERED_BY_MANDATORY:
@@ -240,6 +292,9 @@ def _finish(acc: _Acc, root: Path, base_sha: str, head_sha: str) -> dict:
     if acc.unknown:
         reason = "unclassified or unproven scope: " + "; ".join(acc.unknown)
         status = "unknown"
+    elif acc.toolchain:
+        reason = "dependency or toolchain manifest changed; the whole Odoo-free suite is selected"
+        status = "applicable"
     elif acc.selected or acc.covered or acc.gate or acc.deleted or acc.renames:
         reason = _applicable_reason(acc, mandatory)
         status = "applicable"
@@ -267,6 +322,8 @@ def _finish(acc: _Acc, root: Path, base_sha: str, head_sha: str) -> dict:
         "gate_sdk_paths": acc.gate,
         "gate_sdk_job": "required",
         "unknown_paths": acc.unknown,
+        "toolchain_manifests": acc.toolchain,
+        "full_suite": bool(acc.toolchain) and not acc.unknown,
     }
 
 
@@ -341,6 +398,8 @@ def _receipt(status: str, reason: str, base_sha: str = "", head_sha: str = "") -
         "gate_sdk_paths": [],
         "gate_sdk_job": "required",
         "unknown_paths": [reason],
+        "toolchain_manifests": [],
+        "full_suite": False,
     }
 
 

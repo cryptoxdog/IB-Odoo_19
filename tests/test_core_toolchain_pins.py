@@ -72,9 +72,16 @@ def test_lock_copy_is_well_formed_and_traceable(lock) -> None:
     ],
 )
 def test_requirement_files_pin_the_lock(lock, relative, tools) -> None:
-    pins = _pins((ROOT / relative).read_text(encoding="utf-8"))
+    text = (ROOT / relative).read_text(encoding="utf-8")
+    pins = _pins(text)
     for tool in tools:
         assert pins.get(tool) == [lock[tool]], f"{relative}: {tool} must be =={lock[tool]}"
+    # Any other lock-owned tool the file names must carry the exact lock pin too.
+    for line in text.splitlines():
+        requirement = line.split("#", 1)[0].strip()
+        name = re.split(r"[\s<>=!~;\[@]", requirement, maxsplit=1)[0].lower()
+        if name in PIP_INSTALLED:
+            assert requirement.replace(" ", "") == f"{name}=={lock[name]}", f"{relative}: {requirement!r}"
 
 
 def test_pyproject_follows_the_lock(lock) -> None:
@@ -99,7 +106,9 @@ def test_makefile_pins_pip(lock) -> None:
 
 
 def _install_lines(path: Path) -> list[str]:
-    return [line for line in path.read_text(encoding="utf-8").splitlines() if re.search(r"\bpip install\b", line)]
+    """Whole ``pip install`` commands, with backslash continuations joined."""
+    joined = re.sub(r"\\\n\s*", " ", path.read_text(encoding="utf-8"))
+    return [line for line in joined.splitlines() if re.search(r"\bpip install\b", line)]
 
 
 @pytest.mark.parametrize("workflow", WORKFLOWS, ids=lambda path: path.name)

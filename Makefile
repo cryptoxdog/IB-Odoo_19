@@ -325,7 +325,7 @@ deps-check:
 # Dockerfile install (SonarCloud S8541/S8544 reproducible-build requirement).
 lock-deps:
 	@echo "→ Resolving requirements.txt in a clean venv and freezing constraints.txt ..."
-	python3 -m venv /tmp/lock-deps-venv
+	python3.12 -m venv /tmp/lock-deps-venv
 	@/tmp/lock-deps-venv/bin/pip install --quiet pip==26.2.1  # Core toolchain lock
 	/tmp/lock-deps-venv/bin/pip install --quiet -r requirements.txt
 	@{ echo "# constraints.txt — transitive dependency lock for Dockerfile installs (SonarCloud S8541/S8544)"; \

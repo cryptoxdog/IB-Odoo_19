@@ -945,3 +945,14 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > `tests/test_core_toolchain_pins.py` fails on any site that differs from the copy or installs a lock-owned tool
 > unpinned. Bump a tool by refreshing the copy from Core, recording the commit, and following the test.
 > The repository has no `dependabot.yml`, so nothing here bumps a lock-owned tool.
+
+> **2026-11-20 PR-fast toolchain correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the 2026-11-19 sentence "Unknown scope fails the job." keeps its force for every path except one class. A committed
+> change to a dependency or toolchain manifest (`pyproject.toml`, `requirements*.txt`, `constraints.txt`,
+> `.pre-commit-config.yaml`, or a workflow outside `COVERED_BY_MANDATORY` whose changed lines are only tool installs or
+> pins: `pip install`, `GITLEAKS_VERSION`, `python-version`) has no bounded structural set, so `ci/pr_fast_scope.py`
+> selects every test module (the whole Odoo-free suite) instead of reporting unknown (CTO decision 2026-11-20, PR #560).
+> This mirrors the local rule in `scripts/pr_check_scope.py`. Any other unknown path in the same diff still fails the job,
+> and the whole-suite selection is not made. The receipt carries `toolchain_manifests` and `full_suite`.
+> `Pure Python Tests` now has a 30-minute budget, as the nightly full-suite job does. `tests/test_pr_fast_scope.py`
+> holds the contract.

@@ -11,7 +11,7 @@ import pytest
 from ci.nightly_full_run import NIGHTLY_PYTEST, skip_reason
 from ci.nightly_full_run import main as nightly_main
 from ci.pr_fast_scope import classify, missing_mandatory_markers, parse_name_status
-from ci.run_pr_fast_tests import MANDATORY_PYTEST, scoped_pytest
+from ci.run_pr_fast_tests import MANDATORY_PYTEST, scoped_pytest, split_patch
 from ci.run_pr_fast_tests import main as fast_main
 
 pytestmark = pytest.mark.adversarial_contract
@@ -64,11 +64,95 @@ def test_unresolvable_diff_is_unknown(tmp_path: Path) -> None:
     assert receipt["status"] == "unknown"
 
 
-def test_harness_and_requirements_block_selective_routing(tmp_path: Path) -> None:
-    for path in ("pyproject.toml", "requirements.txt", "requirements-dev.txt", "tests/common.py"):
+def test_shared_harness_blocks_selective_routing(tmp_path: Path) -> None:
+    for path in ("tests/common.py", "tests/__init__.py"):
         receipt = classify([("M", path, None)], tmp_path)
         assert receipt["status"] == "unknown", path
-        assert receipt["status"] != "not_applicable"
+        assert receipt["full_suite"] is False
+
+
+def _suite(root: Path) -> None:
+    _write(root, "tests/test_alpha.py", "def test_alpha():\n    assert True\n")
+    _write(root, "tests/deep/test_beta.py", "def test_beta():\n    assert True\n")
+    _write(root, "tests/helpers.py", "VALUE = 1\n")
+
+
+@pytest.mark.parametrize(
+    "manifest",
+    [
+        _path("pyproject", ".toml"),
+        _path("requirements", ".txt"),
+        _path("requirements-dev", ".txt"),
+        _path("requirements-ci", ".txt"),
+        _path("constraints", ".txt"),
+        _path(".pre-commit-config", ".yaml"),
+    ],
+)
+def test_toolchain_manifest_selects_the_whole_suite(tmp_path: Path, manifest: str) -> None:
+    # CTO decision 2026-11-20 (#560): a dependency or toolchain manifest has no
+    # bounded structural set, so it selects every test module instead of failing.
+    _suite(tmp_path)
+    receipt = classify([("M", manifest, None)], tmp_path)
+    assert receipt["status"] == "applicable"
+    assert receipt["full_suite"] is True
+    assert receipt["toolchain_manifests"] == [manifest]
+    assert receipt["scoped_nonmarker_tests"] == ["tests/deep/test_beta.py", "tests/test_alpha.py"]
+    assert receipt["unknown_paths"] == []
+
+
+def test_toolchain_manifest_does_not_rescue_an_unknown_path(tmp_path: Path) -> None:
+    _suite(tmp_path)
+    receipt = classify([("M", _path("pyproject", ".toml"), None), ("M", "tests/common.py", None)], tmp_path)
+    assert receipt["status"] == "unknown"
+    assert receipt["full_suite"] is False
+    assert receipt["scoped_nonmarker_tests"] == []
+
+
+_WORKFLOW = _path(".github/workflows/", "analysis.yml")
+
+
+def _workflow_patch(*changed: str) -> str:
+    return f"diff --git a/{_WORKFLOW} b/{_WORKFLOW}\n@@ -1 +1 @@\n" + "\n".join(changed) + "\n"
+
+
+def test_workflow_limited_to_tool_installs_selects_the_whole_suite(tmp_path: Path) -> None:
+    _suite(tmp_path)
+    patch = _workflow_patch(
+        "-          pip install --upgrade pip semgrep",
+        "+          # Versions from the Core toolchain lock.",
+        "+          pip install pip==26.2.1 semgrep==1.171.0",
+    )
+    receipt = classify([("M", _WORKFLOW, None)], tmp_path, patches={_WORKFLOW: patch})
+    assert receipt["status"] == "applicable"
+    assert receipt["full_suite"] is True
+    assert receipt["toolchain_manifests"] == [_WORKFLOW]
+
+
+@pytest.mark.parametrize(
+    "patches",
+    [
+        {},
+        {_WORKFLOW: _workflow_patch("+          pip install ruff==0.16.1", "+    if: always()")},
+        {_WORKFLOW: _workflow_patch("+    runs-on: ubuntu-latest")},
+        {_WORKFLOW: _workflow_patch("+          # comment only")},
+    ],
+    ids=["no-patch", "install-plus-logic", "logic-only", "comment-only"],
+)
+def test_other_workflow_edits_stay_unknown(tmp_path: Path, patches: dict[str, str]) -> None:
+    receipt = classify([("M", _WORKFLOW, None)], tmp_path, patches=patches)
+    assert receipt["status"] == "unknown"
+    assert receipt["full_suite"] is False
+
+
+def test_split_patch_keys_each_destination_path() -> None:
+    text = (
+        "diff --git a/tests/conftest.py b/tests/conftest.py\n@@ -1 +1 @@\n-a\n+b\n"
+        f"diff --git a/{_WORKFLOW} b/{_WORKFLOW}\n@@ -2 +2 @@\n-c\n+d\n"
+    )
+    split = split_patch(text)
+    assert set(split) == {"tests/conftest.py", _WORKFLOW}
+    assert "+b" in split["tests/conftest.py"] and "+d" not in split["tests/conftest.py"]
+    assert "+d" in split[_WORKFLOW]
 
 
 def test_ci_workflow_change_is_covered_by_mandatory_contracts(tmp_path: Path) -> None:
