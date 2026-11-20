@@ -423,8 +423,7 @@ class TestBrokerOnePassScenarios(TransactionCase):
         self.assertTrue(any(item.get("reason") == "document_text_extraction_not_enabled" for item in omissions))
 
     def test_same_checksum_pdfs_remain_distinct(self):
-        record_pdfs = getattr(self.env["crm.lead"], "_plasticos_record_web_lead_pdfs", None)
-        if not callable(record_pdfs):
+        if not callable(getattr(self.env["crm.lead"], "_plasticos_record_web_lead_pdfs", None)):
             self.skipTest("PDF recording is owned by the CRM bridge")
         lead = self.WebLead.create({"lead_id": "PDF-IDENTITY-1", "decision": "review", "company_name": "PDF Co"})
         opportunity = self.env["crm.lead"].create({"name": "PDF identity", "type": "opportunity"})
@@ -444,12 +443,13 @@ class TestBrokerOnePassScenarios(TransactionCase):
                 )
             )
         # Recording names each source attachment id and stores nothing new.
-        self.assertEqual(opportunity._plasticos_record_web_lead_pdfs(), 0)
+        record_pdfs = getattr(opportunity, "_plasticos_record_web_lead_pdfs", None)
+        self.assertEqual(record_pdfs(), 0)
         description = str(opportunity.description or "")
         self.assertIn(f"[plasticos-pdf:{stored[0].id}]", description)
         self.assertIn(f"[plasticos-pdf:{stored[1].id}]", description)
         # Replay is idempotent: one block, both originals stay on the lead.
-        self.assertEqual(opportunity._plasticos_record_web_lead_pdfs(), 0)
+        self.assertEqual(record_pdfs(), 0)
         description = str(opportunity.description or "")
         self.assertEqual(description.count(f"[plasticos-pdf:{stored[0].id}]"), 1)
         self.assertEqual(description.count(f"[plasticos-pdf:{stored[1].id}]"), 1)
