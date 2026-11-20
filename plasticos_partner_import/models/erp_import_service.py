@@ -1190,7 +1190,8 @@ class PlasticosErpImport(models.AbstractModel):
         from ..erp import mapping
 
         Partner = self.env[RES_PARTNER].with_context(**IMPORT_CONTEXT, active_test=False)
-        chosen: list[tuple[str, list, str, object]] = []
+        # The fourth element is the company's res.partner recordset, not a bare object.
+        chosen: list[tuple[str, list, str, models.BaseModel]] = []
         for cp_id in sorted(index.sales_reps_by_cp):
             rows = index.sales_reps_by_cp[cp_id]
             company = self._partner_by_xmlid(Partner, f"legacy_erp_cp_{cp_id}")
