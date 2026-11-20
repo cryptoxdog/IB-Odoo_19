@@ -23,6 +23,11 @@ from pathlib import Path
 import pytest
 import yaml
 
+# Mandatory PR-fast lane: a PR that changes only a workflow pin is routed through
+# COVERED_BY_MANDATORY and never structurally selects this module, so the guard
+# must run on every pull request rather than only when it is selected.
+pytestmark = pytest.mark.adversarial_contract
+
 ROOT = Path(__file__).resolve().parents[1]
 LOCK_PATH = ROOT / "ci" / "core-toolchain-lock.json"
 PROVENANCE_PATH = ROOT / "ci" / "core-toolchain-lock.provenance.json"
