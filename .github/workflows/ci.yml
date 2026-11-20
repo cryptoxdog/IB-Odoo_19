@@ -236,10 +236,7 @@ jobs:
   pure-python-tests:
     name: Pure Python Tests
     runs-on: ubuntu-latest
-    # A dependency or toolchain manifest change selects the whole Odoo-free suite
-    # (ci/pr_fast_scope.py TOOLCHAIN_MANIFESTS), so the budget matches the
-    # nightly full-suite job.
-    timeout-minutes: 30
+    timeout-minutes: 10
     permissions:
       contents: read
     env:

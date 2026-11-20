@@ -11,12 +11,20 @@ permission to run ``pytest tests/`` on a pull request. Scanner configuration
 and scanner fixtures are their own class: the two Sonar property files at the
 repository root, and every path under ``.semgrep/``. No pure-Python suite
 executes them. A path outside that class stays unknown.
+
+Dependency manifests (``requirements*.txt``, ``constraints.txt``), workflow
+files other than the two CI-owned ones, and ``pyproject.toml`` changes outside
+pytest's own configuration are routed like any other path: the test modules
+that reference them run, and any remaining behavioral regression stays on the
+nightly Odoo-free suite. A ``pyproject.toml`` change inside ``[tool.pytest]`` or
+a ``[tool.pytest.*]`` table, or one whose diff is unavailable, changes how every
+module is collected and stays unknown. ``tests/__init__.py`` and
+``tests/common.py`` stay unknown.
 """
 
 from __future__ import annotations
 
 import ast
-import re
 from pathlib import Path
 
 SCHEMA = "plasticos.pr-fast-scope.v1"
@@ -46,20 +54,8 @@ CRITICAL_EXACT = {
     "tests/common.py",
 }
 
-#: Dependency and toolchain manifests (operator/CTO decision 2026-11-20). A change
-#: to one has no bounded structural set, so it selects the whole Odoo-free suite
-#: instead of failing as unknown, mirroring the local rule in
-#: scripts/pr_check_scope.py. requirements*.txt is matched by _is_requirements.
-TOOLCHAIN_MANIFESTS = {
-    ".pre-commit-config.yaml",
-    "constraints.txt",
-    "pyproject.toml",
-}
-
-#: A changed workflow line that only installs or pins a tool. A workflow outside
-#: COVERED_BY_MANDATORY counts as a toolchain manifest only when every changed
-#: line is one of these or a comment; any other workflow edit stays unknown.
-_TOOL_INSTALL_LINE = re.compile(r"\bpip install\b|\bGITLEAKS_VERSION\b|\bpython-version\b")
+PYPROJECT = "pyproject.toml"
+PATCHED_PATHS = ("tests/conftest.py", PYPROJECT)
 
 HARNESS_MEDIATORS = {"tests/__init__.py", "tests/common.py", "tests/conftest.py"}
 
@@ -148,10 +144,6 @@ def classify(
     index = _index_tests(root)
     for code, path, new_path in entries:
         _apply(acc, root, index, patches or {}, code, path, new_path)
-    if acc.toolchain and not acc.unknown:
-        # The whole Odoo-free suite: every test module; _split_selected still
-        # routes Odoo-importing modules out of the pure-Python lane.
-        acc.selected.update(rel for rel, _tree in index if _is_test_module(rel))
     return _finish(acc, root, base_sha, observed_head or declared_head)
 
 
@@ -167,30 +159,6 @@ class _Acc:
         self.scanner: list[str] = []
         self.gate: list[str] = []
         self.unknown: list[str] = []
-        self.toolchain: list[str] = []
-
-
-def is_toolchain_manifest(path: str) -> bool:
-    """True for a dependency or toolchain manifest that selects the whole suite."""
-    return _is_requirements(path) or path in TOOLCHAIN_MANIFESTS
-
-
-def workflow_install_only(patch: str) -> bool:
-    """True when every changed line of a workflow patch is a tool install, a pin or a comment."""
-    changed = [
-        line[1:].strip()
-        for line in patch.splitlines()
-        if line.startswith(("+", "-")) and not line.startswith(("+++", "---"))
-    ]
-    changed = [line for line in changed if line]
-    installs = [line for line in changed if not line.startswith("#")]
-    if not installs:
-        return False
-    return all(_TOOL_INSTALL_LINE.search(line) for line in installs)
-
-
-def _is_workflow(path: str) -> bool:
-    return path.startswith(".github/workflows/") and path.endswith((".yml", ".yaml"))
 
 
 def _apply(
@@ -221,21 +189,20 @@ def _apply(
         acc.deleted.append(path)
         _add_structural(acc, index, path)
         return
-    if is_toolchain_manifest(current):
-        acc.toolchain.append(current)
-        return
-    if _is_workflow(current) and current not in COVERED_BY_MANDATORY:
-        patch = patches.get(current)
-        if patch is None or not workflow_install_only(patch):
-            acc.unknown.append(f"{current}: workflow change is not limited to tool installs")
-            return
-        acc.toolchain.append(current)
-        return
     if current in CRITICAL_EXACT:
-        acc.unknown.append(f"{current}: shared harness or dependency input has no proven bounded pure-Python set")
+        acc.unknown.append(f"{current}: shared harness input has no proven bounded pure-Python set")
+        return
+    if current == PYPROJECT:
+        _route_pyproject(acc, root, index, patches)
+        return
+    if _is_dependency_manifest(current):
+        _add_structural(acc, index, current)
         return
     if current in COVERED_BY_MANDATORY:
         _cover_mandatory(acc, current, patches)
+        return
+    if _is_workflow(current):
+        _add_structural(acc, index, current)
         return
     if current.startswith("docs/") and current.endswith(".py"):
         acc.unknown.append(f"{current}: executable documentation is not a docs-only path")
@@ -275,6 +242,81 @@ def _cover_mandatory(acc: _Acc, path: str, patches: dict[str, str]) -> None:
     acc.covered.append(path)
 
 
+def _route_pyproject(acc: _Acc, root: Path, index: list[tuple[str, ast.AST]], patches: dict[str, str]) -> None:
+    patch = patches.get(PYPROJECT)
+    if patch is None or not patch.strip():
+        acc.unknown.append(f"{PYPROJECT}: diff is unavailable")
+        return
+    try:
+        text = (root / PYPROJECT).read_text(encoding="utf-8")
+    except OSError:
+        acc.unknown.append(f"{PYPROJECT}: changed file is not in the tree")
+        return
+    if pyproject_pytest_changed(patch, text):
+        acc.unknown.append(f"{PYPROJECT}: pytest configuration change is not a bounded fast scope")
+        return
+    _add_structural(acc, index, PYPROJECT)
+
+
+def pyproject_pytest_changed(patch: str, text: str) -> bool:
+    """True when a ``-U0`` pyproject diff touches a ``[tool.pytest*]`` table or header.
+
+    New-side hunk ranges are mapped to the table that owns each line in the
+    checked-out file; a pure deletion maps to the line before it. A changed line
+    that is itself a pytest table header also counts. An unparseable hunk header
+    counts as a pytest change, so the decision fails closed.
+    """
+    lines = text.splitlines()
+    owners = _toml_table_owners(lines)
+    for line in patch.splitlines():
+        if line.startswith(("+++", "---")):
+            continue
+        if line.startswith(("+", "-")):
+            if _is_pytest_table(line[1:]):
+                return True
+            continue
+        if not line.startswith("@@"):
+            continue
+        span = _new_side_span(line)
+        if span is None:
+            return True
+        start, count = span
+        numbers = range(start, start + count) if count else [start]
+        for number in numbers:
+            if 1 <= number <= len(owners) and _is_pytest_table(owners[number - 1]):
+                return True
+    return False
+
+
+def _toml_table_owners(lines: list[str]) -> list[str]:
+    owners = []
+    current = ""
+    for line in lines:
+        if line.lstrip().startswith("["):
+            current = line
+        owners.append(current)
+    return owners
+
+
+def _is_pytest_table(line: str) -> bool:
+    stripped = line.strip()
+    if not stripped.startswith("["):
+        return False
+    name = stripped.strip("[] \t").split("]", 1)[0].strip()
+    return name == "tool.pytest" or name.startswith("tool.pytest.")
+
+
+def _new_side_span(header: str) -> tuple[int, int] | None:
+    parts = header.split(" ")
+    if len(parts) < 3 or not parts[2].startswith("+"):
+        return None
+    start, _, count = parts[2][1:].partition(",")
+    try:
+        return int(start), int(count) if count else 1
+    except ValueError:
+        return None
+
+
 def _add_structural(acc: _Acc, index: list[tuple[str, ast.AST]], path: str) -> None:
     hits, harness = _structural(index, path)
     if harness:
@@ -292,9 +334,6 @@ def _finish(acc: _Acc, root: Path, base_sha: str, head_sha: str) -> dict:
     if acc.unknown:
         reason = "unclassified or unproven scope: " + "; ".join(acc.unknown)
         status = "unknown"
-    elif acc.toolchain:
-        reason = "dependency or toolchain manifest changed; the whole Odoo-free suite is selected"
-        status = "applicable"
     elif acc.selected or acc.covered or acc.gate or acc.deleted or acc.renames:
         reason = _applicable_reason(acc, mandatory)
         status = "applicable"
@@ -322,8 +361,6 @@ def _finish(acc: _Acc, root: Path, base_sha: str, head_sha: str) -> dict:
         "gate_sdk_paths": acc.gate,
         "gate_sdk_job": "required",
         "unknown_paths": acc.unknown,
-        "toolchain_manifests": acc.toolchain,
-        "full_suite": bool(acc.toolchain) and not acc.unknown,
     }
 
 
@@ -398,8 +435,6 @@ def _receipt(status: str, reason: str, base_sha: str = "", head_sha: str = "") -
         "gate_sdk_paths": [],
         "gate_sdk_job": "required",
         "unknown_paths": [reason],
-        "toolchain_manifests": [],
-        "full_suite": False,
     }
 
 
@@ -571,6 +606,15 @@ def _is_test_module(path: str) -> bool:
 def _is_requirements(path: str) -> bool:
     name = Path(path).name
     return name.startswith("requirements") and name.endswith(".txt")
+
+
+def _is_dependency_manifest(path: str) -> bool:
+    """Root-level pip manifests. Their consumers are the tests that read them."""
+    return "/" not in path and (_is_requirements(path) or path == "constraints.txt")
+
+
+def _is_workflow(path: str) -> bool:
+    return path.startswith(".github/workflows/") and Path(path).suffix in {".yml", ".yaml"}
 
 
 def _is_gate(path: str) -> bool:

@@ -11,7 +11,7 @@ import pytest
 from ci.nightly_full_run import NIGHTLY_PYTEST, skip_reason
 from ci.nightly_full_run import main as nightly_main
 from ci.pr_fast_scope import classify, missing_mandatory_markers, parse_name_status
-from ci.run_pr_fast_tests import MANDATORY_PYTEST, scoped_pytest, split_patch
+from ci.run_pr_fast_tests import MANDATORY_PYTEST, scoped_pytest
 from ci.run_pr_fast_tests import main as fast_main
 
 pytestmark = pytest.mark.adversarial_contract
@@ -65,94 +65,90 @@ def test_unresolvable_diff_is_unknown(tmp_path: Path) -> None:
 
 
 def test_shared_harness_blocks_selective_routing(tmp_path: Path) -> None:
-    for path in ("tests/common.py", "tests/__init__.py"):
+    for path in (_path("tests/", "common.py"), _path("tests/", "__init__.py")):
         receipt = classify([("M", path, None)], tmp_path)
         assert receipt["status"] == "unknown", path
-        assert receipt["full_suite"] is False
+        assert receipt["status"] != "not_applicable"
 
 
-def _suite(root: Path) -> None:
-    _write(root, "tests/test_alpha.py", "def test_alpha():\n    assert True\n")
-    _write(root, "tests/deep/test_beta.py", "def test_beta():\n    assert True\n")
-    _write(root, "tests/helpers.py", "VALUE = 1\n")
-
-
-@pytest.mark.parametrize(
-    "manifest",
-    [
-        _path("pyproject", ".toml"),
-        _path("requirements", ".txt"),
-        _path("requirements-dev", ".txt"),
-        _path("requirements-ci", ".txt"),
-        _path("constraints", ".txt"),
-        _path(".pre-commit-config", ".yaml"),
-    ],
+_PYPROJECT = _path("pyproject", ".toml")
+_PYPROJECT_TEXT = (
+    '[tool.pytest.ini_options]\naddopts = "-ra"\n\n[tool.ruff]\nrequired-version = "==0.16.0"\nline-length = 120\n'
 )
-def test_toolchain_manifest_selects_the_whole_suite(tmp_path: Path, manifest: str) -> None:
-    # CTO decision 2026-11-20 (#560): a dependency or toolchain manifest has no
-    # bounded structural set, so it selects every test module instead of failing.
-    _suite(tmp_path)
+
+
+def _pyproject_patch(header: str, minus: str, plus: str) -> str:
+    return f"--- a/{_PYPROJECT}\n+++ b/{_PYPROJECT}\n{header}\n-{minus}\n+{plus}\n"
+
+
+def test_dependency_manifest_runs_only_its_consumers(tmp_path: Path) -> None:
+    manifest = _path("requirements", "-dev.txt")
+    consumer = f"PATH = {manifest!r}\n\ndef test_pin():\n    assert PATH\n"
+    _write(tmp_path, "tests/test_pin.py", consumer)
     receipt = classify([("M", manifest, None)], tmp_path)
     assert receipt["status"] == "applicable"
-    assert receipt["full_suite"] is True
-    assert receipt["toolchain_manifests"] == [manifest]
-    assert receipt["scoped_nonmarker_tests"] == ["tests/deep/test_beta.py", "tests/test_alpha.py"]
+    assert receipt["scoped_nonmarker_tests"] == ["tests/test_pin.py"]
     assert receipt["unknown_paths"] == []
 
 
-def test_toolchain_manifest_does_not_rescue_an_unknown_path(tmp_path: Path) -> None:
-    _suite(tmp_path)
-    receipt = classify([("M", _path("pyproject", ".toml"), None), ("M", "tests/common.py", None)], tmp_path)
+def test_dependency_manifest_without_a_consumer_waits_for_the_nightly_suite(tmp_path: Path) -> None:
+    for manifest in (_path("requirements", ".txt"), _path("constraints", ".txt")):
+        receipt = classify([("M", manifest, None)], tmp_path)
+        assert receipt["status"] == "not_applicable", manifest
+        assert receipt["structural_absence"] == [manifest]
+        assert "nightly" in receipt["reason"]
+
+
+def test_nested_requirements_file_is_not_a_root_manifest(tmp_path: Path) -> None:
+    nested = _path("docs/", "requirements.txt")
+    receipt = classify([("M", nested, None)], tmp_path)
+    assert receipt["structural_absence"] == []
+
+
+def test_pyproject_tool_change_outside_pytest_is_bounded(tmp_path: Path) -> None:
+    _write(tmp_path, _PYPROJECT, _PYPROJECT_TEXT)
+    patch = _pyproject_patch("@@ -5 +5 @@", 'required-version = "==0.15.0"', 'required-version = "==0.16.0"')
+    receipt = classify([("M", _PYPROJECT, None)], tmp_path, patches={_PYPROJECT: patch})
+    assert receipt["status"] == "not_applicable"
+    assert receipt["unknown_paths"] == []
+
+
+def test_pyproject_pytest_table_change_is_unknown(tmp_path: Path) -> None:
+    _write(tmp_path, _PYPROJECT, _PYPROJECT_TEXT)
+    patch = _pyproject_patch("@@ -2 +2 @@", 'addopts = "-q"', 'addopts = "-ra"')
+    receipt = classify([("M", _PYPROJECT, None)], tmp_path, patches={_PYPROJECT: patch})
     assert receipt["status"] == "unknown"
-    assert receipt["full_suite"] is False
-    assert receipt["scoped_nonmarker_tests"] == []
 
 
-_WORKFLOW = _path(".github/workflows/", "analysis.yml")
-
-
-def _workflow_patch(*changed: str) -> str:
-    return f"diff --git a/{_WORKFLOW} b/{_WORKFLOW}\n@@ -1 +1 @@\n" + "\n".join(changed) + "\n"
-
-
-def test_workflow_limited_to_tool_installs_selects_the_whole_suite(tmp_path: Path) -> None:
-    _suite(tmp_path)
-    patch = _workflow_patch(
-        "-          pip install --upgrade pip semgrep",
-        "+          # Versions from the Core toolchain lock.",
-        "+          pip install pip==26.2.1 semgrep==1.171.0",
-    )
-    receipt = classify([("M", _WORKFLOW, None)], tmp_path, patches={_WORKFLOW: patch})
-    assert receipt["status"] == "applicable"
-    assert receipt["full_suite"] is True
-    assert receipt["toolchain_manifests"] == [_WORKFLOW]
-
-
-@pytest.mark.parametrize(
-    "patches",
-    [
-        {},
-        {_WORKFLOW: _workflow_patch("+          pip install ruff==0.16.1", "+    if: always()")},
-        {_WORKFLOW: _workflow_patch("+    runs-on: ubuntu-latest")},
-        {_WORKFLOW: _workflow_patch("+          # comment only")},
-    ],
-    ids=["no-patch", "install-plus-logic", "logic-only", "comment-only"],
-)
-def test_other_workflow_edits_stay_unknown(tmp_path: Path, patches: dict[str, str]) -> None:
-    receipt = classify([("M", _WORKFLOW, None)], tmp_path, patches=patches)
+def test_pyproject_native_pytest_table_header_is_unknown(tmp_path: Path) -> None:
+    _write(tmp_path, _PYPROJECT, _PYPROJECT_TEXT)
+    patch = _pyproject_patch("@@ -1 +1 @@", "[tool.pytest]", "[tool.pytest.ini_options]")
+    receipt = classify([("M", _PYPROJECT, None)], tmp_path, patches={_PYPROJECT: patch})
     assert receipt["status"] == "unknown"
-    assert receipt["full_suite"] is False
 
 
-def test_split_patch_keys_each_destination_path() -> None:
-    text = (
-        "diff --git a/tests/conftest.py b/tests/conftest.py\n@@ -1 +1 @@\n-a\n+b\n"
-        f"diff --git a/{_WORKFLOW} b/{_WORKFLOW}\n@@ -2 +2 @@\n-c\n+d\n"
-    )
-    split = split_patch(text)
-    assert set(split) == {"tests/conftest.py", _WORKFLOW}
-    assert "+b" in split["tests/conftest.py"] and "+d" not in split["tests/conftest.py"]
-    assert "+d" in split[_WORKFLOW]
+def test_pyproject_deletion_inside_pytest_table_is_unknown(tmp_path: Path) -> None:
+    _write(tmp_path, _PYPROJECT, _PYPROJECT_TEXT)
+    patch = f"--- a/{_PYPROJECT}\n+++ b/{_PYPROJECT}\n@@ -3 +2,0 @@\n-timeout = 60\n"
+    receipt = classify([("M", _PYPROJECT, None)], tmp_path, patches={_PYPROJECT: patch})
+    assert receipt["status"] == "unknown"
+
+
+def test_pyproject_without_a_patch_or_with_a_bad_hunk_is_unknown(tmp_path: Path) -> None:
+    _write(tmp_path, _PYPROJECT, _PYPROJECT_TEXT)
+    assert classify([("M", _PYPROJECT, None)], tmp_path)["status"] == "unknown"
+    bad = _pyproject_patch("@@ garbage @@", "a", "b")
+    assert classify([("M", _PYPROJECT, None)], tmp_path, patches={_PYPROJECT: bad})["status"] == "unknown"
+
+
+def test_other_workflow_change_runs_its_consumers_or_nothing(tmp_path: Path) -> None:
+    workflow = _path(".github/workflows/", "security.yml")
+    receipt = classify([("M", workflow, None)], tmp_path)
+    assert receipt["status"] == "not_applicable"
+    assert receipt["structural_absence"] == [workflow]
+    _write(tmp_path, "tests/test_wf.py", f"WF = {workflow!r}\n\ndef test_wf():\n    assert WF\n")
+    receipt = classify([("M", workflow, None)], tmp_path)
+    assert receipt["scoped_nonmarker_tests"] == ["tests/test_wf.py"]
 
 
 def test_ci_workflow_change_is_covered_by_mandatory_contracts(tmp_path: Path) -> None:

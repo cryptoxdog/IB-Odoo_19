@@ -31,6 +31,7 @@ _SCOPE = _load_scope()
 classify = _SCOPE.classify
 missing_mandatory_markers = _SCOPE.missing_mandatory_markers
 parse_name_status = _SCOPE.parse_name_status
+PATCHED_PATHS = _SCOPE.PATCHED_PATHS
 
 MANDATORY_PYTEST = [
     "python3",
@@ -115,41 +116,26 @@ def resolve_range(head: str) -> tuple[str, str]:
     raise SystemExit(f"pr_fast cannot prove a base SHA for event {event or '(missing)'}")
 
 
-#: Paths whose patch text the selector reads: the harness conftest, and workflows,
-#: which count as toolchain manifests only when the change is limited to tool installs.
-_PATCHED_PATHS = ("tests/conftest.py", ".github/workflows/")
-
-
-def split_patch(text: str) -> dict[str, str]:
-    """Split a ``git diff`` into one patch per destination path."""
-    patches: dict[str, list[str]] = {}
-    current: list[str] | None = None
-    for line in text.splitlines():
-        if line.startswith("diff --git "):
-            path = line.rsplit(" b/", 1)[-1]
-            current = patches.setdefault(path, [])
-        if current is not None:
-            current.append(line)
-    return {path: "\n".join(lines) + "\n" for path, lines in patches.items()}
-
-
 def load_diff(base: str, head: str) -> tuple[list[tuple[str, str, str | None]] | None, dict[str, str]]:
+    """Name-status entries plus the ``-U0`` patch of every path whose content the classifier reads."""
     if not _exists(base) or not _exists(head):
         return None, {}
+    patches: dict[str, str] = {}
     try:
         listed = subprocess.check_output(
             ["git", "diff", "--name-status", "-M", base, head],
             text=True,
             stderr=subprocess.DEVNULL,
         )
-        patch = subprocess.check_output(
-            ["git", "diff", "-U0", base, head, "--", *_PATCHED_PATHS],
-            text=True,
-            stderr=subprocess.DEVNULL,
-        )
+        for path in PATCHED_PATHS:
+            patches[path] = subprocess.check_output(
+                ["git", "diff", "-U0", base, head, "--", path],
+                text=True,
+                stderr=subprocess.DEVNULL,
+            )
     except (OSError, subprocess.CalledProcessError):
         return None, {}
-    return parse_name_status(listed), split_patch(patch)
+    return parse_name_status(listed), patches
 
 
 def write_record(head: str, base: str, receipt: dict, mandatory_code: int, scoped_code: int | None) -> None:
@@ -184,13 +170,13 @@ def main(launch=subprocess.call, head: str | None = None) -> int:
         receipt["status"] = "unknown"
         write_record(observed, "", receipt, code, None)
         return code or 1
-    parsed, split = load_diff(base, resolved_head)
+    parsed, loaded = load_diff(base, resolved_head)
     patches: dict[str, str] | None
     if parsed is None:
         patches = None
     else:
         changed = _changed_paths(parsed)
-        patches = {path: text for path, text in split.items() if path in changed}
+        patches = {path: loaded[path] for path in PATCHED_PATHS if path in changed and path in loaded}
     receipt = classify(
         parsed,
         ROOT,
