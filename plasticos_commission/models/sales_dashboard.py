@@ -334,8 +334,11 @@ class PlasticosSalesDashboard(models.Model):
 
     def _doc_checklist_from_native(self, tx_ids):
         """Fallback when no business rows exist: native records by their plastics type."""
+        name = self._doc_checklist_source()
+        if name != "documents.document":
+            return {}
         docs = (
-            self.env["documents.document"]
+            self.env[name]
             .sudo()  # sudo: read-only rep dashboard; document ACL is narrower
             .search(
                 [

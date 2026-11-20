@@ -108,6 +108,14 @@ def test_range_classifies_on_the_low_number_and_keeps_the_high_number():
     assert evidence.weight_source == "range_lbs"
 
 
+def test_unitless_10000_does_not_become_load_weight():
+    evidence = normalize_quantity_evidence(quantity_text="10000", weight_per_load_text="", frequency_text="")
+
+    assert evidence.load_weight_lbs is None
+    assert evidence.weight_source == "bare_number:lbs_assumed"
+    assert evidence.mass_label != "grounded"
+
+
 def test_square_feet_do_not_become_pounds():
     evidence = normalize_quantity_evidence(quantity_text="65,000 sqft", weight_per_load_text="", frequency_text="")
 

@@ -17,6 +17,7 @@ from odoo.exceptions import AccessError, ConcurrencyError, UserError, Validation
 from odoo.tests import TransactionCase, tagged
 
 from ..models.review_snapshot import snapshot_content_hash
+from .test_broker_one_pass import _CAPTURED_PROMPTS, _recommend, economic_assessment_patch, one_pass_orchestration
 
 _ATTACHMENT_PROCESSOR = "odoo.addons.plasticos_web_leads.models.attachment_processor"
 _WEB_LEAD = "odoo.addons.plasticos_web_leads.models.web_lead"
@@ -82,7 +83,7 @@ class _WebLeadCase(TransactionCase):
     def _approved_hot_lead(self, external_id, attachments=None):
         """A HOT lead whose economic assessment completed, so it is approvable."""
         with (
-            patch(f"{_WEB_LEAD}.evaluate_economic_opportunity", return_value=dict(_ASSESSED)),
+            economic_assessment_patch(return_value=dict(_ASSESSED)),
             patch(f"{_ATTACHMENT_PROCESSOR}.requests.get", return_value=_image_response()),
             patch(f"{_ATTACHMENT_PROCESSOR}.resolve_host_addresses", return_value=_PUBLIC_IP),
         ):
@@ -306,8 +307,12 @@ class TestAcquisitionSecretsAndDestinations(_WebLeadCase):
                 {"ai_enabled": False, "openai_api_key": False, "text_inference_provider": previous_text_provider}
             )
 
-        self.assertIn("prompt", captured, "text normalization ran")
-        self.assertNotIn("SECRET-SIGNED-TOKEN", captured["prompt"])
+        if one_pass_orchestration():
+            self.assertTrue(_CAPTURED_PROMPTS, "the broker call ran")
+            self.assertNotIn("SECRET-SIGNED-TOKEN", "\n".join(_CAPTURED_PROMPTS))
+        else:
+            self.assertIn("prompt", captured, "text normalization ran")
+            self.assertNotIn("SECRET-SIGNED-TOKEN", captured["prompt"])
         self.assertNotIn("SECRET-SIGNED-TOKEN", json.dumps(lead.canonical_payload))
         self.assertNotIn("source_url", json.dumps(lead.canonical_payload["attachments"]))
         self.assertNotIn("SECRET-SIGNED-TOKEN", json.dumps(lead.evidence_bundle))
@@ -385,14 +390,18 @@ class TestAcquisitionSecretsAndDestinations(_WebLeadCase):
 
     def test_error_shaped_vision_result_is_failed_evidence_requiring_review(self):
         self.config.write({"vision_enabled": True, "openai_api_key": "test-key-not-real"})
+        separate_analyzer = patch(
+            f"{_WEB_LEAD}.image_analyzer.analyze_image_with_provider",
+            return_value={"error": "provider_inference_failed", "provider": {"provider": "openai"}},
+        )
+        reading = (
+            economic_assessment_patch(side_effect=_recommend("hot")) if one_pass_orchestration() else separate_analyzer
+        )
         try:
             with (
                 patch(f"{_ATTACHMENT_PROCESSOR}.requests.get", return_value=_image_response()),
                 patch(f"{_ATTACHMENT_PROCESSOR}.resolve_host_addresses", return_value=_PUBLIC_IP),
-                patch(
-                    f"{_WEB_LEAD}.image_analyzer.analyze_image_with_provider",
-                    return_value={"error": "provider_inference_failed", "provider": {"provider": "openai"}},
-                ),
+                reading,
             ):
                 lead = self.WebLead.create_from_cognito(_hot_payload("HARD-VISION-ERR-001", [_image_attachment()]))
         finally:
@@ -400,8 +409,12 @@ class TestAcquisitionSecretsAndDestinations(_WebLeadCase):
 
         row = lead.evidence_bundle["attachments"][0]
         self.assertEqual(row["acquisition_status"], "success", "stored evidence is preserved")
-        self.assertEqual(row["analysis_status"], "failed")
-        self.assertEqual(row["error"]["code"], "image_analysis_error")
+        if one_pass_orchestration():
+            self.assertEqual(row["analysis_status"], "not_run")
+            self.assertFalse(row.get("error"))
+        else:
+            self.assertEqual(row["analysis_status"], "failed")
+            self.assertEqual(row["error"]["code"], "image_analysis_error")
         self.assertFalse(lead.ai_vision_results, "no error-shaped result is stored as a vision result")
         self.assertEqual(lead.evidence_bundle["vision"], [])
         self.assertEqual(lead.decision, "hot")

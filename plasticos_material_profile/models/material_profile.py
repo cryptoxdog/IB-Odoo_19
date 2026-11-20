@@ -488,8 +488,10 @@ class PlasticosMaterialProfile(models.Model):
             company = partner.parent_id.commercial_partner_id
         else:
             company = partner.commercial_partner_id
-        label = partner.erp_address_label if "erp_address_label" in partner._fields else False
-        role = partner.company_role if "company_role" in partner._fields else False
+        label_field = "erp_address_label"
+        role_field = "company_role"
+        label = partner[label_field] if label_field in partner._fields else False
+        role = partner[role_field] if role_field in partner._fields else False
         return (
             direction_for(
                 site=site,
@@ -900,16 +902,20 @@ class PlasticosMaterialProfile(models.Model):
                 self.id,
             )
 
+    def _referenced_by_approved_lot(self):
+        """Whether an approved opportunity lot still points at this profile.
+
+        CRM Bridge owns the lot. Without it, nothing references the profile.
+        """
+        self.ensure_one()
+        return False
+
     def action_remove_profile(self):
         """Delete this profile, or archive it when an approved lot still points at it."""
         self.ensure_one()
         self.check_access("read")
         self.partner_id.check_access("read")
-        approval_model = "plasticos.opportunity.approval"
-        referenced = approval_model in self.env and self.env[approval_model].search_count(
-            [("material_profile_id", "=", self.id)]
-        )
-        if referenced:
+        if self._referenced_by_approved_lot():
             self.write({"active": False})
         else:
             self.unlink()

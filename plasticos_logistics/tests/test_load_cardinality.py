@@ -1707,9 +1707,14 @@ class TestCarrierComposerSendTimeRelease(TransactionCase):
 
     def test_each_carrier_document_composer_rechecks_at_send(self):
         load = self._scheduled_load()
-        for action in (load.action_send_delivery_order, load.action_send_bol_pickup, load.action_send_bol_delivery):
-            with self.subTest(action=action.__name__):
-                composer = self._open(action())
+        windows = (
+            ("action_send_delivery_order", load.action_send_delivery_order()),
+            ("action_send_bol_pickup", load.action_send_bol_pickup()),
+            ("action_send_bol_delivery", load.action_send_bol_delivery()),
+        )
+        for name, window in windows:
+            with self.subTest(action=name):
+                composer = self._open(window)
                 self.assertEqual(composer._plasticos_load_release_operation(), "carrier_document")
                 with patch.object(PlasticosLoad, "_physical_release_errors", lambda self, kind: ["Booking rolled."]):
                     with self.assertRaises(UserError), self.env.cr.savepoint():
@@ -1877,8 +1882,8 @@ class TestCarrierComposerSendTimeRelease(TransactionCase):
         load = self._scheduled_load()
         load.action_dispatch()
         before = self.env["mail.mail"].search([("model", "=", "plasticos.load"), ("res_id", "=", load.id)])
-        for action in (load.action_send_delivery_order, load.action_send_bol_pickup):
-            self._open(action()).action_send_mail()
+        self._open(load.action_send_delivery_order()).action_send_mail()
+        self._open(load.action_send_bol_pickup()).action_send_mail()
         created = self.env["mail.mail"].search([("model", "=", "plasticos.load"), ("res_id", "=", load.id)]) - before
         self.assertTrue(created, "the document composers produced carrier mail")
         for mail in created:

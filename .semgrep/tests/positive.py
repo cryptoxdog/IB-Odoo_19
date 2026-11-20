@@ -6,9 +6,14 @@ when scanned with .semgrep/odoo-patterns.yml. This file is a rule fixture only;
 it is not application code.
 """
 
+import json
 import pickle
+
 import yaml
-from odoo import api, models
+from psycopg2 import sql
+
+from odoo import api, fields, models
+from odoo.http import request
 
 
 class PlasticosSemgrepPositiveFixture(models.Model):
@@ -68,8 +73,57 @@ class PlasticosSemgrepPositiveFixture(models.Model):
         return self.env.ref("base.main_company")
 
     def action_not_implemented(self):
-        raise NotImplementedError("fixture should trigger zero-stub rule")
+        raise NotImplementedError("fixture should trigger the production guard")
 
     def action_hardcoded_secret(self):
         api_key = "sk_test_1234567890abcdef"
         return api_key
+
+    # TODO: fixture marker for plasticos-production-todo-implement
+    # self.env["res.partner"].search([])
+    x_legacy_id = fields.Boolean()
+    is_vendor = fields.Boolean()
+
+    def action_indirect_sql(self, table, partner_id, query):
+        built = f"SELECT * FROM {table}"
+        self.env.cr.execute(built)
+        formatted = "SELECT * FROM {}".format(table)
+        self.env.cr.execute(formatted)
+        percent = "SELECT id FROM res_partner WHERE id = %s" % (partner_id,)
+        self.env.cr.execute(percent)
+        concatenated = "SELECT * FROM " + table
+        self.env.cr.execute(concatenated)
+        self.env.cr.execute(query % (partner_id,))
+        self.env.cr.execute(query.format(table))
+
+    def action_request_sql_and_domain(self):
+        self.env.cr.execute(request.params.get("query"))
+        raw = request.httprequest.get_data(as_text=True)
+        statement = json.loads(raw)
+        self.env.cr.execute(statement)
+        body = json.loads(request.httprequest.get_data(as_text=True) or "")
+        request.env["res.partner"].search(body)
+        request.env["res.partner"].search(request.params.get("domain"))
+        self.env.cr.execute(body.get("query"))
+        extracted = body.get("query")
+        self.env.cr.execute(extracted)
+        request.env["res.partner"].search(body.get("domain"))
+        domain = body.get("domain")
+        request.env["res.partner"].search(domain)
+        request.env["res.partner"].search_read(request.params.get("domain"))
+        request.env["res.partner"].search_read(domain)
+
+    def action_sql_composer_interpolation(self, untrusted_table):
+        self.env.cr.execute(sql.SQL(f"SELECT * FROM {untrusted_table}"))
+        self.env.cr.execute(sql.SQL(request.params.get("query")))
+        composed = sql.SQL(request.params.get("statement"))
+        self.env.cr.execute(composed)
+
+    def action_destructive_migration_fixture(self):
+        statement = "DROP TABLE plasticos_semgrep_fixture"
+        return statement
+
+
+class PlastosSemgrepDrift(models.Model):
+    _name = "plasticos.semgrep.drift"
+    _description = "Namespace drift fixture"

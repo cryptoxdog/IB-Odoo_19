@@ -2,8 +2,9 @@
 """Scope the local pre-push gate to what the branch changed.
 
 ``make pr-check`` asks this owner, once, which collectors the change set can
-reach. Everything else is skipped on this machine; GitHub ``ci.yml`` still runs
-the whole suite on the PR and stays the merge verdict.
+reach. Everything else is skipped on this machine. GitHub ``ci.yml`` runs the
+PR-fast pure-Python lane and stays the merge verdict; the unfiltered Odoo-free
+suite runs from the Staging nightly workflow, not from this local selector.
 
 Usage::
 

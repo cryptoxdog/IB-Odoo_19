@@ -47,7 +47,9 @@ class TestEscalationManager(PlasticosTestCase):
     def _escalate(self, users=None, **kwargs):
         values = {"summary": "ESCALATION: base subject", "note": "Needs a manager.", "label": "base subject escalation"}
         values.update(kwargs)
-        return (users or self.Users)._plasticos_escalate_to_manager(self.record, GROUP_XMLID, **values)
+        # An empty recordset is falsy, so ``users or self.Users`` would drop with_user.
+        actor = self.Users if users is None else users
+        return actor._plasticos_escalate_to_manager(self.record, GROUP_XMLID, **values)
 
     # ── resolver ─────────────────────────────────────────────────────────
 

@@ -68,29 +68,103 @@ if not _odoo_available():
 # Odoo-only tests retain the existing collection policy above.
 
 _CONTRACT_STATE = pytest.StashKey[dict[str, set[str]]]()
+_NIGHTLY_TIER = "nightly_full"
+_PR_FAST_TIER = "pr_fast"
+_ADMITTED_TIERS = {_NIGHTLY_TIER, _PR_FAST_TIER}
+_PR_FAST_MARKERS = {"adversarial_contract", "not adversarial_contract"}
+_NARROWING = ("keyword", "ignore", "ignore_glob", "deselect", "collectonly", "lf", "ff")
+# This publication test skips when the gitleaks binary is absent. Secret Detection
+# already runs gitleaks on every pull request, so that skip is not a failed contract.
+_CONTRACT_SKIP_ALLOWED = ("tests/test_make_pr_publication.py::test_real_gitleaks_rejects_a_seeded_secret",)
+
+
+def _is_contract(item: pytest.Item) -> bool:
+    if item.nodeid.endswith(_CONTRACT_SKIP_ALLOWED):
+        return False
+    return bool(item.get_closest_marker("adversarial_contract"))
+
+
+def _option_set(config, name: str) -> bool:
+    value = getattr(config.option, name, None)
+    if value is None or value is False:
+        return False
+    if isinstance(value, (list, tuple)):
+        return any(value)
+    if isinstance(value, str):
+        return bool(value.strip())
+    return bool(value)
+
+
+def _repo_has_contract_tree() -> bool:
+    return os.path.isfile(os.path.join(os.getcwd(), "tests", "conftest.py"))
+
+
+def _enforce_contract_tier(config) -> None:
+    if os.environ.get("PYTEST_ADDOPTS"):
+        raise pytest.UsageError("Required CI may not honor PYTEST_ADDOPTS")
+    if os.environ.get("PLASTICOS_SMOKE_SOURCE"):
+        raise pytest.UsageError("Required CI must exercise checkout source, not a calibration donor")
+    tier = os.environ.get("PLASTICOS_CI_TIER", "")
+    if tier not in _ADMITTED_TIERS:
+        raise pytest.UsageError("PLASTICOS_CONTRACT_CI=1 requires PLASTICOS_CI_TIER=pr_fast or nightly_full")
+    markexpr = str(getattr(config.option, "markexpr", None) or "").strip()
+    if tier == _NIGHTLY_TIER:
+        _enforce_nightly(config, markexpr)
+        return
+    _enforce_pr_fast(config, markexpr)
+
+
+def _enforce_nightly(config, markexpr: str) -> None:
+    if markexpr or any(_option_set(config, name) for name in _NARROWING):
+        raise pytest.UsageError("Nightly full tier may not narrow the suite")
+    if not _repo_has_contract_tree():
+        return
+    args = [str(arg) for arg in (config.args or [])]
+    if args not in ([], ["tests"], ["tests/"]):
+        raise pytest.UsageError("Nightly full tier must collect tests/ with no selector")
+
+
+def _enforce_pr_fast(config, markexpr: str) -> None:
+    for name in _NARROWING:
+        if _option_set(config, name):
+            raise pytest.UsageError(f"Required CI may not narrow the full test tier: {name}")
+    if markexpr not in _PR_FAST_MARKERS:
+        raise pytest.UsageError("pr_fast admits only -m adversarial_contract or -m 'not adversarial_contract'")
+    args = [str(arg) for arg in (config.args or [])]
+    if markexpr == "adversarial_contract":
+        _enforce_pr_fast_marker(args)
+        return
+    if not args or any(_unsafe_scoped_arg(arg) for arg in args):
+        raise pytest.UsageError("pr_fast scoped selection requires explicit test modules")
+
+
+def _enforce_pr_fast_marker(args: list[str]) -> None:
+    if any(arg.endswith(".py") for arg in args) or len(args) > 1:
+        raise pytest.UsageError("pr_fast mandatory selection must cover the tests tree, not a file list")
+    if _repo_has_contract_tree() and args not in (["tests"], ["tests/"]):
+        raise pytest.UsageError("pr_fast mandatory selection must be tests/")
+
+
+def _unsafe_scoped_arg(arg: str) -> bool:
+    path = arg.replace("\\", "/")
+    return not path.endswith(".py") or ".." in path.split("/") or path.rstrip("/") in {"tests", "tests/"}
 
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "adversarial_contract: portable safety contract; skips and xfails are failures")
     config.stash[_CONTRACT_STATE] = {"collected": set(), "passed": set(), "deselected": set()}
     if os.environ.get("PLASTICOS_CONTRACT_CI") == "1":
-        if os.environ.get("PLASTICOS_SMOKE_SOURCE"):
-            raise pytest.UsageError("Required CI must exercise checkout source, not a calibration donor")
-        for option in ("keyword", "markexpr", "ignore", "ignore_glob", "deselect", "collectonly", "lf", "ff"):
-            if getattr(config.option, option, None):
-                raise pytest.UsageError(f"Required CI may not narrow the full test tier: {option}")
+        _enforce_contract_tier(config)
 
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_collection_modifyitems(config, items):
-    config.stash[_CONTRACT_STATE]["collected"].update(
-        item.nodeid for item in items if item.get_closest_marker("adversarial_contract")
-    )
+    config.stash[_CONTRACT_STATE]["collected"].update(item.nodeid for item in items if _is_contract(item))
 
 
 def pytest_deselected(items):
     for item in items:
-        if item.get_closest_marker("adversarial_contract"):
+        if _is_contract(item):
             item.config.stash[_CONTRACT_STATE]["deselected"].add(item.nodeid)
 
 
@@ -98,7 +172,7 @@ def pytest_deselected(items):
 def pytest_runtest_makereport(item, call):
     outcome = yield
     report = outcome.get_result()
-    if not item.get_closest_marker("adversarial_contract"):
+    if not _is_contract(item):
         return
     report.user_properties.append(("contract_tier", "adversarial_contract"))
     if report.skipped or hasattr(report, "wasxfail"):
@@ -118,9 +192,18 @@ def pytest_sessionfinish(session, exitstatus):
     if os.environ.get("PLASTICOS_CONTRACT_CI") != "1":
         return
     state = session.config.stash[_CONTRACT_STATE]
+    tier = os.environ.get("PLASTICOS_CI_TIER", "")
+    markexpr = str(getattr(session.config.option, "markexpr", None) or "").strip()
+    if tier == _PR_FAST_TIER and markexpr == "not adversarial_contract":
+        if state["collected"]:
+            session.exitstatus = pytest.ExitCode.TESTS_FAILED
+            reporter = session.config.pluginmanager.get_plugin("terminalreporter")
+            if reporter:
+                reporter.write_line("Scoped lane executed a mandatory adversarial contract")
+        return
     missing = state["collected"] - state["passed"]
     if not state["collected"] or missing or state["deselected"]:
-        if session.exitstatus == pytest.ExitCode.OK:
+        if session.exitstatus in (pytest.ExitCode.OK, pytest.ExitCode.NO_TESTS_COLLECTED):
             session.exitstatus = pytest.ExitCode.TESTS_FAILED
         reporter = session.config.pluginmanager.get_plugin("terminalreporter")
         if reporter:

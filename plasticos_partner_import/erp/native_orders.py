@@ -8,6 +8,7 @@ key). The line's ``PONumber`` then selects ``PO`` where ``Source`` is ``SO`` or
 from __future__ import annotations
 
 import html
+from decimal import Decimal, InvalidOperation
 
 from .limits import resolve_limit
 
@@ -67,8 +68,11 @@ __all__ = [
     "selected_worksheets",
     "payable_identity",
     "payable_matches_purchase",
+    "vendor_credit_original",
     "payables_reconciliation",
     "purchase_bill_lines",
+    "unit_priced_quantity",
+    "zero_weight_exceptions",
     "quarantined_payable",
     "reconciliation_gap",
     "sale_note",
@@ -713,21 +717,103 @@ def unit_price(amount: str | None, weight: str | None, price: str | None) -> flo
     return _number(price)
 
 
+def _decimal(value) -> Decimal | None:
+    """Exact source money. Blank and the extract's NULL token are zero. A bad token is None."""
+    if isinstance(value, Decimal):
+        return value
+    text = "" if value is None else str(value).strip()
+    if not text or text.upper() == "NULL":
+        return Decimal(0)
+    try:
+        return Decimal(text)
+    except InvalidOperation:
+        return None
+
+
+def unit_priced_quantity(amount, price) -> tuple[str, Decimal | None, str]:
+    """Integer each-quantity for a zero-weight line: ``amount / price``.
+
+    ``WKSDetail.Units`` is not an input. Quantity 1 is not a substitute.
+    Returns ``("empty", None, "")``, ``("unit", quantity, "")``, or
+    ``("invalid", None, reason)``. ``quantity`` is the signed integer that
+    reconciles: ``quantity * price == amount``.
+    """
+    amount_d = _decimal(amount)
+    price_d = _decimal(price)
+    if amount_d is None or price_d is None:
+        return "invalid", None, "amount or unit price is not a decimal"
+    if amount_d == 0:
+        return "empty", None, ""
+    if price_d == 0:
+        return "invalid", None, "zero weight, nonzero amount, no unit price"
+    quantity = amount_d / price_d
+    if quantity != quantity.to_integral_value() or quantity * price_d != amount_d or quantity == 0:
+        return "invalid", None, "amount is not an exact multiple of the unit price"
+    return "unit", quantity, ""
+
+
+def credit_line_terms(quantity: float, price: float) -> tuple[float, float]:
+    """Positive quantity and price for one credit-note line.
+
+    ``unit_priced_quantity`` keeps the source sign so ``quantity * price``
+    still equals the source amount. A refund stores that magnitude; the move
+    type carries the direction. A negative quantity with a positive price would
+    otherwise leave a negative subtotal on an ``out_refund``.
+    """
+    return abs(float(quantity)), abs(float(price))
+
+
+def zero_weight_exceptions(rows: list[dict], side: str) -> list[dict]:
+    """Invalid zero-weight lines. Each row names the source identity, amount, and reason."""
+    prefix = "S" if side == "sale" else "P"
+    found = []
+    for row in rows:
+        weight, _uom = native_quantity(row.get(f"{prefix}Weight"), row.get(f"{prefix}WeightUOM"))
+        if weight:
+            continue
+        kind, _quantity, reason = unit_priced_quantity(row.get(f"{prefix}Amount"), row.get(f"{prefix}Price"))
+        if kind != "invalid":
+            continue
+        found.append(
+            {
+                "detail_id": (row.get("DetailID") or "").strip(),
+                "side": side,
+                "amount": "" if row.get(f"{prefix}Amount") is None else str(row.get(f"{prefix}Amount")).strip(),
+                "reason": reason,
+            }
+        )
+    return found
+
+
 def purchase_bill_lines(rows: list[dict]) -> list[dict]:
     """Buy-side worksheet quantity and rate for a vendor bill.
 
-    ``PWeight`` is the quantity. The rate is ``PAmount / PWeight``. A stored
-    price with no weight uses ``PAmount / PPrice`` as the quantity. The payable
-    lump (one unit at the full amount) is not a weight.
+    ``PWeight`` is the quantity. The rate is ``PAmount / PWeight``. A zero weight
+    with a nonzero amount is an each-quantity only when ``PAmount / PPrice`` is
+    an exact integer. Anything else is omitted here and reported by
+    ``zero_weight_exceptions``. The payable lump is not a weight.
     """
     lines = []
     for row in rows:
-        amount = _number(row.get("PAmount"))
         weight, uom = native_quantity(row.get("PWeight"), row.get("PWeightUOM"))
-        price = _number(row.get("PPrice"))
-        if not weight and amount and price:
-            weight = amount / price
-        if not weight or not amount:
+        if not weight:
+            _kind, quantity, _reason = unit_priced_quantity(row.get("PAmount"), row.get("PPrice"))
+            price_d = _decimal(row.get("PPrice"))
+            if quantity is None or price_d is None:
+                continue
+            lines.append(
+                {
+                    "quantity": float(abs(quantity)),
+                    "price_unit": float(abs(price_d)),
+                    "uom": "E",
+                    "grade": (row.get("GradeID") or "").strip(),
+                    "description": (row.get("InvoiceDesc") or "").strip(),
+                    "detail_id": (row.get("DetailID") or "").strip(),
+                }
+            )
+            continue
+        amount = _number(row.get("PAmount"))
+        if not amount:
             continue
         lines.append(
             {
@@ -746,6 +832,70 @@ def payable_matches_purchase(payable_amount: float, rows: list[dict]) -> bool:
     """True when this payable is the worksheet purchase total, not a side charge."""
     total = sum(_number(row.get("PAmount")) for row in rows)
     return bool(total) and abs(abs(payable_amount) - abs(total)) < 0.02
+
+
+def _batch_ref(value) -> str:
+    """A batch number. Blank, zero, and a non-numeric token are no reference."""
+    text = "" if value is None else str(value).strip()
+    if not text or not any(ch.isdigit() for ch in text) or set(text) <= {"0"}:
+        return ""
+    return text
+
+
+def _party_ref(value) -> str:
+    text = "" if value is None else str(value).strip()
+    return "" if not text or not any(ch.isalnum() for ch in text) else text
+
+
+def vendor_credit_original(credit: dict, batches: dict, payables_by_batch: dict) -> tuple[str | None, str]:
+    """The one original payable named by ``PayablesBatch.ReverseBatchNo``.
+
+    The reversed batch must exist, must contain exactly one payable, and that
+    payable must be a positive vendor bill whose vendor matches the credit and
+    the reversed header. Amount magnitude does not choose the bill. A credit,
+    a zero, or any other mismatch is unresolved.
+    """
+    batch_no = _batch_ref(credit.get("APBatchNo"))
+    header = batches.get(batch_no) if batch_no else None
+    reverse = _batch_ref((header or {}).get("ReverseBatchNo"))
+    if not reverse:
+        return None, "no ReverseBatchNo"
+    if reverse == batch_no:
+        return None, f"ReverseBatchNo {reverse} names its own batch"
+    if reverse not in batches:
+        return None, f"ReverseBatchNo {reverse} is not a batch header"
+    candidates = list(payables_by_batch.get(reverse) or [])
+    if len(candidates) != 1:
+        return None, f"ReverseBatchNo {reverse} has {len(candidates)} payables; original bill is not unique"
+    original = candidates[0]
+    original_id = _party_ref(original.get("PayableID"))
+    credit_id = _party_ref(credit.get("PayableID"))
+    if not original_id or original_id == credit_id:
+        return None, f"ReverseBatchNo {reverse} has no distinct original payable"
+    credit_vendor = _party_ref(credit.get("CpID"))
+    original_vendor = _party_ref(original.get("CpID"))
+    header_vendor = _party_ref((batches.get(reverse) or {}).get("CpID"))
+    if not credit_vendor or credit_vendor != original_vendor:
+        return (
+            None,
+            f"ReverseBatchNo {reverse} payable {original_id} vendor {original_vendor or 'blank'}"
+            f" is not the credit vendor {credit_vendor or 'blank'}",
+        )
+    if header_vendor and header_vendor != credit_vendor:
+        return None, f"ReverseBatchNo {reverse} header vendor {header_vendor} is not the credit vendor {credit_vendor}"
+    if _number(original.get("Amount")) <= 0:
+        return None, f"ReverseBatchNo {reverse} payable {original_id} is not a positive vendor bill"
+    return original_id, ""
+
+
+def cohort_has_uncommitted_credits(deferred_credits) -> bool:
+    """True when vendor credits are still only in memory.
+
+    A cohort commit must not run while this is true: the other documents of
+    those worksheets would persist and the credits would vanish if the process
+    stopped before the final flush.
+    """
+    return bool(deferred_credits)
 
 
 def _number(value: str | None) -> float:

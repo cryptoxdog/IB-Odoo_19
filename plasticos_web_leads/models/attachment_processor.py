@@ -29,6 +29,32 @@ COMMERCIAL_IMAGE_ORIGIN_MARKER = "[commercial-image-origin:"
 _REDIRECT_STATUSES = frozenset({301, 302, 303, 307, 308})
 _HTTPS_PORT = 443
 
+# ── DeepSeek-hosted OCR (WL-PDF-OCR-001) ─────────────────────────────────────
+# OCR is preprocessing for the one broker call, never another reasoning role:
+# one attempt per extraction trigger, no automatic retry, and every failure
+# stays a visible, document-local evidence row.
+DEEPSEEK_DEFAULT_BASE_URL = "https://api.deepseek.com"
+OCR_PURPOSE_TEXT_RECOGNITION = "text_recognition"
+OCR_ENDPOINT_PATH = "/v1/tools/ocr"
+OCR_CONNECT_TIMEOUT_SECONDS = 10
+OCR_READ_TIMEOUT_SECONDS = 190  # provider total is 180 s: upload + recognition + result
+OCR_MAX_PAGES = 1000
+OCR_FINISH_STOP = "stop"
+OCR_FINISH_LENGTH = "length"
+OCR_PAGE_PARSED = "parsed"
+OCR_PAGE_INCOMPLETE = "incomplete"
+OCR_PAGE_FAILED = "failed"
+OCR_RECOGNITION_COMPLETE = "complete"
+OCR_RECOGNITION_INCOMPLETE = "incomplete"
+OCR_RECOGNITION_FAILED = "failed"
+OCR_ERROR_KEY_MISSING = "ocr_api_key_missing"
+OCR_ERROR_FAILED = "document_text_extraction_failed"
+OCR_ERROR_INVALID_RESPONSE = "document_text_extraction_invalid_response"
+OCR_ROW_STATUS_EXTRACTED = "extracted"
+OCR_DECISION_REUSE = "reuse"
+OCR_DECISION_EXTRACT = "extract"
+OCR_DECISION_SKIP_FAILED = "skip_failed"
+
 Resolver = Callable[[str], Iterable[str]]
 
 
@@ -267,6 +293,202 @@ def _analysis_is_error_shaped(analysis: Any) -> bool:
     return not isinstance(analysis, Mapping) or bool(analysis.get("error"))
 
 
+def ocr_endpoint(base_url: Any) -> str:
+    """The DeepSeek OCR endpoint under a configured API base URL."""
+    return str(base_url or DEEPSEEK_DEFAULT_BASE_URL).rstrip("/") + OCR_ENDPOINT_PATH
+
+
+def pdf_pages_for_broker(
+    content: bytes | None,
+    *,
+    source_ref: str,
+    source_id: str | None = None,
+    attachment_id: Any = None,
+    content_sha256: str | None = None,
+    api_key: str | None = None,
+    base_url: str | None = None,
+    http_post: Callable[..., Any] | None = None,
+    resolver: Resolver | None = None,
+) -> tuple[list[dict[str, Any]], dict[str, str] | None]:
+    """Page rows for one stored PDF, recognized by DeepSeek-hosted OCR.
+
+    The stored bytes are sent once to ``POST <base>/v1/tools/ocr`` with
+    ``purpose=text_recognition``; the original PDF bytes are never modified and
+    the signed submission URL is never fetched again. A page is admitted only
+    when its ``finish_reason`` is ``stop``: incomplete pages keep their text
+    visible but carry ``parse_status=incomplete`` and never substantiate a
+    commercial fact. OCR is classification, not verification (POS-INV-07).
+
+    Returns ``(pages, error)``. ``error`` is a document-local failure and
+    ``pages`` is empty when extraction could not run or produced no valid rows.
+    """
+    key = str(api_key or "").strip()
+    if not key:
+        return [], _error(OCR_ERROR_KEY_MISSING, "DeepSeek OCR is not configured for this lead.")
+    if not content:
+        return [], _error(OCR_ERROR_FAILED, "Stored PDF bytes are empty.")
+    endpoint = ocr_endpoint(base_url)
+    try:
+        validate_destination(endpoint, allowed_hosts=(urlsplit(endpoint).hostname or "",), resolver=resolver)
+    except AttachmentDestinationError as exc:
+        return [], _error(exc.code, exc.message)
+
+    post = http_post or requests.post
+    try:
+        response = post(
+            endpoint,
+            files={"file": ("document.pdf", bytes(content), "application/pdf")},
+            data={"purpose": OCR_PURPOSE_TEXT_RECOGNITION},
+            headers={"Authorization": f"Bearer {key}"},
+            timeout=(OCR_CONNECT_TIMEOUT_SECONDS, OCR_READ_TIMEOUT_SECONDS),
+            allow_redirects=False,
+        )
+    except Exception as exc:  # Network/timeout/client errors are attachment-local.
+        _logger.warning("OCR request failed for %s: %s", source_ref, exc)
+        detail = " ".join(str(exc).split())[:160]
+        return [], _error(OCR_ERROR_FAILED, f"OCR request failed ({type(exc).__name__}): {detail}")
+
+    status = int(getattr(response, "status_code", 0) or 0)
+    if status in _REDIRECT_STATUSES:
+        return [], _error("ocr_redirect_refused", "OCR endpoint redirected; automatic redirects are refused.")
+    if status != 200:
+        return [], _error(OCR_ERROR_FAILED, f"OCR endpoint returned HTTP {status}.")
+
+    body: Any = None
+    try:
+        body = response.json()
+    except Exception:
+        body = None
+    if not isinstance(body, Mapping):
+        return [], _error(OCR_ERROR_INVALID_RESPONSE, "OCR response is not a JSON object.")
+    provider_error = body.get("error")
+    if isinstance(provider_error, Mapping):
+        # The provider may answer HTTP 200 with an error object after recognition started.
+        message = str(provider_error.get("message") or "OCR provider error").strip()[:200]
+        detail = str(provider_error.get("code") or provider_error.get("type") or "").strip()[:80]
+        return [], _error(OCR_ERROR_FAILED, f"{message} ({detail})" if detail else message)
+    pages_raw = body.get("pages")
+    if not isinstance(pages_raw, list):
+        return [], _error(OCR_ERROR_INVALID_RESPONSE, "OCR response carries no page list.")
+    declared = body.get("page_count")
+    if declared is not None:
+        try:
+            declared = int(declared)
+        except (TypeError, ValueError):
+            return [], _error(OCR_ERROR_INVALID_RESPONSE, "OCR page_count is invalid.")
+        if declared != len(pages_raw):
+            return [], _error(OCR_ERROR_INVALID_RESPONSE, "OCR page_count does not match the page list.")
+
+    rows: list[dict[str, Any]] = []
+    for raw_page in pages_raw:
+        if not isinstance(raw_page, Mapping):
+            return [], _error(OCR_ERROR_INVALID_RESPONSE, "OCR page entry is not an object.")
+        index = raw_page.get("index")
+        if isinstance(index, bool) or not isinstance(index, int) or index < 0 or index >= OCR_MAX_PAGES:
+            return [], _error(OCR_ERROR_INVALID_RESPONSE, "OCR page index is invalid.")
+        text = raw_page.get("text") if isinstance(raw_page.get("text"), str) else ""
+        finish = str(raw_page.get("finish_reason") or "")
+        if finish == OCR_FINISH_STOP:
+            parse_status = OCR_PAGE_PARSED
+            recognition_status = OCR_RECOGNITION_COMPLETE
+        elif finish == OCR_FINISH_LENGTH:
+            parse_status = OCR_PAGE_INCOMPLETE
+            recognition_status = OCR_RECOGNITION_INCOMPLETE
+        else:
+            parse_status = OCR_PAGE_FAILED
+            recognition_status = OCR_RECOGNITION_FAILED
+        rows.append(
+            {
+                "source_ref": f"{source_ref}.page.{index + 1}",
+                "source_id": str(source_id or ""),
+                "attachment_id": attachment_id,
+                "content_sha256": content_sha256,
+                "page_index": index,
+                "page_number": index + 1,
+                "text": text,
+                "parse_status": parse_status,
+                "recognition_status": recognition_status,
+                "finish_reason": finish,
+            }
+        )
+    if [row["page_index"] for row in rows] != list(range(len(rows))):
+        return [], _error(
+            OCR_ERROR_INVALID_RESPONSE,
+            "OCR page indexes must be unique and sequential from zero.",
+        )
+    return rows, None
+
+
+def _ocr_pages_complete(pages: Any) -> bool:
+    """True only when every returned page parsed. A partial result is not reusable."""
+    return (
+        isinstance(pages, list)
+        and bool(pages)
+        and all(isinstance(page, Mapping) and page.get("parse_status") == OCR_PAGE_PARSED for page in pages)
+    )
+
+
+def ocr_row_decision(row: Mapping[str, Any], *, checksum: str | None, force: bool) -> str:
+    """Replay policy for one stored PDF row: never pay twice for the same revision.
+
+    Returns ``OCR_DECISION_REUSE`` when every page parsed and the pages match the
+    current stored revision, ``OCR_DECISION_SKIP_FAILED`` when an extraction was already
+    attempted on this revision outside an explicit retry, and
+    ``OCR_DECISION_EXTRACT`` otherwise (legacy rows without text, changed
+    revisions, and explicit retries of failures).
+    """
+    if not isinstance(row, Mapping):
+        return OCR_DECISION_EXTRACT
+    checksum = str(checksum or "").strip()
+    if _ocr_pages_complete(row.get("pages")) and checksum and str(row.get("ocr_source_sha256") or "") == checksum:
+        return OCR_DECISION_REUSE
+    if checksum and str(row.get("ocr_attempted_sha256") or "") == checksum:
+        return OCR_DECISION_EXTRACT if force else OCR_DECISION_SKIP_FAILED
+    return OCR_DECISION_EXTRACT
+
+
+def extract_pdf_ocr_row(
+    row: Mapping[str, Any],
+    *,
+    content: bytes,
+    checksum: str,
+    api_key: str | None = None,
+    base_url: str | None = None,
+    http_post: Callable[..., Any] | None = None,
+    resolver: Resolver | None = None,
+) -> dict[str, Any]:
+    """OCR one stored PDF row from its saved bytes and stamp the replay markers."""
+    updated = dict(row)
+    source_ref = f"pdf.{int(updated.get('attachment_index') or 0)}"
+    pages, error = pdf_pages_for_broker(
+        content,
+        source_ref=source_ref,
+        source_id=str(updated.get("source_id") or ""),
+        attachment_id=updated.get("ir_attachment_id"),
+        content_sha256=checksum,
+        api_key=api_key,
+        base_url=base_url,
+        http_post=http_post,
+        resolver=resolver,
+    )
+    updated["ocr_attempted_sha256"] = checksum
+    if error is not None:
+        updated["error"] = error
+        updated["ocr_status"] = "failed"
+        return updated
+    updated["pages"] = pages
+    updated["error"] = None
+    if _ocr_pages_complete(pages):
+        updated["ocr_source_sha256"] = checksum
+        updated["ocr_status"] = "complete"
+        updated["analysis_status"] = OCR_ROW_STATUS_EXTRACTED
+    else:
+        updated.pop("ocr_source_sha256", None)
+        updated["ocr_status"] = "incomplete"
+        updated["analysis_status"] = "incomplete"
+    return updated
+
+
 def process_attachments(
     *,
     lead: Any,
@@ -276,12 +498,19 @@ def process_attachments(
     http_get: Callable[..., Any] | None = None,
     allowed_hosts: Iterable[str] | None = None,
     resolver: Resolver | None = None,
+    ocr_api_key: str | None = None,
+    ocr_base_url: str | None = None,
+    http_post: Callable[..., Any] | None = None,
 ) -> list[dict[str, Any]]:
     """Acquire/store every admitted attachment and preserve local failures.
 
     ``lead`` is deliberately duck-typed so this module remains easy to unit-test
     and avoids owning an Odoo model. Successful retry rows are reused from the
     prior evidence bundle instead of downloading a signed provider URL again.
+
+    Stored PDFs are recognized through the DeepSeek-hosted OCR seam; a missing
+    key, a provider failure, or a partial result stays a document-local error on
+    the row and never erases the stored bytes.
 
     ``allowed_hosts`` is the provider destination policy; with none configured
     every fetch is refused (fail closed). Result rows never carry the signed
@@ -429,10 +658,36 @@ def process_attachments(
         else:
             result["analysis_type"] = "document" if mimetype == "application/pdf" else "unsupported"
             result["analysis_status"] = "unsupported"
-            result["error"] = _error(
-                "document_text_extraction_not_enabled",
-                "Document text extraction is not enabled in V1.",
-            )
+            if mimetype == "application/pdf":
+                pages, ocr_error = pdf_pages_for_broker(
+                    content,
+                    source_ref=f"pdf.{result['attachment_index']}",
+                    source_id=source_id,
+                    attachment_id=result["ir_attachment_id"],
+                    content_sha256=result["content_sha256"],
+                    api_key=ocr_api_key,
+                    base_url=ocr_base_url,
+                    http_post=http_post,
+                    resolver=resolver,
+                )
+                result["pages"] = pages
+                result["ocr_attempted_sha256"] = result["content_sha256"]
+                if ocr_error is not None:
+                    result["error"] = ocr_error
+                    result["ocr_status"] = "failed"
+                elif _ocr_pages_complete(pages):
+                    result["ocr_source_sha256"] = result["content_sha256"]
+                    result["ocr_status"] = "complete"
+                    result["analysis_status"] = OCR_ROW_STATUS_EXTRACTED
+                else:
+                    result.pop("ocr_source_sha256", None)
+                    result["ocr_status"] = "incomplete"
+                    result["analysis_status"] = "incomplete"
+            else:
+                result["error"] = _error(
+                    "document_text_extraction_not_enabled",
+                    "Document text extraction is not enabled in V1.",
+                )
 
         results.append(result)
 

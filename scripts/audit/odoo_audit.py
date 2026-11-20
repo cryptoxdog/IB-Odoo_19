@@ -205,8 +205,12 @@ class OdooAudit:
                 if "required=True" in content[match.end() : match.end() + 200]:
                     self.model_fields[model_name][field_name]["required"] = True
 
+            # Only a field named exactly state or status is the model state field.
+            # Without the word boundary the regex indexes the trailing "state" of
+            # journey_binding_state / allocation_state and judges those tokens
+            # against the wrong selection.
             state_match = re.search(
-                r"(state|status)\s*=\s*fields\.Selection\(\s*\[(.*?)\]",
+                r"\b(state|status)\s*=\s*fields\.Selection\(\s*\[(.*?)\]",
                 content,
                 re.DOTALL,
             )
@@ -791,21 +795,35 @@ class OdooAudit:
                     inv_match = re.search(r'invisible="([^"]+)"', line)
                     if inv_match and current_model and current_model in self.state_models:
                         condition = inv_match.group(1)
+                        state_field = self.state_models[current_model]["field"]
                         valid_states = self.state_models[current_model]["values"]
-                        for state in re.findall(r"'(\w+)'", condition):
-                            if state not in valid_states and valid_states:
-                                errors.append(
-                                    {
-                                        "type": "INVALID_STATE_VALUE",
-                                        "severity": "MODERATE",
-                                        "model": current_model,
-                                        "invalid_state": state,
-                                        "file": str(xml_file),
-                                        "line": line_num,
-                                        "message": f"Button condition references invalid state '{state}'",
-                                        "valid_states": list(valid_states),
-                                    }
-                                )
+                        # Quoted tokens are judged only when their clause compares
+                        # the state field itself: a condition on another Selection
+                        # (journey_binding_state, allocation_state) is not evidence,
+                        # and neither are the other Selection's tokens inside a
+                        # mixed condition. `state == 'done' and journey_binding_state
+                        # == 'active'` judges 'done' but never 'active'.
+                        clause_pattern = (
+                            rf"\s*\(?(?:not\s+)?\b{re.escape(state_field)}\b"
+                            r"\s*(?:not\s+)?(?:in\b|==|!=|<=|>=|<|>)"
+                        )
+                        for clause in re.split(r"\s+(?:and|or)\s+", condition):
+                            if not re.match(clause_pattern, clause):
+                                continue
+                            for state in re.findall(r"'(\w+)'", clause):
+                                if state not in valid_states and valid_states:
+                                    errors.append(
+                                        {
+                                            "type": "INVALID_STATE_VALUE",
+                                            "severity": "MODERATE",
+                                            "model": current_model,
+                                            "invalid_state": state,
+                                            "file": str(xml_file),
+                                            "line": line_num,
+                                            "message": f"Button condition references invalid state '{state}'",
+                                            "valid_states": list(valid_states),
+                                        }
+                                    )
         return errors
 
     def run_all_checks(self):

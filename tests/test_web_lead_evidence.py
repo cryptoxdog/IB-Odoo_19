@@ -18,11 +18,17 @@ models_package = sys.modules.setdefault("plasticos_web_leads.models", types.Modu
 models_package.__path__ = [str(PACKAGE_ROOT / "models")]
 
 from plasticos_web_leads.models.attachment_processor import (  # noqa: E402
+    OCR_DECISION_EXTRACT,
+    OCR_DECISION_REUSE,
+    OCR_DECISION_SKIP_FAILED,
     AttachmentDestinationError,
     copy_images_to_commercial_record,
     copy_successful_attachments_to_intake,
+    extract_pdf_ocr_row,
     fetch_attachment_bytes,
     host_is_allowed,
+    ocr_row_decision,
+    pdf_pages_for_broker,
     process_attachments,
     validate_destination,
 )
@@ -175,7 +181,7 @@ def test_image_evidence_stores_hash_and_preserves_analysis_failure():
     assert len(lead.attachments.created) == 1
 
 
-def test_pdf_is_stored_and_explicitly_unsupported_for_text_analysis():
+def test_pdf_without_ocr_key_is_stored_with_a_document_local_failure():
     lead = _Lead()
     content = b"%PDF"
 
@@ -191,7 +197,9 @@ def test_pdf_is_stored_and_explicitly_unsupported_for_text_analysis():
     assert row["acquisition_status"] == "success"
     assert row["analysis_type"] == "document"
     assert row["analysis_status"] == "unsupported"
-    assert row["error"]["code"] == "document_text_extraction_not_enabled"
+    assert row["error"]["code"] == "ocr_api_key_missing"
+    assert row["pages"] == []
+    assert lead.attachments.created[0].datas  # stored bytes are preserved
 
 
 def test_provider_mime_remains_authoritative_over_response_header():
@@ -709,3 +717,254 @@ def test_non_mapping_analysis_result_is_failed_evidence():
     )
     assert results[0]["analysis_status"] == "failed"
     assert results[0]["error"]["code"] == "image_analysis_error"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# WL-PDF-OCR-001 — DeepSeek-hosted OCR seam, response parsing, and replay policy
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class _OcrResponse:
+    def __init__(self, payload, status_code=200):
+        self.status_code = status_code
+        self._payload = payload
+
+    def raise_for_status(self):
+        return None
+
+    def json(self):
+        return self._payload
+
+
+def _ocr_envelope(pages):
+    return {
+        "id": "ocr-1",
+        "object": "ocr.result",
+        "created": 1730000000,
+        "purpose": "text_recognition",
+        "page_count": len(pages),
+        "pages": pages,
+        "usage": {"input_tokens": 10, "output_tokens": 20, "total_tokens": 30},
+    }
+
+
+def _ocr_page(index, text, finish_reason="stop"):
+    return {"index": index, "text": text, "finish_reason": finish_reason}
+
+
+def test_ocr_success_builds_parsed_page_rows_with_source_coordinates():
+    calls = []
+
+    def fake_post(url, **kwargs):
+        calls.append((url, kwargs))
+        return _OcrResponse(_ocr_envelope([_ocr_page(0, "MFI 7.5 g/10min"), _ocr_page(1, "density 0.941 g/cm3")]))
+
+    pages, error = pdf_pages_for_broker(
+        b"%PDF-1.4 bytes",
+        source_ref="pdf.0",
+        source_id="source-1",
+        attachment_id=7,
+        content_sha256="deadbeef",
+        api_key="test-key",
+        base_url="https://api.deepseek.com",
+        http_post=fake_post,
+        resolver=_public_resolver,
+    )
+
+    assert error is None
+    assert [page["page_number"] for page in pages] == [1, 2]
+    assert all(page["parse_status"] == "parsed" for page in pages)
+    assert all(page["recognition_status"] == "complete" for page in pages)
+    assert pages[0]["text"] == "MFI 7.5 g/10min"
+    assert pages[0]["source_ref"] == "pdf.0.page.1"
+    assert pages[0]["source_id"] == "source-1"
+    assert pages[0]["attachment_id"] == 7
+    assert pages[0]["content_sha256"] == "deadbeef"
+
+    url, kwargs = calls[0]
+    assert url == "https://api.deepseek.com/v1/tools/ocr"
+    assert kwargs["data"] == {"purpose": "text_recognition"}
+    file_part = kwargs["files"]["file"]
+    assert file_part[1] == b"%PDF-1.4 bytes"
+    assert file_part[2] == "application/pdf"
+    assert kwargs["headers"] == {"Authorization": "Bearer test-key"}
+    assert kwargs["allow_redirects"] is False
+    assert kwargs["timeout"] == (10, 190)
+
+
+def test_ocr_incomplete_pages_stay_visible_but_never_admitted():
+    def fake_post(_url, **_kwargs):
+        return _OcrResponse(_ocr_envelope([_ocr_page(0, "MFI 7.5 g/10min"), _ocr_page(1, "density 0.941", "length")]))
+
+    pages, error = pdf_pages_for_broker(
+        b"%PDF-1.4", source_ref="pdf.0", api_key="test-key", http_post=fake_post, resolver=_public_resolver
+    )
+
+    assert error is None
+    assert pages[0]["parse_status"] == "parsed"
+    assert pages[1]["parse_status"] == "incomplete"
+    assert pages[1]["recognition_status"] == "incomplete"
+    assert pages[1]["text"] == "density 0.941"  # visible, never substantiating
+
+
+def test_ocr_rejects_duplicate_or_gapped_page_indexes():
+    for pages_in in (
+        [_ocr_page(0, "a"), _ocr_page(0, "b")],
+        [_ocr_page(0, "a"), _ocr_page(2, "b")],
+        [_ocr_page(1, "a"), _ocr_page(0, "b")],
+    ):
+
+        def fake_post(_url, pages_in=pages_in, **_kwargs):
+            return _OcrResponse(_ocr_envelope(pages_in))
+
+        pages, error = pdf_pages_for_broker(
+            b"%PDF-1.4", source_ref="pdf.0", api_key="test-key", http_post=fake_post, resolver=_public_resolver
+        )
+        assert pages == []
+        assert error["code"] == "document_text_extraction_invalid_response"
+
+
+def test_partial_ocr_is_not_reused_and_a_forced_retry_extracts_again():
+    partial = extract_pdf_ocr_row(
+        {
+            "source_id": "source-1",
+            "attachment_index": 0,
+            "content_type": "application/pdf",
+            "ir_attachment_id": 7,
+            "error": None,
+            "pages": [],
+        },
+        content=b"%PDF-1.4",
+        checksum="sha-a",
+        api_key="test-key",
+        http_post=lambda _url, **_kwargs: _OcrResponse(
+            _ocr_envelope([_ocr_page(0, "MFI 7.5 g/10min"), _ocr_page(1, "density", "length")])
+        ),
+        resolver=_public_resolver,
+    )
+    assert partial["ocr_status"] == "incomplete"
+    assert "ocr_source_sha256" not in partial
+    assert ocr_row_decision(partial, checksum="sha-a", force=False) == OCR_DECISION_SKIP_FAILED
+    assert ocr_row_decision(partial, checksum="sha-a", force=True) == OCR_DECISION_EXTRACT
+
+
+def test_ocr_http_200_error_object_is_a_document_failure():
+    def fake_post(_url, **_kwargs):
+        return _OcrResponse(
+            {
+                "error": {
+                    "message": "timeout",
+                    "type": "gateway_timeout_error",
+                    "param": None,
+                    "code": "gateway_timeout_error",
+                }
+            }
+        )
+
+    pages, error = pdf_pages_for_broker(
+        b"%PDF-1.4", source_ref="pdf.0", api_key="test-key", http_post=fake_post, resolver=_public_resolver
+    )
+
+    assert pages == []
+    assert error["code"] == "document_text_extraction_failed"
+    assert "timeout" in error["message"]
+
+
+def test_ocr_non_200_status_is_a_document_failure():
+    def fake_post(_url, **_kwargs):
+        return _OcrResponse({}, status_code=429)
+
+    pages, error = pdf_pages_for_broker(
+        b"%PDF-1.4", source_ref="pdf.0", api_key="test-key", http_post=fake_post, resolver=_public_resolver
+    )
+
+    assert pages == []
+    assert error["code"] == "document_text_extraction_failed"
+    assert "429" in error["message"]
+
+
+def test_ocr_malformed_envelopes_fail_closed():
+    for payload in ({"pages": "not-a-list"}, {"pages": [{"index": "x", "text": "a", "finish_reason": "stop"}]}):
+
+        def fake_post(_url, payload=payload, **_kwargs):
+            return _OcrResponse(payload)
+
+        pages, error = pdf_pages_for_broker(
+            b"%PDF-1.4", source_ref="pdf.0", api_key="test-key", http_post=fake_post, resolver=_public_resolver
+        )
+        assert pages == []
+        assert error["code"] == "document_text_extraction_invalid_response"
+
+
+def test_ocr_destination_policy_refuses_private_and_insecure_targets():
+    # A compromised administrator field must not steer the worker at an internal address.
+    for base_url in ("http://api.deepseek.com", "https://10.0.0.1", "https://127.0.0.1"):
+        pages, error = pdf_pages_for_broker(
+            b"%PDF-1.4",
+            source_ref="pdf.0",
+            api_key="test-key",
+            base_url=base_url,
+            http_post=lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("must not post")),
+            resolver=_public_resolver,
+        )
+        assert pages == []
+        assert error["code"] in {"invalid_source_url", "destination_address_rejected"}
+
+
+def test_ocr_row_replay_never_pays_twice_for_one_revision():
+    extracted = {
+        "source_id": "source-1",
+        "attachment_index": 0,
+        "content_type": "application/pdf",
+        "ir_attachment_id": 7,
+        "error": None,
+        "pages": [],
+    }
+    complete = extract_pdf_ocr_row(
+        extracted,
+        content=b"%PDF-1.4",
+        checksum="sha-a",
+        api_key="test-key",
+        http_post=lambda _url, **_kwargs: _OcrResponse(_ocr_envelope([_ocr_page(0, "MFI 7.5 g/10min")])),
+        resolver=_public_resolver,
+    )
+    assert complete["ocr_status"] == "complete"
+    assert complete["ocr_source_sha256"] == "sha-a"
+    assert complete["error"] is None
+    assert complete["analysis_status"] == "extracted"
+
+    # Same revision, complete pages: reused, no paid call.
+    assert ocr_row_decision(complete, checksum="sha-a", force=False) == OCR_DECISION_REUSE
+    assert ocr_row_decision(complete, checksum="sha-a", force=True) == OCR_DECISION_REUSE
+    # Changed revision: never mistaken for the previous result.
+    assert ocr_row_decision(complete, checksum="sha-b", force=False) == OCR_DECISION_EXTRACT
+
+    # A failed attempt on the same revision stays failed on ordinary replay…
+    failed = extract_pdf_ocr_row(
+        extracted,
+        content=b"%PDF-1.4",
+        checksum="sha-a",
+        api_key="test-key",
+        http_post=lambda _url, **_kwargs: _OcrResponse({}, status_code=503),
+        resolver=_public_resolver,
+    )
+    assert failed["ocr_status"] == "failed"
+    assert failed["error"]["code"] == "document_text_extraction_failed"
+    assert ocr_row_decision(failed, checksum="sha-a", force=False) == OCR_DECISION_SKIP_FAILED
+    # …and only an explicit retry re-attempts it.
+    assert ocr_row_decision(failed, checksum="sha-a", force=True) == OCR_DECISION_EXTRACT
+
+    # A legacy row without any OCR markers becomes eligible.
+    assert ocr_row_decision(extracted, checksum="sha-a", force=False) == OCR_DECISION_EXTRACT
+
+
+def test_ocr_transport_exception_is_a_document_failure():
+    def fake_post(_url, **_kwargs):
+        raise TimeoutError("read timed out")
+
+    pages, error = pdf_pages_for_broker(
+        b"%PDF-1.4", source_ref="pdf.0", api_key="test-key", http_post=fake_post, resolver=_public_resolver
+    )
+    assert pages == []
+    assert error["code"] == "document_text_extraction_failed"
+    assert "TimeoutError" in error["message"]

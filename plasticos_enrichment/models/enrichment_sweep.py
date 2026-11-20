@@ -218,6 +218,7 @@ class PlasticosEnrichmentSweep(models.Model):
         return sweep
 
     def _send(self, facilities, settings, selection):
+        """Send one sweep. State transitions: no eligible facility writes state to done."""
         self.ensure_one()
         from odoo.addons.plasticos_gate.services.gate_builders import build_sweep_candidate
         from odoo.addons.plasticos_gate.services.gate_client import send_sweep_action

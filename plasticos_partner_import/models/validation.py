@@ -76,6 +76,18 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
         _logger.info("Partner graph validated: %d contact candidate(s) checked", len(candidates))
         return True
 
+    def _facilities_missing_role(self):
+        """Company children with no facility role. A site is not a company child."""
+        partners = self.env["res.partner"].search(
+            [
+                ("company_type", "=", "company"),
+                ("parent_id", "!=", False),
+                ("facility_role", "=", False),
+            ]
+        )
+        missing = [{"id": partner.id, "name": partner.name, "parent": partner.parent_id.name} for partner in partners]
+        return missing
+
     def audit_import_integrity(self):
         """
         Report possible issues after a partial or incorrect import.
@@ -109,10 +121,7 @@ class PlasticosPartnerImportValidation(models.AbstractModel):
         # 2. Company children missing facility_role. The same predicate as
         # ``_original_missing_role``: a site (company_type "site") is not a
         # company child, so it is not this report.
-        facilities = Partner.search([("company_type", "=", "company"), ("parent_id", "!=", False)])
-        facilities_missing_role = [
-            {"id": p.id, "name": p.name, "parent": p.parent_id.name} for p in facilities if not p.facility_role
-        ]
+        facilities_missing_role = self._facilities_missing_role()
 
         # 3. Contacts (person) with no parent
         contacts_no_parent = Partner.search(

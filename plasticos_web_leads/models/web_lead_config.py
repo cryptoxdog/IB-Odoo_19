@@ -484,6 +484,21 @@ class PlasticosWebLeadConfig(models.Model):
         """Return the configured swappable provider for vision analysis."""
         return self.get_inference_provider("vision_analysis")
 
+    def get_one_pass_provider(self):
+        """The one multimodal provider for broker inference.
+
+        Vision is the multimodal profile. Text is used only when vision is off
+        and text inference is on. Callers make this one request, not three.
+        """
+        self.ensure_one()
+        if self.vision_enabled:
+            provider = self.get_inference_provider("vision_analysis")
+            if provider:
+                return provider
+        if self.ai_enabled:
+            return self.get_inference_provider("text_normalization")
+        return None
+
     def get_inference_provider(self, role):
         """Resolve one configured provider profile for a named inference role.
 
