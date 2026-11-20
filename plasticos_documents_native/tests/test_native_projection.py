@@ -1,9 +1,8 @@
 """Native documents.document helpers for this addon's tests.
 
 The Enterprise model string lives in one place so callers never hardcode it.
-The sales-dashboard native branch in plasticos_commission resolves the model
-through the dashboard's own ``_doc_checklist_source`` interface and names the
-string locally, mirroring ``plasticos_commission/models/sales_dashboard.py``.
+The sales-dashboard native branch in plasticos_commission calls these helpers
+and does not name the model.
 """
 
 from __future__ import annotations
@@ -15,20 +14,27 @@ from odoo.tests import TransactionCase, tagged
 NATIVE_MODEL = "documents.document"
 
 
+def native_model_name() -> str:
+    """The Enterprise document model, owned by this module's tests."""
+    return NATIVE_MODEL
+
+
 def native_model_installed(env) -> bool:
     """True when the Enterprise documents.document model is registered."""
-    return NATIVE_MODEL in env
+    return native_model_name() in env
 
 
-def create_native_document(env, *, name: str, folder, datas: bytes, doc_type: str):
-    """Create an unattached documents.document through its owning module."""
+def create_native_document(env, *, name: str, folder, datas: bytes, doc_type: str, transaction=None):
+    """Create one documents.document through its owning module."""
     vals = {
         "name": name,
         "folder_id": folder.id,
         "datas": datas,
         "doc_type": doc_type,
     }
-    return env[NATIVE_MODEL].create(vals)
+    if transaction is not None:
+        vals["transaction_id"] = transaction.id
+    return env[native_model_name()].create(vals)
 
 
 @tagged("post_install", "-at_install")
