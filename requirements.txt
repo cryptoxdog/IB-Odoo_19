@@ -58,6 +58,15 @@ xmlsec>=1.3.13
 # CPython 3.12 manylinux wheels (pypi.org/project/pymssql, 2.4.x).
 pymssql>=2.3.0
 
+# Chile e-invoicing (Enterprise l10n_cl_edi and l10n_cl_edi_stock) catches
+# ImportError, logs "Could not import library pdf417gen" at ERROR, and
+# continues. Odoo.sh marks a build failed when creation logs an error, so
+# those two lines alone kept production build 42399760 from becoming the
+# live database even though the registry loaded. The modules install with
+# Accounting on a fresh -i base. Pin the release verified on that build's
+# Python 3.12: pdf417gen 0.8.1 imports and exposes encode and render_image.
+pdf417gen==0.8.1
+
 # Constellation Gate TransportPacket client (plasticos_gate).
 # Declared on Gate_SDK's moving major channel `v1`, the consumer contract in
 # Gate_SDK contracts/RELEASE_IDENTITY_LEDGER.json (schema v2); Gate, EIE and CEG
