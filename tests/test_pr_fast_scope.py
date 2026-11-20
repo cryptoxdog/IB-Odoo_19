@@ -289,6 +289,20 @@ def test_a_none_constant_does_not_select_a_non_python_path(tmp_path: Path) -> No
     assert receipt["unknown_paths"] == []
 
 
+def test_root_license_is_documentation(tmp_path: Path) -> None:
+    receipt = classify([("A", "LICENSE", None)], tmp_path)
+    assert receipt["status"] == "not_applicable"
+    assert receipt["documentation"] == ["LICENSE"]
+    assert receipt["unknown_paths"] == []
+    assert receipt["scoped_nonmarker_tests"] == []
+
+
+def test_a_license_file_below_the_root_stays_unclassified(tmp_path: Path) -> None:
+    receipt = classify([("A", "scripts/LICENSE", None)], tmp_path)
+    assert receipt["status"] == "unknown"
+    assert receipt["unknown_paths"] == ["scripts/LICENSE: unclassified path"]
+
+
 def test_scanner_configuration_is_not_applicable(tmp_path: Path) -> None:
     sonar = _path("sonar-", "project.properties")
     cloud = _path(".sonar", "cloud.properties")
