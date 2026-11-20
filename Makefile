@@ -347,10 +347,10 @@ semgrep:
 semgrep-test:
 	@echo "→ Semgrep rule fixture tests..."
 	semgrep --validate --config .semgrep/odoo-patterns.yml
-	@echo "→ Positive fixtures should produce findings..."
-	@semgrep --config .semgrep/odoo-patterns.yml .semgrep/tests/positive.py .semgrep/tests/odoo19.xml --quiet | grep -q .
+	@echo "→ Each new rule must match its own positive case and miss the negative fixture..."
+	python3 .semgrep/tests/assert_new_rule_matches.py
 	@echo "→ Negative fixtures should produce no blocking findings..."
-	semgrep --error --config .semgrep/odoo-patterns.yml .semgrep/tests/negative.py --quiet
+	semgrep --error --severity ERROR --config .semgrep/odoo-patterns.yml .semgrep/tests/negative.py --quiet
 
 check-plasticos-skills:
 	@python3 scripts/check_plasticos_skills_registry.py

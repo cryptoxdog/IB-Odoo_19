@@ -10,6 +10,7 @@ import json
 import pickle
 
 import yaml
+from psycopg2 import sql
 
 from odoo import api, fields, models
 from odoo.http import request
@@ -111,6 +112,12 @@ class PlasticosSemgrepPositiveFixture(models.Model):
         request.env["res.partner"].search(domain)
         request.env["res.partner"].search_read(request.params.get("domain"))
         request.env["res.partner"].search_read(domain)
+
+    def action_sql_composer_interpolation(self, untrusted_table):
+        self.env.cr.execute(sql.SQL(f"SELECT * FROM {untrusted_table}"))
+        self.env.cr.execute(sql.SQL(request.params.get("query")))
+        composed = sql.SQL(request.params.get("statement"))
+        self.env.cr.execute(composed)
 
     def action_destructive_migration_fixture(self):
         statement = "DROP TABLE plasticos_semgrep_fixture"

@@ -223,13 +223,24 @@ rules:
           - pattern: $CR.execute($Q + $R, ...)
           - pattern-not: $CR.execute("..." + $R, ...)
           - pattern-not: $CR.execute($Q + "...", ...)
+      # sql.SQL(f"..."), unlike sql.SQL("...").format(sql.Identifier(...)),
+      # interpolates before the composer binds identifiers.
+      - pattern: $CR.execute(sql.SQL(f"...{...}..."))
+      - pattern: $CR.execute(sql.SQL(f"{...}"))
+      - pattern: $CR.execute(SQL(f"...{...}..."))
+      - pattern: $CR.execute(SQL(f"{...}"))
+      - pattern: sql.SQL(f"...{...}...")
+      - pattern: SQL(f"...{...}...")
     message: "Interpolated SQL reaches execute outside the literal-in-call rules. Pass values as parameters, or compose identifiers with SQL.identifier."
     languages: [python]
-    severity: ERROR
+    # Not admitted to the required ERROR gate. .github/governance/promotion-policy.yaml
+    # requires observation and approval, and .github/governance/semgrep-policy.yaml
+    # defaults to advisory. No owner admission is recorded for this new rule.
+    severity: WARNING
     metadata:
       category: injection
       confidence: HIGH
-      plasticos_gate: pr-check
+      plasticos_gate: review
 
   - id: plasticos-sql-request-query
     pattern-either:
@@ -290,13 +301,27 @@ rules:
           $QUERY = $BODY.get(...)
           ...
           $CR.execute($QUERY, ...)
+      - pattern: $CR.execute(sql.SQL(request.params.get(...)))
+      - pattern: $CR.execute(sql.SQL(request.params[...]))
+      - pattern: $CR.execute(SQL(request.params.get(...)))
+      - pattern: sql.SQL(request.params.get(...))
+      - pattern: SQL(request.params.get(...))
+      - pattern-inside: |
+          $QUERY = sql.SQL(request.params.get(...))
+          ...
+          $CR.execute($QUERY, ...)
+      - pattern-inside: |
+          $QUERY = SQL(request.params.get(...))
+          ...
+          $CR.execute($QUERY, ...)
     message: "Request data is the SQL text passed to execute. Bind it as a parameter."
     languages: [python]
-    severity: ERROR
+    # Not admitted to the required ERROR gate. See plasticos-sql-indirect-interpolation.
+    severity: WARNING
     metadata:
       category: injection
       confidence: HIGH
-      plasticos_gate: pr-check
+      plasticos_gate: review
 
   - id: plasticos-request-search-domain
     pattern-either:
@@ -378,11 +403,12 @@ rules:
           $M.search_read($DOMAIN, ...)
     message: "A request payload is the search domain. Put request values inside a fixed domain literal."
     languages: [python]
-    severity: ERROR
+    # Not admitted to the required ERROR gate. See plasticos-sql-indirect-interpolation.
+    severity: WARNING
     metadata:
       category: injection
       confidence: HIGH
-      plasticos_gate: pr-check
+      plasticos_gate: review
 
   # ---------------------------------------------------------------------------
   # Odoo 19 Python deprecations / compatibility
