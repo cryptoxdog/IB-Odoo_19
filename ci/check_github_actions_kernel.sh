@@ -122,8 +122,148 @@ sys.exit(0)
     # invariant is enforced by CI, not only by local `make commit`.
     if [[ "$base" == "ci.yml" ]]; then
         if python3 - "$f" <<'PY'
-import re, shlex, sys, yaml
+import ast, re, shlex, sys, yaml
 from pathlib import Path
+FAST_ARGV = ['python3', '-m', 'pytest', 'tests/', '-m', 'adversarial_contract', '-v', '--cov=.',
+             '--cov-report=term-missing:skip-covered', '--junitxml=artifacts/pytest/pr-fast-contracts.xml']
+FULL_ARGV = ['python3', '-m', 'pytest', 'tests/', '-v', '--cov=.',
+             '--cov-report=term-missing:skip-covered', '--junitxml=artifacts/pytest/pure-python.xml']
+SCOPED_TAIL = ['-m', 'not adversarial_contract', '-v', '--junitxml=artifacts/pytest/pr-fast-scoped.xml']
+SELECTOR_FLAGS = ('-m', '-k', '--ignore', '--ignore-glob', '--deselect', '--collect-only', '--lf', '--ff')
+
+def _call_name(node):
+    if not isinstance(node, ast.Call):
+        return ''
+    func = node.func
+    if isinstance(func, ast.Name):
+        return func.id
+    if isinstance(func, ast.Attribute):
+        return func.attr
+    return ''
+
+def _assigned_lists(path):
+    tree = ast.parse(Path(path).read_text())
+    found = []
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and isinstance(node.value, ast.List):
+            values = []
+            literal = True
+            for elt in node.value.elts:
+                if isinstance(elt, ast.Constant) and isinstance(elt.value, str):
+                    values.append(elt.value)
+                else:
+                    literal = False
+                    break
+            if literal:
+                found.append(values)
+    return tree, found
+
+def _forbid_shell(tree):
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and any(
+            kw.arg == 'shell' and not (isinstance(kw.value, ast.Constant) and kw.value.value is False)
+            for kw in node.keywords
+        ):
+            raise SystemExit('runner sets shell=True')
+        name = _call_name(node)
+        if name in {'system', 'popen'}:
+            raise SystemExit('runner uses a shell launcher')
+
+def _validate_fast_runner(path):
+    tree, lists = _assigned_lists(path)
+    _forbid_shell(tree)
+    if FAST_ARGV not in lists:
+        raise SystemExit('pr-fast runner is missing the admitted mandatory argv')
+    if FULL_ARGV in lists:
+        raise SystemExit('pr-fast runner contains the unfiltered tests/ argv')
+    admitted = False
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Return) or not isinstance(node.value, ast.List):
+            continue
+        head, tail, starred = [], [], 0
+        seen = False
+        for elt in node.value.elts:
+            if isinstance(elt, ast.Starred):
+                starred += 1
+                seen = True
+                if not (isinstance(elt.value, ast.Name) and elt.value.id == 'modules'):
+                    raise SystemExit('scoped pytest star must be the modules parameter')
+            elif isinstance(elt, ast.Constant) and isinstance(elt.value, str):
+                (tail if seen else head).append(elt.value)
+            else:
+                head = None
+                break
+        if head == ['python3', '-m', 'pytest'] and starred == 1 and tail == SCOPED_TAIL:
+            admitted = True
+    if not admitted:
+        raise SystemExit('pr-fast runner is missing the admitted scoped argv')
+
+def _validate_nightly_runner(path):
+    tree, lists = _assigned_lists(path)
+    _forbid_shell(tree)
+    if lists.count(FULL_ARGV) != 1:
+        raise SystemExit('nightly runner must contain the unfiltered tests/ argv once')
+    for item in lists:
+        if item != FULL_ARGV and any(flag in item for flag in SELECTOR_FLAGS):
+            raise SystemExit('nightly runner carries a selector')
+    functions = [node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == 'main']
+    if len(functions) != 1:
+        raise SystemExit('nightly runner must define main')
+    order = []
+    for stmt in functions[0].body:
+        order.extend(_call_name(node) for node in ast.walk(stmt) if _call_name(node))
+    if 'refuse' not in order or 'launch' not in order or order.index('refuse') > order.index('launch'):
+        raise SystemExit('nightly guard must refuse before pytest')
+
+def _validate_nightly(path, fail_open):
+    if not path.is_file():
+        raise SystemExit('nightly-full-python.yml is required')
+    document = yaml.safe_load(path.read_text())
+    events = document.get('on', document.get(True))
+    if not isinstance(events, dict) or set(events) != {'schedule', 'workflow_dispatch'}:
+        raise SystemExit('nightly events must be schedule and workflow_dispatch only')
+    if events.get('schedule') != [{'cron': '17 7 * * *'}]:
+        raise SystemExit('nightly cron must be 17 7 * * * exactly once')
+    if events.get('workflow_dispatch') not in (None, {}):
+        raise SystemExit('nightly workflow_dispatch must be an empty manual trigger')
+    concurrency = document.get('concurrency') or {}
+    if concurrency.get('group') != 'nightly-full-python-staging' or concurrency.get('cancel-in-progress') is not False:
+        raise SystemExit('nightly concurrency must stay isolated and must not cancel')
+    if document.get('permissions') != {'contents': 'read'}:
+        raise SystemExit('nightly permissions must be contents: read')
+    jobs = document.get('jobs') or {}
+    if len(jobs) != 1:
+        raise SystemExit('nightly workflow must have one job')
+    job = next(iter(jobs.values()))
+    if job.get('name') != 'Nightly Full Python Suite':
+        raise SystemExit('nightly job name must be Nightly Full Python Suite')
+    if 'if' in job or fail_open(job.get('continue-on-error')):
+        raise SystemExit('nightly job must not skip or mask failure')
+    env = job.get('env') or {}
+    if str(env.get('PLASTICOS_CONTRACT_CI')) != '1' or str(env.get('PLASTICOS_CI_TIER')) != 'nightly_full':
+        raise SystemExit('nightly job must set the full-suite contract tier')
+    steps = job.get('steps') or []
+    runs = [str(step.get('run') or '').strip() for step in steps]
+    if runs.count('python3 ci/nightly_full_run.py') != 1:
+        raise SystemExit('nightly must launch ci/nightly_full_run.py once')
+    if any('python3 -m pytest' in run for run in runs):
+        raise SystemExit('nightly workflow must not inline pytest')
+    launch = next(step for step in steps if str(step.get('run') or '').strip() == 'python3 ci/nightly_full_run.py')
+    if 'if' in launch or fail_open(launch.get('continue-on-error')):
+        raise SystemExit('nightly launch must not be conditional or masked')
+    checkout = [step for step in steps if str(step.get('uses') or '').startswith('actions/checkout@')]
+    if len(checkout) != 1 or (checkout[0].get('with') or {}).get('ref') != '${{ github.sha }}':
+        raise SystemExit('nightly checkout must pin the immutable event SHA')
+    if steps.index(checkout[0]) > steps.index(launch):
+        raise SystemExit('nightly checkout must happen before the suite')
+    uploads = [step for step in steps if str(step.get('uses') or '').startswith('actions/upload-artifact@')]
+    if not any(step.get('if') == 'always()' and (step.get('with') or {}).get('path') == 'artifacts/pytest/'
+               and (step.get('with') or {}).get('if-no-files-found') == 'error' for step in uploads):
+        raise SystemExit('nightly must upload JUnit evidence even when tests fail')
+    for scope in (document.get('env') or {}, env, launch.get('env') or {}):
+        if any(key in scope for key in ('PYTEST_ADDOPTS', 'PYTEST_DISABLE_PLUGIN_AUTOLOAD', 'PLASTICOS_SMOKE_SOURCE')):
+            raise SystemExit('nightly forbids pytest selection env')
+
 data = yaml.safe_load(Path(sys.argv[1]).read_text())
 jobs = data.get('jobs') or {}
 required = {'lint', 'static-checks', 'pure-python-tests', 'gate-sdk-tests', 'secret-scan', 'audit-baseline'}
@@ -135,10 +275,25 @@ for j in required:
     if jobs[j].get('needs'):
         print(f'{j} must not have needs: (Phase 1 must stay parallel)', file=sys.stderr)
         sys.exit(1)
+required_names = {
+    'lint': 'Ruff Lint & Format',
+    'static-checks': 'Static Analysis',
+    'pure-python-tests': 'Pure Python Tests',
+    'ci-gate-result': 'CI Gate Result',
+}
+for job_id, expected_name in required_names.items():
+    if jobs[job_id].get('name') != expected_name:
+        print(f'{job_id} must keep required check name {expected_name}', file=sys.stderr)
+        sys.exit(1)
 
 def fail_open(v):
     # continue-on-error: anything but absent/false (incl. expressions) can mask failure
     return v is not None and v is not False and str(v).strip().lower() != 'false'
+
+for j in required:
+    if 'if' in jobs[j] or fail_open(jobs[j].get('continue-on-error')):
+        print(f'{j} must run unconditionally and fail closed', file=sys.stderr)
+        sys.exit(1)
 
 def fail_closed_problems(job):
     problems = []
@@ -218,14 +373,14 @@ if events.get('pull_request') not in (None, {}):
     raise SystemExit('CI events: pull_request must retain opened/synchronize/reopened without filters')
 
 job = jobs['pure-python-tests']
-if 'if' in job or fail_open(job.get('continue-on-error')):
-    raise SystemExit('pure-python-tests must run unconditionally and fail closed')
 if str((job.get('env') or {}).get('PLASTICOS_CONTRACT_CI')) != '1':
     raise SystemExit('pure-python-tests must enforce mandatory contract execution')
+if str((job.get('env') or {}).get('PLASTICOS_CI_TIER')) != 'pr_fast':
+    raise SystemExit('pure-python-tests must set PLASTICOS_CI_TIER=pr_fast')
 steps = job.get('steps') or []
 selected = [step for step in steps if step.get('id') == 'pure-tests']
 if len(selected) != 1:
-    raise SystemExit('exactly one pure-tests step must own the complete pytest invocation')
+    raise SystemExit('exactly one pure-tests step must own the PR-fast invocation')
 step = selected[0]
 if 'if' in step or fail_open(step.get('continue-on-error')) or step.get('working-directory'):
     raise SystemExit('pure-tests must not be conditional, masked, or moved out of the repository root')
@@ -235,15 +390,20 @@ for env in (data.get('env') or {}, job.get('env') or {}, step.get('env') or {}):
         raise SystemExit('pytest runtime selection/plugin overrides require explicit review')
 if (step.get('env') or {}).get('PLASTICOS_CONTRACT_CI', '1') != '1':
     raise SystemExit('pure-tests cannot disable mandatory contracts')
-# This owner intentionally admits one simple invocation, not arbitrary shell control flow.
+if (step.get('env') or {}).get('PLASTICOS_CI_TIER', 'pr_fast') != 'pr_fast':
+    raise SystemExit('pure-tests cannot select another tier')
 script = str(step.get('run') or '').replace('\\\n', ' ')
 tokens = shlex.split(script, comments=True)
-expected = ['python3', '-m', 'pytest', 'tests/', '-v', '--cov=.',
-            '--cov-report=term-missing:skip-covered', '--junitxml=artifacts/pytest/pure-python.xml']
-if tokens != expected:
-    raise SystemExit('pure-tests must execute the full tests/ tier once; filtering or failure masking is forbidden')
-if sum(len(re.findall(r'(?m)^\s*python3\s+-m\s+pytest\b', str(s.get('run') or ''))) for s in steps) != 1:
-    raise SystemExit('the pure-Python job must not duplicate pytest execution')
+if tokens != ['python3', 'ci/run_pr_fast_tests.py']:
+    raise SystemExit('pure-tests must launch the PR-fast runner once; inline pytest is forbidden')
+if any(re.search(r'(?m)^\s*python3\s+-m\s+pytest\b', str(s.get('run') or '')) for s in steps):
+    raise SystemExit('the pure-Python job must not inline pytest tests/')
+checkout = [s for s in steps if str(s.get('uses') or '').startswith('actions/checkout@')]
+if len(checkout) != 1 or (checkout[0].get('with') or {}).get('fetch-depth') != 0:
+    raise SystemExit('pure-python checkout must fetch full history for the merge-base diff')
+_validate_fast_runner('ci/run_pr_fast_tests.py')
+_validate_nightly_runner('ci/nightly_full_run.py')
+_validate_nightly(Path('.github/workflows/nightly-full-python.yml'), fail_open)
 reports = [step for step in steps if str(step.get('uses') or '').startswith('actions/upload-artifact@')]
 if not any(step.get('if') == 'always()' and (step.get('with') or {}).get('path') == 'artifacts/pytest/'
            and (step.get('with') or {}).get('if-no-files-found') == 'error' for step in reports):

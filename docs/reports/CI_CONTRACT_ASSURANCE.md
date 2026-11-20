@@ -3,8 +3,12 @@
 ## Purpose and boundaries
 
 The portable adversarial tier protects safety decisions, not just happy paths.
-It runs once inside the existing Pure Python Tests job. The existing CI Gate
-Result aggregates it; there is no additional workflow, runner, or Docker install.
+It runs inside the existing Pure Python Tests job as the PR-fast mandatory
+marker lane (`PLASTICOS_CI_TIER=pr_fast`). A second invocation may add structurally
+selected non-marker modules. Unknown scope fails that job. The unfiltered
+Odoo-free `pytest tests/` suite runs only from `.github/workflows/nightly-full-python.yml`
+on Staging. That nightly suite is not the Odoo ORM runtime. CI Gate Result
+aggregates the PR jobs. There is no Docker install in either pure-Python lane.
 
 `install_smoke.sh` remains the real installer and evidence owner. Test code does
 not belong inside it. Portable tests exercise the real shell entry points with
@@ -21,8 +25,12 @@ CI-owned (this runbook's scope):
 | --- | --- |
 | `tests/test_ci_event_triggers.py` | Workflow event contract, failure masking, required-test reachability |
 | `tests/conftest.py` | Mandatory portable marker semantics; existing Odoo collection policy |
-| `ci/check_github_actions_kernel.sh` | Existing workflow structure and full test invocation enforcement |
-| `.github/workflows/ci.yml` | One execution, metadata and JUnit artifact upload |
+| `ci/check_github_actions_kernel.sh` | Workflow structure, PR-fast argv, and nightly full-suite enforcement |
+| `ci/pr_fast_scope.py` | Structural PR scope receipt; unknown scope is a blocker |
+| `ci/run_pr_fast_tests.py` | PR-fast mandatory marker run and non-overlapping scoped run |
+| `ci/nightly_full_run.py` | Staging-only unfiltered Odoo-free suite |
+| `.github/workflows/ci.yml` | PR-fast execution, metadata and JUnit artifact upload |
+| `.github/workflows/nightly-full-python.yml` | Daily Staging schedule and manual Staging dispatch |
 
 Publication-owned (implemented with the publisher and installer, PR #263; CI only
 runs them in the one pure-Python invocation):
@@ -65,9 +73,12 @@ quotes or unreachable branches. Three independent altered-workflow tests
 verify that the pre-repair kernel accepted such false-green gates.
 
 The `adversarial_contract` marker makes skip, xfail and xpass non-passing.
-`PLASTICOS_CONTRACT_CI=1`, set only in the full required CI test job, also rejects
-selection flags, donor overrides, zero collected contracts and incomplete
-contract execution. Focused local pytest selection remains supported.
+`PLASTICOS_CONTRACT_CI=1` is set on the PR-fast job and the Staging nightly job.
+`PLASTICOS_CI_TIER=pr_fast` admits only `-m adversarial_contract` over `tests/`
+or `-m 'not adversarial_contract'` over explicit test modules. `nightly_full`
+rejects every selector. A missing tier, `PYTEST_ADDOPTS`, donor overrides, zero
+collected contracts, and incomplete contract execution fail. Focused local
+pytest selection remains supported when `PLASTICOS_CONTRACT_CI` is unset.
 
 This is a candidate-owned suite, not an independent security boundary against a
 PR that deliberately changes both tests and enforcement. Critical CI/test-owner
@@ -97,12 +108,16 @@ Open the failing required job before changing code. The artifact named
 
 - `revision.json`: source HEAD, base SHA, actual tested checkout SHA, event and
   run identity. A pull-request merge checkout is not its source HEAD.
-- `pure-python.xml`: actual pytest cases, outcomes and failure diagnostics.
+- `pr-fast-contracts.xml`: mandatory adversarial cases, outcomes and failure diagnostics.
+- `pr-fast-receipt.json`: base, head, selector, selected modules, and unknown paths.
+- `pr-fast-scoped.xml`: present when a non-marker module was selected.
 
 Use the failing node ID for a focused local reproduction. Repair the actual
-owner, retain the adverse case, then let the normal full tier validate the
-candidate once. Do not delete a test, broaden a suppression, change a baseline,
-or turn a mandatory dependency into a skip merely to obtain green CI.
+owner, retain the adverse case, then let the PR-fast lane validate the
+candidate. The Staging nightly suite is the unfiltered Odoo-free rerun; it is
+not evidence that the pull request itself executed `pytest tests/`. Do not
+delete a test, broaden a suppression, change a baseline, or turn a mandatory
+dependency into a skip merely to obtain green CI.
 
 A skipped optional real-gitleaks integration test is not proof of real scanner
 execution. The production publisher still refuses a missing scanner; the

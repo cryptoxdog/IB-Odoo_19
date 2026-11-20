@@ -12,7 +12,8 @@ The test suite is organized into two categories:
 1. **Odoo Tests** — Require Odoo runtime, use `PlasticosTestCase` (`TransactionCase` under `--test-enable`).
    They live in the owning addon's `tests/` package (`plasticos_<addon>/tests/test_*.py`), **not** here.
 2. **Pure Python Tests** — Run without Odoo, use AST/XML parsing for static analysis. They live in this
-   `tests/` tree and run under pytest (CI `pure-python-tests`, `make test`).
+   `tests/` tree and run under pytest (`make test`, the PR-fast `pure-python-tests` lane, and the
+   Staging nightly full Odoo-free suite). The nightly workflow does not run addon ORM tests.
 
 Odoo-backed tests use the shared factory mixin in `plasticos_base/test_common.py`.
 
