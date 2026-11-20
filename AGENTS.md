@@ -954,3 +954,10 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > `tests/test_core_toolchain_pins.py` fails on any site that differs from the copy or installs a lock-owned tool
 > unpinned. Bump a tool by refreshing the copy from Core, recording the commit, and following the test.
 > The repository has no `dependabot.yml`, so nothing here bumps a lock-owned tool.
+
+> **2026-11-20 license correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> IB-Odoo_19 (PlasticOS) is proprietary to Quantum AI Partners (operator decision 2026-11-20). The root `LICENSE`
+> carries the proprietary notice Core uses: the wording of `Quantum-L9/l9-ci-core` `LICENSE` lines 1-2 at Core
+> commit `8667d5378a6eca54de134a918859360d183cf632`, with only the product name changed (L9 → PlasticOS).
+> The addon `__manifest__.py` `license` keys (`LGPL-3`) are unchanged by this correction; changing them is an Odoo
+> module change that needs version bumps and is a separate decision.
