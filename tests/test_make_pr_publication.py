@@ -15,6 +15,8 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = pytest.mark.adversarial_contract
+
 ROOT = Path(__file__).resolve().parents[1]
 PIPELINE = "scripts/make_push_pipeline.sh"
 PUSH = "scripts/git_push_with_pr.sh"

@@ -515,16 +515,17 @@ Local `docker-compose.yml` provides PostgreSQL + Odoo only (no Neo4j service aft
 
 ### CI/CD Architecture
 
-**9 GitHub Actions workflow files**. `ci.yml` is the single active CI gate for all PRs and pushes and the only one that blocks merge (the GATE-01 `baseline-ratchet.yml` was retired 2026-10-22). The 4 legacy check workflows (`pr-gate.yml`, `odoo-audit.yml`, `module-check.yml`, `test-quality.yml`) were deleted in 2026-07 — every unique check they ran (mypy, shellcheck, `_name` string-literal enforcement, manifest field validation, ACL CSV format, test-attribute-guard, audit-baseline regression) was ported into `ci.yml`, not silently dropped. See `AGENTS.md` § "CI Architecture" for the full job table.
+**10 GitHub Actions workflow files**. `ci.yml` is the single active CI gate for all PRs and pushes and the only one that blocks merge (the GATE-01 `baseline-ratchet.yml` was retired 2026-10-22). The PR gate's pure-Python job is the fast adversarial lane. `.github/workflows/nightly-full-python.yml` runs the unfiltered Odoo-free `pytest tests/` suite from Staging only; it does not run Odoo ORM tests. The 4 legacy check workflows (`pr-gate.yml`, `odoo-audit.yml`, `module-check.yml`, `test-quality.yml`) were deleted in 2026-07 — every unique check they ran (mypy, shellcheck, `_name` string-literal enforcement, manifest field validation, ACL CSV format, test-attribute-guard, audit-baseline regression) was ported into `ci.yml`, not silently dropped. See `AGENTS.md` § "CI Architecture" for the full job table.
 
 #### Workflow Files
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
-| **`ci.yml`** | push + PR (all branches) | **Single CI gate**: lint / static-checks / pure-python-tests / secret-scan / audit-baseline run in parallel (fail-slow), `ci-gate-result` aggregates last |
+| **`ci.yml`** | push + PR (all branches) | **Single CI gate**: lint / static-checks / PR-fast pure-python-tests / secret-scan / audit-baseline run in parallel (fail-slow), `ci-gate-result` aggregates last |
+| `nightly-full-python.yml` | schedule `17 7 * * *` UTC + manual, Staging only | One unfiltered Odoo-free `pytest tests/` run. Not a required PR check |
 | `repo-index.yml` | manual only | Regenerate `docs/reports/repo-index/*.txt` and open the `chore/repo-index` PR |
 | `l9-analysis.yml` | push → Staging + PR + manual | Governed semgrep pipeline (l9-ci-core) — advisory-first, not yet a required check |
-| `security.yml` | push + PR → staging/main + weekly cron | pip-audit, Trivy, Gitleaks |
+| `security.yml` | manual `workflow_dispatch` only | Disabled placeholder; Gitleaks stays in `ci.yml` |
 | `changelog.yml` | push → Production branch + manual | Auto-update CHANGELOG.md from conventional commits |
 | `pr-autopilot.yml` | manual only | Scan open PRs for CI/SonarCloud/CodeRabbit signals |
 | `auto-merge.yml` | PR events → staging/main | Auto-merge approved non-draft PRs |
