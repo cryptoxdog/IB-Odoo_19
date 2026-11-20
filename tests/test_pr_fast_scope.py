@@ -205,18 +205,24 @@ def test_a_quoting_test_still_selects_a_scanner_path(tmp_path: Path) -> None:
 
 
 def test_real_repository_index_classifies_scanner_inputs() -> None:
-    """The indexed checkout must not treat this module as a scanner consumer."""
-    changed = [
-        _path("sonar-", "project.properties"),
-        _path(".sonar", "cloud.properties"),
-        _path(".semgrep/", "odoo-patterns.yml"),
-    ]
-    for path in changed:
+    """On the indexed checkout a scanner input selects exactly the tests that read it.
+
+    #552 added tests/test_sonar_scope.py, which reads both Sonar property files,
+    and #553 added tests/test_semgrep_new_rules.py, which reads the rule file.
+    A change to those inputs must run those tests. This module must not be
+    selected: it builds the paths with ``_path`` so it is not a consumer.
+    """
+    consumers = {
+        _path("sonar-", "project.properties"): ["tests/test_sonar_scope.py"],
+        _path(".sonar", "cloud.properties"): ["tests/test_sonar_scope.py"],
+        _path(".semgrep/", "odoo-patterns.yml"): ["tests/test_semgrep_new_rules.py"],
+    }
+    for path, expected in consumers.items():
         receipt = classify([("M", path, None)], ROOT)
-        assert receipt["status"] == "not_applicable", receipt
-        assert receipt["scanner_inputs"] == [path]
-        assert receipt["selected_tests"] == []
-        assert path not in receipt["unknown_paths"]
+        assert receipt["status"] == "applicable", receipt
+        assert receipt["selected_tests"] == expected, receipt
+        assert "tests/test_pr_fast_scope.py" not in receipt["selected_tests"]
+        assert receipt["unknown_paths"] == []
 
 
 def test_an_unclassified_neighbor_stays_unknown(tmp_path: Path) -> None:
