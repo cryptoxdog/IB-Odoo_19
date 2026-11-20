@@ -46,13 +46,26 @@ def _python_minor(lock: dict[str, str]) -> str:
     return ".".join(lock["python"].split(".")[:2])
 
 
+def _canonical(name: str) -> str:
+    """PEP 503 normalized distribution name: `pip_audit` and `Pip.Audit` are `pip-audit`."""
+
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
 def _pins(text: str) -> dict[str, list[str]]:
-    """`name==version` pins found in requirement or install text, by name."""
+    """`name==version` pins found in requirement or install text, by normalized name."""
 
     found: dict[str, list[str]] = {}
     for name, version in re.findall(r"(?<![\w.-])([A-Za-z][\w.-]*)==([\w.]+)", text):
-        found.setdefault(name.lower(), []).append(version)
+        found.setdefault(_canonical(name), []).append(version)
     return found
+
+
+def _bare_lock_owned(text: str) -> list[str]:
+    """Lock-owned tools named without any `==` pin, by normalized name."""
+
+    named = {_canonical(token) for token in re.findall(r"(?<![\w.=-])([A-Za-z][\w.-]*)(?![\w.=-])", text)}
+    return sorted(named & set(PIP_INSTALLED))
 
 
 def test_lock_copy_is_well_formed_and_traceable(lock) -> None:
@@ -79,9 +92,11 @@ def test_requirement_files_pin_the_lock(lock, relative, tools) -> None:
     # Any other lock-owned tool the file names must carry the exact lock pin too.
     for line in text.splitlines():
         requirement = line.split("#", 1)[0].strip()
-        name = re.split(r"[\s<>=!~;\[@]", requirement, maxsplit=1)[0].lower()
+        raw = re.split(r"[\s<>=!~;\[@]", requirement, maxsplit=1)[0]
+        name = _canonical(raw)
         if name in PIP_INSTALLED:
-            assert requirement.replace(" ", "") == f"{name}=={lock[name]}", f"{relative}: {requirement!r}"
+            pinned = requirement.replace(" ", "")[len(raw) :]
+            assert pinned == f"=={lock[name]}", f"{relative}: {requirement!r}"
 
 
 def test_pyproject_follows_the_lock(lock) -> None:
@@ -119,8 +134,8 @@ def test_workflow_installs_pin_the_lock(lock, workflow) -> None:
         for tool in PIP_INSTALLED:
             for version in pins.get(tool, []):
                 assert version == lock[tool], f"{workflow.name}: {tool}=={version}, lock is {lock[tool]}"
-            bare = re.search(rf"(?<![\w.=-]){re.escape(tool)}(?![\w.=-])", packages)
-            assert not bare, f"{workflow.name}: {tool} installed without the lock pin: {line.strip()}"
+        bare = _bare_lock_owned(packages)
+        assert not bare, f"{workflow.name}: {bare} installed without the lock pin: {line.strip()}"
 
 
 @pytest.mark.parametrize("workflow", WORKFLOWS, ids=lambda path: path.name)
@@ -136,3 +151,15 @@ def test_gitleaks_action_runs_the_locked_gitleaks(lock) -> None:
     assert gitleaks
     for step in gitleaks:
         assert step["env"]["GITLEAKS_VERSION"] == lock["gitleaks"]
+
+
+@pytest.mark.parametrize("spelling", ["pip-audit", "pip_audit", "Pip.Audit", "PRE_COMMIT"])
+def test_name_variants_of_a_lock_owned_tool_are_recognised(spelling) -> None:
+    # PEP 503: underscores, periods and case do not make a different package.
+    assert _bare_lock_owned(f" --only-binary :all: {spelling}") == [_canonical(spelling)]
+    assert _canonical(spelling) in _pins(f"{spelling}==1.0.0")
+
+
+def test_pinned_and_unrelated_names_are_not_bare() -> None:
+    # The text after `pip install`, as test_workflow_installs_pin_the_lock passes it.
+    assert _bare_lock_owned(" pip-audit==2.9.0 lxml==6.0.2 pyyaml") == []
