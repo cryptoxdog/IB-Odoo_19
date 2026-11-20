@@ -19,6 +19,15 @@ pytestmark = pytest.mark.adversarial_contract
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def _path(*parts: str) -> str:
+    """Join a repo path without one AST constant equal to the whole path.
+
+    ``_references`` treats an exact string constant as a structural consumer.
+    Scanner-input fixtures must not make this module that consumer.
+    """
+    return "".join(parts)
+
+
 def _write(root: Path, rel: str, text: str) -> None:
     path = root / rel
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -154,6 +163,80 @@ def test_a_none_constant_does_not_select_a_non_python_path(tmp_path: Path) -> No
     receipt = classify([("M", "docs/readme.md", None)], tmp_path)
     assert receipt["status"] == "not_applicable"
     assert receipt["unknown_paths"] == []
+
+
+def test_scanner_configuration_is_not_applicable(tmp_path: Path) -> None:
+    sonar = _path("sonar-", "project.properties")
+    cloud = _path(".sonar", "cloud.properties")
+    receipt = classify([("M", sonar, None), ("M", cloud, None)], tmp_path)
+    assert receipt["status"] == "not_applicable"
+    assert receipt["scanner_inputs"] == [sonar, cloud]
+    assert receipt["structural_absence"] == []
+    assert receipt["unknown_paths"] == []
+    assert receipt["scoped_nonmarker_tests"] == []
+    assert "scanner configuration" in receipt["reason"]
+
+
+def test_semgrep_rules_and_fixtures_are_scanner_inputs(tmp_path: Path) -> None:
+    changed = [
+        _path(".semgrep/", "odoo-patterns.yml"),
+        _path(".semgrep/", "tests/", "negative.py"),
+        _path(".semgrep/", "tests/", "odoo19.xml"),
+        _path(".semgrep/", "tests/", "positive.py"),
+    ]
+    receipt = classify([("M", path, None) for path in changed], tmp_path)
+    assert receipt["status"] == "not_applicable"
+    assert receipt["scanner_inputs"] == changed
+    assert receipt["structural_absence"] == []
+    assert receipt["unknown_paths"] == []
+
+
+def test_a_quoting_test_still_selects_a_scanner_path(tmp_path: Path) -> None:
+    rules = _path(".semgrep/", "odoo-patterns.yml")
+    _write(
+        tmp_path,
+        "tests/test_rules.py",
+        "PATH = " + repr(rules) + "\n\ndef test_rules():\n    assert PATH\n",
+    )
+    receipt = classify([("M", rules, None)], tmp_path)
+    assert receipt["status"] == "applicable"
+    assert receipt["selected_tests"] == ["tests/test_rules.py"]
+    assert receipt["scanner_inputs"] == []
+
+
+def test_real_repository_index_classifies_scanner_inputs() -> None:
+    """The indexed checkout must not treat this module as a scanner consumer."""
+    changed = [
+        _path("sonar-", "project.properties"),
+        _path(".sonar", "cloud.properties"),
+        _path(".semgrep/", "odoo-patterns.yml"),
+    ]
+    for path in changed:
+        receipt = classify([("M", path, None)], ROOT)
+        assert receipt["status"] == "not_applicable", receipt
+        assert receipt["scanner_inputs"] == [path]
+        assert receipt["selected_tests"] == []
+        assert path not in receipt["unknown_paths"]
+
+
+def test_an_unclassified_neighbor_stays_unknown(tmp_path: Path) -> None:
+    sonar = _path("sonar-", "project.properties")
+    receipt = classify([("M", sonar, None), ("M", "Makefile", None)], tmp_path)
+    assert receipt["status"] == "unknown"
+    assert receipt["scanner_inputs"] == [sonar]
+    assert receipt["unknown_paths"] == ["Makefile: unclassified path"]
+
+
+def test_scanner_lookalikes_stay_unknown(tmp_path: Path) -> None:
+    lookalikes = (
+        _path("tools/", "sonar-", "project.properties"),
+        _path(".semgrep-", "backup/", "rules.yml"),
+    )
+    for path in lookalikes:
+        receipt = classify([("M", path, None)], tmp_path)
+        assert receipt["status"] == "unknown", path
+        assert receipt["scanner_inputs"] == []
+        assert receipt["status"] != "not_applicable"
 
 
 def test_addon_resource_without_a_quoting_test_is_not_applicable(tmp_path: Path) -> None:
