@@ -7,7 +7,10 @@ module is selected only when it is the changed file, its AST imports the changed
 module, or a string constant equals the repo-relative path or the dotted module.
 
 Unknown classification is a blocker. It is not a silent success and it is not
-permission to run ``pytest tests/`` on a pull request.
+permission to run ``pytest tests/`` on a pull request. Scanner configuration
+and scanner fixtures are their own class: the two Sonar property files at the
+repository root, and every path under ``.semgrep/``. No pure-Python suite
+executes them. A path outside that class stays unknown.
 """
 
 from __future__ import annotations
@@ -143,6 +146,7 @@ class _Acc:
         self.covered: list[str] = []
         self.docs: list[str] = []
         self.absence: list[str] = []
+        self.scanner: list[str] = []
         self.gate: list[str] = []
         self.unknown: list[str] = []
 
@@ -194,6 +198,9 @@ def _apply(
         return
     if hits:
         acc.selected.update(hits)
+        return
+    if _is_scanner_input(current):
+        acc.scanner.append(current)
         return
     if _is_doc(current) or _is_inert(current):
         acc.docs.append(current)
@@ -256,6 +263,7 @@ def _finish(acc: _Acc, root: Path, base_sha: str, head_sha: str) -> dict:
         "covered_by_mandatory": acc.covered,
         "documentation": acc.docs,
         "structural_absence": acc.absence,
+        "scanner_inputs": acc.scanner,
         "gate_sdk_paths": acc.gate,
         "gate_sdk_job": "required",
         "unknown_paths": acc.unknown,
@@ -280,6 +288,11 @@ def _absent_reason(acc: _Acc) -> str:
         return (
             "no pure-Python test imports these paths or quotes them; "
             "behavioral regression stays on the nightly Odoo-free suite"
+        )
+    if acc.scanner:
+        return (
+            "scanner configuration and fixtures have no pure-Python execution; "
+            "scoped non-marker pytest is not applicable"
         )
     if acc.docs or not acc.changed:
         return "documentation-only or empty diff; scoped non-marker pytest is not applicable"
@@ -324,6 +337,7 @@ def _receipt(status: str, reason: str, base_sha: str = "", head_sha: str = "") -
         "covered_by_mandatory": [],
         "documentation": [],
         "structural_absence": [],
+        "scanner_inputs": [],
         "gate_sdk_paths": [],
         "gate_sdk_job": "required",
         "unknown_paths": [reason],
@@ -505,6 +519,14 @@ def _is_gate(path: str) -> bool:
 
 
 _ADDON_RESOURCE_SUFFIXES = {".css", ".csv", ".js", ".po", ".pot", ".scss", ".xml", ".yaml", ".yml"}
+
+
+_SCANNER_ROOT_FILES = frozenset({".sonarcloud.properties", "sonar-project.properties"})
+
+
+def _is_scanner_input(path: str) -> bool:
+    """Sonar property files and Semgrep rules or fixtures. No pure-Python suite executes them."""
+    return path in _SCANNER_ROOT_FILES or path.startswith(".semgrep/")
 
 
 def _is_addon_resource(path: str) -> bool:

@@ -156,6 +156,63 @@ def test_a_none_constant_does_not_select_a_non_python_path(tmp_path: Path) -> No
     assert receipt["unknown_paths"] == []
 
 
+def test_scanner_configuration_is_not_applicable(tmp_path: Path) -> None:
+    receipt = classify(
+        [("M", "sonar-project.properties", None), ("M", ".sonarcloud.properties", None)],
+        tmp_path,
+    )
+    assert receipt["status"] == "not_applicable"
+    assert receipt["scanner_inputs"] == ["sonar-project.properties", ".sonarcloud.properties"]
+    assert receipt["structural_absence"] == []
+    assert receipt["unknown_paths"] == []
+    assert receipt["scoped_nonmarker_tests"] == []
+    assert "scanner configuration" in receipt["reason"]
+
+
+def test_semgrep_rules_and_fixtures_are_scanner_inputs(tmp_path: Path) -> None:
+    changed = [
+        ".semgrep/odoo-patterns.yml",
+        ".semgrep/tests/negative.py",
+        ".semgrep/tests/odoo19.xml",
+        ".semgrep/tests/positive.py",
+    ]
+    receipt = classify([("M", path, None) for path in changed], tmp_path)
+    assert receipt["status"] == "not_applicable"
+    assert receipt["scanner_inputs"] == changed
+    assert receipt["structural_absence"] == []
+    assert receipt["unknown_paths"] == []
+
+
+def test_a_quoting_test_still_selects_a_scanner_path(tmp_path: Path) -> None:
+    _write(
+        tmp_path,
+        "tests/test_rules.py",
+        "PATH = '.semgrep/odoo-patterns.yml'\n\ndef test_rules():\n    assert PATH\n",
+    )
+    receipt = classify([("M", ".semgrep/odoo-patterns.yml", None)], tmp_path)
+    assert receipt["status"] == "applicable"
+    assert receipt["selected_tests"] == ["tests/test_rules.py"]
+    assert receipt["scanner_inputs"] == []
+
+
+def test_an_unclassified_neighbor_stays_unknown(tmp_path: Path) -> None:
+    receipt = classify(
+        [("M", "sonar-project.properties", None), ("M", "Makefile", None)],
+        tmp_path,
+    )
+    assert receipt["status"] == "unknown"
+    assert receipt["scanner_inputs"] == ["sonar-project.properties"]
+    assert receipt["unknown_paths"] == ["Makefile: unclassified path"]
+
+
+def test_scanner_lookalikes_stay_unknown(tmp_path: Path) -> None:
+    for path in ("tools/sonar-project.properties", ".semgrep-backup/rules.yml"):
+        receipt = classify([("M", path, None)], tmp_path)
+        assert receipt["status"] == "unknown", path
+        assert receipt["scanner_inputs"] == []
+        assert receipt["status"] != "not_applicable"
+
+
 def test_addon_resource_without_a_quoting_test_is_not_applicable(tmp_path: Path) -> None:
     receipt = classify([("M", "plasticos_base/views/foo.xml", None)], tmp_path)
     assert receipt["status"] == "not_applicable"
