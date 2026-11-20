@@ -32,11 +32,18 @@ def _child_env() -> dict[str, str]:
     return env
 
 
-def _kernel(tmp_path: Path, document: dict) -> subprocess.CompletedProcess[str]:
+def _kernel(tmp_path: Path, document: dict, nightly_text: str | None = "COPY") -> subprocess.CompletedProcess[str]:
     root = tmp_path / "kernel-probe"
     (root / "ci").mkdir(parents=True, exist_ok=True)
     (root / ".github/workflows").mkdir(parents=True, exist_ok=True)
     shutil.copyfile(ROOT / "ci/check_github_actions_kernel.sh", root / "ci/check_github_actions_kernel.sh")
+    shutil.copyfile(ROOT / "ci/run_pr_fast_tests.py", root / "ci/run_pr_fast_tests.py")
+    shutil.copyfile(ROOT / "ci/nightly_full_run.py", root / "ci/nightly_full_run.py")
+    nightly = root / ".github/workflows/nightly-full-python.yml"
+    if nightly_text == "COPY":
+        shutil.copyfile(ROOT / ".github/workflows/nightly-full-python.yml", nightly)
+    elif nightly_text is not None:
+        nightly.write_text(nightly_text)
     (root / ".github/workflows/ci.yml").write_text(yaml.safe_dump(document, sort_keys=False))
     binary = root / "bin"
     binary.mkdir(exist_ok=True)
@@ -103,6 +110,8 @@ def test_wrong_ci_event_selection_fails_even_if_correct_words_exist(tmp_path: Pa
         "missing_job",
         "drop_aggregator_dependency",
         "env_selection",
+        "wrong_tier",
+        "inline_full_suite",
     ],
 )
 def test_weakened_ci_contract_is_rejected(tmp_path: Path, mutation: str) -> None:
@@ -141,6 +150,13 @@ def test_weakened_ci_contract_is_rejected(tmp_path: Path, mutation: str) -> None
         doc["jobs"]["ci-gate-result"]["needs"].remove("secret-scan")
     elif mutation == "env_selection":
         job["env"]["PYTEST_ADDOPTS"] = "--ignore=tests"
+    elif mutation == "wrong_tier":
+        job["env"]["PLASTICOS_CI_TIER"] = "nightly_full"
+    elif mutation == "inline_full_suite":
+        step["run"] = (
+            "python3 -m pytest tests/ -v --cov=. "
+            "--cov-report=term-missing:skip-covered --junitxml=artifacts/pytest/pure-python.xml\n"
+        )
     result = _kernel(tmp_path, doc)
     assert result.returncode != 0, f"CI_INTEGRITY: mutation {mutation} survived"
 
@@ -167,17 +183,34 @@ def test_aggregator_must_actually_fail_closed(tmp_path: Path, attack: str) -> No
 
 
 def _probe_pytest(
-    tmp_path: Path, body: str, *, ci: bool, args: tuple[str, ...] = ()
+    tmp_path: Path,
+    body: str,
+    *,
+    ci: bool,
+    args: tuple[str, ...] = (),
+    tier: str | None = "AUTO",
+    extra: dict[str, str] | None = None,
+    env_extra: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     root = tmp_path / "pytest-probe"
     root.mkdir()
     shutil.copyfile(ROOT / "tests/conftest.py", root / "conftest.py")
     (root / "pytest.ini").write_text("[pytest]\n")
     (root / "test_probe.py").write_text(body)
+    for name, text in (extra or {}).items():
+        (root / name).write_text(text)
     env = _child_env()
     env["PLASTICOS_CONTRACT_CI"] = "1" if ci else "0"
+    chosen = "pr_fast" if tier == "AUTO" else tier
+    if ci and chosen:
+        env["PLASTICOS_CI_TIER"] = chosen
+    if env_extra:
+        env.update(env_extra)
+    probe_args = args
+    if ci and chosen == "pr_fast" and "-m" not in args and "-k" not in args:
+        probe_args = ("-m", "adversarial_contract", *args)
     return subprocess.run(
-        [sys.executable, "-S", "-m", "pytest", str(root), "-q", *args],
+        [sys.executable, "-S", "-m", "pytest", str(root), "-q", *probe_args],
         cwd=root,
         env=env,
         text=True,
@@ -214,9 +247,48 @@ def test_required_contracts_run_once_and_optional_skips_stay_optional(tmp_path: 
         "import pytest\n@pytest.mark.adversarial_contract\ndef test_contract():\n    assert True\n"
         "def test_optional():\n    pytest.skip('different runtime tier')\n"
     )
-    result = _probe_pytest(tmp_path, body, ci=True)
+    result = _probe_pytest(tmp_path, body, ci=True, tier="nightly_full")
     assert result.returncode == 0, result.stdout + result.stderr
     assert "1 passed, 1 skipped" in result.stdout
+
+
+def test_pr_fast_marker_selection_deselects_unmarked_tests(tmp_path: Path) -> None:
+    body = (
+        "import pytest\n@pytest.mark.adversarial_contract\ndef test_contract():\n    assert True\n"
+        "def test_optional():\n    assert True\n"
+    )
+    result = _probe_pytest(tmp_path, body, ci=True)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "1 passed, 1 deselected" in result.stdout
+
+
+def test_missing_tier_is_not_a_full_suite_bypass(tmp_path: Path) -> None:
+    body = "import pytest\n@pytest.mark.adversarial_contract\ndef test_contract():\n    assert True\n"
+    result = _probe_pytest(tmp_path, body, ci=True, tier=None)
+    assert result.returncode != 0
+    assert "PLASTICOS_CI_TIER" in result.stderr + result.stdout
+
+
+def test_pytest_addopts_cannot_narrow_required_ci(tmp_path: Path) -> None:
+    body = "import pytest\n@pytest.mark.adversarial_contract\ndef test_contract():\n    assert True\n"
+    result = _probe_pytest(tmp_path, body, ci=True, env_extra={"PYTEST_ADDOPTS": "--collect-only"})
+    assert result.returncode != 0
+    assert "PYTEST_ADDOPTS" in result.stderr + result.stdout
+
+
+def test_a_new_marked_contract_joins_the_fast_lane(tmp_path: Path) -> None:
+    body = "import pytest\n@pytest.mark.adversarial_contract\ndef test_contract():\n    assert True\n"
+    extra = "import pytest\n@pytest.mark.adversarial_contract\ndef test_new_contract():\n    assert True\n"
+    result = _probe_pytest(tmp_path, body, ci=True, extra={"test_new_contract.py": extra})
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "2 passed" in result.stdout
+
+
+def test_nightly_rejects_a_marker_selector(tmp_path: Path) -> None:
+    body = "import pytest\n@pytest.mark.adversarial_contract\ndef test_contract():\n    assert True\n"
+    result = _probe_pytest(tmp_path, body, ci=True, tier="nightly_full", args=("-m", "adversarial_contract"))
+    assert result.returncode != 0
+    assert "may not narrow" in result.stderr + result.stdout
 
 
 def test_ci_cannot_filter_out_the_contract_tier(tmp_path: Path) -> None:
@@ -368,9 +440,38 @@ _MUTANTS = {
 }
 
 
+_NIGHTLY = ROOT / ".github" / "workflows" / "nightly-full-python.yml"
+_NIGHTLY_MUTANTS = {
+    "pull_request_trigger": ("on:\n", "on:\n  pull_request:\n"),
+    "extra_cron": ("    - cron: '17 7 * * *'\n", "    - cron: '17 7 * * *'\n    - cron: '0 0 * * *'\n"),
+    "required_check_name": ("    name: Nightly Full Python Suite\n", "    name: Pure Python Tests\n"),
+    "cancel_in_progress": ("  cancel-in-progress: false\n", "  cancel-in-progress: true\n"),
+    "inline_pytest": (
+        "        run: python3 ci/nightly_full_run.py\n",
+        "        run: python3 -m pytest tests/\n",
+    ),
+    "unpinned_checkout": ("          ref: ${{ github.sha }}\n", "          ref: Staging\n"),
+}
+
+
 @pytest.mark.parametrize("mutant", sorted(_MUTANTS))
 def test_trigger_check_rejects_broken_event_routing(mutant: str) -> None:
     original, replacement = _MUTANTS[mutant]
     text = CI_WORKFLOW.read_text(encoding="utf-8")
     assert text.count(original) == 1, f"mutant {mutant} no longer matches ci.yml; update the fixture"
     assert _trigger_violations(text.replace(original, replacement)) != []
+
+
+def test_missing_nightly_workflow_is_rejected(tmp_path: Path) -> None:
+    result = _kernel(tmp_path, _workflow(), nightly_text=None)
+    assert result.returncode != 0
+    assert "nightly-full-python.yml is required" in result.stderr + result.stdout
+
+
+@pytest.mark.parametrize("mutant", sorted(_NIGHTLY_MUTANTS))
+def test_nightly_workflow_mutants_are_rejected(tmp_path: Path, mutant: str) -> None:
+    original, replacement = _NIGHTLY_MUTANTS[mutant]
+    text = _NIGHTLY.read_text(encoding="utf-8")
+    assert text.count(original) == 1, f"mutant {mutant} no longer matches the nightly workflow"
+    result = _kernel(tmp_path, _workflow(), nightly_text=text.replace(original, replacement))
+    assert result.returncode != 0, f"NIGHTLY_MUTANT {mutant} survived\n{result.stdout}\n{result.stderr}"

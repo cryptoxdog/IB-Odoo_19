@@ -921,3 +921,13 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > the site decides (a pickup address is out); otherwise the direction stays blank and the record is listed under
 > NEEDS REVIEW. A material-profile write on the AI broker path (`plasticos_ai_broker`) with no direction is refused
 > and reported. Enrichment writes no material profiles.
+
+> **2026-11-19 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> every sentence above that says GitHub `ci.yml` `pure-python-tests` runs `pytest tests/` on a pull request or
+> push is superseded. That job is the PR-fast lane: `PLASTICOS_CI_TIER=pr_fast` runs every `adversarial_contract`
+> test and, when the committed diff proves them, structurally selected non-marker modules. Unknown scope fails
+> the job. Unfiltered `pytest tests/` runs only from `.github/workflows/nightly-full-python.yml` (cron
+> `17 7 * * *` UTC and manual dispatch, `refs/heads/Staging` only). The nightly job name is `Nightly Full Python
+> Suite`. It is the Odoo-free suite, not the Odoo ORM/`TransactionCase` runtime. Required check names stay
+> `Ruff Lint & Format`, `Static Analysis`, `Pure Python Tests`, and `CI Gate Result`. `make test` remains the
+> local full Odoo-free suite. `gate-sdk-tests` and `audit-baseline` stay on every pull request.
