@@ -1,0 +1,9 @@
+{
+  "schema": "plasticos.core-toolchain-lock-provenance.v1",
+  "repository": "Quantum-L9/l9-ci-core",
+  "path": ".github/actions/install-consumer-ci/toolchain-lock.json",
+  "commit": "10464765252b0c4a564b4db05bc537827be24c8f",
+  "copied": "2026-11-20",
+  "copy": "ci/core-toolchain-lock.json",
+  "refresh": "Replace ci/core-toolchain-lock.json byte-for-byte with the file at the Core commit, record that commit here, then run pytest tests/test_core_toolchain_pins.py: it names every pin site that must follow."
+}

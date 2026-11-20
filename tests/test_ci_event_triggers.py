@@ -451,6 +451,7 @@ _NIGHTLY_MUTANTS = {
         "        run: python3 -m pytest tests/\n",
     ),
     "unpinned_checkout": ("          ref: ${{ github.sha }}\n", "          ref: Staging\n"),
+    "actions_write": ("  actions: read\n", "  actions: write\n"),
 }
 
 

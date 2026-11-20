@@ -11,6 +11,15 @@ permission to run ``pytest tests/`` on a pull request. Scanner configuration
 and scanner fixtures are their own class: the two Sonar property files at the
 repository root, and every path under ``.semgrep/``. No pure-Python suite
 executes them. A path outside that class stays unknown.
+
+Dependency manifests (``requirements*.txt``, ``constraints.txt``), workflow
+files other than the two CI-owned ones, and ``pyproject.toml`` changes outside
+pytest's own configuration are routed like any other path: the test modules
+that reference them run, and any remaining behavioral regression stays on the
+nightly Odoo-free suite. A ``pyproject.toml`` change inside ``[tool.pytest]`` or
+a ``[tool.pytest.*]`` table, or one whose diff is unavailable, changes how every
+module is collected and stays unknown. ``tests/__init__.py`` and
+``tests/common.py`` stay unknown.
 """
 
 from __future__ import annotations
@@ -41,11 +50,12 @@ COVERED_BY_MANDATORY = {
 }
 
 CRITICAL_EXACT = {
-    "constraints.txt",
-    "pyproject.toml",
     "tests/__init__.py",
     "tests/common.py",
 }
+
+PYPROJECT = "pyproject.toml"
+PATCHED_PATHS = ("tests/conftest.py", PYPROJECT)
 
 HARNESS_MEDIATORS = {"tests/__init__.py", "tests/common.py", "tests/conftest.py"}
 
@@ -179,11 +189,20 @@ def _apply(
         acc.deleted.append(path)
         _add_structural(acc, index, path)
         return
-    if _is_requirements(current) or current in CRITICAL_EXACT:
-        acc.unknown.append(f"{current}: shared harness or dependency input has no proven bounded pure-Python set")
+    if current in CRITICAL_EXACT:
+        acc.unknown.append(f"{current}: shared harness input has no proven bounded pure-Python set")
+        return
+    if current == PYPROJECT:
+        _route_pyproject(acc, root, index, patches)
+        return
+    if _is_dependency_manifest(current):
+        _add_structural(acc, index, current)
         return
     if current in COVERED_BY_MANDATORY:
         _cover_mandatory(acc, current, patches)
+        return
+    if _is_workflow(current):
+        _add_structural(acc, index, current)
         return
     if current.startswith("docs/") and current.endswith(".py"):
         acc.unknown.append(f"{current}: executable documentation is not a docs-only path")
@@ -221,6 +240,81 @@ def _cover_mandatory(acc: _Acc, path: str, patches: dict[str, str]) -> None:
             acc.unknown.append("tests/conftest.py: Odoo collection change is not a bounded fast scope")
             return
     acc.covered.append(path)
+
+
+def _route_pyproject(acc: _Acc, root: Path, index: list[tuple[str, ast.AST]], patches: dict[str, str]) -> None:
+    patch = patches.get(PYPROJECT)
+    if patch is None or not patch.strip():
+        acc.unknown.append(f"{PYPROJECT}: diff is unavailable")
+        return
+    try:
+        text = (root / PYPROJECT).read_text(encoding="utf-8")
+    except OSError:
+        acc.unknown.append(f"{PYPROJECT}: changed file is not in the tree")
+        return
+    if pyproject_pytest_changed(patch, text):
+        acc.unknown.append(f"{PYPROJECT}: pytest configuration change is not a bounded fast scope")
+        return
+    _add_structural(acc, index, PYPROJECT)
+
+
+def pyproject_pytest_changed(patch: str, text: str) -> bool:
+    """True when a ``-U0`` pyproject diff touches a ``[tool.pytest*]`` table or header.
+
+    New-side hunk ranges are mapped to the table that owns each line in the
+    checked-out file; a pure deletion maps to the line before it. A changed line
+    that is itself a pytest table header also counts. An unparseable hunk header
+    counts as a pytest change, so the decision fails closed.
+    """
+    lines = text.splitlines()
+    owners = _toml_table_owners(lines)
+    for line in patch.splitlines():
+        if line.startswith(("+++", "---")):
+            continue
+        if line.startswith(("+", "-")):
+            if _is_pytest_table(line[1:]):
+                return True
+            continue
+        if not line.startswith("@@"):
+            continue
+        span = _new_side_span(line)
+        if span is None:
+            return True
+        start, count = span
+        numbers = range(start, start + count) if count else [start]
+        for number in numbers:
+            if 1 <= number <= len(owners) and _is_pytest_table(owners[number - 1]):
+                return True
+    return False
+
+
+def _toml_table_owners(lines: list[str]) -> list[str]:
+    owners = []
+    current = ""
+    for line in lines:
+        if line.lstrip().startswith("["):
+            current = line
+        owners.append(current)
+    return owners
+
+
+def _is_pytest_table(line: str) -> bool:
+    stripped = line.strip()
+    if not stripped.startswith("["):
+        return False
+    name = stripped.strip("[] \t").split("]", 1)[0].strip()
+    return name == "tool.pytest" or name.startswith("tool.pytest.")
+
+
+def _new_side_span(header: str) -> tuple[int, int] | None:
+    parts = header.split(" ")
+    if len(parts) < 3 or not parts[2].startswith("+"):
+        return None
+    start, _, count = parts[2][1:].partition(",")
+    try:
+        return int(start), int(count) if count else 1
+    except ValueError:
+        return None
 
 
 def _add_structural(acc: _Acc, index: list[tuple[str, ast.AST]], path: str) -> None:
@@ -512,6 +606,15 @@ def _is_test_module(path: str) -> bool:
 def _is_requirements(path: str) -> bool:
     name = Path(path).name
     return name.startswith("requirements") and name.endswith(".txt")
+
+
+def _is_dependency_manifest(path: str) -> bool:
+    """Root-level pip manifests. Their consumers are the tests that read them."""
+    return "/" not in path and (_is_requirements(path) or path == "constraints.txt")
+
+
+def _is_workflow(path: str) -> bool:
+    return path.startswith(".github/workflows/") and Path(path).suffix in {".yml", ".yaml"}
 
 
 def _is_gate(path: str) -> bool:

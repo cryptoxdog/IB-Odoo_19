@@ -229,8 +229,8 @@ def _validate_nightly(path, fail_open):
     concurrency = document.get('concurrency') or {}
     if concurrency.get('group') != 'nightly-full-python-staging' or concurrency.get('cancel-in-progress') is not False:
         raise SystemExit('nightly concurrency must stay isolated and must not cancel')
-    if document.get('permissions') != {'contents': 'read'}:
-        raise SystemExit('nightly permissions must be contents: read')
+    if document.get('permissions') != {'contents': 'read', 'actions': 'read'}:
+        raise SystemExit('nightly permissions must be contents: read and actions: read')
     jobs = document.get('jobs') or {}
     if len(jobs) != 1:
         raise SystemExit('nightly workflow must have one job')

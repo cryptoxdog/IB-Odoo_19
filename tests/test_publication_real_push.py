@@ -6,7 +6,7 @@ can change what `make pr` or a direct `git push` validates.
 
 Exception (95-test-fix-policy): the module skips when `pre-commit` or `git` is
 not on PATH. The behaviour under test is the real runner's, so a stub would
-assert nothing. CI's pure-python job installs `pre-commit==4.7.0`, so these
+assert nothing. CI's pure-python job installs `pre-commit==4.4.0` (Core toolchain lock), so these
 tests run there; the skip covers developer machines without the runner.
 """
 

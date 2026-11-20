@@ -23,10 +23,11 @@ default_stages: [pre-commit]
 
 repos:
   # Python linting with ruff (fast, replaces flake8/isort/pyupgrade)
-  # IMPORTANT: Keep this rev, ci.yml (ruff==0.16.0), and pyproject.toml
-  # [tool.ruff] required-version (==0.16.0) in lockstep when upgrading.
+  # IMPORTANT: Keep this rev, ci.yml (ruff==0.16.1), and pyproject.toml
+  # [tool.ruff] required-version (==0.16.1) in lockstep with the Core toolchain
+  # lock (ci/core-toolchain-lock.json); tests/test_core_toolchain_pins.py enforces it.
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.0
+    rev: v0.16.1
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
@@ -327,7 +328,7 @@ repos:
   # discovers files from `.` itself, so its `exclude` applies (it would not to
   # filenames passed explicitly) — identical invocation to CI.
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.14.0
+    rev: v2.3.0
     hooks:
       - id: mypy
         args: [--config-file=pyproject.toml, .]

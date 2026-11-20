@@ -66,7 +66,7 @@ Phase 2 (always last):
 Always install `pytest-timeout==2.4.0` (NOT 4.3.0 — that version doesn't exist):
 
 ```yaml
-- run: pip install pytest==8.3.5 pytest-timeout==2.4.0
+- run: pip install pytest==9.1.1 pytest-timeout==2.4.0
 ```
 
 Configured in `pyproject.toml`:
