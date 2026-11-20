@@ -102,6 +102,53 @@ def test_exact_path_constant_selects_the_test_module(tmp_path: Path) -> None:
     assert receipt["selected_tests"] == ["tests/test_mod.py"]
 
 
+def test_composed_pathlib_xml_dependency_selects_the_existing_test(tmp_path: Path) -> None:
+    _write(
+        tmp_path,
+        "tests/test_transaction_profit_snapshot.py",
+        "from pathlib import Path\nROOT = Path(__file__).resolve().parents[1]\n"
+        'FORM = ROOT / "plasticos_transaction" / "views" / "transaction_views.xml"\n'
+        'def test_form():\n    assert FORM.name == "transaction_views.xml"\n',
+    )
+    receipt = classify([("M", "plasticos_transaction/views/transaction_views.xml", None)], tmp_path)
+    assert receipt["status"] == "applicable"
+    assert receipt["scoped_nonmarker_tests"] == ["tests/test_transaction_profit_snapshot.py"]
+    assert receipt["structural_absence"] == []
+
+
+def test_manifest_discovered_xml_selects_the_cron_test(tmp_path: Path) -> None:
+    _write(
+        tmp_path,
+        "tests/test_cron_xml_lock.py",
+        "from pathlib import Path\nimport xml.etree.ElementTree as ET\n"
+        "def test_crons(root):\n"
+        '    for manifest in root.glob("*/__manifest__.py"):\n'
+        '        ET.parse(manifest.parent / "data" / "scheduled.xml")\n',
+    )
+    receipt = classify([("M", "plasticos_logistics/data/scheduled.xml", None)], tmp_path)
+    assert receipt["status"] == "applicable"
+    assert receipt["scoped_nonmarker_tests"] == ["tests/test_cron_xml_lock.py"]
+    manifest = classify([("M", "plasticos_logistics/__manifest__.py", None)], tmp_path)
+    assert "tests/test_cron_xml_lock.py" in manifest["scoped_nonmarker_tests"]
+
+
+def test_dynamic_glob_xml_consumer_is_selected(tmp_path: Path) -> None:
+    _write(
+        tmp_path,
+        "tests/test_odoo19_compat.py",
+        'import glob\ndef test_xml(mod):\n    return glob.glob(f"{mod}/**/*.xml", recursive=True)\n',
+    )
+    receipt = classify([("M", "plasticos_transaction/views/transaction_views.xml", None)], tmp_path)
+    assert receipt["scoped_nonmarker_tests"] == ["tests/test_odoo19_compat.py"]
+
+
+def test_unrelated_path_is_not_selected_by_xml_discovery(tmp_path: Path) -> None:
+    _write(tmp_path, "tests/test_xml.py", 'import glob\ndef test_xml():\n    glob.glob("*/**/*.xml")\n')
+    receipt = classify([("M", "docs/guide.md", None)], tmp_path)
+    assert receipt["status"] == "not_applicable"
+    assert receipt["selected_tests"] == []
+
+
 def test_a_none_constant_does_not_select_a_non_python_path(tmp_path: Path) -> None:
     _write(tmp_path, "tests/conftest.py", "VALUE = None\n")
     receipt = classify([("M", "docs/readme.md", None)], tmp_path)
