@@ -77,7 +77,8 @@ class PlasticosSemgrepNegativeFixture(models.Model):
             "SELECT id FROM res_partner WHERE name = %s",
             [body.get("name")],
         )
-        return request.env["res.partner"].search([("name", "=", body.get("name"))])
+        request.env["res.partner"].search([("name", "=", body.get("name"))])
+        return request.env["res.partner"].search_read([("name", "=", body.get("name"))], ["name"])
 
     def action_search_hook_not_implemented(self, operator):
         # Bare raise is the Odoo search-method protocol. The call form is the banned shape.

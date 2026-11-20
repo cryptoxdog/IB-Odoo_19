@@ -262,6 +262,34 @@ rules:
           $QUERY = json.loads($RAW)
           ...
           $CR.execute($QUERY, ...)
+      - pattern-inside: |
+          $BODY = json.loads(request.httprequest.get_data(...))
+          ...
+          $CR.execute($BODY.get(...), ...)
+      - pattern-inside: |
+          $BODY = json.loads(request.httprequest.get_data(...) or ...)
+          ...
+          $CR.execute($BODY.get(...), ...)
+      - pattern-inside: |
+          $BODY = json.loads(request.httprequest.get_data(...) or ...)
+          ...
+          $QUERY = $BODY.get(...)
+          ...
+          $CR.execute($QUERY, ...)
+      - pattern-inside: |
+          $RAW = request.httprequest.get_data(...)
+          ...
+          $BODY = json.loads($RAW)
+          ...
+          $CR.execute($BODY.get(...), ...)
+      - pattern-inside: |
+          $RAW = request.httprequest.get_data(...)
+          ...
+          $BODY = json.loads($RAW)
+          ...
+          $QUERY = $BODY.get(...)
+          ...
+          $CR.execute($QUERY, ...)
     message: "Request data is the SQL text passed to execute. Bind it as a parameter."
     languages: [python]
     severity: ERROR
@@ -280,6 +308,10 @@ rules:
       - pattern: $M.search_count(request.params[...], ...)
       - pattern: $M.read_group(request.params.get(...), ...)
       - pattern: $M.filtered_domain(request.params.get(...))
+      - pattern: $M.search_read(request.params.get(...), ...)
+      - pattern: $M.search_read(request.params[...], ...)
+      - pattern: $M.search_read(json.loads(request.httprequest.get_data(...)), ...)
+      - pattern: $M.search_read(json.loads(request.httprequest.data), ...)
       - pattern-inside: |
           $DOMAIN = request.params.get(...)
           ...
@@ -312,6 +344,38 @@ rules:
           $DOMAIN = request.params.get(...)
           ...
           $M.search_count($DOMAIN, ...)
+      - pattern-inside: |
+          $DOMAIN = request.params.get(...)
+          ...
+          $M.search_read($DOMAIN, ...)
+      - pattern-inside: |
+          $DOMAIN = json.loads(request.httprequest.get_data(...) or ...)
+          ...
+          $M.search_read($DOMAIN, ...)
+      - pattern-inside: |
+          $BODY = json.loads(request.httprequest.get_data(...) or ...)
+          ...
+          $M.search($BODY.get(...), ...)
+      - pattern-inside: |
+          $BODY = json.loads(request.httprequest.get_data(...) or ...)
+          ...
+          $M.search_count($BODY.get(...), ...)
+      - pattern-inside: |
+          $BODY = json.loads(request.httprequest.get_data(...) or ...)
+          ...
+          $M.search_read($BODY.get(...), ...)
+      - pattern-inside: |
+          $BODY = json.loads(request.httprequest.get_data(...) or ...)
+          ...
+          $DOMAIN = $BODY.get(...)
+          ...
+          $M.search($DOMAIN, ...)
+      - pattern-inside: |
+          $BODY = json.loads(request.httprequest.get_data(...) or ...)
+          ...
+          $DOMAIN = $BODY.get(...)
+          ...
+          $M.search_read($DOMAIN, ...)
     message: "A request payload is the search domain. Put request values inside a fixed domain literal."
     languages: [python]
     severity: ERROR

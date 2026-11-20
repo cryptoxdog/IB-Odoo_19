@@ -103,6 +103,14 @@ class PlasticosSemgrepPositiveFixture(models.Model):
         body = json.loads(request.httprequest.get_data(as_text=True) or "")
         request.env["res.partner"].search(body)
         request.env["res.partner"].search(request.params.get("domain"))
+        self.env.cr.execute(body.get("query"))
+        extracted = body.get("query")
+        self.env.cr.execute(extracted)
+        request.env["res.partner"].search(body.get("domain"))
+        domain = body.get("domain")
+        request.env["res.partner"].search(domain)
+        request.env["res.partner"].search_read(request.params.get("domain"))
+        request.env["res.partner"].search_read(domain)
 
     def action_destructive_migration_fixture(self):
         statement = "DROP TABLE plasticos_semgrep_fixture"
