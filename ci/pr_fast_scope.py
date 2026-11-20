@@ -70,6 +70,8 @@ _COLLECTION_NEEDLES = (
 )
 
 _DOC_SUFFIXES = {".md", ".mdc", ".rst"}
+# Suffix-less documentation files, by exact repository-root path. No pure-Python suite executes them.
+_DOC_ROOT_FILES = frozenset({"LICENSE"})
 _INERT_SUFFIXES = {".gif", ".jpeg", ".jpg", ".pdf", ".png", ".svg", ".webp"}
 _STATUS_CODES = {"A", "C", "D", "M", "R", "T"}
 
@@ -658,7 +660,7 @@ def _is_addon_resource(path: str) -> bool:
 
 
 def _is_doc(path: str) -> bool:
-    return Path(path).suffix.lower() in _DOC_SUFFIXES
+    return path in _DOC_ROOT_FILES or Path(path).suffix.lower() in _DOC_SUFFIXES
 
 
 def _is_inert(path: str) -> bool:
