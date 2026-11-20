@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from ci.nightly_full_run import NIGHTLY_PYTEST
+from ci.nightly_full_run import NIGHTLY_PYTEST, skip_reason
 from ci.nightly_full_run import main as nightly_main
 from ci.pr_fast_scope import classify, missing_mandatory_markers, parse_name_status
 from ci.run_pr_fast_tests import MANDATORY_PYTEST, scoped_pytest
@@ -339,7 +339,12 @@ def test_production_dispatch_does_not_start_pytest(tmp_path: Path, monkeypatch: 
     monkeypatch.chdir(tmp_path)
     _nightly_env(monkeypatch, "refs/heads/Production", "Staging", "a" * 40)
     with pytest.raises(SystemExit, match="refused ref"):
-        nightly_main(fetch_default=lambda: "Staging", launch=lambda argv: calls.append(list(argv)) or 0, head="a" * 40)
+        nightly_main(
+            fetch_default=lambda: "Staging",
+            launch=lambda argv: calls.append(list(argv)) or 0,
+            head="a" * 40,
+            last_success=lambda: "",
+        )
     assert calls == []
 
 
@@ -355,16 +360,76 @@ def test_staging_nightly_runs_the_unfiltered_suite_and_keeps_a_red_result(
         Path("artifacts/pytest/pure-python.xml").write_text("<testsuite tests='1' failures='1'/>", encoding="utf-8")
         return 1
 
-    assert nightly_main(fetch_default=lambda: "Staging", launch=launch, head="b" * 40) == 1
+    assert nightly_main(fetch_default=lambda: "Staging", launch=launch, head="b" * 40, last_success=lambda: "") == 1
     assert calls == [NIGHTLY_PYTEST]
     record = json.loads(Path("artifacts/pytest/revision.json").read_text(encoding="utf-8"))
     assert record["tested_checkout_sha"] == "b" * 40
     assert record["tier"] == "nightly_full"
 
 
+def _passing_suite(calls: list[list[str]]):
+    def launch(argv: list[str]) -> int:
+        calls.append(list(argv))
+        Path("artifacts/pytest/pure-python.xml").write_text("<testsuite tests='1'/>", encoding="utf-8")
+        return 0
+
+    return launch
+
+
+def test_nightly_skips_when_staging_is_unchanged(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[list[str]] = []
+    monkeypatch.chdir(tmp_path)
+    _nightly_env(monkeypatch, "refs/heads/Staging", "Staging", "c" * 40)
+    code = nightly_main(
+        fetch_default=lambda: "Staging", launch=_passing_suite(calls), head="c" * 40, last_success=lambda: "c" * 40
+    )
+    assert code == 0
+    assert calls == []
+    record = json.loads(Path("artifacts/pytest/revision.json").read_text(encoding="utf-8"))
+    assert record["skipped"] == f"Staging {'c' * 40} unchanged since the last successful nightly run"
+
+
+def test_nightly_runs_when_staging_changed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[list[str]] = []
+    monkeypatch.chdir(tmp_path)
+    _nightly_env(monkeypatch, "refs/heads/Staging", "Staging", "c" * 40)
+    code = nightly_main(
+        fetch_default=lambda: "Staging", launch=_passing_suite(calls), head="c" * 40, last_success=lambda: "d" * 40
+    )
+    assert code == 0
+    assert calls == [NIGHTLY_PYTEST]
+    record = json.loads(Path("artifacts/pytest/revision.json").read_text(encoding="utf-8"))
+    assert record["skipped"] == ""
+
+
+def test_nightly_runs_when_previous_runs_are_unreadable(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[list[str]] = []
+    monkeypatch.chdir(tmp_path)
+    _nightly_env(monkeypatch, "refs/heads/Staging", "Staging", "c" * 40)
+
+    def api_error() -> str:
+        raise RuntimeError("cannot read previous runs: HTTP Error 502")
+
+    code = nightly_main(
+        fetch_default=lambda: "Staging", launch=_passing_suite(calls), head="c" * 40, last_success=api_error
+    )
+    assert code == 0
+    assert calls == [NIGHTLY_PYTEST]
+    assert json.loads(Path("artifacts/pytest/revision.json").read_text(encoding="utf-8"))["skipped"] == ""
+
+
+def test_nightly_without_a_token_does_not_skip(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.setenv("GITHUB_REPOSITORY", "cryptoxdog/IB-Odoo_19")
+    assert skip_reason("c" * 40) == ""
+
+
 def test_scoped_failure_fails_the_pr_fast_job(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    head = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
-    parent = subprocess.check_output(["git", "rev-parse", "HEAD^"], text=True).strip()
+    # Fixed SHAs, not the checkout's history: a depth-1 clone (the nightly checkout)
+    # has no HEAD^. fast_main only checks their shape; classify is stubbed and the
+    # diff is read from tmp_path, which is not a repository.
+    head = "e" * 40
+    parent = "f" * 40
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("PLASTICOS_CONTRACT_CI", "1")
     monkeypatch.setenv("PLASTICOS_CI_TIER", "pr_fast")
