@@ -13,7 +13,7 @@
 # including a direct `git push` that sets the variables itself, runs the full
 # gate here.
 #
-# Push forms (pre-commit 4.7.0, see tests/test_publication_real_push.py):
+# Push forms (pre-commit 4.4.0, see tests/test_publication_real_push.py):
 #   update / new branch with new commits   validated here
 #   up-to-date, or a new ref to a commit the remote already has
 #                                          pre-commit runs no hook; nothing new

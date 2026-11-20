@@ -940,3 +940,17 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > A `pyproject.toml` change inside `[tool.pytest]` or a `[tool.pytest.*]` table, a `pyproject.toml` diff that cannot
 > be read, `tests/__init__.py`, and `tests/common.py` stay unknown and fail the job. No pull request runs
 > `pytest tests/`; the nightly suite remains the only unfiltered run.
+
+> **2026-11-20 toolchain-lock correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the Version Lockstep table above is superseded. Tool versions follow Core's toolchain lock
+> (`Quantum-L9/l9-ci-core` `.github/actions/install-consumer-ci/toolchain-lock.json`, operator decision
+> 2026-11-20). `ci/core-toolchain-lock.json` is a byte copy of that file, with its Core commit in
+> `ci/core-toolchain-lock.provenance.json`; it is this repository's single source for tool versions. Live pins:
+> ruff `0.16.1`, mypy `2.3.0`, pytest `9.1.1`, semgrep `1.171.0`, pre-commit `4.4.0`, pip `26.2.1`,
+> gitleaks `8.24.3` (`GITLEAKS_VERSION` on `gitleaks/gitleaks-action` in `ci.yml`), Python `3.12`. They are
+> repeated at each install site (`ci.yml`, `nightly-full-python.yml`, `l9-analysis.yml`, `requirements-dev.txt`,
+> `requirements-ci.txt`, `make venv`, `make lock-deps`, the `ruff-pre-commit` and `mirrors-mypy` revs, and
+> `pyproject.toml` `required-version`), because this addon suite has no `[project]` table and no `uv.lock`.
+> `tests/test_core_toolchain_pins.py` fails on any site that differs from the copy or installs a lock-owned tool
+> unpinned. Bump a tool by refreshing the copy from Core, recording the commit, and following the test.
+> The repository has no `dependabot.yml`, so nothing here bumps a lock-owned tool.

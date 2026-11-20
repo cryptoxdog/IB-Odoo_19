@@ -46,7 +46,7 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - run: pip install --only-binary ":all:" ruff==0.16.0
+      - run: pip install --only-binary ":all:" ruff==0.16.1
 
       - name: Ruff lint + format (all errors before failing)
         run: |
@@ -76,7 +76,7 @@ jobs:
 
       # pyyaml: ci/check_github_actions_kernel.sh parses the workflows (the local
       # .venv gets pyyaml through requirements-dev.txt's pr-repair dependency)
-      - run: pip install --only-binary ":all:" lxml==6.0.2 semgrep==1.164.0 mypy==1.14.0 pyyaml==6.0.3
+      - run: pip install --only-binary ":all:" lxml==6.0.2 semgrep==1.171.0 mypy==2.3.0 pyyaml==6.0.3
 
       - name: Install shellcheck
         run: sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
@@ -251,7 +251,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - run: pip install --only-binary ":all:" pytest==8.3.5 pytest-timeout==2.4.0 pytest-cov==5.0.0 "requests>=2.28.0" defusedxml==0.7.1 pyyaml==6.0.3 pre-commit==4.7.0
+      - run: pip install --only-binary ":all:" pytest==9.1.1 pytest-timeout==2.4.0 pytest-cov==5.0.0 "requests>=2.28.0" defusedxml==0.7.1 pyyaml==6.0.3 pre-commit==4.4.0
 
       - name: Record the tested source and integration revision
         env:
@@ -309,7 +309,7 @@ jobs:
           # GITHUB_TOKEN cannot clone private Gate_SDK (anonymous git asks for a username).
           L9_GITHUB_READ_TOKEN: ${{ secrets.L9_GITHUB_READ_TOKEN }}
         run: |
-          pip install pytest==8.3.5 pytest-timeout==2.4.0
+          pip install pytest==9.1.1 pytest-timeout==2.4.0
           # Install exactly the SDK line from requirements.txt (single source of the pin).
           SDK_REQ="$(grep -E '^constellation-node-sdk @ ' requirements.txt)"
           test -n "$SDK_REQ"
@@ -421,6 +421,8 @@ jobs:
       - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7  # v2 — SHA-pinned per SonarCloud S7637
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Core toolchain lock (ci/core-toolchain-lock.json); the action's own default can drift.
+          GITLEAKS_VERSION: "8.24.3"
 
   # ── PHASE 2 (sequential, always last): single fail-closed verdict ──────────
   # Runs only after all Phase 1 jobs finish (if: always() so it runs even if
