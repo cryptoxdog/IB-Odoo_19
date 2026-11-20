@@ -12,6 +12,9 @@
         </field>
     </record>
 
+    <!-- Attribute-form witnesses. Element text is owned by ci/check_odoo19_xml.py. -->
+    <!-- view_mode="tree,form" -->
+    <!-- numbercall="1" -->
     <record id="action_semgrep_bad_view_mode" model="ir.actions.act_window">
         <field name="name">Bad View Mode</field>
         <field name="res_model">plasticos.semgrep.fixture</field>
@@ -34,6 +37,50 @@
         <field name="name">Bad Category</field>
         <field name="category_id" ref="base.module_category_hidden"/>
     </record>
+
+    <record id="view_semgrep_bad_decoration" model="ir.ui.view">
+        <field name="name">plasticos.semgrep.bad.decoration</field>
+        <field name="model">plasticos.semgrep.fixture</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="state" decoration-secondary="state == 'done'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_semgrep_bad_search" model="ir.ui.view">
+        <field name="name">plasticos.semgrep.bad.search</field>
+        <field name="model">plasticos.semgrep.fixture</field>
+        <field name="arch" type="xml">
+            <search string="Bad Search">
+                <field name="name"/>
+                <group name="group_by" string="Group By">
+                    <filter name="group_name" context="{'group_by': 'name'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Raw text witness: eval="[ref("plasticos_base.model_plasticos_base_config")]" -->
+    <record id="view_semgrep_good_eval" model="ir.ui.view">
+        <field name="name">plasticos.semgrep.good.eval</field>
+        <field name="model">plasticos.semgrep.fixture</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name" eval="[ref('plasticos_base.model_plasticos_base_config')]"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="cron_semgrep_bad_model_ref" model="ir.cron">
+        <field name="name">Bad Model Ref</field>
+        <field name="model_id" ref="model_plasticos_semgrep_fixture"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_fixture()</field>
+    </record>
+
+    <!-- SQL-file rule witness. The rule's production scope is migrations/*.sql. -->
+    <!-- DROP TABLE plasticos_semgrep_fixture -->
 
     <!-- Negative control: valid Odoo 19 list view. -->
     <record id="view_semgrep_good_list" model="ir.ui.view">
