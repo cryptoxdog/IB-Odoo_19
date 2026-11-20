@@ -931,3 +931,12 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > Suite`. It is the Odoo-free suite, not the Odoo ORM/`TransactionCase` runtime. Required check names stay
 > `Ruff Lint & Format`, `Static Analysis`, `Pure Python Tests`, and `CI Gate Result`. `make test` remains the
 > local full Odoo-free suite. `gate-sdk-tests` and `audit-baseline` stay on every pull request.
+
+> **2026-11-20 correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> on the PR-fast lane (`ci/pr_fast_scope.py`), a dependency change no longer fails as unknown scope. Root
+> `requirements*.txt`, `constraints.txt`, workflow files other than `ci.yml` and `nightly-full-python.yml`, and
+> `pyproject.toml` changes outside pytest's own configuration select the test modules that reference them; with no
+> referencing test the scope is `not_applicable`, and behavioral regression stays on the nightly Odoo-free suite.
+> A `pyproject.toml` change inside `[tool.pytest]` or a `[tool.pytest.*]` table, a `pyproject.toml` diff that cannot
+> be read, `tests/__init__.py`, and `tests/common.py` stay unknown and fail the job. No pull request runs
+> `pytest tests/`; the nightly suite remains the only unfiltered run.
