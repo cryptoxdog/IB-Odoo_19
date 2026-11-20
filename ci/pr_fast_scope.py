@@ -25,6 +25,7 @@ module is collected and stays unknown. ``tests/__init__.py`` and
 from __future__ import annotations
 
 import ast
+import tomllib
 from pathlib import Path
 
 SCHEMA = "plasticos.pr-fast-scope.v1"
@@ -56,6 +57,7 @@ CRITICAL_EXACT = {
 
 PYPROJECT = "pyproject.toml"
 PATCHED_PATHS = ("tests/conftest.py", PYPROJECT)
+_CONTENT_JUDGED = frozenset({PYPROJECT, *CRITICAL_EXACT})
 
 HARNESS_MEDIATORS = {"tests/__init__.py", "tests/common.py", "tests/conftest.py"}
 
@@ -172,6 +174,9 @@ def _apply(
 ) -> None:
     current = new_path or path
     acc.changed.append(current if code != "D" else path)
+    if code in {"D", "R", "C"} and {path, current} & _CONTENT_JUDGED:
+        acc.unknown.append(f"{path}: deleting, renaming or copying a shared harness or pytest configuration input")
+        return
     if code in {"R", "C"}:
         acc.renames.append({"old": path, "new": current})
         if not _is_test_module(path) and not _is_test_module(current):
@@ -259,62 +264,77 @@ def _route_pyproject(acc: _Acc, root: Path, index: list[tuple[str, ast.AST]], pa
 
 
 def pyproject_pytest_changed(patch: str, text: str) -> bool:
-    """True when a ``-U0`` pyproject diff touches a ``[tool.pytest*]`` table or header.
+    """True when a ``-U0`` pyproject diff changes pytest's configuration, or cannot be proven not to.
 
-    New-side hunk ranges are mapped to the table that owns each line in the
-    checked-out file; a pure deletion maps to the line before it. A changed line
-    that is itself a pytest table header also counts. An unparseable hunk header
-    counts as a pytest change, so the decision fails closed.
+    The base file is rebuilt from the checked-out file and the patch, both are
+    parsed as TOML, and the ``tool.pytest`` values are compared. That covers
+    ``[tool.pytest]`` and every ``[tool.pytest.*]`` table however the keys are
+    spelled (quoted, spaced, dotted assignment). A patch that does not apply
+    exactly, or a file that does not parse, counts as a change: fail closed.
     """
-    lines = text.splitlines()
-    owners = _toml_table_owners(lines)
-    for line in patch.splitlines():
-        if line.startswith(("+++", "---")):
-            continue
-        if line.startswith(("+", "-")):
-            if _is_pytest_table(line[1:]):
-                return True
-            continue
-        if not line.startswith("@@"):
-            continue
-        span = _new_side_span(line)
-        if span is None:
-            return True
-        start, count = span
-        numbers = range(start, start + count) if count else [start]
-        for number in numbers:
-            if 1 <= number <= len(owners) and _is_pytest_table(owners[number - 1]):
-                return True
-    return False
-
-
-def _toml_table_owners(lines: list[str]) -> list[str]:
-    owners = []
-    current = ""
-    for line in lines:
-        if line.lstrip().startswith("["):
-            current = line
-        owners.append(current)
-    return owners
-
-
-def _is_pytest_table(line: str) -> bool:
-    stripped = line.strip()
-    if not stripped.startswith("["):
-        return False
-    name = stripped.strip("[] \t").split("]", 1)[0].strip()
-    return name == "tool.pytest" or name.startswith("tool.pytest.")
-
-
-def _new_side_span(header: str) -> tuple[int, int] | None:
-    parts = header.split(" ")
-    if len(parts) < 3 or not parts[2].startswith("+"):
-        return None
-    start, _, count = parts[2][1:].partition(",")
+    base = _reverse_apply(patch, text)
+    if base is None:
+        return True
     try:
-        return int(start), int(count) if count else 1
+        before = tomllib.loads(base)
+        after = tomllib.loads(text)
+    except tomllib.TOMLDecodeError:
+        return True
+    return _pytest_config(before) != _pytest_config(after)
+
+
+def _pytest_config(doc: dict) -> object:
+    tool = doc.get("tool")
+    return tool.get("pytest") if isinstance(tool, dict) else None
+
+
+def _reverse_apply(patch: str, text: str) -> str | None:
+    """Rebuild the base file from the head file and a single-file ``-U0`` patch; ``None`` when unproven."""
+    hunks: list[dict] = []
+    for line in patch.splitlines():
+        if not hunks and not line.startswith("@@"):
+            continue  # file headers precede the first hunk
+        if line.startswith("@@"):
+            spans = _hunk_spans(line)
+            if spans is None:
+                return None
+            old_count, new_start, new_count = spans
+            hunks.append({"old": old_count, "start": new_start, "count": new_count, "minus": [], "plus": []})
+        elif line.startswith("-"):
+            hunks[-1]["minus"].append(line[1:])
+        elif line.startswith("+"):
+            hunks[-1]["plus"].append(line[1:])
+        elif not line.startswith("\\"):
+            return None  # a -U0 patch carries no context lines
+    if not hunks:
+        return None
+    lines = text.splitlines()
+    for hunk in sorted(hunks, key=lambda h: h["start"], reverse=True):
+        if len(hunk["minus"]) != hunk["old"] or len(hunk["plus"]) != hunk["count"]:
+            return None
+        low = hunk["start"] if hunk["count"] == 0 else hunk["start"] - 1
+        if lines[low : low + hunk["count"]] != hunk["plus"]:
+            return None
+        lines[low : low + hunk["count"]] = hunk["minus"]
+    return "\n".join(lines) + "\n"
+
+
+def _hunk_spans(header: str) -> tuple[int, int, int] | None:
+    """``@@ -a[,b] +c[,d] @@`` → ``(b, c, d)``; counts default to 1."""
+    parts = header.split(" ")
+    if len(parts) < 4 or not parts[1].startswith("-") or not parts[2].startswith("+"):
+        return None
+    try:
+        _old_start, old_count = _span(parts[1][1:])
+        new_start, new_count = _span(parts[2][1:])
     except ValueError:
         return None
+    return old_count, new_start, new_count
+
+
+def _span(text: str) -> tuple[int, int]:
+    start, sep, count = text.partition(",")
+    return int(start), int(count) if sep else 1
 
 
 def _add_structural(acc: _Acc, index: list[tuple[str, ast.AST]], path: str) -> None:

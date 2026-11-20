@@ -141,6 +141,50 @@ def test_pyproject_without_a_patch_or_with_a_bad_hunk_is_unknown(tmp_path: Path)
     assert classify([("M", _PYPROJECT, None)], tmp_path, patches={_PYPROJECT: bad})["status"] == "unknown"
 
 
+def test_pyproject_patch_that_does_not_match_the_tree_is_unknown(tmp_path: Path) -> None:
+    _write(tmp_path, _PYPROJECT, _PYPROJECT_TEXT)
+    stale = _pyproject_patch("@@ -5 +5 @@", 'required-version = "==0.15.0"', 'required-version = "==9.9.9"')
+    receipt = classify([("M", _PYPROJECT, None)], tmp_path, patches={_PYPROJECT: stale})
+    assert receipt["status"] == "unknown"
+
+
+def test_quoted_or_spaced_pytest_table_change_is_unknown(tmp_path: Path) -> None:
+    for header in ('[tool."pytest".ini_options]', "[tool . pytest . ini_options]"):
+        text = f'{header}\naddopts = "-ra"\n\n[tool.ruff]\nline-length = 120\n'
+        _write(tmp_path, _PYPROJECT, text)
+        patch = _pyproject_patch("@@ -2 +2 @@", 'addopts = "-q"', 'addopts = "-ra"')
+        receipt = classify([("M", _PYPROJECT, None)], tmp_path, patches={_PYPROJECT: patch})
+        assert receipt["status"] == "unknown", header
+
+
+def test_dotted_pytest_key_outside_a_pytest_table_is_unknown(tmp_path: Path) -> None:
+    text = '[tool]\npytest.ini_options.addopts = "-ra"\n'
+    _write(tmp_path, _PYPROJECT, text)
+    patch = _pyproject_patch("@@ -2 +2 @@", 'pytest.ini_options.addopts = "-q"', 'pytest.ini_options.addopts = "-ra"')
+    receipt = classify([("M", _PYPROJECT, None)], tmp_path, patches={_PYPROJECT: patch})
+    assert receipt["status"] == "unknown"
+
+
+def test_array_line_starting_with_a_bracket_does_not_hide_a_tool_change(tmp_path: Path) -> None:
+    text = '[tool.pytest.ini_options]\nmarkers = [\n  ["a"],\n]\n\n[tool.ruff]\nline-length = 120\n'
+    _write(tmp_path, _PYPROJECT, text)
+    patch = _pyproject_patch("@@ -7 +7 @@", "line-length = 100", "line-length = 120")
+    receipt = classify([("M", _PYPROJECT, None)], tmp_path, patches={_PYPROJECT: patch})
+    assert receipt["status"] == "not_applicable"
+
+
+def test_deleting_or_renaming_pyproject_or_the_harness_is_unknown(tmp_path: Path) -> None:
+    harness = _path("tests/", "common.py")
+    for entry in (
+        ("D", _PYPROJECT, None),
+        ("R", _PYPROJECT, _path("old_", "pyproject.toml")),
+        ("R", _path("other", ".toml"), _PYPROJECT),
+        ("D", harness, None),
+    ):
+        receipt = classify([entry], tmp_path)
+        assert receipt["status"] == "unknown", entry
+
+
 def test_other_workflow_change_runs_its_consumers_or_nothing(tmp_path: Path) -> None:
     workflow = _path(".github/workflows/", "security.yml")
     receipt = classify([("M", workflow, None)], tmp_path)
