@@ -34,4 +34,4 @@ def migrate(cr, version):
             (MODULE, xmlid, row[0]),
         )
         adopted += 1
-    _logger.info("plasticos_documents 19.0.2.1.25: adopted %d existing legacy tag(s) for the DEC-014 seed", adopted)
+    _logger.info("plasticos_documents 19.0.2.1.27: adopted %d existing legacy tag(s) for the DEC-014 seed", adopted)

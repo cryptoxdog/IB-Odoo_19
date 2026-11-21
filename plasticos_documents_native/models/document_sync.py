@@ -590,3 +590,23 @@ class DocumentSyncService(models.AbstractModel):
             seen,
         )
         return synced
+
+
+class DocumentsDocumentEvidenceCompany(models.Model):
+    """The native original's company is a pending evidence company source (DEC-005 d, TASK-065)."""
+
+    _inherit = "documents.document"
+
+    def write(self, vals):
+        result = super().write(vals)
+        if "company_id" in vals:
+            self.env["plasticos.document"]._refresh_evidence_company(
+                [
+                    "|",
+                    ("attachment_id", "in", self.attachment_id.ids),
+                    "&",
+                    ("res_model", "=", "documents.document"),
+                    ("res_id", "in", self.ids),
+                ]
+            )
+        return result

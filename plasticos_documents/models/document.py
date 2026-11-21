@@ -1,7 +1,9 @@
 import logging
 
-from odoo import api, fields, models
+from odoo import SUPERUSER_ID, api, fields, models
 from odoo.exceptions import AccessError, UserError
+
+from .exception_router import EXC_ASSOCIATION_REVIEW, Obligation
 
 _logger = logging.getLogger(__name__)
 
@@ -66,6 +68,8 @@ DECISION_FIELDS = frozenset(
 
 VERIFICATION_GRANT_KEY = "plasticos_document_verification_grant"
 VERIFIER_GROUP = "plasticos_documents.group_documents_user"
+# Technical actors that hold document groups for ACL reasons but never decide business evidence (N-008).
+SERVICE_USER_XMLIDS = ("plasticos_base.user_system_cron", "plasticos_logistics.user_linda")
 OVERRIDE_GROUP = "plasticos_documents.group_documents_manager"
 
 
@@ -245,6 +249,21 @@ class PlasticosDocument(models.Model):
         string="Subject Company",
         readonly=True,
         ondelete="restrict",
+    )
+    evidence_company_id = fields.Many2one(
+        "res.company",
+        string="Evidence Company",
+        compute="_compute_evidence_company_id",
+        store=True,
+        index=True,
+        readonly=True,
+        ondelete="restrict",
+        help=(
+            "Company a pending row is visible in (DEC-005 d). Accepted rows take their subject company. "
+            "A pending row takes the one company its original file, its subject record and its attachment "
+            "agree on; conflicting or missing sources leave it empty, which hides it from every "
+            "company-scoped user and routes it to the Operations Manager."
+        ),
     )
     candidate_partner_id = fields.Many2one(
         "res.partner",
@@ -519,6 +538,7 @@ class PlasticosDocument(models.Model):
             self._refuse_direct_decision_write(vals)
             self._refuse_direct_association_write(vals)
         records = super().create(vals_list)
+        records._route_unresolved_company()
         records._invalidate_native_projection()
         self._trigger_transaction_recompute(records)
         return records
@@ -533,7 +553,12 @@ class PlasticosDocument(models.Model):
         previous = self.env["plasticos.transaction"]
         if ASSOCIATION_IDENTITY.intersection(vals) or SCOPE_FIELDS.intersection(vals):
             previous = self._get_related_transactions(self)
+        moved = {}
+        if {"res_model", "res_id"}.intersection(vals):
+            moved = {rec.id: rec._original_target() for rec in self}
         result = super().write(vals)
+        if {"association_state", "attachment_id", "res_model", "res_id", "subject_company_id"}.intersection(vals):
+            self._route_unresolved_company(previous_targets=moved)
         # Recompute if any compliance-affecting field changed
         compliance_fields = {
             "tag_id",
@@ -702,6 +727,21 @@ class PlasticosDocument(models.Model):
         if not self.env.user.has_group(VERIFIER_GROUP):
             raise AccessError("Not authorized to verify documents.")
 
+    def _require_human_verifier(self):
+        """A verification decision is a human's (TASK-064, A19).
+
+        The superuser context with no human behind it, the scheduler's cron user and Linda are
+        refused at the server whatever groups they hold; the UI is not the control.
+        """
+        if self.env.uid == SUPERUSER_ID:
+            raise AccessError("Verification needs a human user; the superuser context cannot verify documents.")
+        service_ids = {
+            user.id for user in (self.env.ref(xmlid, raise_if_not_found=False) for xmlid in SERVICE_USER_XMLIDS) if user
+        }
+        if self.env.uid in service_ids or self.env.user.share:
+            raise AccessError("Service and portal users cannot verify business evidence.")
+        self._require_verifier()
+
     def _require_override_manager(self):
         if not self.env.user.has_group(OVERRIDE_GROUP):
             raise AccessError("Not authorized to override.")
@@ -784,6 +824,109 @@ class PlasticosDocument(models.Model):
     def _original_file_company(self, attachment):
         """Company recorded on the native original. Native Documents supplies it."""
         return self.env["res.company"]
+
+    @api.depends("association_state", "subject_company_id", "attachment_id.company_id", "res_model", "res_id")
+    def _compute_evidence_company_id(self):
+        for rec in self:
+            if rec.association_state == "accepted":
+                rec.evidence_company_id = rec.subject_company_id
+            else:
+                rec.evidence_company_id = rec._pending_company()
+
+    def _pending_company(self):
+        """The one company every source of a pending row agrees on, or an empty recordset.
+
+        Sources: the native original's company, the subject record's legal company and the
+        attachment's company. Disagreement or a conflicting original is unresolved (fail closed).
+        """
+        self.ensure_one()
+        empty = self.env["res.company"]
+        try:
+            companies = self._original_file_company(self.attachment_id)
+        except UserError:
+            return empty
+        if self.res_model and self.res_model in self.env and self.res_id:
+            target = self.env[self.res_model].sudo().browse(self.res_id).exists()  # sudo: company identity only
+            if target:
+                candidates, _requires = self._subject_company_candidates(target)
+                companies |= candidates
+        attachment = self.attachment_id.sudo()  # sudo: company identity only; not a read of the file
+        companies |= attachment.company_id
+        return companies if len(companies) == 1 else empty
+
+    PENDING_COMPANY_SUMMARY = "Pending evidence company unresolved"
+
+    def _company_summary(self):
+        self.ensure_one()
+        return f"{self.PENDING_COMPANY_SUMMARY}: {self.name} (evidence {self.id})"
+
+    def _original_target(self):
+        """The row's original record, or an empty recordset (none, unknown model or deleted)."""
+        self.ensure_one()
+        if not (self.res_model and self.res_model in self.env and self.res_id):
+            return None
+        return self.env[self.res_model].browse(self.res_id).exists()
+
+    @api.model
+    def _refresh_evidence_company(self, domain):
+        """Recompute the evidence company of pending rows whose company source changed, then route them.
+
+        A stored compute cannot depend on a generic ``res_model``/``res_id`` subject or on the native
+        original, so the source models call this when one of their company sources is written.
+        """
+        elevated = self.sudo()  # sudo: the rows to repair are hidden by the very rule this repairs
+        rows = elevated.with_context(active_test=False).search([("association_state", "!=", "accepted"), *domain])
+        if not rows:
+            return rows
+        self.env.add_to_compute(self._fields["evidence_company_id"], rows)
+        rows._recompute_recordset(["evidence_company_id"])
+        rows._route_unresolved_company()
+        return rows
+
+    def _route_unresolved_company(self, previous_targets=None):
+        """One Operations activity per pending row nobody can see because its company is unresolved.
+
+        The activity sits on the row's original record (the row itself is hidden), owned inside that
+        record's own legal company. A row that resolves, or moves to another original, has its
+        activity closed. With no original record, or no single company to route in, the row is noted
+        and logged instead.
+        """
+        router = self.env["plasticos.exception.router"]
+        previous_targets = previous_targets or {}
+        for rec in self:
+            target = rec._original_target()
+            summary = rec._company_summary()
+            previous = previous_targets.get(rec.id)
+            if previous and previous != target:
+                router.resolve(previous, summary, "The evidence moved to another record.")
+            if rec.association_state == "accepted" or rec.evidence_company_id:
+                if target:
+                    router.resolve(target, summary, "The evidence company is resolved.")
+                continue
+            reason = None
+            company = None
+            if not target or "activity_ids" not in target._fields:
+                reason = "The pending evidence has no single company and no original record to route it on."
+            else:
+                candidates, _requires = self._subject_company_candidates(target)
+                if len(candidates) > 1:
+                    reason = "The original record's own companies conflict, so no owner can be chosen safely."
+                company = candidates[:1] or None
+            if reason:
+                self.env["res.users"]._plasticos_note_unrouted_escalation(
+                    rec.sudo(),  # sudo: note on a row hidden from every company-scoped user
+                    self.PENDING_COMPANY_SUMMARY,
+                    reason,
+                )
+                continue
+            obligation = Obligation(
+                summary,
+                router.purpose_from_tag_codes((), attributed=False),
+                EXC_ASSOCIATION_REVIEW,
+                "The original's company, its subject company and its attachment company do not agree; "
+                "the pending evidence is hidden from every company-scoped user until one company is set.",
+            )
+            router.schedule(target, obligation, company)
 
     def _subject_company_candidates(self, target):
         """Legal company sources of a subject. Reads identity only; grants nothing.
@@ -1076,7 +1219,7 @@ class PlasticosDocument(models.Model):
 
     def action_verify(self):
         """Record one verification decision for this evidence scope."""
-        self._require_verifier()
+        self._require_human_verifier()
         now = fields.Datetime.now()
         for rec in self:
             if rec.verified:
@@ -1204,3 +1347,43 @@ def _replaced_accepted_evidence(row):
     if row.association_state != "accepted" or not row.source_revision or not row.attachment_id:
         return False
     return row.attachment_id.checksum != row.source_revision
+
+
+class IrAttachmentEvidenceCompany(models.Model):
+    """The attachment's company is a source of pending evidence's company (DEC-005 d)."""
+
+    _inherit = "ir.attachment"
+
+    def write(self, vals):
+        result = super().write(vals)
+        if "company_id" in vals:
+            self.env["plasticos.document"]._refresh_evidence_company([("attachment_id", "in", self.ids)])
+        return result
+
+
+class PlasticosTransactionEvidenceCompany(models.Model):
+    """A transaction's sale and purchase orders give it a legal company: a pending evidence source."""
+
+    _inherit = "plasticos.transaction"
+
+    def write(self, vals):
+        result = super().write(vals)
+        if {"sale_order_id", "purchase_order_ids"}.intersection(vals):
+            self.env["plasticos.document"]._refresh_evidence_company(
+                [("res_model", "=", "plasticos.transaction"), ("res_id", "in", self.ids)]
+            )
+        return result
+
+
+class PlasticosLoadEvidenceCompany(models.Model):
+    """A load's company and sale order are pending evidence company sources."""
+
+    _inherit = "plasticos.load"
+
+    def write(self, vals):
+        result = super().write(vals)
+        if {"company_id", "sale_order_id"}.intersection(vals):
+            self.env["plasticos.document"]._refresh_evidence_company(
+                [("res_model", "=", "plasticos.load"), ("res_id", "in", self.ids)]
+            )
+        return result
