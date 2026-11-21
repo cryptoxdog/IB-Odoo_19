@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    DEC-005(c): company isolation for Admin KPI records.
+    Global rule: every read, write, create and unlink path sees only the KPI
+    records of the companies currently allowed to the user. ACL rows are unchanged.
+-->
+<odoo>
+    <record id="rule_admin_kpi_company" model="ir.rule">
+        <field name="name">Admin KPI: allowed companies</field>
+        <field name="model_id" ref="model_plasticos_admin_kpi"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+</odoo>

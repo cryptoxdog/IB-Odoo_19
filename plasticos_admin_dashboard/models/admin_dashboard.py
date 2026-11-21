@@ -23,10 +23,42 @@ Models created:
 """
 
 import logging
+from datetime import timedelta
 
 from odoo import api, fields, models, tools
 
 _logger = logging.getLogger(__name__)
+
+PLASTICOS_TRANSACTION = "plasticos.transaction"
+PLASTICOS_OFFER = "plasticos.offer"
+PLASTICOS_WEB_LEAD = "plasticos.web.lead"
+
+_TX_TERMINAL_STATES = ["closed", "cancelled"]
+_OFFER_OPEN_STATES = ["draft", "sent", "responded"]
+_LEGACY_SALE_XMLID_PREFIX = "legacy_erp_so_"
+
+# DEC-007 KPI-drill parity: each urgency KPI is declared once as
+# (drill title, source model, domain builder). The displayed count is
+# search_count(domain) and the drill opens the same model with the same domain,
+# so the two can never diverge.
+URGENCY_KPIS = {
+    "tx_negative_margin": ("⚠ Negative Margin Deals", PLASTICOS_TRANSACTION, "_urgency_domain_negative_margin"),
+    "tx_delivered_uninvoiced": (
+        "⚠ Delivered — No Posted Invoice",
+        PLASTICOS_TRANSACTION,
+        "_urgency_domain_delivered_uninvoiced",
+    ),
+    "tx_missing_docs": ("⚠ Missing Docs", PLASTICOS_TRANSACTION, "_urgency_domain_missing_docs"),
+    "tx_sup_not_ready": ("⚠ Supplier Not Ready", PLASTICOS_TRANSACTION, "_urgency_domain_supplier_not_ready"),
+    "tx_stalled_followup": ("⚠ 3+ Followups No Response", PLASTICOS_TRANSACTION, "_urgency_domain_stalled_followup"),
+    "offer_expiring_soon": ("⏰ Offers Expiring ≤3 Days", PLASTICOS_OFFER, "_urgency_domain_expiring_offers"),
+    "lead_error_open": ("Lead Triage Errors", PLASTICOS_WEB_LEAD, "_urgency_domain_lead_errors"),
+    "commission_unlocked": (
+        "Commission Unlocked on Closed TXs",
+        PLASTICOS_TRANSACTION,
+        "_urgency_domain_commission_unlocked",
+    ),
+}
 
 # ─────────────────────────────────────────────────────────────────────────────
 # KPI SINGLETON
@@ -36,13 +68,32 @@ _logger = logging.getLogger(__name__)
 class PlasticosAdminKpi(models.Model):
     """Singleton record holding all RevOps KPIs for the admin command center.
 
-    One record per company. Refreshed by action_refresh() (button or cron).
-    All fields are stored=False computed fields reading live from the DB.
+    One record per company (DEC-008). Transaction-based KPIs count only
+    transactions whose sale order belongs to the record's company; a
+    transaction without a sale order has no resolvable company and is counted
+    for none. Refreshed by action_refresh() (button or cron). All KPI fields are
+    stored=False computed fields reading live from the DB.
     """
 
     _name = "plasticos.admin.kpi"
     _description = "Admin RevOps KPI Snapshot"
     _rec_name = "id"
+
+    _company_unique = models.Constraint(
+        "UNIQUE(company_id)",
+        "There is exactly one Admin KPI record per company.",
+    )
+
+    company_id = fields.Many2one(
+        "res.company",
+        string="Company",
+        required=True,
+        readonly=True,
+        index=True,
+        ondelete="cascade",
+        default=lambda self: self.env.company,
+        help="Company whose transactions this KPI record counts.",
+    )
 
     # ── Timestamps ────────────────────────────────────────────────────────────
     last_refresh = fields.Datetime(string="Last Refreshed", readonly=True)
@@ -189,6 +240,9 @@ class PlasticosAdminKpi(models.Model):
     def _compute_kpis(self):
         for rec in self:
             cr = self.env.cr
+            company_id = rec.company_id.id
+            for name in URGENCY_KPIS:
+                rec[name] = rec._urgency_count(name)
 
             # ── Date helpers ──────────────────────────────────────────────────
             cr.execute("""
@@ -196,15 +250,13 @@ class PlasticosAdminKpi(models.Model):
                     date_trunc('month', NOW())::date  AS mtd_start,
                     date_trunc('year',  NOW())::date  AS ytd_start,
                     date_trunc('week',  NOW())::date  AS wtd_start,
-                    NOW()::date                       AS today,
-                    (NOW() + INTERVAL '3 days')::date AS in_3_days
+                    NOW()::date                       AS today
             """)
             row = cr.dictfetchone()
             mtd = row["mtd_start"]
             ytd = row["ytd_start"]
             wtd = row["wtd_start"]
             today = row["today"]
-            in_3d = row["in_3_days"]
 
             # ── INTAKES ───────────────────────────────────────────────────────
             cr.execute(
@@ -251,13 +303,10 @@ class PlasticosAdminKpi(models.Model):
                     COUNT(*) FILTER (WHERE state='rejected'
                                      AND create_date >= %s)               AS rejected_mtd,
                     COUNT(*) FILTER (WHERE state='expired'
-                                     AND create_date >= %s)               AS expired_mtd,
-                    COUNT(*) FILTER (WHERE state IN ('draft','sent','responded')
-                                     AND valid_until IS NOT NULL
-                                     AND valid_until <= %s)               AS expiring_soon
+                                     AND create_date >= %s)               AS expired_mtd
                 FROM plasticos_offer
             """,
-                (mtd, mtd, mtd, in_3d),
+                (mtd, mtd, mtd),
             )
             r = cr.dictfetchone()
             rec.offer_draft = r["draft"] or 0
@@ -266,7 +315,6 @@ class PlasticosAdminKpi(models.Model):
             rec.offer_accepted_mtd = r["accepted_mtd"] or 0
             rec.offer_rejected_mtd = r["rejected_mtd"] or 0
             rec.offer_expired_mtd = r["expired_mtd"] or 0
-            rec.offer_expiring_soon = r["expiring_soon"] or 0
 
             acc = rec.offer_accepted_mtd
             rej = rec.offer_rejected_mtd
@@ -278,20 +326,6 @@ class PlasticosAdminKpi(models.Model):
                 SELECT
                     COUNT(*) FILTER (WHERE state NOT IN ('closed','cancelled'))         AS tx_open,
                     COUNT(*) FILTER (WHERE state IN ('dispatched','in_progress','in_transit')) AS in_motion,
-                    COUNT(*) FILTER (WHERE state='delivered'
-                                     AND (customer_invoice_id IS NULL
-                                          OR EXISTS(
-                                            SELECT 1 FROM account_move am
-                                            WHERE am.id=customer_invoice_id
-                                            AND am.state='draft')))                    AS delivered_uninv,
-                    COUNT(*) FILTER (WHERE compliance_status='missing'
-                                     AND state NOT IN ('draft','cancelled'))            AS missing_docs,
-                    COUNT(*) FILTER (WHERE gross_margin < 0
-                                     AND state NOT IN ('closed','cancelled'))           AS neg_margin,
-                    COUNT(*) FILTER (WHERE state='supplier_not_ready')                 AS sup_not_ready,
-                    COUNT(*) FILTER (WHERE supplier_confirmation_followup_count >= 3
-                                     AND supplier_confirmation_received IS NULL
-                                     AND state NOT IN ('closed','cancelled'))           AS stalled_fu,
                     COUNT(*) FILTER (WHERE state='closed' AND legacy_erp_history = FALSE
                                      AND write_date >= %s
                                      AND NOT EXISTS (
@@ -304,17 +338,13 @@ class PlasticosAdminKpi(models.Model):
                     SUM(revenue_total) FILTER (WHERE state NOT IN ('closed','cancelled')
                                               AND revenue_total > 0)                   AS pipeline_val
                 FROM plasticos_transaction
+                WHERE sale_order_id IN (SELECT so.id FROM sale_order so WHERE so.company_id = %s)
             """,
-                (mtd,),
+                (mtd, company_id),
             )
             r = cr.dictfetchone()
             rec.tx_open = r["tx_open"] or 0
             rec.tx_in_motion = r["in_motion"] or 0
-            rec.tx_delivered_uninvoiced = r["delivered_uninv"] or 0
-            rec.tx_missing_docs = r["missing_docs"] or 0
-            rec.tx_negative_margin = r["neg_margin"] or 0
-            rec.tx_sup_not_ready = r["sup_not_ready"] or 0
-            rec.tx_stalled_followup = r["stalled_fu"] or 0
             rec.tx_closed_mtd = r["closed_mtd"] or 0
             rec.pipeline_value_open = r["pipeline_val"] or 0.0
 
@@ -329,11 +359,10 @@ class PlasticosAdminKpi(models.Model):
                     SUM(net_margin)      FILTER (WHERE write_date >= %s)  AS nm_mtd,
                     SUM(net_margin)      FILTER (WHERE write_date >= %s)  AS nm_ytd,
                     SUM(commission_amount) FILTER (WHERE write_date >= %s) AS comm_mtd,
-                    SUM(commission_amount) FILTER (WHERE write_date >= %s) AS comm_ytd,
-                    COUNT(*) FILTER (WHERE state='closed'
-                                     AND commission_locked=FALSE)         AS comm_unlocked
+                    SUM(commission_amount) FILTER (WHERE write_date >= %s) AS comm_ytd
                 FROM plasticos_transaction
                 WHERE state='closed' AND legacy_erp_history = FALSE
+                  AND sale_order_id IN (SELECT so.id FROM sale_order so WHERE so.company_id = %s)
                   AND NOT EXISTS (
                     SELECT 1 FROM ir_model_data import_id
                     WHERE import_id.model = 'sale.order'
@@ -342,7 +371,7 @@ class PlasticosAdminKpi(models.Model):
                       AND import_id.name LIKE 'legacy_erp_so_%%'
                   )
             """,
-                (mtd, ytd, mtd, ytd, mtd, ytd, mtd, ytd),
+                (mtd, ytd, mtd, ytd, mtd, ytd, mtd, ytd, company_id),
             )
             r = cr.dictfetchone()
             rec.revenue_mtd = r["rev_mtd"] or 0.0
@@ -353,7 +382,6 @@ class PlasticosAdminKpi(models.Model):
             rec.net_margin_ytd = r["nm_ytd"] or 0.0
             rec.commission_mtd = r["comm_mtd"] or 0.0
             rec.commission_ytd = r["comm_ytd"] or 0.0
-            rec.commission_unlocked = r["comm_unlocked"] or 0
 
             rev_mtd = rec.revenue_mtd
             rev_ytd = rec.revenue_ytd
@@ -370,8 +398,7 @@ class PlasticosAdminKpi(models.Model):
                     COUNT(*) FILTER (WHERE decision='hot'
                                      AND create_date >= %s)               AS hot_mtd,
                     COUNT(*) FILTER (WHERE decision='cold'
-                                     AND create_date >= %s)               AS cold_mtd,
-                    COUNT(*) FILTER (WHERE state='error')                 AS err_open
+                                     AND create_date >= %s)               AS cold_mtd
                 FROM plasticos_web_lead
             """,
                 (today, wtd, mtd, mtd, mtd),
@@ -382,7 +409,6 @@ class PlasticosAdminKpi(models.Model):
             rec.lead_received_mtd = r["mtd"] or 0
             rec.lead_hot_mtd = r["hot_mtd"] or 0
             rec.lead_cold_mtd = r["cold_mtd"] or 0
-            rec.lead_error_open = r["err_open"] or 0
 
             total_leads = rec.lead_hot_mtd + rec.lead_cold_mtd
             rec.lead_hot_rate_mtd = round(rec.lead_hot_mtd / total_leads * 100, 1) if total_leads else 0.0
@@ -471,11 +497,12 @@ class PlasticosAdminKpi(models.Model):
     # ── Singleton helper ──────────────────────────────────────────────────────
 
     @api.model
-    def _get_or_create(self):
-        """Return singleton record, creating if missing."""
-        rec = self.search([], limit=1)
+    def _get_or_create(self, company=None):
+        """Return the KPI record of ``company`` (default: the current company), creating it if missing."""
+        company = company or self.env.company
+        rec = self.search([("company_id", "=", company.id)], limit=1)
         if not rec:
-            rec = self.create({})
+            rec = self.create({"company_id": company.id})
         return rec
 
     # ── Actions ───────────────────────────────────────────────────────────────
@@ -518,14 +545,126 @@ class PlasticosAdminKpi(models.Model):
             "target": "current",
         }
 
+    # ── DEC-007 urgency declarations ─────────────────────────────────────────
+
+    def _kpi_company(self):
+        """The company a KPI record counts for; the current company outside a single record."""
+        if len(self) == 1 and self.company_id:
+            return self.company_id
+        return self.env.company
+
+    def _urgency_domain(self, kpi_name):
+        """Return the one domain that both counts and drills the urgency KPI.
+
+        Transaction KPIs are scoped to the record's company through the sale
+        order (DEC-008). Offers and web leads carry no company.
+        """
+        _title, model_name, builder = URGENCY_KPIS[kpi_name]
+        domain = getattr(self, builder)()
+        if model_name == PLASTICOS_TRANSACTION:
+            domain = [("sale_order_id.company_id", "=", self._kpi_company().id), *domain]
+        return domain
+
+    def _urgency_count(self, kpi_name):
+        _title, model_name, _builder = URGENCY_KPIS[kpi_name]
+        return self.env[model_name].search_count(self._urgency_domain(kpi_name))
+
+    def _urgency_drill(self, kpi_name):
+        title, model_name, _builder = URGENCY_KPIS[kpi_name]
+        return {
+            "type": "ir.actions.act_window",
+            "name": title,
+            "res_model": model_name,
+            "view_mode": "list,form",
+            "domain": self._urgency_domain(kpi_name),
+            "target": "current",
+        }
+
+    @api.model
+    def _urgency_domain_negative_margin(self):
+        return [("gross_margin", "<", 0), ("state", "not in", _TX_TERMINAL_STATES)]
+
+    @api.model
+    def _urgency_domain_delivered_uninvoiced(self):
+        return [
+            ("state", "=", "delivered"),
+            "|",
+            ("customer_invoice_id", "=", False),
+            ("customer_invoice_id.state", "=", "draft"),
+        ]
+
+    @api.model
+    def _urgency_domain_missing_docs(self):
+        return [("compliance_status", "=", "missing"), ("state", "not in", ["draft", "cancelled"])]
+
+    @api.model
+    def _urgency_domain_supplier_not_ready(self):
+        return [("state", "=", "supplier_not_ready")]
+
+    @api.model
+    def _urgency_domain_stalled_followup(self):
+        return [
+            ("supplier_confirmation_followup_count", ">=", 3),
+            ("supplier_confirmation_received", "=", False),
+            ("state", "not in", _TX_TERMINAL_STATES),
+        ]
+
+    @api.model
+    def _urgency_domain_expiring_offers(self):
+        horizon = fields.Date.context_today(self) + timedelta(days=3)
+        return [
+            ("state", "in", _OFFER_OPEN_STATES),
+            ("valid_until", "!=", False),
+            ("valid_until", "<=", horizon),
+        ]
+
+    @api.model
+    def _urgency_domain_lead_errors(self):
+        return [("state", "=", "error")]
+
+    @api.model
+    def _urgency_domain_commission_unlocked(self):
+        """Closed, live (non-historical) transactions whose commission is not locked.
+
+        Historical ERP trades are excluded the same two ways the financial KPIs
+        and commission payouts exclude them: the legacy_erp_history flag, and a
+        sale order imported under a legacy_erp_so_* external id.
+        """
+        domain = [
+            ("state", "=", "closed"),
+            ("legacy_erp_history", "=", False),
+            ("commission_locked", "=", False),
+        ]
+        orders = self.env[PLASTICOS_TRANSACTION].search(domain).sale_order_id
+        if not orders:
+            return domain
+        legacy_rows = (
+            self.env["ir.model.data"]
+            .sudo()  # sudo: core grants ir.model.data to group_erp_manager; reads legacy sale markers only
+            .search(
+                [
+                    ("module", "=", "plasticos_transaction"),
+                    ("model", "=", "sale.order"),
+                    ("res_id", "in", orders.ids),
+                    ("name", "=like", f"{_LEGACY_SALE_XMLID_PREFIX}%"),
+                ]
+            )
+        )
+        legacy_order_ids = sorted({row.res_id for row in legacy_rows if row.name.startswith(_LEGACY_SALE_XMLID_PREFIX)})
+        if legacy_order_ids:
+            domain.append(("sale_order_id", "not in", legacy_order_ids))
+        return domain
+
+    # ── Drill actions ────────────────────────────────────────────────────────
+
     def action_open_sales_dashboard(self):
-        """Jump to Sales Pipeline Dashboard (filtered to open deals)."""
+        """Jump to Sales Pipeline Dashboard with its "Active" deals filter applied."""
         return {
             "type": "ir.actions.act_window",
             "name": "Sales Pipeline",
             "res_model": "plasticos.sales.dashboard",
             "view_mode": "list,kanban",
-            "context": {"search_default_filter_open": 1},
+            "context": {"search_default_active_deals": 1},
         }
 
     def action_open_logistics_dashboard(self):
@@ -538,82 +677,28 @@ class PlasticosAdminKpi(models.Model):
         }
 
     def action_open_negative_margin(self):
-        return {
-            "type": "ir.actions.act_window",
-            "name": "⚠ Negative Margin Deals",
-            "res_model": "plasticos.sales.dashboard",
-            "view_mode": "list",
-            "domain": [("has_negative_margin", "=", True)],
-        }
+        return self._urgency_drill("tx_negative_margin")
 
     def action_open_supplier_not_ready(self):
-        return {
-            "type": "ir.actions.act_window",
-            "name": "⚠ Supplier Not Ready",
-            "res_model": "plasticos.sales.dashboard",
-            "view_mode": "list",
-            "domain": [("state", "=", "supplier_not_ready")],
-        }
+        return self._urgency_drill("tx_sup_not_ready")
 
     def action_open_stalled_followup(self):
-        return {
-            "type": "ir.actions.act_window",
-            "name": "⚠ 3+ Followups No Response",
-            "res_model": "plasticos.sales.dashboard",
-            "view_mode": "list",
-            "domain": [
-                ("supplier_followup_count", ">=", 3),
-                ("is_supplier_confirmed", "=", False),
-            ],
-        }
+        return self._urgency_drill("tx_stalled_followup")
 
     def action_open_delivered_uninvoiced(self):
-        return {
-            "type": "ir.actions.act_window",
-            "name": "⚠ Delivered — No Posted Invoice",
-            "res_model": "plasticos.sales.dashboard",
-            "view_mode": "list",
-            "domain": [("state", "=", "delivered"), ("invoice_state", "in", ["draft", "-"])],
-        }
+        return self._urgency_drill("tx_delivered_uninvoiced")
 
     def action_open_missing_docs(self):
-        return {
-            "type": "ir.actions.act_window",
-            "name": "⚠ Missing Docs",
-            "res_model": "plasticos.sales.dashboard",
-            "view_mode": "list",
-            "domain": [("compliance_status", "=", "missing")],
-        }
+        return self._urgency_drill("tx_missing_docs")
 
     def action_open_expiring_offers(self):
-        return {
-            "type": "ir.actions.act_window",
-            "name": "⏰ Offers Expiring ≤3 Days",
-            "res_model": "plasticos.offer",
-            "view_mode": "list,form",
-            "domain": [
-                ("state", "in", ["draft", "sent", "responded"]),
-                ("valid_until", "<=", fields.Date.today() + __import__("datetime").timedelta(days=3)),
-            ],
-        }
+        return self._urgency_drill("offer_expiring_soon")
 
     def action_open_commission_unlocked(self):
-        return {
-            "type": "ir.actions.act_window",
-            "name": "Commission Unlocked on Closed TXs",
-            "res_model": "plasticos.sales.dashboard",
-            "view_mode": "list",
-            "domain": [("state", "=", "closed"), ("commission_locked", "=", False)],
-        }
+        return self._urgency_drill("commission_unlocked")
 
     def action_open_lead_errors(self):
-        return {
-            "type": "ir.actions.act_window",
-            "name": "Lead Triage Errors",
-            "res_model": "plasticos.web.lead",
-            "view_mode": "list,form",
-            "domain": [("state", "=", "error")],
-        }
+        return self._urgency_drill("lead_error_open")
 
     def action_open_ai_pending_review(self):
         return {
@@ -630,7 +715,7 @@ class PlasticosAdminKpi(models.Model):
 
     @api.model
     def action_open_admin_dashboard(self):
-        """Main entry point: ensure singleton exists and open form."""
+        """Main entry point: open the current company's KPI record, creating it if missing."""
         rec = self._get_or_create()
         return {
             "type": "ir.actions.act_window",
@@ -684,8 +769,17 @@ class PlasticosRepPerformance(models.Model):
     net_margin = fields.Float(string="Net $", readonly=True, digits=(16, 2))
     commission = fields.Float(string="Commission", readonly=True, digits=(16, 2))
 
-    deals_open = fields.Integer(string="Open Deals", readonly=True)
-    pipeline_val = fields.Float(string="Pipeline", readonly=True, digits=(16, 2))
+    deals_open = fields.Integer(
+        string="Open Deals (snapshot)",
+        readonly=True,
+        help="Open transactions right now; a point-in-time snapshot, the same in every period row.",
+    )
+    pipeline_val = fields.Float(
+        string="Open Pipeline (snapshot)",
+        readonly=True,
+        digits=(16, 2),
+        help="Revenue of open transactions right now; a point-in-time snapshot, not a period total.",
+    )
     intakes_created = fields.Integer(string="Intakes", readonly=True)
     offers_sent = fields.Integer(string="Offers Sent", readonly=True)
     offers_accepted = fields.Integer(string="Acc'd", readonly=True)
@@ -693,6 +787,14 @@ class PlasticosRepPerformance(models.Model):
     avg_gm_pct = fields.Float(string="Avg GM %", readonly=True, digits=(5, 1))
 
     def init(self):
+        """One CTE per measure, each pre-aggregated per (user, period) before the join.
+
+        Joining raw closed, open, intake and offer rows multiplies money by the
+        join cardinality (F-002); aggregating first keeps every measure exact.
+        Historical ERP trades are excluded exactly as in the Admin KPI SQL
+        (DEC-009). Open pipeline is a point-in-time snapshot, identical in every
+        period row.
+        """
         tools.drop_view_if_exists(self.env.cr, self._table)
         self.env.cr.execute("""
             CREATE VIEW plasticos_rep_performance AS
@@ -704,80 +806,98 @@ class PlasticosRepPerformance(models.Model):
                 UNION ALL
                 SELECT 'YTD', 3, date_trunc('year', NOW())
             ),
-            closed_tx AS (
-                SELECT
-                    t.id,
-                    t.user_id,
-                    rp.name AS rep_name,
-                    t.revenue_total,
-                    t.gross_margin,
-                    t.net_margin,
-                    t.commission_amount,
-                    t.write_date
-                FROM plasticos_transaction t
-                LEFT JOIN res_users u ON u.id = t.user_id
-                LEFT JOIN res_partner rp ON rp.id = u.partner_id
-                WHERE t.state = 'closed'
+            reps AS (
+                SELECT DISTINCT user_id FROM plasticos_transaction WHERE user_id IS NOT NULL
             ),
-            open_tx AS (
-                SELECT
-                    t.user_id,
-                    t.revenue_total
+            closed_tx AS (
+                SELECT t.id, t.user_id, t.revenue_total, t.gross_margin, t.net_margin,
+                       t.commission_amount, t.write_date
+                FROM plasticos_transaction t
+                WHERE t.state = 'closed'
+                  AND t.user_id IS NOT NULL
+                  AND t.legacy_erp_history = FALSE
+                  AND NOT EXISTS (
+                      SELECT 1 FROM ir_model_data import_id
+                      WHERE import_id.model = 'sale.order'
+                        AND import_id.module = 'plasticos_transaction'
+                        AND import_id.res_id = t.sale_order_id
+                        AND import_id.name LIKE 'legacy_erp_so_%%'
+                  )
+            ),
+            closed_agg AS (
+                SELECT ct.user_id, p.period_label,
+                       COUNT(ct.id)                              AS deals_closed,
+                       COALESCE(SUM(ct.revenue_total), 0)        AS revenue_closed,
+                       COALESCE(SUM(ct.gross_margin), 0)         AS gm_closed,
+                       COALESCE(SUM(ct.net_margin), 0)           AS net_margin,
+                       COALESCE(SUM(ct.commission_amount), 0)    AS commission
+                FROM closed_tx ct
+                JOIN periods p ON ct.write_date >= p.period_start
+                GROUP BY ct.user_id, p.period_label
+            ),
+            open_agg AS (
+                SELECT t.user_id,
+                       COUNT(DISTINCT t.id)                      AS deals_open,
+                       COALESCE(SUM(t.revenue_total), 0)         AS pipeline_val
                 FROM plasticos_transaction t
                 WHERE t.state NOT IN ('closed','cancelled')
+                  AND t.user_id IS NOT NULL
+                GROUP BY t.user_id
+            ),
+            intake_agg AS (
+                SELECT i.assigned_user_id AS user_id, p.period_label,
+                       COUNT(i.id)                               AS intakes_created
+                FROM plasticos_intake i
+                JOIN periods p ON i.create_date >= p.period_start
+                WHERE i.assigned_user_id IS NOT NULL
+                GROUP BY i.assigned_user_id, p.period_label
+            ),
+            offer_agg AS (
+                SELECT i.assigned_user_id AS user_id, p.period_label,
+                       COUNT(o.id) FILTER (WHERE o.state != 'draft')                  AS offers_sent,
+                       COUNT(o.id) FILTER (WHERE o.state = 'accepted')                AS offers_accepted,
+                       COUNT(o.id) FILTER (WHERE o.state IN ('accepted','rejected'))  AS offers_decided
+                FROM plasticos_offer o
+                JOIN plasticos_intake i ON i.id = o.intake_id
+                JOIN periods p ON o.create_date >= p.period_start
+                WHERE i.assigned_user_id IS NOT NULL
+                GROUP BY i.assigned_user_id, p.period_label
             )
             SELECT
-                ROW_NUMBER() OVER () AS id,
-                rp.name             AS rep_name,
-                t.user_id           AS salesperson_id,
-                p.period_label      AS period,
-                p.period_sort       AS period_sort,
+                ROW_NUMBER() OVER (ORDER BY r.user_id, p.period_sort) AS id,
+                rp.name                                 AS rep_name,
+                r.user_id                               AS salesperson_id,
+                p.period_label                          AS period,
+                p.period_sort                           AS period_sort,
 
-                COUNT(DISTINCT ct.id) FILTER (WHERE ct.write_date >= p.period_start) AS deals_closed,
-                COALESCE(SUM(ct.revenue_total)  FILTER (WHERE ct.write_date >= p.period_start), 0) AS revenue_closed,
-                COALESCE(SUM(ct.gross_margin)   FILTER (WHERE ct.write_date >= p.period_start), 0) AS gm_closed,
-                CASE WHEN COALESCE(SUM(ct.revenue_total) FILTER (WHERE ct.write_date >= p.period_start),0) = 0 THEN 0
-                     ELSE ROUND((COALESCE(SUM(ct.gross_margin) FILTER (WHERE ct.write_date >= p.period_start),0)
-                          / SUM(ct.revenue_total) FILTER (WHERE ct.write_date >= p.period_start) * 100)::numeric, 1)
-                END                             AS gm_pct,
-                COALESCE(SUM(ct.net_margin)     FILTER (WHERE ct.write_date >= p.period_start), 0) AS net_margin,
-                COALESCE(SUM(ct.commission_amount) FILTER (WHERE ct.write_date >= p.period_start), 0) AS commission,
+                COALESCE(ca.deals_closed, 0)            AS deals_closed,
+                COALESCE(ca.revenue_closed, 0)          AS revenue_closed,
+                COALESCE(ca.gm_closed, 0)               AS gm_closed,
+                CASE WHEN COALESCE(ca.revenue_closed, 0) = 0 THEN 0
+                     ELSE ROUND((ca.gm_closed / ca.revenue_closed * 100)::numeric, 1)
+                END                                     AS gm_pct,
+                COALESCE(ca.net_margin, 0)              AS net_margin,
+                COALESCE(ca.commission, 0)              AS commission,
 
-                COUNT(DISTINCT ot.user_id)                                         AS deals_open,
-                COALESCE(SUM(ot.revenue_total), 0)                                 AS pipeline_val,
+                COALESCE(oa.deals_open, 0)              AS deals_open,
+                COALESCE(oa.pipeline_val, 0)            AS pipeline_val,
 
-                COUNT(DISTINCT i.id) FILTER (WHERE i.create_date >= p.period_start) AS intakes_created,
+                COALESCE(ia.intakes_created, 0)         AS intakes_created,
+                COALESCE(fa.offers_sent, 0)             AS offers_sent,
+                COALESCE(fa.offers_accepted, 0)         AS offers_accepted,
+                CASE WHEN COALESCE(fa.offers_decided, 0) = 0 THEN 0
+                     ELSE ROUND((fa.offers_accepted::numeric / fa.offers_decided * 100)::numeric, 1)
+                END                                     AS offer_acc_rate,
+                CASE WHEN COALESCE(ca.revenue_closed, 0) = 0 THEN 0
+                     ELSE ROUND((ca.gm_closed / ca.revenue_closed * 100)::numeric, 1)
+                END                                     AS avg_gm_pct
 
-                COUNT(DISTINCT o.id) FILTER (WHERE o.create_date >= p.period_start
-                                              AND o.state != 'draft')              AS offers_sent,
-                COUNT(DISTINCT o.id) FILTER (WHERE o.create_date >= p.period_start
-                                              AND o.state = 'accepted')            AS offers_accepted,
-
-                CASE WHEN COUNT(o.id) FILTER (WHERE o.create_date >= p.period_start
-                                              AND o.state IN ('accepted','rejected')) = 0 THEN 0
-                     ELSE ROUND((
-                         COUNT(o.id) FILTER (WHERE o.create_date >= p.period_start AND o.state='accepted')::numeric
-                         / COUNT(o.id) FILTER (WHERE o.create_date >= p.period_start
-                                               AND o.state IN ('accepted','rejected'))
-                         * 100
-                     )::numeric, 1)
-                END                             AS offer_acc_rate,
-
-                CASE WHEN COALESCE(SUM(ct.revenue_total) FILTER (WHERE ct.write_date >= p.period_start),0) = 0 THEN 0
-                     ELSE ROUND((
-                         COALESCE(SUM(ct.gross_margin) FILTER (WHERE ct.write_date >= p.period_start),0)
-                         / COALESCE(SUM(ct.revenue_total) FILTER (WHERE ct.write_date >= p.period_start),1)
-                         * 100
-                     )::numeric, 1)
-                END                             AS avg_gm_pct
-
-            FROM (SELECT DISTINCT user_id FROM plasticos_transaction WHERE user_id IS NOT NULL) t
+            FROM reps r
             CROSS JOIN periods p
-            LEFT JOIN res_users u   ON u.id = t.user_id
+            LEFT JOIN res_users u    ON u.id = r.user_id
             LEFT JOIN res_partner rp ON rp.id = u.partner_id
-            LEFT JOIN closed_tx ct  ON ct.user_id = t.user_id
-            LEFT JOIN open_tx ot    ON ot.user_id = t.user_id
-            LEFT JOIN plasticos_intake i    ON i.assigned_user_id = t.user_id
-            LEFT JOIN plasticos_offer  o    ON o.intake_id = i.id
-            GROUP BY t.user_id, rp.name, p.period_label, p.period_sort
+            LEFT JOIN closed_agg ca  ON ca.user_id = r.user_id AND ca.period_label = p.period_label
+            LEFT JOIN open_agg oa    ON oa.user_id = r.user_id
+            LEFT JOIN intake_agg ia  ON ia.user_id = r.user_id AND ia.period_label = p.period_label
+            LEFT JOIN offer_agg fa   ON fa.user_id = r.user_id AND fa.period_label = p.period_label
         """)

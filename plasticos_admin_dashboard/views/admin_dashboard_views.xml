@@ -264,8 +264,8 @@
             <field name="net_margin"      string="Net $"      sum="Total" widget="monetary"
                    decoration-danger="net_margin &lt; 0"/>
             <field name="commission"      string="Commission" sum="Total" widget="monetary"/>
-            <field name="deals_open"      string="Open"       optional="show"/>
-            <field name="pipeline_val"    string="Pipeline $" widget="monetary" optional="show"/>
+            <field name="deals_open"      string="Open (now)" optional="show"/>
+            <field name="pipeline_val"    string="Pipeline $ (now)" widget="monetary" optional="show"/>
             <field name="intakes_created" string="Intakes"    optional="show"/>
             <field name="offers_sent"     string="Offers Out" optional="show"/>
             <field name="offers_accepted" string="Accepted"   optional="show"/>
@@ -292,14 +292,13 @@
 </record>
 
 <!-- ── Actions ────────────────────────────────────────────────────────────── -->
-<record id="action_admin_kpi_form" model="ir.actions.act_window">
+<!-- The menu opens the stored KPI record through action_open_admin_dashboard;
+     a plain act_window with no res_id would open a new unsaved record. -->
+<record id="action_server_open_admin_dashboard" model="ir.actions.server">
     <field name="name">RevOps Command Center</field>
-    <field name="res_model">plasticos.admin.kpi</field>
-    <field name="view_mode">form</field>
-    <field name="target">current</field>
-    <field name="context">{
-        "form_view_initial_mode": "readonly"
-    }</field>
+    <field name="model_id" ref="model_plasticos_admin_kpi"/>
+    <field name="state">code</field>
+    <field name="code">action = model.action_open_admin_dashboard()</field>
 </record>
 
 <record id="action_rep_performance_list" model="ir.actions.act_window">
@@ -318,7 +317,7 @@
 <menuitem id="menu_plasticos_admin_dashboard"
           name="Command Center"
           parent="menu_plasticos_admin_root"
-          action="action_admin_kpi_form"
+          action="action_server_open_admin_dashboard"
           sequence="1"
           groups="plasticos_security_base.group_system_admin"/>
 
