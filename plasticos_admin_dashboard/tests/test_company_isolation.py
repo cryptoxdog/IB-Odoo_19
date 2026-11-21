@@ -6,10 +6,13 @@ company A cannot read company B's KPI record, and a company has exactly one
 KPI record.
 """
 
+from unittest.mock import patch
+
 from psycopg2 import IntegrityError
+from psycopg2 import errors as pg_errors
 
 from odoo import Command
-from odoo.exceptions import AccessError
+from odoo.exceptions import AccessError, ConcurrencyError
 from odoo.tests import TransactionCase, tagged
 from odoo.tools import mute_logger
 
@@ -88,3 +91,26 @@ class TestAdminKpiCompanyIsolation(TransactionCase):
         with self.assertRaises(IntegrityError), mute_logger("odoo.sql_db"), self.cr.savepoint():
             self.Kpi.create({"company_id": self.company_a.id})
             self.env.flush_all()
+
+    def test_concurrent_first_open_is_retried_not_failed(self):
+        company_c = self.env["res.company"].create({"name": "Admin KPI Company C"})
+        Kpi = type(self.Kpi)
+        with (
+            patch.object(Kpi, "create", side_effect=pg_errors.UniqueViolation()),
+            self.assertRaises(ConcurrencyError),
+        ):
+            self.Kpi._get_or_create(company_c)
+
+    def test_company_less_kpis_are_labelled_all_companies(self):
+        company_less = (
+            "intake_total_open",
+            "offer_sent",
+            "offer_expiring_soon",
+            "lead_error_open",
+            "ai_pending_review",
+        )
+        for name in company_less:
+            with self.subTest(kpi=name):
+                self.assertIn("All companies (not company-scoped)", self.Kpi._fields[name].help)
+        arch = self.Kpi.get_views([(False, "form")])["views"]["form"]["arch"]
+        self.assertIn("All companies (not company-scoped)", arch)

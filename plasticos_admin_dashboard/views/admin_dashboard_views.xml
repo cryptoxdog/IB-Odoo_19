@@ -94,6 +94,22 @@
         </div>
     </button>
 
+    <button name="action_open_commission_unlocked" type="object"
+            class="btn-secondary oe_stat_button" icon="fa-unlock"
+            invisible="commission_unlocked == 0">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="commission_unlocked" readonly="1"/></span>
+            <span class="o_stat_text">Unlocked Commissions</span>
+        </div>
+    </button>
+
+</group>
+
+<!-- Intakes, offers and web leads carry no company (DEC-008): their figures are
+     shown separately as all-company figures, never mixed into company KPIs. -->
+<group string="⚡ Urgent — All companies (not company-scoped)" col="2"
+       class="o_stat_button_box">
+
     <button name="action_open_expiring_offers" type="object"
             class="btn-warning oe_stat_button" icon="fa-hourglass-half"
             invisible="offer_expiring_soon == 0">
@@ -112,15 +128,6 @@
         </div>
     </button>
 
-    <button name="action_open_commission_unlocked" type="object"
-            class="btn-secondary oe_stat_button" icon="fa-unlock"
-            invisible="commission_unlocked == 0">
-        <div class="o_stat_info">
-            <span class="o_stat_value"><field name="commission_unlocked" readonly="1"/></span>
-            <span class="o_stat_text">Unlocked Commissions</span>
-        </div>
-    </button>
-
 </group>
 
 <separator/>
@@ -130,7 +137,7 @@
      Every KPI is a DEC-007 drill: the value and the list it opens come from one
      declaration (model, domain, aggregate). "n/a" means unavailable, never 0.
 ════════════════════════════════════════════════════════════ -->
-<group string="📥 Intake Pipeline" col="9">
+<group string="📥 Intake Pipeline — All companies (not company-scoped)" col="9">
     <button name="action_open_kpi" type="object" context="{'kpi': 'intake_draft'}"
             class="btn-light oe_stat_button" icon="fa-inbox">
         <div class="o_stat_info">
@@ -202,7 +209,7 @@
     </button>
 </group>
 
-<group string="📨 Offers" col="7">
+<group string="📨 Offers — All companies (not company-scoped)" col="7">
     <button name="action_open_kpi" type="object" context="{'kpi': 'offer_draft'}"
             class="btn-light oe_stat_button" icon="fa-pencil">
         <div class="o_stat_info">
@@ -390,7 +397,7 @@
 <!-- ═══════════════════════════════════════════════════════════
      SECTION E — WEB LEAD FUNNEL
 ════════════════════════════════════════════════════════════ -->
-<group string="🌐 Web Lead Funnel" col="6">
+<group string="🌐 Web Lead Funnel — All companies (not company-scoped)" col="6">
     <button name="action_open_kpi" type="object" context="{'kpi': 'lead_received_today'}"
             class="btn-light oe_stat_button" icon="fa-globe">
         <div class="o_stat_info">
@@ -443,7 +450,7 @@
 <!-- ═══════════════════════════════════════════════════════════
      SECTION F — AI ENGINE STATS
 ════════════════════════════════════════════════════════════ -->
-<group string="🤖 AI Engine Stats">
+<group string="🤖 AI Engine Stats — All companies (not company-scoped)">
     <group string="Config Health">
         <field name="ai_openai_key_set"     string="OpenAI Key Set"
                widget="boolean_toggle" readonly="1"/>
@@ -453,7 +460,7 @@
                widget="boolean_toggle" readonly="1"/>
     </group>
 </group>
-<group string="AI — MTD Throughput" col="9">
+<group string="AI — MTD Throughput — All companies (not company-scoped)" col="9">
     <button name="action_open_kpi" type="object" context="{'kpi': 'ai_leads_normalized_mtd'}"
             class="btn-light oe_stat_button" icon="fa-magic">
         <div class="o_stat_info">

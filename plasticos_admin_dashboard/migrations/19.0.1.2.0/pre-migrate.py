@@ -2,7 +2,9 @@
 
 Before 19.0.1.2.0 the KPI record had no company and was shared. Existing rows
 are assigned to the main company (base.main_company, else the lowest company
-id). No row is deleted. Repeatable: the column is added only when absent and
+id). No row is deleted. When more than one record would land on that company
+the upgrade stops with the record ids instead of leaving the one-per-company
+constraint uninstalled. Repeatable: the column is added only when absent and
 only rows without a company are updated.
 """
 
@@ -35,13 +37,26 @@ def migrate(cr, version):
         return
     cr.execute("ALTER TABLE plasticos_admin_kpi ADD COLUMN IF NOT EXISTS company_id integer")
     company_id = _main_company_id(cr)
+    cr.execute(
+        """
+        SELECT COUNT(*) FILTER (WHERE company_id IS NULL),
+               COUNT(*) FILTER (WHERE company_id = %s)
+          FROM plasticos_admin_kpi
+        """,
+        (company_id,),
+    )
+    unassigned, assigned = cr.fetchone()
+    if unassigned + assigned > 1:
+        # Fail closed, deleting nothing: the one-record-per-company invariant (UNIQUE(company_id))
+        # must hold after this upgrade. The rows carry only last_refresh; KPIs compute on read.
+        cr.execute(
+            "SELECT id FROM plasticos_admin_kpi WHERE company_id IS NULL OR company_id = %s ORDER BY id", (company_id,)
+        )
+        ids = [row[0] for row in cr.fetchall()]
+        raise RuntimeError(
+            f"plasticos_admin_dashboard 19.0.1.2.0: {len(ids)} Admin KPI records {ids} would belong to company "
+            f"{company_id}, but there must be one per company. Keep one (they hold only last_refresh), delete "
+            "the others with an authorized operation, then re-run the upgrade."
+        )
     cr.execute("UPDATE plasticos_admin_kpi SET company_id = %s WHERE company_id IS NULL", (company_id,))
     _logger.info("plasticos_admin_dashboard: assigned %s KPI record(s) to company %s", cr.rowcount, company_id)
-    cr.execute("SELECT company_id, COUNT(*) FROM plasticos_admin_kpi GROUP BY company_id HAVING COUNT(*) > 1")
-    for company, count in cr.fetchall():
-        _logger.warning(
-            "plasticos_admin_dashboard: company %s has %s KPI records; the one-per-company "
-            "constraint cannot be added until the extra records are removed",
-            company,
-            count,
-        )
