@@ -1,6 +1,6 @@
 {
     "name": "Plasticos — Security Base",
-    "version": "19.0.1.2.31",
+    "version": "19.0.1.2.32",
     "category": "Plasticos/Security",
     "summary": "Core RBAC roles, record rules, and private-partner flag for the Plasticos platform.",
     "description": """
@@ -37,6 +37,7 @@
         "security/record_rules.xml",
         "security/ir.model.access.csv",
         "views/res_partner_views.xml",
+        "security/control_tower_menu_groups.xml",
     ],
     "post_init_hook": "post_init_hook",
     "installable": True,
