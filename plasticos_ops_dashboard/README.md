@@ -52,8 +52,9 @@ Team, Escalated and Document Gaps show only activities owned by an Operations Ma
 - The review surface is a form on the activity itself: original file, candidate facts (labelled as not verified;
   UNKNOWN stays UNKNOWN), the linked record's current values, the discrepancy (the activity note), owner and due date.
   Every value is read with the reviewer's own access, never through sudo.
-- Buttons call existing commands: `action_open_document` opens the original or AP/AR record, where the association
-  command and the record's own actions live. Return to Logistics (`action_plasticos_return_to_logistics`) reassigns the
+- Buttons call existing commands: Confirm Classification opens the original's Correct Classification command
+  (TASK-070, DEC-015); `action_open_document` opens the original or AP/AR record, where the association command and
+  the record's own actions live. Return to Logistics (`action_plasticos_return_to_logistics`) reassigns the
   one activity to the Logistics owner chosen by the DEC-010 router; it refuses Operations-only classes, non-Operations
   users and a company with no Logistics owner. The router re-evaluates the activity the next time its writer runs.
 - Request Correction (`plasticos.ops.request.correction`, transient) takes a required reason, posts an internal note

@@ -71,7 +71,7 @@
         <field name="arch" type="xml">
             <form create="false" delete="false">
                 <header>
-                    <button name="action_open_document" type="object" string="Confirm Classification"
+                    <button name="action_plasticos_confirm_classification" type="object" string="Confirm Classification"
                             class="btn-primary" invisible="res_model != 'documents.document'"/>
                     <button name="action_open_document" type="object" string="Associate to Exact Record"
                             invisible="res_model != 'documents.document'"/>

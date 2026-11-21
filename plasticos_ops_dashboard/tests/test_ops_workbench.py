@@ -228,3 +228,27 @@ class TestOpsWorkbench(PlasticosTestCase):
             self._correction(activity, self.ops, "   ")
         with self.assertRaises(AccessError):
             self._correction(activity, self.logistics_ops, "Not an Operations Manager.")
+
+    def test_confirm_classification_opens_the_task_070_command(self):
+        """Confirm Classification calls the original's Correct Classification command; it decides nothing."""
+        import base64
+
+        native = self.env["documents.document"].create(
+            {
+                "name": "task040-confirm.pdf",
+                "folder_id": self.env.ref("plasticos_documents_native.folder_plasticos_inbox").id,
+                "datas": base64.b64encode(b"%PDF-1.4 task040"),
+                "doc_type": "bol",
+            }
+        )
+        activity = self.env["mail.activity"].search(
+            [("res_model", "=", "documents.document"), ("res_id", "=", native.id)], limit=1
+        )
+        self.assertTrue(activity)
+        action = activity.with_user(self.ops).action_plasticos_confirm_classification()
+        self.assertEqual(action["res_model"], "plasticos.document.classification.correction")
+        self.assertEqual(action["context"]["default_document_id"], native.id)
+        api = _router_api()
+        other = self._schedule(self.tx, "TASK-040 not a document", [], api.EXC_CLASSIFICATION_REVIEW)
+        with self.assertRaises(UserError):
+            other.with_user(self.ops).action_plasticos_confirm_classification()

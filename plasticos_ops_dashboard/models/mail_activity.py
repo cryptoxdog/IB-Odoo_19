@@ -133,6 +133,18 @@ class PlasticosMailActivityReview(models.Model):
             parts.append(f"{label}: {value if value not in (False, None, '') else UNKNOWN}")
         return "\n".join(parts)
 
+    def action_plasticos_confirm_classification(self):
+        """Open the original's Correct Classification command (TASK-070, DEC-015) for the reviewer.
+
+        The command records a human ``doc_type`` with a required reason; that human value is never
+        overwritten by a tag. Nothing is decided here.
+        """
+        self.ensure_one()
+        record = self._plasticos_record()
+        if record is None or record._name != "documents.document":
+            raise UserError(_("Only a document original can have its classification confirmed."))
+        return record.action_open_classification_correction()
+
     def action_plasticos_return_to_logistics(self):
         """Hand a shipping-document exception back to Logistics: the same activity, a new owner.
 
