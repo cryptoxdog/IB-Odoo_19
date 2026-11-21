@@ -37,11 +37,11 @@ class TestUrgencyDrillParity(TransactionCase):
         return self.kpi[kpi_name]
 
     def _drilled(self, kpi_name):
-        action = self.Kpi._urgency_drill(kpi_name)
+        action = self.Kpi._kpi_drill(kpi_name)
         return self.env[action["res_model"]].search(action["domain"])
 
     def _assert_parity(self, kpi_name):
-        action = self.Kpi._urgency_drill(kpi_name)
+        action = self.Kpi._kpi_drill(kpi_name)
         self.assertEqual(action["res_model"], URGENCY_KPIS[kpi_name][1])
         count = self.env[action["res_model"]].search_count(action["domain"])
         self.assertEqual(self._value(kpi_name), count, f"{kpi_name}: KPI value differs from its drill count")
@@ -65,7 +65,7 @@ class TestUrgencyDrillParity(TransactionCase):
         }
         for method, kpi_name in buttons.items():
             with self.subTest(button=method):
-                self.assertEqual(getattr(self.kpi, method)(), self.Kpi._urgency_drill(kpi_name))
+                self.assertEqual(getattr(self.kpi, method)(), self.Kpi._kpi_drill(kpi_name))
 
     def test_transaction_fixtures_are_counted_and_drilled(self):
         cases = [

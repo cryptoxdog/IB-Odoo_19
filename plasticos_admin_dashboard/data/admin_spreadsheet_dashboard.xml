@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Admin Business Health & Bottleneck board (TASK-031), shipped as module data in the
+    official Odoo 19.0 record shape (DEC-001; TASK-001 report, PR #569). Updatable: every
+    -u reproduces the shipped JSON, so a UI edit is not a source of truth.
+    Visibility: group_ids (Admin) and company_ids; spreadsheet_dashboard Dashboard Admins
+    also see shipped dashboards (manager rule), so group_ids is not the only gate.
+-->
+<odoo>
+    <record id="spreadsheet_dashboard_group_plasticos_admin" model="spreadsheet.dashboard.group">
+        <field name="name">PlasticOS Admin</field>
+        <field name="sequence">80</field>
+    </record>
+    <record id="dashboard_admin_business_health" model="spreadsheet.dashboard">
+        <field name="name">Business Health &amp; Bottlenecks</field>
+        <field name="spreadsheet_binary_data" type="base64" file="plasticos_admin_dashboard/data/files/admin_business_health_dashboard.json"/>
+        <field name="main_data_model_ids" eval="[(4, ref('plasticos_transaction.model_plasticos_transaction'))]"/>
+        <field name="dashboard_group_id" ref="spreadsheet_dashboard_group_plasticos_admin"/>
+        <field name="group_ids" eval="[Command.link(ref('plasticos_security_base.group_system_admin'))]"/>
+        <field name="company_ids" eval="[Command.link(ref('base.main_company'))]"/>
+        <field name="sequence">10</field>
+        <field name="is_published">True</field>
+    </record>
+</odoo>

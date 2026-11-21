@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_admin_dashboard
 component_name: PlasticOS Admin Dashboard
-module_version: 19.0.1.2.1
+module_version: 19.0.1.3.0
 layer: 3
 installable: true
 auto_install: false
@@ -18,6 +18,8 @@ depends:
   - plasticos_web_leads
   - plasticos_security_base
   - plasticos_crm_bridge
+  - plasticos_documents
+  - spreadsheet_dashboard
 models_owned:
   - plasticos.admin.kpi
   - plasticos.rep.performance
