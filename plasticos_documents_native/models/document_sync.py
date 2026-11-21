@@ -62,6 +62,27 @@ class DocumentSyncService(models.AbstractModel):
         "photo": "PHOTO",
         "correspondence": "CORR",
         "other": "OTHER",
+        # DEC-014 OPT-A (TASK-069). Review-signal tags carry no doc_type and have no entry.
+        "purchase_order": "PO",
+        "packing_list": "PACKING",
+        "receiving_report": "RECEIVING",
+        "certified_scale_ticket": "CST",
+        "delivery_order": "DO",
+        "delivery_receipt": "DO",
+        "carrier_certification": "CARRIER_CERT",
+        "customer_invoice": "INV",
+        "financial_document": "INV",
+        "carrier_invoice": "INV",
+        "credit_note": "INV",
+        "debit_note": "INV",
+        "statement": "INV",
+        "payment_confirmation": "INV",
+        "order_confirmation": "CO",
+        "material_certification": "CERT",
+        "technical_specification": "OTHER",
+        "unloading_pic": "PHOTO",
+        "delivery_photo": "PHOTO",
+        "damage_photo": "CLAIM_PHOTO",
     }
 
     @api.model
