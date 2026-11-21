@@ -13,7 +13,351 @@
     </record>
     <record id="dashboard_admin_business_health" model="spreadsheet.dashboard">
         <field name="name">Business Health &amp; Bottlenecks</field>
-        <field name="spreadsheet_binary_data" type="base64" file="plasticos_admin_dashboard/data/files/admin_business_health_dashboard.json"/>
+        <!-- The board JSON is set inline through spreadsheet_data (spreadsheet.mixin inverse writes
+             spreadsheet_binary_data), so it ships as Odoo-loaded XML data. -->
+        <field name="spreadsheet_data"><![CDATA[{
+ "borders": {},
+ "chartOdooMenusReferences": {
+  "a9d0b1c2-0031-4000-8000-0000000000f1": "plasticos_admin_dashboard.menu_plasticos_admin_dashboard",
+  "a9d0b1c2-0031-4000-8000-0000000000f2": "plasticos_admin_dashboard.menu_plasticos_admin_dashboard"
+ },
+ "customTableStyles": {},
+ "formats": {},
+ "globalFilters": [
+  {
+   "defaultValue": "last_90_days",
+   "id": "a9d0b1c2-0031-4000-8000-0000000000d1",
+   "label": "Earned period",
+   "type": "date"
+  },
+  {
+   "defaultValueDisplayNames": [],
+   "id": "a9d0b1c2-0031-4000-8000-0000000000c1",
+   "label": "Company",
+   "modelName": "res.company",
+   "type": "relation"
+  }
+ ],
+ "listNextId": 1,
+ "lists": {},
+ "pivotNextId": 4,
+ "pivots": {
+  "1": {
+   "columns": [],
+   "context": {
+    "group_by": []
+   },
+   "domain": [
+    [
+     "state",
+     "not in",
+     [
+      "closed",
+      "cancelled"
+     ]
+    ]
+   ],
+   "fieldMatching": {
+    "a9d0b1c2-0031-4000-8000-0000000000c1": {
+     "chain": "sale_order_id.company_id",
+     "type": "many2one"
+    }
+   },
+   "formulaId": "1",
+   "id": "1",
+   "measures": [
+    {
+     "fieldName": "__count",
+     "id": "__count",
+     "userDefinedName": "Transactions"
+    }
+   ],
+   "model": "plasticos.transaction",
+   "name": "Open transactions by stage",
+   "rows": [
+    {
+     "fieldName": "state"
+    }
+   ],
+   "sortedColumn": null,
+   "type": "ODOO"
+  },
+  "2": {
+   "columns": [],
+   "context": {
+    "group_by": []
+   },
+   "domain": [
+    "and",
+    [
+     "state",
+     "=",
+     "closed"
+    ],
+    [
+     "legacy_erp_history",
+     "=",
+     false
+    ]
+   ],
+   "fieldMatching": {
+    "a9d0b1c2-0031-4000-8000-0000000000c1": {
+     "chain": "sale_order_id.company_id",
+     "type": "many2one"
+    },
+    "a9d0b1c2-0031-4000-8000-0000000000d1": {
+     "chain": "commission_earned_date",
+     "offset": 0,
+     "type": "date"
+    }
+   },
+   "formulaId": "2",
+   "id": "2",
+   "measures": [
+    {
+     "fieldName": "revenue_total",
+     "id": "revenue_total",
+     "userDefinedName": "Closed-Deal Revenue"
+    },
+    {
+     "fieldName": "gross_margin",
+     "id": "gross_margin",
+     "userDefinedName": "Gross Margin"
+    }
+   ],
+   "model": "plasticos.transaction",
+   "name": "Closed-deal revenue in the earned period (operational, not accounting revenue)",
+   "rows": [],
+   "sortedColumn": null,
+   "type": "ODOO"
+  },
+  "3": {
+   "columns": [
+    {
+     "fieldName": "activity_type_id"
+    }
+   ],
+   "context": {
+    "group_by": []
+   },
+   "domain": [
+    [
+     "note",
+     "ilike",
+     "Routed to "
+    ]
+   ],
+   "fieldMatching": {},
+   "formulaId": "3",
+   "id": "3",
+   "measures": [
+    {
+     "fieldName": "__count",
+     "id": "__count",
+     "userDefinedName": "Open exceptions"
+    }
+   ],
+   "model": "mail.activity",
+   "name": "Open exceptions by assignee and type",
+   "rows": [
+    {
+     "fieldName": "user_id"
+    }
+   ],
+   "sortedColumn": null,
+   "type": "ODOO"
+  }
+ },
+ "revisionId": "START_REVISION",
+ "settings": {
+  "locale": {
+   "code": "en_US",
+   "dateFormat": "mm/dd/yyyy",
+   "decimalSeparator": ".",
+   "formulaArgSeparator": ",",
+   "name": "English (US)",
+   "thousandsSeparator": ",",
+   "timeFormat": "hh:mm:ss",
+   "weekStart": 7
+  }
+ },
+ "sheets": [
+  {
+   "areGridLinesVisible": false,
+   "borders": {},
+   "cells": {
+    "A1": "Admin — Business Health and Bottlenecks",
+    "A2": "Are we making money · where is work stuck · who owns the resolution. Figures are operational; the Command Center form holds the authoritative, company-scoped KPIs.",
+    "A20": "=PIVOT(1)",
+    "A40": "=PIVOT(3)",
+    "D20": "=PIVOT(2)"
+   },
+   "colNumber": 12,
+   "cols": {},
+   "comments": {},
+   "conditionalFormats": [],
+   "dataValidationRules": [],
+   "figures": [
+    {
+     "col": 0,
+     "data": {
+      "axesDesign": {},
+      "background": "#FFFFFF",
+      "chartId": "a9d0b1c2-0031-4000-8000-0000000000f1",
+      "dataSets": [
+       {}
+      ],
+      "fieldMatching": {
+       "a9d0b1c2-0031-4000-8000-0000000000c1": {
+        "chain": "sale_order_id.company_id",
+        "type": "many2one"
+       }
+      },
+      "legendPosition": "none",
+      "metaData": {
+       "groupBy": [
+        "state"
+       ],
+       "measure": "__count",
+       "mode": "bar",
+       "order": null,
+       "resModel": "plasticos.transaction"
+      },
+      "searchParams": {
+       "comparison": null,
+       "context": {
+        "group_by": []
+       },
+       "domain": [
+        [
+         "state",
+         "not in",
+         [
+          "closed",
+          "cancelled"
+         ]
+        ]
+       ],
+       "groupBy": [
+        "state"
+       ],
+       "orderBy": []
+      },
+      "stacked": false,
+      "title": {
+       "text": "Where is work stuck: open transactions by stage"
+      },
+      "type": "odoo_bar",
+      "verticalAxisPosition": "left"
+     },
+     "height": 300,
+     "id": "a9d0b1c2-0031-4000-8000-0000000000f1",
+     "offset": {
+      "x": 0,
+      "y": 40
+     },
+     "row": 0,
+     "tag": "chart",
+     "width": 640
+    },
+    {
+     "col": 0,
+     "data": {
+      "axesDesign": {},
+      "background": "#FFFFFF",
+      "chartId": "a9d0b1c2-0031-4000-8000-0000000000f2",
+      "dataSets": [
+       {}
+      ],
+      "fieldMatching": {
+       "a9d0b1c2-0031-4000-8000-0000000000c1": {
+        "chain": "sale_order_id.company_id",
+        "type": "many2one"
+       },
+       "a9d0b1c2-0031-4000-8000-0000000000d1": {
+        "chain": "commission_earned_date",
+        "offset": 0,
+        "type": "date"
+       }
+      },
+      "legendPosition": "none",
+      "metaData": {
+       "groupBy": [
+        "commission_earned_date:month"
+       ],
+       "measure": "revenue_total",
+       "mode": "line",
+       "order": null,
+       "resModel": "plasticos.transaction"
+      },
+      "searchParams": {
+       "comparison": null,
+       "context": {
+        "group_by": []
+       },
+       "domain": [
+        "and",
+        [
+         "state",
+         "=",
+         "closed"
+        ],
+        [
+         "legacy_erp_history",
+         "=",
+         false
+        ]
+       ],
+       "groupBy": [
+        "commission_earned_date:month"
+       ],
+       "orderBy": []
+      },
+      "stacked": false,
+      "title": {
+       "text": "Closed-deal revenue by earned month (operational)"
+      },
+      "type": "odoo_line",
+      "verticalAxisPosition": "left"
+     },
+     "height": 300,
+     "id": "a9d0b1c2-0031-4000-8000-0000000000f2",
+     "offset": {
+      "x": 0,
+      "y": 360
+     },
+     "row": 0,
+     "tag": "chart",
+     "width": 640
+    }
+   ],
+   "formats": {},
+   "headerGroups": {
+    "COL": [],
+    "ROW": []
+   },
+   "id": "sheet1",
+   "isVisible": true,
+   "merges": [],
+   "name": "Business Health",
+   "rowNumber": 80,
+   "rows": {},
+   "styles": {
+    "A1": 1
+   },
+   "tables": []
+  }
+ ],
+ "styles": {
+  "1": {
+   "bold": true,
+   "fontSize": 16,
+   "textColor": "#01666b"
+  }
+ },
+ "uniqueFigureIds": true,
+ "version": "18.5.10"
+}]]></field>
         <field name="main_data_model_ids" eval="[(4, ref('plasticos_transaction.model_plasticos_transaction'))]"/>
         <field name="dashboard_group_id" ref="spreadsheet_dashboard_group_plasticos_admin"/>
         <field name="group_ids" eval="[Command.link(ref('plasticos_security_base.group_system_admin'))]"/>
