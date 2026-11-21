@@ -394,7 +394,8 @@ class PlasticosLindaApproval(models.Model):
     result_record_id = fields.Integer(readonly=True)
     result_reason = fields.Text(readonly=True)
     routed_role = fields.Selection(
-        [(ROLE_LOGISTICS, "Logistics Operations"), (ROLE_OPERATIONS, "Operations Manager")],
+        # Literal values (== ROLE_LOGISTICS, ROLE_OPERATIONS) so static enum audits can read them.
+        [("logistics_ops", "Logistics Operations"), ("operations_manager", "Operations Manager")],
         string="Owning Role",
         required=True,
         readonly=True,

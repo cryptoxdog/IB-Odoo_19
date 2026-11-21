@@ -1060,6 +1060,8 @@ class TestLindaAuthorityByClass(_LindaCase):
             ("record_actual_event", "out_of_sequence"),
         }
         self.assertEqual(set(self.module.LOGISTICS_AUTHORITY), expected)
+        roles = {value for value, _label in self.env[APPROVAL]._fields["routed_role"].selection}
+        self.assertEqual(roles, {self.module.ROLE_LOGISTICS, self.module.ROLE_OPERATIONS})
         operations_only = {
             "correct_fact",
             "record_container_tare",
