@@ -264,8 +264,8 @@
             <field name="net_margin"      string="Net $"      sum="Total" widget="monetary"
                    decoration-danger="net_margin &lt; 0"/>
             <field name="commission"      string="Commission" sum="Total" widget="monetary"/>
-            <field name="deals_open"      string="Open"       optional="show"/>
-            <field name="pipeline_val"    string="Pipeline $" widget="monetary" optional="show"/>
+            <field name="deals_open"      string="Open (now)" optional="show"/>
+            <field name="pipeline_val"    string="Pipeline $ (now)" widget="monetary" optional="show"/>
             <field name="intakes_created" string="Intakes"    optional="show"/>
             <field name="offers_sent"     string="Offers Out" optional="show"/>
             <field name="offers_accepted" string="Accepted"   optional="show"/>
