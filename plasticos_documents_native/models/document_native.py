@@ -35,6 +35,51 @@ NATIVE_HISTORY_KEY = "plasticos_native_verification_history_grant"
 SHELL_TRIGGER_FIELDS = frozenset({"doc_type", "attachment_id", "datas", "raw"})
 PROJECTION_FIELDS = ("verified", "verified_by", "verified_at", "override", "override_reason")
 
+# DEC-015 / DEC-014 (TASK-070): a native type tag (xmlid in this module) and the doc_type it
+# names. Review-signal tags (Needs Review, To Split, Evidence Gap, Duplicate Candidate,
+# Includes Supporting Evidence) and Verified name no doc_type and are not in this map.
+TYPE_TAG_DOC_TYPES = {
+    "tag_bol": "bol",
+    "tag_vendor_bill": "invoice",
+    "tag_scale_ticket": "scale_ticket",
+    "tag_loading_pic": "loading_pic",
+    "tag_customer_order": "customer_order",
+    "tag_contract": "contract",
+    "tag_certification": "certification",
+    "tag_permit": "permit",
+    "tag_lab_report": "lab_report",
+    "tag_photo": "photo",
+    "tag_correspondence": "correspondence",
+    "tag_purchase_order": "purchase_order",
+    "tag_packing_list": "packing_list",
+    "tag_receiving_report": "receiving_report",
+    "tag_certified_scale_ticket": "certified_scale_ticket",
+    "tag_delivery_order_confirmation": "delivery_order",
+    "tag_delivery_receipt": "delivery_receipt",
+    "tag_carrier_certification": "carrier_certification",
+    "tag_customer_invoice": "customer_invoice",
+    "tag_financial_document": "financial_document",
+    "tag_carrier_invoice": "carrier_invoice",
+    "tag_credit_note": "credit_note",
+    "tag_debit_note": "debit_note",
+    "tag_statement": "statement",
+    "tag_payment_confirmation": "payment_confirmation",
+    "tag_order_confirmation": "order_confirmation",
+    "tag_material_certification": "material_certification",
+    "tag_technical_specification": "technical_specification",
+    "tag_unloading_pic": "unloading_pic",
+    "tag_delivery_photo": "delivery_photo",
+    "tag_damage_photo": "damage_photo",
+}
+MODULE = "plasticos_documents_native"
+NEEDS_REVIEW_TAG = f"{MODULE}.tag_needs_review"
+VERIFIED_TAG = f"{MODULE}.tag_verified"
+DOC_TYPE_SOURCE_TAG = "tag"
+DOC_TYPE_SOURCE_HUMAN = "human"
+# A write made by the bridge itself: its doc_type stays tag-derived and it does not re-bridge.
+BRIDGE_CONTEXT_KEY = "plasticos_classification_bridge"
+VERIFIED_TAG_GRANT_KEY = "plasticos_verified_tag_grant"
+
 
 class NativeHistoryGrant:
     """In-process capability for the historical snapshot only. RPC JSON cannot carry it."""
@@ -126,6 +171,14 @@ class DocumentNative(models.Model):
         tracking=True,
         help="Plastics-specific document classification.",
     )
+    doc_type_source = fields.Selection(
+        [(DOC_TYPE_SOURCE_TAG, "Type tag"), (DOC_TYPE_SOURCE_HUMAN, "Human")],
+        string="Document Type Source",
+        tracking=True,
+        readonly=True,
+        copy=False,
+        help="Where the document type came from. A human-set type is never replaced by a tag (DEC-015).",
+    )
 
     # ── Verification projection (domain owner is plasticos.document) ──
     verified = fields.Boolean(
@@ -199,16 +252,117 @@ class DocumentNative(models.Model):
     def create(self, vals_list):
         for vals in vals_list:
             self._refuse_direct_decision_write(vals)
+            self._prepare_classification_vals(vals)
         records = super().create(vals_list)
         records._hold_classified_originals()
+        tagged_records = records.filtered(lambda rec: rec.tag_ids)
+        if tagged_records and not self.env.context.get(BRIDGE_CONTEXT_KEY):
+            tagged_records._bridge_classification_tags()
         return records
 
     def write(self, vals):
         self._refuse_direct_decision_write(vals)
+        vals = self._prepare_classification_vals(dict(vals))
         result = super().write(vals)
         if SHELL_TRIGGER_FIELDS.intersection(vals):
             self._hold_classified_originals()
+        if "tag_ids" in vals and not self.env.context.get(BRIDGE_CONTEXT_KEY):
+            self._bridge_classification_tags()
         return result
+
+    # ── Classification bridge (DEC-015, TASK-070) ───────────────
+    def _prepare_classification_vals(self, vals):
+        """Stamp who set ``doc_type`` and drop Verified from a tag write outside verification."""
+        if "doc_type" in vals and not self.env.context.get(BRIDGE_CONTEXT_KEY):
+            vals["doc_type_source"] = DOC_TYPE_SOURCE_HUMAN if vals["doc_type"] else False
+        if "tag_ids" in vals and not self.env.context.get(VERIFIED_TAG_GRANT_KEY):
+            verified = self.env.ref(VERIFIED_TAG, raise_if_not_found=False)
+            if verified:
+                vals["tag_ids"] = self._without_tag(vals["tag_ids"], verified.id)
+        return vals
+
+    @staticmethod
+    def _without_tag(value, tag_id):
+        """The x2many write value with ``tag_id`` never added. Removals are kept."""
+        if isinstance(value, models.BaseModel):
+            return [(6, 0, [rid for rid in value.ids if rid != tag_id])]
+        cleaned = []
+        for command in value or ():
+            if not isinstance(command, (list, tuple)) or not command:
+                cleaned.append(command)
+                continue
+            code = command[0]
+            if code == 4 and command[1] == tag_id:
+                _logger.info("Dropped the Verified tag from a write outside verification")
+                continue
+            if code == 6:
+                ids = [rid for rid in (command[2] or ()) if rid != tag_id]
+                if len(ids) != len(command[2] or ()):
+                    _logger.info("Dropped the Verified tag from a write outside verification")
+                cleaned.append((6, 0, ids))
+                continue
+            cleaned.append(command)
+        return cleaned
+
+    def _type_tag_doc_types(self):
+        """``{documents.tag id: doc_type}`` for the native type tags that exist in this database."""
+        found = {}
+        for xmlid, doc_type in TYPE_TAG_DOC_TYPES.items():
+            tag = self.env.ref(f"{MODULE}.{xmlid}", raise_if_not_found=False)
+            if tag:
+                found[tag.id] = doc_type
+        return found
+
+    def _bridge_classification_tags(self):
+        """Derive ``doc_type`` from type tags as Auto-Sort leaves them, then route the review signals.
+
+        Exactly one type tag sets its ``doc_type`` (source "tag"), which reaches the pending
+        business shell through ``SHELL_TRIGGER_FIELDS``. Two or more type tags set nothing and add
+        Needs Review. A human-set ``doc_type`` is never replaced.
+        """
+        type_tags = self._type_tag_doc_types()
+        needs_review = self.env.ref(NEEDS_REVIEW_TAG, raise_if_not_found=False)
+        bridge = self.with_context(**{BRIDGE_CONTEXT_KEY: True})
+        for rec in bridge:
+            if rec.type != "binary" or rec.shortcut_document_id:
+                continue
+            if rec.doc_type and rec.doc_type_source != DOC_TYPE_SOURCE_TAG:
+                continue
+            doc_types = {type_tags[tag.id] for tag in rec.tag_ids if tag.id in type_tags}
+            if len(doc_types) == 1:
+                doc_type = doc_types.pop()
+                if rec.doc_type != doc_type:
+                    rec.write({"doc_type": doc_type, "doc_type_source": DOC_TYPE_SOURCE_TAG})
+            elif len(doc_types) > 1 and needs_review and needs_review not in rec.tag_ids:
+                rec.write({"tag_ids": [(4, needs_review.id)]})
+        bridge._route_review_signals()
+
+    def _route_review_signals(self):
+        """One DEC-019 activity per review signal through the TASK-060 router; idempotent."""
+        service = self.env["plasticos.document.sync"]
+        for rec in self:
+            if rec.type != "binary" or not rec.attachment_id or rec.shortcut_document_id:
+                continue
+            # A failed routing must not lose the tag write; the error is logged with its trace.
+            try:
+                with self.env.cr.savepoint():
+                    if rec.plasticos_doc_id:
+                        service.sync_native_to_legacy(rec)
+                    else:
+                        service._schedule_review_signals(rec)
+            except Exception:
+                _logger.exception("Could not route the review signals of native document %s", rec.id)
+
+    def action_open_classification_correction(self):
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Correct Classification",
+            "res_model": "plasticos.document.classification.correction",
+            "view_mode": "form",
+            "target": "new",
+            "context": {"default_document_id": self.id, "default_folder_id": self.folder_id.id},
+        }
 
     def _hold_classified_originals(self):
         """Give a classified original its pending business row as it arrives.

@@ -56,9 +56,7 @@ class TestClassificationBridge(PlasticosTestCase):
 
     def _add_tags(self, document, *names):
         # The shape Enterprise's add-tags tool writes: ``self.tag_ids |= tags``.
-        document.tag_ids |= (
-            self.env["documents.document"].browse().env["documents.tag"].browse([self.tag[name].id for name in names])
-        )
+        document.tag_ids |= self.env["documents.tag"].browse([self.tag[name].id for name in names])
 
     def _activities(self, document, summary):
         return self.env["mail.activity"].search(
