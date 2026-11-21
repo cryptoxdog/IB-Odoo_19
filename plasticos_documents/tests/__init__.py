@@ -9,4 +9,5 @@ from . import test_pr322_findings
 from . import test_scale_ticket_cardinality
 from . import test_scoped_evidence
 from . import test_verification_writer
+from . import test_verify_service_users
 from . import test_logistics_vgm_evidence

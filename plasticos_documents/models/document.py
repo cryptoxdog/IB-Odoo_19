@@ -1,6 +1,6 @@
 import logging
 
-from odoo import api, fields, models
+from odoo import SUPERUSER_ID, api, fields, models
 from odoo.exceptions import AccessError, UserError
 
 _logger = logging.getLogger(__name__)
@@ -66,6 +66,8 @@ DECISION_FIELDS = frozenset(
 
 VERIFICATION_GRANT_KEY = "plasticos_document_verification_grant"
 VERIFIER_GROUP = "plasticos_documents.group_documents_user"
+# Technical actors that hold document groups for ACL reasons but never decide business evidence (N-008).
+SERVICE_USER_XMLIDS = ("plasticos_base.user_system_cron", "plasticos_logistics.user_linda")
 OVERRIDE_GROUP = "plasticos_documents.group_documents_manager"
 
 
@@ -702,6 +704,21 @@ class PlasticosDocument(models.Model):
         if not self.env.user.has_group(VERIFIER_GROUP):
             raise AccessError("Not authorized to verify documents.")
 
+    def _require_human_verifier(self):
+        """A verification decision is a human's (TASK-064, A19).
+
+        The superuser context with no human behind it, the scheduler's cron user and Linda are
+        refused at the server whatever groups they hold; the UI is not the control.
+        """
+        if self.env.uid == SUPERUSER_ID:
+            raise AccessError("Verification needs a human user; the superuser context cannot verify documents.")
+        service_ids = {
+            user.id for user in (self.env.ref(xmlid, raise_if_not_found=False) for xmlid in SERVICE_USER_XMLIDS) if user
+        }
+        if self.env.uid in service_ids or self.env.user.share:
+            raise AccessError("Service and portal users cannot verify business evidence.")
+        self._require_verifier()
+
     def _require_override_manager(self):
         if not self.env.user.has_group(OVERRIDE_GROUP):
             raise AccessError("Not authorized to override.")
@@ -1076,7 +1093,7 @@ class PlasticosDocument(models.Model):
 
     def action_verify(self):
         """Record one verification decision for this evidence scope."""
-        self._require_verifier()
+        self._require_human_verifier()
         now = fields.Datetime.now()
         for rec in self:
             if rec.verified:
