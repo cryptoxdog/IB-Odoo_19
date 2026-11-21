@@ -149,8 +149,11 @@ class PlasticosSalesDashboard(models.Model):
     # ── Commission ────────────────────────────────────────────────────────────
     commission_amount = fields.Float(string="Est. Commission", digits="Product Price", readonly=True)
     # DEC-006: locked amount from the transaction once its commission is locked;
-    # pay status from the newest non-cancelled payout linked through
-    # commission_payout_tx_rel, else unpaid. plasticos.transaction.commission_payout_state
+    # pay status from the newest non-cancelled payout of the deal's own rep
+    # (payout.sales_rep_id = transaction.user_id) linked through
+    # commission_payout_tx_rel, else unpaid. Narrowed to the deal's own rep so the
+    # projection never shows a payout the rep cannot read ("Sales Reps see own
+    # payouts only"; DEC-003 navigation never widens access). plasticos.transaction.commission_payout_state
     # is never the source (no payout action writes it; RISK-003).
     commission_locked = fields.Boolean(string="Commission Locked", readonly=True)
     commission_locked_amount = fields.Float(string="Final Commission", digits="Product Price", readonly=True)
@@ -249,6 +252,7 @@ class PlasticosSalesDashboard(models.Model):
                   FROM commission_payout_tx_rel rel
                   JOIN plasticos_commission_payout p ON p.id = rel.payout_id
                  WHERE rel.transaction_id = t.id
+                   AND p.sales_rep_id = t.user_id
                    AND p.state != 'cancelled'
                  ORDER BY p.id DESC
                  LIMIT 1
