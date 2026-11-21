@@ -8,6 +8,9 @@ from odoo.exceptions import AccessError
 from odoo.tests.common import tagged
 
 
+SERVICE_REFUSAL = "Service and portal users cannot verify business evidence"
+
+
 @tagged("post_install", "-at_install", "documents", "verification")
 class TestVerifyServiceUsers(PlasticosTestCase):
     @classmethod
@@ -15,7 +18,6 @@ class TestVerifyServiceUsers(PlasticosTestCase):
         super().setUpClass()
         internal = cls.env.ref("base.group_user")
         documents_user = cls.env.ref("plasticos_documents.group_documents_user")
-        documents_manager = cls.env.ref("plasticos_documents.group_documents_manager")
         cls.human = cls.env["res.users"].create(
             {
                 "name": "A19 Human Verifier",
@@ -25,9 +27,8 @@ class TestVerifyServiceUsers(PlasticosTestCase):
         )
         cls.linda = cls.env.ref("plasticos_logistics.user_linda")
         cls.cron_user = cls.env.ref("plasticos_base.user_system_cron")
-        # Both hold verifier groups (as in production: Linda via Logistics, the cron user via hooks.py).
-        cls.linda.write({"group_ids": [(4, documents_user.id)]})
-        cls.cron_user.write({"group_ids": [(4, documents_manager.id)]})
+        # Seed users are not modified (AGENTS.md: tests must not mutate seed data). The refusal message
+        # proves the human-only guard refused them, whatever groups production wiring gives them.
         partner = cls.env["res.partner"].create({"name": "A19 Partner", "is_company": True, "supplier_rank": 1})
         cls.tx = cls.env["plasticos.transaction"].create(
             {"supplier_id": partner.id, "buyer_id": partner.id, "quantity": 1000}
@@ -59,25 +60,24 @@ class TestVerifyServiceUsers(PlasticosTestCase):
 
     def test_linda_cannot_verify(self):
         doc = self._accepted()
-        self.assertTrue(self.linda.has_group("plasticos_documents.group_documents_user"))
-        with self.assertRaises(AccessError):
+        with self.assertRaisesRegex(AccessError, SERVICE_REFUSAL):
             doc.with_user(self.linda).action_verify()
         self.assertFalse(doc.verified)
 
     def test_cron_user_cannot_verify(self):
         doc = self._accepted()
-        with self.assertRaises(AccessError):
+        with self.assertRaisesRegex(AccessError, SERVICE_REFUSAL):
             doc.with_user(self.cron_user).action_verify()
-        with self.assertRaises(AccessError):
+        with self.assertRaisesRegex(AccessError, SERVICE_REFUSAL):
             doc.with_user(self.cron_user).sudo().action_verify()
         self.assertFalse(doc.verified)
 
     def test_superuser_context_without_a_human_cannot_verify(self):
         doc = self._accepted()
         self.assertEqual(self.env.uid, SUPERUSER_ID)
-        with self.assertRaises(AccessError):
+        with self.assertRaisesRegex(AccessError, "superuser context cannot verify"):
             doc.action_verify()
-        with self.assertRaises(AccessError):
+        with self.assertRaisesRegex(AccessError, "superuser context cannot verify"):
             doc.sudo().action_verify()
         self.assertFalse(doc.verified)
 
