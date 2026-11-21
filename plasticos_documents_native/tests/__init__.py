@@ -7,3 +7,4 @@ from . import test_reference_matching
 from . import test_digitized_bill_guard
 from . import test_document_sync_routing
 from . import test_document_types_dec014
+from . import test_classification_bridge
