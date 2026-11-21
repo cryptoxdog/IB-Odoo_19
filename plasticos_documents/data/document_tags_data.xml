@@ -88,6 +88,17 @@
             <field name="code">CLAIM_PHOTO</field>
         </record>
 
+        <!-- DEC-014 OPT-A (TASK-069): legacy codes for the new native types. New xmlids only. -->
+        <record id="tag_purchase_order" model="plasticos.document.tag">
+            <field name="name">Purchase Order</field>
+            <field name="code">PO</field>
+        </record>
+
+        <record id="tag_carrier_certification" model="plasticos.document.tag">
+            <field name="name">Carrier Certification</field>
+            <field name="code">CARRIER_CERT</field>
+        </record>
+
         <record id="tag_other" model="plasticos.document.tag">
             <field name="name">Other</field>
             <field name="code">OTHER</field>
