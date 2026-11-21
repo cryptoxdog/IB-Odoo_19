@@ -7,10 +7,10 @@ Report only: no product code is committed by this PR. The throwaway module lived
 
 | Question | Verdict | Basis |
 |---|---|---|
-| A `spreadsheet.dashboard` record in the official 19.0 shape installs from IB-Odoo_19 module data with role `group_ids` and `company_ids` | **SUPPORTED** | Runtime: install on the admitted Enterprise fixture, rc=0 |
-| `-u` twice reproduces the shipped JSON exactly | **SUPPORTED** | Runtime: stored JSON == shipped file after install, `-u` #1, `-u` #2 and `-u` #3; sha256 identical |
+| A `spreadsheet.dashboard` record in the official 19.0 shape installs from IB-Odoo_19 module data with role `group_ids` and `company_ids` | **SUPPORTED**, with a dependency caveat | Runtime: install on the admitted Enterprise fixture, rc=0. The spike manifest depended only on `spreadsheet_dashboard` and `plasticos_logistics`, yet its XML references `plasticos_security_base.group_logistics`; `plasticos_logistics` does not depend on `plasticos_security_base`, so the 173-module fixture masked a fresh-install failure. A shipped dashboard module must declare `plasticos_security_base` (and any module whose groups or menus it names) in `depends`. |
+| `-u` twice reproduces the shipped JSON exactly | **SUPPORTED** | Runtime: stored JSON == shipped file after `-u` #2 and `-u` #3; sha256 identical. Install and `-u` #1 ran (rc=0) but their stored JSON was not compared. |
 | A UI edit of a shipped dashboard is not a source of truth (DEC-001 locked consequence) | **SUPPORTED** | Runtime: an edited JSON and sequence were overwritten by the next `-u` |
-| `group_ids` and `company_ids` gate who sees the dashboard | **SUPPORTED** | Runtime: Logistics user sees it; Sales rep does not; a Logistics user of another company does not |
+| `group_ids` and `company_ids` gate who sees the dashboard | **SUPPORTED**, not the only gate | Runtime: Logistics user sees it; Sales rep does not; a Logistics user of another company does not. Exception, measured: a `spreadsheet_dashboard.group_dashboard_manager` (Dashboard Admin) user outside Logistics also sees it, because its manager rule is `[(1, '=', 1)]` and group rules combine with OR (`security.xml` L31-36). `base.user_root` and `base.user_admin` are in that group by default. |
 | `chartOdooMenusReferences` names a module menu by XML id | **SUPPORTED** (server-side) | Runtime: `plasticos_logistics.menu_plasticos_loads` resolves to *Logistics/Loads*, action model `plasticos.load` |
 | The JSON was authored in the Enterprise spreadsheet editor and exported | **UNKNOWN — NOT RUN** | The JSON was hand-authored key-for-key from the official `sales_dashboard.json` (shape below). Driving the Enterprise editor UI was not done in this session. |
 | Clicking the chart / pivot in the browser opens the expected records | **UNKNOWN — NOT RUN** | No browser click-test was run. Only the server-side resolution above was proven. |
@@ -33,7 +33,7 @@ Report only: no product code is committed by this PR. The throwaway module lived
 | same file | L47-57 | `_get_serialized_readonly_dashboard` serves `spreadsheet_data` as the snapshot (read-only viewer) |
 | same file | L66-73 | `_dashboard_is_empty`: an empty main data model switches to the sample file |
 | `addons/spreadsheet/models/spreadsheet_mixin.py` | L22-34 | `spreadsheet_binary_data` Binary, `spreadsheet_data` computed/inverse, JSON validated on write |
-| `addons/spreadsheet_dashboard/security/security.xml` | L4-9, L11-15 | Rules: `group_ids in user.all_group_ids`; `company_ids in company_ids + [False]` |
+| `addons/spreadsheet_dashboard/security/security.xml` | L4-9, L11-15, L31-36 | Rules: `group_ids in user.all_group_ids`; `company_ids in company_ids + [False]`; Dashboard Admin manager rule `[(1, "=", 1)]` |
 | `addons/spreadsheet_dashboard_sale/data/files/sales_dashboard.json` | top-level keys | `version` `18.5.10`, `sheets`, `pivots`, `globalFilters`, `lists`, `chartOdooMenusReferences`, `pivotNextId`, `listNextId`, `settings`, `revisionId`, `uniqueFigureIds` |
 
 **Native finding (shape):** in 19.0 the global filter carries no `fieldMatching`. It is `{id, type: "date", label, defaultValue}`. Each data source (each pivot, and each Odoo chart's `data`) carries a `fieldMatching` map keyed by the filter id (`{chain, type, offset}`). A "global date filter with fieldMatching" therefore means one filter plus one matching entry per data source it should filter. Data sources without an entry are not filtered.
@@ -181,8 +181,8 @@ The sheet has `A20 = =PIVOT(1)` plus one `odoo_bar` figure. Pivot and chart shar
 
 | Step | rc | Stored `spreadsheet_data` == shipped file | sha256 of stored JSON (sorted keys) |
 |---|---|---|---|
-| `-i` | 0 | (checked after `-u` #2) | — |
-| `-u` #1 | 0 | — | — |
+| `-i` | 0 | not compared | — |
+| `-u` #1 | 0 | not compared | — |
 | `-u` #2 | 0 | **True** | `168fd753275bc8bdb4f384404e85b29c2823d37774bbf8cb035516adf60d677e` |
 | UI-equivalent edit (pivot renamed, sequence 99) | — | False | `1d4b68689a390a2a840de60c57c5afc260b94954a69af1af84b43a1167bcde01` |
 | `-u` #3 | 0 | **True** | `168fd753…` (record dump identical to the one after `-u` #2: `diff` empty) |
@@ -196,6 +196,7 @@ The record is updatable (not `noupdate`), so every `-u` re-applies the module fi
 | `plasticos_security_base.group_logistics`, main company | yes |
 | `plasticos_security_base.group_sales_rep`, main company | no |
 | `group_logistics`, another company only | no |
+| `spreadsheet_dashboard.group_dashboard_manager` only (no Logistics), main company | **yes** (manager rule) |
 
 The record rules on `plasticos.load` still filter the pivot's data per viewer. The dashboard's own `group_ids`/`company_ids` only gate the dashboard record.
 
@@ -210,7 +211,10 @@ None for the analytical dashboards. The dashboards are read-only spreadsheets of
 
 ## Consequences for dependent tasks
 
-- TASK-031 / TASK-032 may ship dashboards in exactly the XML shape above, with `company_ids` and role `group_ids`, and one `fieldMatching` entry per data source per filter.
+- TASK-031 / TASK-032 may ship dashboards in the record shape above, with `company_ids`, role `group_ids` and one `fieldMatching` entry per data source per filter, with three corrections:
+  - declare every module whose XML ids the record names (here `plasticos_security_base`) in `depends`;
+  - use replacement semantics (`Command.set([...])`) when the module owns the complete list of `group_ids` and `company_ids`. `Command.link` only adds, so on an updatable record a group or company removed in a later version would stay on the record after `-u` and keep seeing the dashboard (not tested here: this spike changed no membership);
+  - do not treat `group_ids` as the only visibility gate: Dashboard Admins see every dashboard in their companies. Record rules on the source models still filter the data itself.
 - DEC-007 KPI-drill parity is not provided by the dashboard. A KPI value in a pivot cell and its drill share one domain only if the JSON declares them once. Tests must assert parity on the source model (`search_count(domain)`), as TASK-032 does for its views.
 - Keep `sample_dashboard_file_path` unset unless a sample file is shipped. `_dashboard_is_empty` switches to the sample whenever the main data model has no records.
 
