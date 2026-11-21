@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- S11 (OP11-E02): Linda's edge cases waiting for an Operations Manager.
+    <!-- S11 (OP11-E02): Linda's edge cases waiting for their owning role (DEC-011).
          Approve runs the held command as Linda; Reject records the refusal. The
-         buttons enforce the manager check themselves, so they are shown to all readers. -->
+         buttons enforce the (command, edge case) authority table server-side, so they are
+         shown to all readers: a hidden or shown button is never the control. -->
     <record id="view_linda_approval_search" model="ir.ui.view">
         <field name="name">plasticos.linda.approval.search</field>
         <field name="model">plasticos.linda.approval</field>
@@ -14,6 +15,13 @@
                 <filter name="filter_decided" string="Decided" domain="[('state', 'in', ('approved', 'rejected'))]"/>
                 <filter name="filter_refused" string="Refusals" domain="[('state', '=', 'refused')]"/>
                 <separator/>
+                <filter name="filter_logistics" string="Logistics Decides"
+                        domain="[('state', '=', 'pending'), ('routed_role', '=', 'logistics_ops')]"/>
+                <filter name="filter_operations" string="Operations Manager Decides"
+                        domain="[('state', '=', 'pending'), ('routed_role', '=', 'operations_manager')]"/>
+                <filter name="filter_rerouted" string="Re-routed" domain="[('rerouted_at', '!=', False)]"/>
+                <separator/>
+                <filter name="group_routed_role" string="Owning Role" context="{'group_by': 'routed_role'}"/>
                 <filter name="group_command" string="Command" context="{'group_by': 'command'}"/>
                 <filter name="group_edge_case" string="Edge Case" context="{'group_by': 'edge_case'}"/>
             </search>
@@ -29,6 +37,8 @@
                 <field name="command"/>
                 <field name="edge_case"/>
                 <field name="edge_reason" optional="show"/>
+                <field name="routed_role"/>
+                <field name="activity_ids" widget="list_activity" optional="show"/>
                 <field name="operation_key" optional="hide"/>
                 <field name="subject_key" optional="hide"/>
                 <field name="company_id" groups="base.group_multi_company"/>
@@ -64,12 +74,19 @@
                             <field name="subject_model"/>
                             <field name="subject_id"/>
                             <field name="conflict_fact_id" invisible="not conflict_fact_id"/>
+                            <field name="routed_role"/>
                         </group>
                         <group string="Request">
                             <field name="requested_by"/>
                             <field name="requested_at"/>
                             <field name="company_id" groups="base.group_multi_company"/>
                         </group>
+                    </group>
+                    <group string="Re-routed" invisible="not rerouted_at">
+                        <field name="rerouted_by"/>
+                        <field name="rerouted_at"/>
+                        <field name="result_status"/>
+                        <field name="result_reason"/>
                     </group>
                     <group string="Arguments">
                         <field name="arguments" nolabel="1" colspan="2"/>
@@ -95,7 +112,7 @@
         <field name="context">{'search_default_filter_pending': 1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Nothing waiting for approval</p>
-            <p>Linda's edge cases (fact corrections, unverified replies, acceptances, conflicts, out-of-sequence events, unit mismatches, unverified evidence, retries) wait here for an Operations Manager.</p>
+            <p>Linda's edge cases (fact corrections, unverified replies, acceptances, conflicts, out-of-sequence events, unit mismatches, unverified evidence, retries) wait here. Logistics Operations decides the routine operational classes; an Operations Manager decides every case, and a Logistics approval whose replay still meets a guard is re-routed to the Operations Manager.</p>
         </field>
     </record>
 

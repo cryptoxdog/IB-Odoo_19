@@ -87,8 +87,11 @@ LOGISTICS_AUTHORITY = frozenset(
         ("record_actual_event", "out_of_sequence"),
     }
 )
-# The only fresh classification a Logistics replay may meet: a human acceptance, never a guard.
-_CLEAR_EDGES = frozenset({"acceptance"})
+# The only fresh classifications a Logistics replay may meet: a human confirmation, never a
+# guard. An unverified Linda reply can never become verified (linda_response is append-only and
+# has no verified disposition), so it is the human's confirmation that the reply is right, like an
+# acceptance; the proposal's own guards still run on the replay.
+_CLEAR_EDGES = frozenset({"acceptance", "unverified_linda_reply"})
 FACT = "plasticos.iso.journey.fact"
 PROPOSAL = "plasticos.shipment.event.proposal"
 LOAD = "plasticos.load"
@@ -456,8 +459,7 @@ class PlasticosLindaApproval(models.Model):
             return ROLE_OPERATIONS
         if user.has_group(LOGISTICS_OPS_GROUP):
             outside = self.filtered(
-                lambda rec: rec.routed_role != ROLE_LOGISTICS
-                or (rec.command, rec.edge_case) not in LOGISTICS_AUTHORITY
+                lambda rec: rec.routed_role != ROLE_LOGISTICS or (rec.command, rec.edge_case) not in LOGISTICS_AUTHORITY
             )
             if not outside:
                 return ROLE_LOGISTICS
@@ -470,9 +472,7 @@ class PlasticosLindaApproval(models.Model):
     # ── Owner activity (DEC-012: one open activity per pending approval) ──
 
     def _owner_for(self, role):
-        users = self.env["res.users"].with_context(
-            plasticos_escalation_exclude_user_ids=linda_user(self.env).ids
-        )
+        users = self.env["res.users"].with_context(plasticos_escalation_exclude_user_ids=linda_user(self.env).ids)
         group = self.env.ref(ROLE_GROUPS[role], raise_if_not_found=False)
         return users._plasticos_escalation_manager_in_group(group, self.company_id)
 
@@ -543,11 +543,16 @@ class PlasticosLindaApproval(models.Model):
                 self._decided().write({"operation_key": f"{self.operation_key}:replay:{self.id}"})
                 result = self._dispatch(self._linda_env(approved=False), arguments)
                 fresh = ledger.search([("id", ">", floor)])
-                raise _ReplayRollback({"result": result, "fresh": [(r.state, r.edge_case, r.edge_reason) for r in fresh]})
+                raise _ReplayRollback(
+                    {"result": result, "fresh": [(r.state, r.edge_case, r.edge_reason) for r in fresh]}
+                )
         except _ReplayRollback as done:
             outcome = done.result
         except (UserError, ValidationError, AccessError) as error:
-            outcome = {"result": {"status": "blocked", "reason": str(error.args[0] if error.args else error)}, "fresh": []}
+            outcome = {
+                "result": {"status": "blocked", "reason": str(error.args[0] if error.args else error)},
+                "fresh": [],
+            }
         self.env.invalidate_all()
         result = outcome["result"]
         results = result if isinstance(result, list) else [result]

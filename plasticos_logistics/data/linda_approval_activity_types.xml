@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- DEC-011 / DEC-012: one activity type per owning role of a held Linda command.
+         Scheduled by hold_for_approval (searched before create), closed by the decision. -->
+    <record id="mail_act_linda_approval_logistics" model="mail.activity.type">
+        <field name="name">Linda Approval (Logistics)</field>
+        <field name="summary">Decide Linda's held command</field>
+        <field name="res_model">plasticos.linda.approval</field>
+        <field name="category">default</field>
+        <field name="delay_count">0</field>
+        <field name="icon">fa-truck</field>
+    </record>
+    <record id="mail_act_linda_approval_operations" model="mail.activity.type">
+        <field name="name">Linda Approval (Operations Manager)</field>
+        <field name="summary">Decide Linda's held command</field>
+        <field name="res_model">plasticos.linda.approval</field>
+        <field name="category">default</field>
+        <field name="delay_count">0</field>
+        <field name="icon">fa-gavel</field>
+    </record>
+</odoo>
