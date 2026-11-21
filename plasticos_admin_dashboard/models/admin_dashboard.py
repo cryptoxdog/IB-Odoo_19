@@ -68,13 +68,32 @@ URGENCY_KPIS = {
 class PlasticosAdminKpi(models.Model):
     """Singleton record holding all RevOps KPIs for the admin command center.
 
-    One record per company. Refreshed by action_refresh() (button or cron).
-    All fields are stored=False computed fields reading live from the DB.
+    One record per company (DEC-008). Transaction-based KPIs count only
+    transactions whose sale order belongs to the record's company; a
+    transaction without a sale order has no resolvable company and is counted
+    for none. Refreshed by action_refresh() (button or cron). All KPI fields are
+    stored=False computed fields reading live from the DB.
     """
 
     _name = "plasticos.admin.kpi"
     _description = "Admin RevOps KPI Snapshot"
     _rec_name = "id"
+
+    _company_unique = models.Constraint(
+        "UNIQUE(company_id)",
+        "There is exactly one Admin KPI record per company.",
+    )
+
+    company_id = fields.Many2one(
+        "res.company",
+        string="Company",
+        required=True,
+        readonly=True,
+        index=True,
+        ondelete="cascade",
+        default=lambda self: self.env.company,
+        help="Company whose transactions this KPI record counts.",
+    )
 
     # ── Timestamps ────────────────────────────────────────────────────────────
     last_refresh = fields.Datetime(string="Last Refreshed", readonly=True)
@@ -219,11 +238,11 @@ class PlasticosAdminKpi(models.Model):
 
     @api.depends()
     def _compute_kpis(self):
-        urgency_counts = {name: self._urgency_count(name) for name in URGENCY_KPIS}
         for rec in self:
             cr = self.env.cr
-            for name, count in urgency_counts.items():
-                rec[name] = count
+            company_id = rec.company_id.id
+            for name in URGENCY_KPIS:
+                rec[name] = rec._urgency_count(name)
 
             # ── Date helpers ──────────────────────────────────────────────────
             cr.execute("""
@@ -319,8 +338,9 @@ class PlasticosAdminKpi(models.Model):
                     SUM(revenue_total) FILTER (WHERE state NOT IN ('closed','cancelled')
                                               AND revenue_total > 0)                   AS pipeline_val
                 FROM plasticos_transaction
+                WHERE sale_order_id IN (SELECT so.id FROM sale_order so WHERE so.company_id = %s)
             """,
-                (mtd,),
+                (mtd, company_id),
             )
             r = cr.dictfetchone()
             rec.tx_open = r["tx_open"] or 0
@@ -342,6 +362,7 @@ class PlasticosAdminKpi(models.Model):
                     SUM(commission_amount) FILTER (WHERE write_date >= %s) AS comm_ytd
                 FROM plasticos_transaction
                 WHERE state='closed' AND legacy_erp_history = FALSE
+                  AND sale_order_id IN (SELECT so.id FROM sale_order so WHERE so.company_id = %s)
                   AND NOT EXISTS (
                     SELECT 1 FROM ir_model_data import_id
                     WHERE import_id.model = 'sale.order'
@@ -350,7 +371,7 @@ class PlasticosAdminKpi(models.Model):
                       AND import_id.name LIKE 'legacy_erp_so_%%'
                   )
             """,
-                (mtd, ytd, mtd, ytd, mtd, ytd, mtd, ytd),
+                (mtd, ytd, mtd, ytd, mtd, ytd, mtd, ytd, company_id),
             )
             r = cr.dictfetchone()
             rec.revenue_mtd = r["rev_mtd"] or 0.0
@@ -476,11 +497,12 @@ class PlasticosAdminKpi(models.Model):
     # ── Singleton helper ──────────────────────────────────────────────────────
 
     @api.model
-    def _get_or_create(self):
-        """Return singleton record, creating if missing."""
-        rec = self.search([], limit=1)
+    def _get_or_create(self, company=None):
+        """Return the KPI record of ``company`` (default: the current company), creating it if missing."""
+        company = company or self.env.company
+        rec = self.search([("company_id", "=", company.id)], limit=1)
         if not rec:
-            rec = self.create({})
+            rec = self.create({"company_id": company.id})
         return rec
 
     # ── Actions ───────────────────────────────────────────────────────────────
@@ -525,18 +547,28 @@ class PlasticosAdminKpi(models.Model):
 
     # ── DEC-007 urgency declarations ─────────────────────────────────────────
 
-    @api.model
-    def _urgency_domain(self, kpi_name):
-        """Return the one domain that both counts and drills the urgency KPI."""
-        _title, _model, builder = URGENCY_KPIS[kpi_name]
-        return getattr(self, builder)()
+    def _kpi_company(self):
+        """The company a KPI record counts for; the current company outside a single record."""
+        if len(self) == 1 and self.company_id:
+            return self.company_id
+        return self.env.company
 
-    @api.model
+    def _urgency_domain(self, kpi_name):
+        """Return the one domain that both counts and drills the urgency KPI.
+
+        Transaction KPIs are scoped to the record's company through the sale
+        order (DEC-008). Offers and web leads carry no company.
+        """
+        _title, model_name, builder = URGENCY_KPIS[kpi_name]
+        domain = getattr(self, builder)()
+        if model_name == PLASTICOS_TRANSACTION:
+            domain = [("sale_order_id.company_id", "=", self._kpi_company().id), *domain]
+        return domain
+
     def _urgency_count(self, kpi_name):
         _title, model_name, _builder = URGENCY_KPIS[kpi_name]
         return self.env[model_name].search_count(self._urgency_domain(kpi_name))
 
-    @api.model
     def _urgency_drill(self, kpi_name):
         title, model_name, _builder = URGENCY_KPIS[kpi_name]
         return {
@@ -683,7 +715,7 @@ class PlasticosAdminKpi(models.Model):
 
     @api.model
     def action_open_admin_dashboard(self):
-        """Main entry point: ensure singleton exists and open form."""
+        """Main entry point: open the current company's KPI record, creating it if missing."""
         rec = self._get_or_create()
         return {
             "type": "ir.actions.act_window",
