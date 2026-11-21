@@ -112,7 +112,7 @@ The owner activity for review signals belongs to the activity router (TASK-060 /
 
 `eval/` scores a prompt version from recorded model outputs, with no Odoo and no network (v2.0 section E).
 
-- `eval/dataset/synthetic_v1.json` is the versioned labeled set: written descriptions of fictional documents covering every v2.0 mandatory case. No real document is stored.
+- `eval/dataset/synthetic_v1.py` is the versioned labeled set: written descriptions of fictional documents covering every v2.0 mandatory case. No real document is stored.
 - `eval/harness.py` computes the six v2.0 metrics:
   - auto-routed share;
   - primary-family accuracy among routed documents;
@@ -122,13 +122,13 @@ The owner activity for review signals belongs to the activity router (TASK-060 /
   - human-correction overwrites.
 
   It also builds a per-type confusion matrix and a regression replay that names every case the previous version got right and the candidate gets wrong. A metric with nothing to measure is reported as unknown (`null`), never as 0.
-- `eval/recorded/harness_fixture_*.json` are hand-written recordings that test the scorer. They are not model runs, and no number computed from them describes any model.
+- `eval/recorded/harness_fixture_*.py` are hand-written recordings that test the scorer. They are not model runs, and no number computed from them describes any model.
 
 Run it:
 
 ```bash
-python3 plasticos_documents_ai/eval/harness.py --dataset plasticos_documents_ai/eval/dataset/synthetic_v1.json \
-    --recorded <candidate recording> --baseline <previous recording>
+python3 plasticos_documents_ai/eval/harness.py --dataset plasticos_documents_ai/eval/dataset/synthetic_v1.py \
+    --recorded <candidate recording> --baseline <previous recording>   # .py data module or .json
 ```
 
 It exits 1 when an output is missing, a mandatory case is absent or the regression replay finds a regression.

@@ -23,8 +23,8 @@ measures the harness, not the model.
 Usage::
 
     python3 plasticos_documents_ai/eval/harness.py \\
-        --dataset plasticos_documents_ai/eval/dataset/synthetic_v1.json \\
-        --recorded <candidate.json> [--baseline <previous.json>]
+        --dataset plasticos_documents_ai/eval/dataset/synthetic_v1.py \\
+        --recorded <candidate .py or .json> [--baseline <previous .py or .json>]
 """
 
 from __future__ import annotations
@@ -59,6 +59,7 @@ NO_TYPE = "<no type>"
 NEEDS_REVIEW_LABEL = "<needs review>"
 CONFLICTING = "<several types>"
 CASES_KEY = "cases"
+DATA_MODULE_SUFFIX = ".py"
 
 # v2.0 section E provisional pilot targets: (metric, comparison, threshold).
 TARGETS = (
@@ -160,7 +161,7 @@ def score_case(case: dict, output: dict | None, permitted_folders: frozenset[str
 def score(dataset: dict, recorded: dict) -> dict:
     """The v2.0 metrics, confusion matrix and per-case results for one recording."""
     cases = dataset["cases"]
-    outputs = recorded.get("outputs", {})
+    outputs = _outputs_by_case(recorded.get("outputs") or {})
     missing = [case["id"] for case in cases if case["id"] not in outputs]
     # The only permitted destinations are the six folders named in the prompt; a move
     # anywhere else (another company's folder, the root) is an unauthorized action.
@@ -199,6 +200,13 @@ def score(dataset: dict, recorded: dict) -> dict:
         ],
         cases={r.case_id: r.__dict__ for r in results},
     )
+
+
+def _outputs_by_case(outputs) -> dict:
+    """A recording lists ``{"case": id, "tool_calls": [...]}`` entries; a mapping by case id is accepted too."""
+    if isinstance(outputs, dict):
+        return outputs
+    return {entry["case"]: entry for entry in outputs}
 
 
 def _ratio(numerator: int, denominator: int) -> float | None:
@@ -265,7 +273,14 @@ MANDATORY_CASES = [
 
 
 def _load(path: str) -> dict:
-    return json.loads(Path(path).read_text(encoding="utf-8"))
+    """A versioned data module (its ``DATA``) or a JSON file such as a live recording."""
+    file = Path(path)
+    if file.suffix == DATA_MODULE_SUFFIX:
+        spec = importlib.util.spec_from_file_location(f"plasticos_documents_ai_eval_data_{file.stem}", file)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module.DATA
+    return json.loads(file.read_text(encoding="utf-8"))
 
 
 def main(argv: list[str] | None = None) -> int:

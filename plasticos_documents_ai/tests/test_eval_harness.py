@@ -14,13 +14,13 @@ from odoo.addons.plasticos_documents_ai.eval import harness
 from odoo.tests import BaseCase, tagged
 
 EVAL = Path(harness.__file__).resolve().parent
-DATASET = EVAL / "dataset" / "synthetic_v1.json"
-BASELINE = EVAL / "recorded" / "harness_fixture_baseline.json"
-CANDIDATE = EVAL / "recorded" / "harness_fixture_candidate.json"
+DATASET = EVAL / "dataset" / "synthetic_v1.py"
+BASELINE = EVAL / "recorded" / "harness_fixture_baseline.py"
+CANDIDATE = EVAL / "recorded" / "harness_fixture_candidate.py"
 
 
 def _load(path):
-    return json.loads(path.read_text(encoding="utf-8"))
+    return harness._load(str(path))
 
 
 def _ideal_recording(dataset):
@@ -80,6 +80,7 @@ class TestEvalHarness(BaseCase):
             self.assertIsNone(email.search(text), path.name)
             self.assertIsNone(phone.search(text), path.name)
             self.assertNotIn("base64", text, path.name)
+            self.assertNotIn("file_data", text, path.name)
         for recording in (_load(BASELINE), _load(CANDIDATE)):
             self.assertIn("Not a model run", recording["provenance"])
 
