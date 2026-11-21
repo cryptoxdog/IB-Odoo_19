@@ -5,3 +5,4 @@ from . import test_rehomed_native_cases
 from . import test_review_routing_and_hold
 from . import test_reference_matching
 from . import test_digitized_bill_guard
+from . import test_document_sync_routing
