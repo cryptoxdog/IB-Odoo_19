@@ -747,6 +747,5 @@ class PlasticosSalesCommandCenter(models.Model):
             "res_model": self._name,
             "res_id": 1,
             "view_mode": "form",
-            "views": [(self.env.ref("plasticos_commission.view_sales_command_center_form").id, "form")],
             "target": "current",
         }
