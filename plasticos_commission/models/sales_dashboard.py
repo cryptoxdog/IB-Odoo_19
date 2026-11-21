@@ -1,10 +1,15 @@
 import logging
 
 from odoo import api, fields, models, tools
+from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
 PLASTICOS_TRANSACTION = "plasticos.transaction"
+
+# Deal states that are not active. Same list as the "active_deals" search filter
+# in views/sales_dashboard_views.xml.
+INACTIVE_DEAL_STATES = ["closed", "cancelled", "draft"]
 
 
 class PlasticosSalesDashboard(models.Model):
@@ -541,4 +546,206 @@ class PlasticosSalesDashboard(models.Model):
             "view_mode": "list,form",
             "domain": [("id", "in", payout_ids)],
             "context": {"create": False, "edit": False},
+        }
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # Sales command center (TASK-033, DEC-007 KPI-drill parity)
+    # ══════════════════════════════════════════════════════════════════════════
+    # Each KPI is declared once: source model, domain, aggregate. Its value and
+    # its drill both come from that declaration. Every domain names the logged-in
+    # user, so a KPI never counts another rep's records whatever the user's group;
+    # record rules still apply because nothing here uses sudo. A KPI whose model
+    # or fields are not installed, or that the user may not read, is unavailable
+    # (value None), never 0.
+
+    def _sales_kpi_declarations(self):
+        uid = self.env.uid
+        # DEC-008 / POS-INV-05: transaction-derived KPIs are scoped to the user's
+        # active companies through the sale order. A deal without a sale order has
+        # no resolvable company and is not counted (fail closed).
+        company_ids = self.env.companies.ids
+        no_sale_order = "Deals without a sale order are not counted."
+        active_deals = [
+            ("transaction_state", "not in", INACTIVE_DEAL_STATES),
+            ("user_id", "=", uid),
+            ("transaction_id.sale_order_id.company_id", "in", company_ids),
+        ]
+        return {
+            "open_opportunities": dict(
+                label="My Open Opportunities",
+                help="Open CRM opportunities assigned to you.",
+                model="crm.lead",
+                domain=[
+                    ("type", "=", "opportunity"),
+                    ("active", "=", True),
+                    ("user_id", "=", uid),
+                    ("stage_id.is_won", "=", False),
+                ],
+                aggregate="count",
+            ),
+            "outstanding_offers": dict(
+                label="My Outstanding Offers",
+                help="Sent or responded offers on intakes assigned to you.",
+                model="plasticos.offer",
+                domain=[
+                    ("state", "in", ["sent", "responded"]),
+                    ("intake_id.assigned_user_id", "=", uid),
+                ],
+                aggregate="count",
+            ),
+            "active_deals": dict(
+                label="My Active Deals",
+                help=no_sale_order,
+                model=self._name,
+                domain=active_deals,
+                aggregate="count",
+            ),
+            "pending_confirmations": dict(
+                label="Pending Supplier Confirmations",
+                help=no_sale_order,
+                model=PLASTICOS_TRANSACTION,
+                domain=[
+                    ("state", "not in", INACTIVE_DEAL_STATES),
+                    ("user_id", "=", uid),
+                    ("sale_order_id.company_id", "in", company_ids),
+                    ("is_supplier_confirmed", "=", False),
+                ],
+                aggregate="count",
+            ),
+            "margin": dict(
+                label="Margin on Active Deals",
+                help=no_sale_order,
+                model=self._name,
+                domain=active_deals,
+                aggregate="sum:gross_margin",
+            ),
+            "expected_commission": dict(
+                label="Expected Commission on Active Deals",
+                help=no_sale_order,
+                model=self._name,
+                domain=active_deals,
+                aggregate="sum:commission_amount",
+            ),
+            "missing_customer_documents": dict(
+                label="Deals Missing Customer Documents",
+                help=no_sale_order,
+                model=PLASTICOS_TRANSACTION,
+                domain=[
+                    ("state", "!=", "cancelled"),
+                    ("user_id", "=", uid),
+                    ("sale_order_id.company_id", "in", company_ids),
+                    ("missing_buyer_docs", "=", True),
+                ],
+                aggregate="count",
+            ),
+        }
+
+    def _sales_kpi_available(self, declaration):
+        """The model is installed, every field the KPI reads exists, and the user may read the model."""
+        model_name = declaration["model"]
+        if model_name not in self.env:
+            return False
+        model = self.env[model_name]
+        names = {leaf[0].split(".", 1)[0] for leaf in declaration["domain"] if isinstance(leaf, (list, tuple))}
+        if declaration["aggregate"].startswith("sum:"):
+            names.add(declaration["aggregate"].split(":", 1)[1])
+        if any(name not in model._fields for name in names):
+            return False
+        return model.has_access("read")
+
+    def _sales_kpi_value(self, declaration):
+        model = self.env[declaration["model"]]
+        aggregate = declaration["aggregate"]
+        if aggregate == "count":
+            return model.search_count(declaration["domain"])
+        field_name = aggregate.split(":", 1)[1]
+        [(total,)] = model._read_group(declaration["domain"], aggregates=[f"{field_name}:sum"])
+        return total or 0.0
+
+    @api.model
+    def get_sales_kpis(self):
+        """Command-center KPIs for the logged-in user, in declaration order.
+
+        Each entry carries its declaration; ``available`` False means the value is
+        unavailable (None), which is distinct from a true zero.
+        """
+        kpis = []
+        for key, declaration in self._sales_kpi_declarations().items():
+            available = self._sales_kpi_available(declaration)
+            value = self._sales_kpi_value(declaration) if available else None
+            kpis.append(dict(declaration, key=key, available=available, value=value))
+        return kpis
+
+    @api.model
+    def action_open_sales_kpi(self, key):
+        """Drill for one KPI: the declared source model with the declared domain."""
+        declaration = self._sales_kpi_declarations().get(key)
+        if declaration is None:
+            raise UserError(f"Unknown sales KPI: {key}")
+        if not self._sales_kpi_available(declaration):
+            raise UserError(f"{declaration['label']} is unavailable: its records are not installed or not readable.")
+        view_mode = "list,form,pivot,graph" if declaration["model"] == self._name else "list,form"
+        return {
+            "type": "ir.actions.act_window",
+            "name": declaration["label"],
+            "res_model": declaration["model"],
+            "view_mode": view_mode,
+            "domain": declaration["domain"],
+            "context": {"create": False},
+        }
+
+
+class PlasticosSalesCommandCenter(models.Model):
+    """Sales command-center tiles (TASK-033). Presentation only.
+
+    One virtual row (``SELECT 1 AS id``), no table, no stored data, read-only
+    ACL: the form opens that row and its tile buttons never write. Every tile
+    value is read from
+    ``plasticos.sales.dashboard.get_sales_kpis`` for the current user, and every
+    tile opens that KPI's drill, built from the same declaration (DEC-007).
+    An unavailable KPI shows "Unavailable", never 0.
+    """
+
+    _name = "plasticos.sales.command.center"
+    _description = "Sales Command Center"
+    _auto = False
+    _log_access = False
+    _table_query = "SELECT 1 AS id"
+
+    open_opportunities_value = fields.Integer(compute="_compute_tiles")
+    open_opportunities_available = fields.Boolean(compute="_compute_tiles")
+    outstanding_offers_value = fields.Integer(compute="_compute_tiles")
+    outstanding_offers_available = fields.Boolean(compute="_compute_tiles")
+    active_deals_value = fields.Integer(compute="_compute_tiles")
+    active_deals_available = fields.Boolean(compute="_compute_tiles")
+    pending_confirmations_value = fields.Integer(compute="_compute_tiles")
+    pending_confirmations_available = fields.Boolean(compute="_compute_tiles")
+    margin_value = fields.Float(compute="_compute_tiles", digits="Product Price")
+    margin_available = fields.Boolean(compute="_compute_tiles")
+    expected_commission_value = fields.Float(compute="_compute_tiles", digits="Product Price")
+    expected_commission_available = fields.Boolean(compute="_compute_tiles")
+    missing_customer_documents_value = fields.Integer(compute="_compute_tiles")
+    missing_customer_documents_available = fields.Boolean(compute="_compute_tiles")
+
+    def _compute_tiles(self):
+        kpis = self.env["plasticos.sales.dashboard"].get_sales_kpis()
+        for rec in self:
+            for kpi in kpis:
+                rec[f"{kpi['key']}_available"] = kpi["available"]
+                rec[f"{kpi['key']}_value"] = kpi["value"] if kpi["available"] else False
+
+    def action_open_kpi(self):
+        """Tile button: the KPI key comes from the button context."""
+        key = self.env.context.get("kpi_key")
+        return self.env["plasticos.sales.dashboard"].action_open_sales_kpi(key)
+
+    @api.model
+    def action_open_command_center(self):
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Sales Command Center",
+            "res_model": self._name,
+            "res_id": 1,
+            "view_mode": "form",
+            "target": "current",
         }
