@@ -874,13 +874,8 @@ class PlasticosDocument(models.Model):
         A stored compute cannot depend on a generic ``res_model``/``res_id`` subject or on the native
         original, so the source models call this when one of their company sources is written.
         """
-        rows = (
-            self.sudo()
-            .with_context(active_test=False)
-            .search(  # sudo: rows hidden by the very rule this repairs
-                [("association_state", "!=", "accepted"), *domain]
-            )
-        )
+        elevated = self.sudo()  # sudo: the rows to repair are hidden by the very rule this repairs
+        rows = elevated.with_context(active_test=False).search([("association_state", "!=", "accepted"), *domain])
         if not rows:
             return rows
         self.env.add_to_compute(self._fields["evidence_company_id"], rows)

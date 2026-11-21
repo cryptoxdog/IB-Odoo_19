@@ -124,7 +124,8 @@ class TestPendingCompanyIsolation(PlasticosTestCase):
 
     def test_dangling_original_is_noted_not_routed(self):
         """A deleted or unknown original never breaks routing: the hidden row is noted instead."""
-        missing_id = self.env["plasticos.transaction"].search([], order="id desc", limit=1).id + 100000
+        last = self.env["plasticos.transaction"].search([], order="id desc", limit=1)
+        missing_id = (last.id if last else 0) + 100000
         doc = self._pending(self.env["res.company"], "plasticos.transaction", missing_id)
         self.assertFalse(doc.evidence_company_id)
         notes = doc.sudo().message_ids.filtered(
