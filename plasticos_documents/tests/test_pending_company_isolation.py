@@ -115,3 +115,57 @@ class TestPendingCompanyIsolation(PlasticosTestCase):
         self.assertEqual(row.obligation_kind, "legacy")
         # Accepted legacy evidence is not newly scoped by DEC-005 (d).
         self.assertTrue(self._visible(self.user_a, row))
+
+    def _company_activities(self, doc, record):
+        summary = f"Pending evidence company unresolved: {doc.name} (evidence {doc.id})"
+        return self.env["mail.activity"].search(
+            [("res_model", "=", record._name), ("res_id", "=", record.id), ("summary", "=", summary)]
+        )
+
+    def test_dangling_original_is_noted_not_routed(self):
+        """A deleted or unknown original never breaks routing: the hidden row is noted instead."""
+        missing_id = self.env["plasticos.transaction"].search([], order="id desc", limit=1).id + 100000
+        doc = self._pending(self.env["res.company"], "plasticos.transaction", missing_id)
+        self.assertFalse(doc.evidence_company_id)
+        notes = doc.sudo().message_ids.filtered(
+            lambda m: "Not routed: Pending evidence company unresolved" in (m.body or "")
+        )
+        self.assertEqual(len(notes), 1)
+
+    def test_attachment_company_change_routes_without_a_document_write(self):
+        doc = self._pending(self.company_b, "plasticos.transaction", self.tx_b.id)
+        self.assertTrue(self._visible(self.user_b, doc))
+        doc.attachment_id.sudo().write({"company_id": self.company_a.id})
+        self.assertFalse(doc.evidence_company_id)
+        self.assertFalse(self._visible(self.user_b, doc))
+        activity = self._company_activities(doc, self.tx_b)
+        self.assertEqual(len(activity), 1)
+        # Owned inside the target's own company (B), never by a manager who cannot reach it.
+        self.assertIn(self.company_b, activity.user_id.company_ids)
+        doc.attachment_id.sudo().write({"company_id": self.company_b.id})
+        self.assertEqual(doc.evidence_company_id, self.company_b)
+        self.assertFalse(self._company_activities(doc, self.tx_b))
+
+    def test_subject_company_change_recomputes_the_evidence_company(self):
+        partner = self.env["res.partner"].create({"name": "A30 Late Partner", "is_company": True})
+        tx = self.env["plasticos.transaction"].create(
+            {"supplier_id": partner.id, "buyer_id": partner.id, "quantity": 1}
+        )
+        doc = self._pending(self.company_a, "plasticos.transaction", tx.id)
+        self.assertEqual(doc.evidence_company_id, self.company_a)
+        order_b = self.env["sale.order"].create({"partner_id": partner.id, "company_id": self.company_b.id})
+        tx.write({"sale_order_id": order_b.id})
+        self.assertFalse(doc.evidence_company_id)
+        self.assertFalse(self._visible(self.user_a, doc))
+        self.assertEqual(len(self._company_activities(doc, tx)), 1)
+
+    def test_moving_the_row_closes_the_activity_on_the_previous_original(self):
+        doc = self._pending(self.company_a, "plasticos.transaction", self.tx_b.id)
+        self.assertEqual(len(self._company_activities(doc, self.tx_b)), 1)
+        partner = self.env["res.partner"].create({"name": "A30 Other Partner", "is_company": True})
+        other = self.env["plasticos.transaction"].create(
+            {"supplier_id": partner.id, "buyer_id": partner.id, "quantity": 1}
+        )
+        doc._association_write({"res_id": other.id})
+        self.assertFalse(self._company_activities(doc, self.tx_b))
+        self.assertEqual(doc.evidence_company_id, self.company_a)
