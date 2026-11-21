@@ -14,22 +14,21 @@ Enterprise module.
 import logging
 
 from odoo import api, models
-from odoo.addons.plasticos_documents.models.exception_router import (
-    EXC_ASSOCIATION_REVIEW,
-    EXC_BLOCKED_BILL,
-    OPERATIONS,
-    OWNER_GROUPS,
-    Obligation,
-    RerouteResult,
-)
 
 from .account_move import BILL_REVIEW_SUMMARY
 from .reference_match import extract_tokens, number_pattern, split_email_body
 
 _logger = logging.getLogger(__name__)
 
-# The default owner group named in "no reviewer" errors. The owner itself is routed (DEC-010).
-REVIEW_GROUP_XMLID = OWNER_GROUPS[OPERATIONS]
+
+def _router_api():
+    """The plasticos_documents exception router's constants (DEC-010). Imported here, not at module
+    scope: cross-addon imports stay inside functions (AGENTS.md)."""
+    from odoo.addons.plasticos_documents.models import exception_router
+
+    return exception_router
+
+
 DOCUMENT_REVIEW_SUMMARY = "Document association needs review"
 # (model, ir.sequence code). The format itself is read from the sequence row.
 REFERENCE_SEQUENCE_CODES = (
@@ -200,7 +199,9 @@ class DocumentSyncService(models.AbstractModel):
             router.purpose_from_move(record) if record._name == "account.move" else router.purpose_from_tag_codes(())
         )
         company = record.company_id if "company_id" in record._fields else self.env["res.company"]
-        return self._schedule_routed_activity(record, Obligation(summary, purpose, EXC_BLOCKED_BILL, note), company)
+        api_ = _router_api()
+        obligation = api_.Obligation(summary, purpose, api_.EXC_BLOCKED_BILL, note)
+        return self._schedule_routed_activity(record, obligation, company)
 
     @api.model
     def _review_purpose(self, native_doc):
@@ -218,7 +219,10 @@ class DocumentSyncService(models.AbstractModel):
     def _schedule_review_once(self, native_doc):
         """One association-review activity on the original, owned per DEC-010, never by the uploader."""
         note = native_doc.plasticos_doc_id.pending_reason or self._navigation_reason(native_doc)
-        obligation = Obligation(DOCUMENT_REVIEW_SUMMARY, self._review_purpose(native_doc), EXC_ASSOCIATION_REVIEW, note)
+        api_ = _router_api()
+        obligation = api_.Obligation(
+            DOCUMENT_REVIEW_SUMMARY, self._review_purpose(native_doc), api_.EXC_ASSOCIATION_REVIEW, note
+        )
         return self._schedule_routed_activity(native_doc, obligation, native_doc.company_id)
 
     @api.model
@@ -267,7 +271,7 @@ class DocumentSyncService(models.AbstractModel):
                 rerouted += 1
         after = reroute._owner_roles(activities)
         _logger.info("Rerouted %d review activities: before %s, after %s", rerouted, before, after)
-        return RerouteResult(before, after, rerouted)
+        return _router_api().RerouteResult(before, after, rerouted)
 
     # ── Deterministic reference matching (email subject, body, filename, bill reference) ──
     @api.model

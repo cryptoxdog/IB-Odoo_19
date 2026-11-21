@@ -2,7 +2,6 @@ import logging
 from datetime import date, timedelta
 
 from odoo import api, fields, models
-from odoo.addons.plasticos_base.models.res_users import EXCLUDE_CONTEXT_KEY
 from odoo.tools import html2plaintext
 
 from .exception_router import (
@@ -274,7 +273,7 @@ class PlasticosTransactionDocs(models.Model):
                 route = router.route(purpose, EXC_MISSING_DOCUMENTS)
                 if route.role not in owners_by_role:
                     owners_by_role[route.role] = self.with_context(
-                        **{EXCLUDE_CONTEXT_KEY: router._excluded_ids(route.role)}
+                        **router.exclusion_context(route.role)
                     )._escalation_owners(self._escalation_group_for(route.role), companies)
                 manager = owners_by_role[route.role][tx.id]
                 obligation = Obligation(
@@ -588,7 +587,7 @@ class PlasticosTransactionDocs(models.Model):
                 escalation_bd = 7
             route, _purpose = self._scale_ticket_route()
             router = self.env["plasticos.exception.router"]
-            owners = self.with_context(**{EXCLUDE_CONTEXT_KEY: router._excluded_ids(route.role)})._escalation_owners(
+            owners = self.with_context(**router.exclusion_context(route.role))._escalation_owners(
                 self._scale_ticket_manager_group(), {load.id: load.company_id for load in loads}
             )
             summaries = {load.id: f"ESCALATION: Missing scale ticket on {load.name}" for load in loads}
@@ -620,6 +619,10 @@ class PlasticosTransactionDocs(models.Model):
                                 "The load's scale ticket is current.",
                                 open_by_load.get(load.id, no_activity),
                             )
+                            if load.scale_ticket_escalated:
+                                # The gap is closed: a later invalid, expired or superseded ticket
+                                # must be able to escalate again.
+                                load._write_scale_ticket_status({"scale_ticket_escalated": False})
                             continue
                         delivery_date, pickup_date = self._scale_ticket_clock_dates(load)
                         bd_since_delivery = self._count_business_days(delivery_date, today) if delivery_date else 0
