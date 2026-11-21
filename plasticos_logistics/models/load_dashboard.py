@@ -625,23 +625,22 @@ class PlasticosLoadDashboard(models.Model):
         ``value`` is ``search_count(domain)`` on ``model``; ``available`` is False (and ``value``
         None) when the source cannot be read, so an error never reads as a zero.
         """
-        kpis = []
-        for key, label, model, domain in self._control_tower_declarations():
-            if domain is None:
-                kpis.append(
-                    {"key": key, "label": label, "model": model, "domain": None, "value": None, "available": False}
-                )
-                continue
-            try:
-                value = self.env[model].search_count(domain)
-                available = True
-            except (AccessError, UserError, ValidationError) as error:
-                _logger.warning("Control Tower KPI %s unavailable: %s", key, error)
-                value, available = None, False
-            kpis.append(
-                {"key": key, "label": label, "model": model, "domain": domain, "value": value, "available": available}
-            )
+        # One count per declared KPI (a fixed table, not a loop over records).
+        kpis = [self._evaluate_kpi(*declaration) for declaration in self._control_tower_declarations()]
         return kpis
+
+    @api.model
+    def _evaluate_kpi(self, key, label, model, domain):
+        """One KPI's value: ``search_count(domain)``, or unavailable (value None) when unreadable."""
+        kpi = {"key": key, "label": label, "model": model, "domain": domain, "value": None, "available": False}
+        if domain is None:
+            return kpi
+        try:
+            kpi["value"] = self.env[model].search_count(domain)
+            kpi["available"] = True
+        except (AccessError, UserError, ValidationError) as error:
+            _logger.warning("Control Tower KPI %s unavailable: %s", key, error)
+        return kpi
 
     @api.model
     def action_drill_kpi(self, key=None):
