@@ -13,6 +13,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from datetime import date, timedelta
+from typing import TypeGuard
 
 PARAM_MILES_PER_DAY = "plasticos_logistics.schedule_miles_per_day"
 PARAM_LEAD_DAYS = "plasticos_logistics.schedule_lead_days"
@@ -162,12 +163,12 @@ def on_or_before_business_day(day: date) -> date:
     return cursor
 
 
-def weight_is_known(weight: float | None) -> bool:
+def weight_is_known(weight: float | None) -> TypeGuard[float]:
     """A full net weight is known only when it is a positive number. Zero is unset."""
     return weight is not None and weight > 0
 
 
-def minimum_exists(minimum: float | None) -> bool:
+def minimum_exists(minimum: float | None) -> TypeGuard[float]:
     return minimum is not None and minimum > 0
 
 
@@ -392,7 +393,8 @@ def export_notices(installed: bool, window: ExportWindow | None) -> list[Schedul
         nxt = window.next_cutoff.isoformat() if window.next_cutoff else "not on record"
         follow = f"The next cutoff is {nxt} on vessel {vessel}."
     staged = window.staging_deadline.isoformat() if window.staging_deadline else "not on record"
-    gap = f"{window.known_gap.strip()} " if (window.known_gap or "").strip() else ""
+    known_gap = (window.known_gap or "").strip()
+    gap = f"{known_gap} " if known_gap else ""
     notice = (
         f"{gap}The booking cutoff is {window.cutoff.isoformat()}. To make it, the full load must be "
         f"staged by {staged}. {follow}"

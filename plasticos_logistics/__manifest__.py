@@ -1,6 +1,6 @@
 {
     "name": "Plasticos Logistics Engine",
-    "version": "19.0.1.16.2",
+    "version": "19.0.1.16.3",
     "summary": "Load management and dispatch",
     "author": "Igor Beylin",
     "license": "Other proprietary",
