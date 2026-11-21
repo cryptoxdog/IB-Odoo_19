@@ -78,6 +78,7 @@ def extract_model_names_from_python(root_dir: Path) -> set[str]:
         "ir.module.category",
         # Mail
         "mail.message",
+        "mail.message.subtype",
         "mail.thread",
         "mail.activity",
         "mail.activity.type",

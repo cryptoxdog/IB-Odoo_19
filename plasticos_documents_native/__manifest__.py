@@ -1,6 +1,6 @@
 {
     "name": "Plasticos Documents — Native Bridge",
-    "version": "19.0.1.3.3",
+    "version": "19.0.1.5.0",
     "summary": "Plastics fields on Odoo Enterprise Documents, pending evidence rows for classified "
     "originals with manager review, and a posting guard on digitized vendor bills",
     "category": "Document Management",
@@ -29,7 +29,9 @@
         "security/ir.model.access.csv",
         "data/document_folders.xml",
         "data/document_tags.xml",
+        "data/classification_correction_data.xml",
         "views/document_native_views.xml",
+        "views/classification_correction_views.xml",
         "views/account_move_views.xml",
     ],
     # Requires Enterprise modules `documents`, `documents_account` and `account_invoice_extract` on the host.

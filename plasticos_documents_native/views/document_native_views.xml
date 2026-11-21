@@ -22,6 +22,9 @@
                     <button name="action_override" type="object" string="Override"
                             invisible="override"
                             groups="plasticos_documents.group_documents_manager"/>
+                    <button name="action_open_classification_correction" type="object"
+                            string="Correct Classification"
+                            groups="plasticos_documents.group_documents_user"/>
                 </header>
                 <sheet>
                 <div class="alert alert-warning" role="alert" invisible="not verification_review_required">
@@ -41,6 +44,7 @@
                 <group string="Plasticos Classification">
                     <group>
                         <field name="doc_type"/>
+                        <field name="doc_type_source"/>
                         <field name="polymer_id"/>
                     </group>
                     <group>
