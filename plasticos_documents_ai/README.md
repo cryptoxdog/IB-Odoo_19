@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_documents_ai
 component_name: Plasticos Documents AI
-module_version: 19.0.1.1.0
+module_version: 19.0.1.1.1
 installable: true
 auto_install: false
 application: false
@@ -107,6 +107,33 @@ Running the action again with the same version changes nothing. A new prompt ver
 Install and upgrade never write a folder prompt or create a rule. An administrator's later edit of the Inbox prompt therefore survives an upgrade. Folder moves are limited to the six Plasticos destination folders named in the prompt. Enterprise enforces this.
 
 The owner activity for review signals belongs to the activity router (TASK-060 / TASK-070), never to the prompt.
+
+## Evaluation and replay harness (TASK-074)
+
+`eval/` scores a prompt version from recorded model outputs, with no Odoo and no network (v2.0 section E).
+
+- `eval/dataset/synthetic_v1.json` is the versioned labeled set: written descriptions of fictional documents covering every v2.0 mandatory case. No real document is stored.
+- `eval/harness.py` computes the six v2.0 metrics:
+  - auto-routed share;
+  - primary-family accuracy among routed documents;
+  - human classification intervention;
+  - unnecessary review;
+  - unauthorized business actions (a tool the rule does not grant, the Verified tag, or a move outside the six prompted folders);
+  - human-correction overwrites.
+
+  It also builds a per-type confusion matrix and a regression replay that names every case the previous version got right and the candidate gets wrong. A metric with nothing to measure is reported as unknown (`null`), never as 0.
+- `eval/recorded/harness_fixture_*.json` are hand-written recordings that test the scorer. They are not model runs, and no number computed from them describes any model.
+
+Run it:
+
+```bash
+python3 plasticos_documents_ai/eval/harness.py --dataset plasticos_documents_ai/eval/dataset/synthetic_v1.json \
+    --recorded <candidate recording> --baseline <previous recording>
+```
+
+It exits 1 when an output is missing, a mandatory case is absent or the regression replay finds a regression.
+
+Live scoring follows GATE-005. Until then it uses synthetic documents only. After GATE-005 it uses the operator's labeled Staging set (UNK-007). The v2.0 targets stay unmet claims until a representative labeled set has been measured.
 
 ## Tests
 

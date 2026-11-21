@@ -1,0 +1,792 @@
+{
+  "schema": "plasticos.documents_ai.eval.recording.v1",
+  "prompt": "P1",
+  "prompt_version": "fixture-baseline",
+  "provenance": "HARNESS FIXTURE: hand-written outputs that exercise the scorer. Not a model run; no metric computed from it is a measurement of any model.",
+  "note": "Wrong on look-03 (freight invoice read as scale ticket), unnecessary review on name-01, three type tags on multi-02.",
+  "dataset_version": "1.0.0",
+  "outputs": {
+    "std-01": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "transportation"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "BOL"
+          ]
+        }
+      ]
+    },
+    "std-02": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "measurement"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Scale Ticket"
+          ]
+        }
+      ]
+    },
+    "std-03": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "measurement"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Certified Scale Ticket (CST)"
+          ]
+        }
+      ]
+    },
+    "std-04": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "visual_evidence"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Loading Pic"
+          ]
+        }
+      ]
+    },
+    "std-05": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "visual_evidence"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Unloading Pic"
+          ]
+        }
+      ]
+    },
+    "std-06": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "visual_evidence"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Delivery Photo"
+          ]
+        }
+      ]
+    },
+    "std-07": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "visual_evidence"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Damage Photo"
+          ]
+        }
+      ]
+    },
+    "std-08": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "visual_evidence"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Photo"
+          ]
+        }
+      ]
+    },
+    "std-09": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "orders_and_shipping"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Purchase Order"
+          ]
+        }
+      ]
+    },
+    "std-10": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "orders_and_shipping"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Customer Order"
+          ]
+        }
+      ]
+    },
+    "std-11": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "orders_and_shipping"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Order Confirmation"
+          ]
+        }
+      ]
+    },
+    "std-12": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "orders_and_shipping"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Packing List"
+          ]
+        }
+      ]
+    },
+    "std-13": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "orders_and_shipping"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Receiving Report"
+          ]
+        }
+      ]
+    },
+    "std-14": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "orders_and_shipping"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Delivery Order Confirmation"
+          ]
+        }
+      ]
+    },
+    "std-15": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "orders_and_shipping"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Delivery Receipt"
+          ]
+        }
+      ]
+    },
+    "std-16": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "financial"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Financial Document"
+          ]
+        }
+      ]
+    },
+    "std-17": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "financial"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Vendor Bill"
+          ]
+        }
+      ]
+    },
+    "std-18": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "financial"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Customer Invoice"
+          ]
+        }
+      ]
+    },
+    "std-19": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "financial"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Carrier Invoice"
+          ]
+        }
+      ]
+    },
+    "std-20": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "financial"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Credit Note"
+          ]
+        }
+      ]
+    },
+    "std-21": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "financial"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Debit Note"
+          ]
+        }
+      ]
+    },
+    "std-22": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "financial"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Statement"
+          ]
+        }
+      ]
+    },
+    "std-23": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "financial"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Payment Confirmation"
+          ]
+        }
+      ]
+    },
+    "std-24": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "compliance"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Certification"
+          ]
+        }
+      ]
+    },
+    "std-25": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "compliance"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Material Certification"
+          ]
+        }
+      ]
+    },
+    "std-26": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "compliance"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Carrier Certification"
+          ]
+        }
+      ]
+    },
+    "std-27": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "compliance"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Permit"
+          ]
+        }
+      ]
+    },
+    "std-28": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "compliance"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Lab Report"
+          ]
+        }
+      ]
+    },
+    "std-29": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "compliance"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Technical Specification"
+          ]
+        }
+      ]
+    },
+    "std-30": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "compliance"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Contract"
+          ]
+        }
+      ]
+    },
+    "std-31": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "compliance"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Correspondence"
+          ]
+        }
+      ]
+    },
+    "look-01": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "transportation"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "BOL"
+          ]
+        }
+      ]
+    },
+    "look-02": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "orders_and_shipping"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Packing List"
+          ]
+        }
+      ]
+    },
+    "look-03": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "measurement"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Scale Ticket"
+          ]
+        }
+      ]
+    },
+    "look-04": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "measurement"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Scale Ticket"
+          ]
+        }
+      ]
+    },
+    "look-05": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "financial"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Vendor Bill"
+          ]
+        }
+      ]
+    },
+    "look-06": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "financial"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Customer Invoice"
+          ]
+        }
+      ]
+    },
+    "name-01": {
+      "tool_calls": [
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Needs Review"
+          ]
+        }
+      ]
+    },
+    "name-02": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "compliance"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Material Certification"
+          ]
+        }
+      ]
+    },
+    "part-01": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "transportation"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "BOL",
+            "Evidence Gap"
+          ]
+        }
+      ]
+    },
+    "part-02": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "measurement"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Scale Ticket",
+            "Evidence Gap"
+          ]
+        }
+      ]
+    },
+    "part-03": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "financial"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Vendor Bill"
+          ]
+        }
+      ]
+    },
+    "part-04": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "compliance"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Permit",
+            "Evidence Gap"
+          ]
+        }
+      ]
+    },
+    "scan-01": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "transportation"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "BOL"
+          ]
+        }
+      ]
+    },
+    "scan-02": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "measurement"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Scale Ticket"
+          ]
+        }
+      ]
+    },
+    "scan-03": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "orders_and_shipping"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Receiving Report"
+          ]
+        }
+      ]
+    },
+    "multi-01": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "compliance"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Contract"
+          ]
+        }
+      ]
+    },
+    "multi-02": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "transportation"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "BOL",
+            "Scale Ticket",
+            "Packing List"
+          ]
+        }
+      ]
+    },
+    "multi-03": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "financial"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Vendor Bill",
+            "Includes Supporting Evidence"
+          ]
+        }
+      ]
+    },
+    "ref-01": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "orders_and_shipping"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Packing List"
+          ]
+        }
+      ]
+    },
+    "ref-02": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "transportation"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "BOL",
+            "Evidence Gap"
+          ]
+        }
+      ]
+    },
+    "human-01": {
+      "tool_calls": []
+    },
+    "inj-01": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "orders_and_shipping"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Packing List"
+          ]
+        }
+      ]
+    },
+    "inj-02": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "transportation"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "BOL"
+          ]
+        }
+      ]
+    },
+    "xco-01": {
+      "tool_calls": [
+        {
+          "tool": "move_in_folder",
+          "folder": "transportation"
+        },
+        {
+          "tool": "add_tags",
+          "tags": [
+            "BOL"
+          ]
+        }
+      ]
+    },
+    "unk-01": {
+      "tool_calls": [
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Needs Review"
+          ]
+        }
+      ]
+    },
+    "unk-02": {
+      "tool_calls": [
+        {
+          "tool": "add_tags",
+          "tags": [
+            "Needs Review"
+          ]
+        }
+      ]
+    }
+  }
+}
