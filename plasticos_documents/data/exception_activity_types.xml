@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Module-owned activity types, one per document exception class (DEC-012).
+     The owner is decided by plasticos.exception.router (DEC-010), never by the type.
+     A type used on documents.document (an Enterprise model this module does not depend on)
+     carries no res_model; the others are pinned to their record model. -->
+<odoo>
+    <data noupdate="0">
+        <record id="activity_type_missing_documents" model="mail.activity.type">
+            <field name="name">Missing Documents</field>
+            <field name="summary">Missing documents</field>
+            <field name="res_model">plasticos.transaction</field>
+            <field name="icon">fa-file-o</field>
+            <field name="category">default</field>
+            <field name="decoration_type">warning</field>
+        </record>
+        <record id="activity_type_missing_scale_ticket" model="mail.activity.type">
+            <field name="name">Missing Scale Ticket</field>
+            <field name="summary">Missing scale ticket</field>
+            <field name="res_model">plasticos.load</field>
+            <field name="icon">fa-balance-scale</field>
+            <field name="category">default</field>
+            <field name="decoration_type">warning</field>
+        </record>
+        <record id="activity_type_association_review" model="mail.activity.type">
+            <field name="name">Document Association Review</field>
+            <field name="summary">Document association needs review</field>
+            <field name="icon">fa-link</field>
+            <field name="category">default</field>
+        </record>
+        <record id="activity_type_classification_review" model="mail.activity.type">
+            <field name="name">Document Classification Review</field>
+            <field name="summary">Document classification needs review</field>
+            <field name="icon">fa-question-circle</field>
+            <field name="category">default</field>
+            <field name="decoration_type">warning</field>
+        </record>
+        <record id="activity_type_evidence_gap" model="mail.activity.type">
+            <field name="name">Document Evidence Gap</field>
+            <field name="summary">Document evidence gap</field>
+            <field name="icon">fa-exclamation-triangle</field>
+            <field name="category">default</field>
+            <field name="decoration_type">warning</field>
+        </record>
+        <record id="activity_type_split_review" model="mail.activity.type">
+            <field name="name">Document Split Review</field>
+            <field name="summary">Document holds several documents</field>
+            <field name="icon">fa-scissors</field>
+            <field name="category">default</field>
+        </record>
+        <record id="activity_type_duplicate_candidate" model="mail.activity.type">
+            <field name="name">Duplicate Candidate Review</field>
+            <field name="summary">Possible duplicate or financial discrepancy</field>
+            <field name="icon">fa-clone</field>
+            <field name="category">default</field>
+            <field name="decoration_type">warning</field>
+        </record>
+        <record id="activity_type_blocked_bill" model="mail.activity.type">
+            <field name="name">Blocked Vendor Bill Review</field>
+            <field name="summary">Vendor bill held in draft</field>
+            <field name="res_model">account.move</field>
+            <field name="icon">fa-ban</field>
+            <field name="category">default</field>
+            <field name="decoration_type">danger</field>
+        </record>
+    </data>
+</odoo>

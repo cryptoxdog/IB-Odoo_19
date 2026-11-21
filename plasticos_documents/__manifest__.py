@@ -1,6 +1,6 @@
 {
     "name": "Plasticos Documents Engine",
-    "version": "19.0.2.1.23",
+    "version": "19.0.2.1.24",
     "summary": "Document management, compliance, validation matrix, and transaction doc tracking",
     "author": "Igor Beylin",
     "license": "Other proprietary",
@@ -16,6 +16,7 @@
         "security/security.xml",
         "security/ir.model.access.csv",
         "data/cron.xml",
+        "data/exception_activity_types.xml",
         "data/document_tags_data.xml",
         "data/cron_missing_docs.xml",
         "data/scale_ticket_rule.xml",

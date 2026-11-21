@@ -107,6 +107,13 @@ class TestDocumentQueryBatch(TransactionCase):
             {"name": login, "login": login, "group_ids": [fields.Command.link(group.id)]}
         )
 
+    def _logistics_owner(self, login):
+        """A load's missing scale ticket is Logistics work (DEC-010); the page needs an owner."""
+        group = self.env.ref("plasticos_security_base.group_logistics_ops")
+        return self.env["res.users"].create(
+            {"name": login, "login": login, "group_ids": [fields.Command.link(group.id)]}
+        )
+
     def test_missing_doc_page_schedules_one_escalation_each(self):
         self._operations_manager("query.batch.ops.missing")
         tag = self.env["plasticos.document.tag"].create({"name": "Query Batch Missing", "code": "QBATCHMISS"})
@@ -194,7 +201,7 @@ class TestDocumentQueryBatch(TransactionCase):
         parameter.set_param("plasticos_documents.scale_ticket_scan_cursor", str(first_load.id - 1))
 
     def test_scale_ticket_page_keeps_one_escalation_each(self):
-        self._operations_manager("query.batch.ops.scale")
+        self._logistics_owner("query.batch.logistics.scale")
         if not self.env["plasticos.document.tag"].search([("code", "=", "SCALE")], limit=1):
             self.env["plasticos.document.tag"].create({"name": "Scale Ticket", "code": "SCALE"})
         held = self._delivered_load("TX-QBATCH-SCALE-HELD")
