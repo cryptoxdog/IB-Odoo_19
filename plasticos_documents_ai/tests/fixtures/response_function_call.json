@@ -1,0 +1,16 @@
+{
+  "id": "resp_synthetic_0002",
+  "object": "response",
+  "model": "deepseek-flash",
+  "status": "completed",
+  "store": false,
+  "output": [
+    {
+      "type": "function_call",
+      "call_id": "call_synthetic_0001",
+      "name": "ir_actions_server_add_tags",
+      "arguments": "{\"tag_names\": [\"BOL\"]}"
+    }
+  ],
+  "usage": {"input_tokens": 140, "output_tokens": 18, "output_tokens_details": {"reasoning_tokens": 0}}
+}

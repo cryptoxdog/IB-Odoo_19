@@ -1,0 +1,9 @@
+{
+  "id": "file-api-synthetic0001",
+  "object": "file",
+  "bytes": 2048,
+  "created_at": 1700000000,
+  "filename": "file_1.pdf",
+  "purpose": "rich_layout_recognition",
+  "expires_at": 1700003600
+}
