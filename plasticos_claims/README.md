@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_claims
 component_name: PlasticOS Claims
-module_version: 19.0.1.1.9
+module_version: 19.0.1.1.10
 layer: 5
 installable: true
 auto_install: true

@@ -1,11 +1,11 @@
 {
     "name": "Plasticos Documents — Native Bridge",
-    "version": "19.0.1.3.1",
+    "version": "19.0.1.3.2",
     "summary": "Plastics fields on Odoo Enterprise Documents, pending evidence rows for classified "
     "originals with manager review, and a posting guard on digitized vendor bills",
     "category": "Document Management",
     "author": "Igor Beylin",
-    "license": "LGPL-3",
+    "license": "Other proprietary",
     # ══════════════════════════════════════════════════════════════════════════
     # ENTERPRISE DEPENDENCY: This module requires Odoo Enterprise 'documents'
     # and 'documents_account' modules.

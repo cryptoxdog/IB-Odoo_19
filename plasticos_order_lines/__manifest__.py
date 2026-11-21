@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Order Lines",
-    "version": "19.0.1.1.3",
+    "version": "19.0.1.1.4",
     "category": "Inventory/Purchase",
     "summary": "Extend PO/SO lines with full material specifications",
     "description": """
@@ -23,7 +23,7 @@ Computed full description: "HDPE Blue Regrind - Gaylords - Post-Industrial"
     """,
     "author": "Igor Beylin",
     "website": "https://plasticos.io",
-    "license": "LGPL-3",
+    "license": "Other proprietary",
     "depends": [
         "purchase",
         "sale",

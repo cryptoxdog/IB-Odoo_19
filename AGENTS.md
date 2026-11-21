@@ -961,3 +961,10 @@ Generated from `environment/ide/policy.json` in the governance clone by `ops/scr
 > commit `8667d5378a6eca54de134a918859360d183cf632`, with only the product name changed (L9 → PlasticOS).
 > The addon `__manifest__.py` `license` keys (`LGPL-3`) are unchanged by this correction; changing them is an Odoo
 > module change that needs version bumps and is a separate decision.
+
+> **2026-11-21 manifest license correction (additive; this file is append-only under `ops/config/root-file-protection.json`):**
+> the 2026-11-20 license correction's sentence that the addon `__manifest__.py` `license` keys stay `LGPL-3` is
+> superseded. Every `plasticos_*` manifest and the test pack `tests/__manifest__.py` declare
+> `"license": "Other proprietary"`, matching the root `LICENSE` (CTO decision 2026-11-21; `OPL-1` is the Odoo Apps
+> store licence and does not apply). Each manifest's PATCH version was bumped with the change and each module README's
+> `module_version` follows it. A new `plasticos_*` module declares `"Other proprietary"`, never `LGPL-3`.

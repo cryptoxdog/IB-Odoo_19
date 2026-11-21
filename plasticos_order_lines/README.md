@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_order_lines
 component_name: PlasticOS Order Lines
-module_version: 19.0.1.1.3
+module_version: 19.0.1.1.4
 layer: 3
 installable: true
 auto_install: true

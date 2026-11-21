@@ -1,9 +1,9 @@
 {
     "name": "PlasticOS Developer Tools",
-    "version": "19.0.1.0.0",
+    "version": "19.0.1.0.1",
     "summary": "Dev-only utilities: audit scripts, integrity checks, seed validators, migration stubs",
     "author": "Igor Beylin",
-    "license": "LGPL-3",
+    "license": "Other proprietary",
     "depends": [
         "base",
     ],

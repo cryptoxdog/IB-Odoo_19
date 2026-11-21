@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Intake",
-    "version": "19.0.5.5.1",
+    "version": "19.0.5.5.2",
     "summary": "Transactional Material Intake — contact intelligence, smart memory, UX normalization",
     "author": "Igor Beylin",
     "depends": [
@@ -24,5 +24,5 @@
     "installable": True,
     "auto_install": True,
     "application": False,
-    "license": "LGPL-3",
+    "license": "Other proprietary",
 }

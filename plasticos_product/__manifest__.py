@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Product Catalog",
-    "version": "19.0.1.0.3",
+    "version": "19.0.1.0.4",
     "category": "Inventory/Product",
     "summary": "Scrap plastic product catalog with polymer-synced products",
     "description": """
@@ -15,7 +15,7 @@ Features:
     """,
     "author": "Igor Beylin",
     "website": "https://plasticos.io",
-    "license": "LGPL-3",
+    "license": "Other proprietary",
     "depends": [
         "product",
         "plasticos_material_profile",

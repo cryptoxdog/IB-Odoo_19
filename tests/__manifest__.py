@@ -1,6 +1,6 @@
 {
     "name": "PlastOS Test Pack",
-    "version": "19.0.1.0.0",
+    "version": "19.0.1.0.1",
     "category": "Hidden",
     "summary": "Comprehensive test suite for PlastOS modules",
     "description": "Controller/API, Security/ACL, Constraint/Onchange, Integration tests.",
@@ -32,5 +32,5 @@
     "installable": False,
     "application": False,
     "auto_install": False,
-    "license": "LGPL-3",
+    "license": "Other proprietary",
 }

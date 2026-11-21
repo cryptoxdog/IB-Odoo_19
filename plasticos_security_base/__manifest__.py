@@ -1,6 +1,6 @@
 {
     "name": "Plasticos — Security Base",
-    "version": "19.0.1.2.30",
+    "version": "19.0.1.2.31",
     "category": "Plasticos/Security",
     "summary": "Core RBAC roles, record rules, and private-partner flag for the Plasticos platform.",
     "description": """
@@ -42,5 +42,5 @@
     "installable": True,
     "application": False,
     "auto_install": True,
-    "license": "LGPL-3",
+    "license": "Other proprietary",
 }

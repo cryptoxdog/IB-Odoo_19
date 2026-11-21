@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_semantic_kernel
 component_name: PlasticOS Semantic Kernel
-module_version: 19.0.1.0.6
+module_version: 19.0.1.0.7
 installable: true
 auto_install: false
 application: false

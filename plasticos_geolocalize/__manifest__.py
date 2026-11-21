@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Geolocalize",
-    "version": "19.0.1.1.1",
+    "version": "19.0.1.1.2",
     "summary": "Auto-geocode partners on create/write + nightly backfill cron",
     "author": "Igor Beylin",
     "depends": [
@@ -20,5 +20,5 @@
     "installable": True,
     "auto_install": True,
     "application": False,
-    "license": "LGPL-3",
+    "license": "Other proprietary",
 }

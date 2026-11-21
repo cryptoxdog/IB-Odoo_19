@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_website
 component_name: PlasticOS Website Branding
-module_version: 19.0.1.0.0
+module_version: 19.0.1.0.1
 installable: false
 auto_install: false
 application: false

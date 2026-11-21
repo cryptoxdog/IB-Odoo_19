@@ -1,8 +1,8 @@
 {
     "name": "PlasticOS Base",
-    "version": "19.0.1.1.17",
+    "version": "19.0.1.1.18",
     "summary": "Core seed data, feature gates, and partner tags",
-    "license": "LGPL-3",
+    "license": "Other proprietary",
     "author": "Igor Beylin",
     "category": "PlasticOS",
     "depends": [
