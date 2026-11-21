@@ -641,17 +641,8 @@ class PlasticosSalesDashboard(models.Model):
         kpis = []
         for key, declaration in self._sales_kpi_declarations().items():
             available = self._sales_kpi_available(declaration)
-            kpis.append(
-                {
-                    "key": key,
-                    "label": declaration["label"],
-                    "model": declaration["model"],
-                    "domain": declaration["domain"],
-                    "aggregate": declaration["aggregate"],
-                    "available": available,
-                    "value": self._sales_kpi_value(declaration) if available else None,
-                }
-            )
+            value = self._sales_kpi_value(declaration) if available else None
+            kpis.append(dict(declaration, key=key, available=available, value=value))
         return kpis
 
     @api.model
