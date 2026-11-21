@@ -26,18 +26,28 @@ class TestSalesCommandCenter(TransactionCase):
         cls.rep_b = Users.create(
             {"name": "KPI Rep B", "login": "t033_kpi_rep_b", "group_ids": [Command.set([rep_group.id])]}
         )
-        Tx = cls.env["plasticos.transaction"]
-        cls.own = Tx.create([{"user_id": cls.rep_a.id} for _index in range(3)])
+        cls.company = cls.env.company
+        cls.buyer = cls.env["res.partner"].create({"name": "KPI Buyer", "customer_rank": 1})
+        cls.own = cls._deals(cls.rep_a, 3)
         cls.own[0].write({"supplier_confirmation_received": fields.Datetime.now()})
-        cls.foreign = Tx.create([{"user_id": cls.rep_b.id} for _index in range(2)])
-        for tx in cls.own | cls.foreign:
-            if tx.state in ("draft", "closed", "cancelled"):
-                tx.write({"state": "active"})
+        cls.foreign = cls._deals(cls.rep_b, 2)
         if "crm.lead" in cls.env:
             Lead = cls.env["crm.lead"]
             Lead.create({"name": "A opp", "type": "opportunity", "user_id": cls.rep_a.id})
             Lead.create({"name": "B opp", "type": "opportunity", "user_id": cls.rep_b.id})
         cls.env.flush_all()
+
+    @classmethod
+    def _deals(cls, user, count, company=None):
+        Tx = cls.env["plasticos.transaction"]
+        deals = Tx
+        for _index in range(count):
+            order = cls.env["sale.order"].create(
+                {"partner_id": cls.buyer.id, "company_id": (company or cls.company).id}
+            )
+            deals |= Tx.create({"user_id": user.id, "sale_order_id": order.id})
+        deals.write({"state": "active"})
+        return deals
 
     def _kpis(self, user):
         return {kpi["key"]: kpi for kpi in self.env["plasticos.sales.dashboard"].with_user(user).get_sales_kpis()}
@@ -87,3 +97,34 @@ class TestSalesCommandCenter(TransactionCase):
     def test_unknown_kpi_is_refused(self):
         with self.assertRaises(UserError):
             self.env["plasticos.sales.dashboard"].with_user(self.rep_a).action_open_sales_kpi("nope")
+
+    def test_deal_without_sale_order_is_not_counted(self):
+        before = self._kpis(self.rep_a)["active_deals"]["value"]
+        orphan = self.env["plasticos.transaction"].create({"user_id": self.rep_a.id})
+        orphan.write({"state": "active"})
+        self.env.flush_all()
+        self.assertEqual(self._kpis(self.rep_a)["active_deals"]["value"], before)
+
+    def test_kpis_are_scoped_to_the_active_companies(self):
+        other = self.env["res.company"].create({"name": "KPI Other Co"})
+        self.rep_a.write({"company_ids": [Command.link(other.id)]})
+        self._deals(self.rep_a, 2, company=other)
+        self.env.flush_all()
+        dashboard = self.env["plasticos.sales.dashboard"].with_user(self.rep_a)
+        only_main = dashboard.with_context(allowed_company_ids=[self.company.id]).get_sales_kpis()
+        both = dashboard.with_context(allowed_company_ids=[self.company.id, other.id]).get_sales_kpis()
+        value = {kpi["key"]: kpi["value"] for kpi in only_main}
+        value_both = {kpi["key"]: kpi["value"] for kpi in both}
+        self.assertEqual(value["active_deals"], len(self.own))
+        self.assertEqual(value_both["active_deals"], len(self.own) + 2)
+        self.assertEqual(value_both["pending_confirmations"], value["pending_confirmations"] + 2)
+
+    def test_tiles_show_the_kpi_values_and_open_the_drills(self):
+        tiles = self.env["plasticos.sales.command.center"].with_user(self.rep_a).browse(1)
+        for kpi in self._kpis(self.rep_a).values():
+            with self.subTest(kpi=kpi["key"]):
+                self.assertEqual(tiles[f"{kpi['key']}_available"], kpi["available"])
+                if kpi["available"]:
+                    self.assertAlmostEqual(tiles[f"{kpi['key']}_value"], kpi["value"])
+                    action = tiles.with_context(kpi_key=kpi["key"]).action_open_kpi()
+                    self.assertEqual(action["domain"], kpi["domain"])

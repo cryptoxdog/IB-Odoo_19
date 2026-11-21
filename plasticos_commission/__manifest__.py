@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Commission Engine",
-    "version": "19.0.1.5.5",
+    "version": "19.0.1.6.0",
     "summary": "Commission rules, payout management, and sales rep deal dashboard",
     "description": """
 PlasticOS Commission Engine

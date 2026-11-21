@@ -560,57 +560,84 @@ class PlasticosSalesDashboard(models.Model):
 
     def _sales_kpi_declarations(self):
         uid = self.env.uid
-        active_deals = [("transaction_state", "not in", INACTIVE_DEAL_STATES), ("user_id", "=", uid)]
+        # DEC-008 / POS-INV-05: transaction-derived KPIs are scoped to the user's
+        # active companies through the sale order. A deal without a sale order has
+        # no resolvable company and is not counted (fail closed).
+        company_ids = self.env.companies.ids
+        no_sale_order = "Deals without a sale order are not counted."
+        active_deals = [
+            ("transaction_state", "not in", INACTIVE_DEAL_STATES),
+            ("user_id", "=", uid),
+            ("transaction_id.sale_order_id.company_id", "in", company_ids),
+        ]
         return {
-            "open_opportunities": {
-                "label": "My Open Opportunities",
-                "model": "crm.lead",
-                "domain": [
+            "open_opportunities": dict(
+                label="My Open Opportunities",
+                help="Open CRM opportunities assigned to you.",
+                model="crm.lead",
+                domain=[
                     ("type", "=", "opportunity"),
                     ("active", "=", True),
                     ("user_id", "=", uid),
                     ("stage_id.is_won", "=", False),
                 ],
-                "aggregate": "count",
-            },
-            "active_deals": {
-                "label": "My Active Deals",
-                "model": self._name,
-                "domain": active_deals,
-                "aggregate": "count",
-            },
-            "pending_confirmations": {
-                "label": "Pending Supplier Confirmations",
-                "model": PLASTICOS_TRANSACTION,
-                "domain": [
+                aggregate="count",
+            ),
+            "outstanding_offers": dict(
+                label="My Outstanding Offers",
+                help="Sent or responded offers on intakes assigned to you.",
+                model="plasticos.offer",
+                domain=[
+                    ("state", "in", ["sent", "responded"]),
+                    ("intake_id.assigned_user_id", "=", uid),
+                ],
+                aggregate="count",
+            ),
+            "active_deals": dict(
+                label="My Active Deals",
+                help=no_sale_order,
+                model=self._name,
+                domain=active_deals,
+                aggregate="count",
+            ),
+            "pending_confirmations": dict(
+                label="Pending Supplier Confirmations",
+                help=no_sale_order,
+                model=PLASTICOS_TRANSACTION,
+                domain=[
                     ("state", "not in", INACTIVE_DEAL_STATES),
                     ("user_id", "=", uid),
+                    ("sale_order_id.company_id", "in", company_ids),
                     ("is_supplier_confirmed", "=", False),
                 ],
-                "aggregate": "count",
-            },
-            "margin": {
-                "label": "Margin on Active Deals",
-                "model": self._name,
-                "domain": active_deals,
-                "aggregate": "sum:gross_margin",
-            },
-            "expected_commission": {
-                "label": "Expected Commission on Active Deals",
-                "model": self._name,
-                "domain": active_deals,
-                "aggregate": "sum:commission_amount",
-            },
-            "missing_customer_documents": {
-                "label": "Deals Missing Customer Documents",
-                "model": PLASTICOS_TRANSACTION,
-                "domain": [
+                aggregate="count",
+            ),
+            "margin": dict(
+                label="Margin on Active Deals",
+                help=no_sale_order,
+                model=self._name,
+                domain=active_deals,
+                aggregate="sum:gross_margin",
+            ),
+            "expected_commission": dict(
+                label="Expected Commission on Active Deals",
+                help=no_sale_order,
+                model=self._name,
+                domain=active_deals,
+                aggregate="sum:commission_amount",
+            ),
+            "missing_customer_documents": dict(
+                label="Deals Missing Customer Documents",
+                help=no_sale_order,
+                model=PLASTICOS_TRANSACTION,
+                domain=[
                     ("state", "!=", "cancelled"),
                     ("user_id", "=", uid),
+                    ("sale_order_id.company_id", "in", company_ids),
                     ("missing_buyer_docs", "=", True),
                 ],
-                "aggregate": "count",
-            },
+                aggregate="count",
+            ),
         }
 
     def _sales_kpi_available(self, declaration):
@@ -665,4 +692,61 @@ class PlasticosSalesDashboard(models.Model):
             "view_mode": view_mode,
             "domain": declaration["domain"],
             "context": {"create": False},
+        }
+
+
+class PlasticosSalesCommandCenter(models.Model):
+    """Sales command-center tiles (TASK-033). Presentation only.
+
+    One virtual row (``SELECT 1 AS id``), no table, no stored data, read-only
+    ACL: the form opens that row and its tile buttons never write. Every tile
+    value is read from
+    ``plasticos.sales.dashboard.get_sales_kpis`` for the current user, and every
+    tile opens that KPI's drill, built from the same declaration (DEC-007).
+    An unavailable KPI shows "Unavailable", never 0.
+    """
+
+    _name = "plasticos.sales.command.center"
+    _description = "Sales Command Center"
+    _auto = False
+    _log_access = False
+    _table_query = "SELECT 1 AS id"
+
+    open_opportunities_value = fields.Integer(compute="_compute_tiles")
+    open_opportunities_available = fields.Boolean(compute="_compute_tiles")
+    outstanding_offers_value = fields.Integer(compute="_compute_tiles")
+    outstanding_offers_available = fields.Boolean(compute="_compute_tiles")
+    active_deals_value = fields.Integer(compute="_compute_tiles")
+    active_deals_available = fields.Boolean(compute="_compute_tiles")
+    pending_confirmations_value = fields.Integer(compute="_compute_tiles")
+    pending_confirmations_available = fields.Boolean(compute="_compute_tiles")
+    margin_value = fields.Float(compute="_compute_tiles", digits="Product Price")
+    margin_available = fields.Boolean(compute="_compute_tiles")
+    expected_commission_value = fields.Float(compute="_compute_tiles", digits="Product Price")
+    expected_commission_available = fields.Boolean(compute="_compute_tiles")
+    missing_customer_documents_value = fields.Integer(compute="_compute_tiles")
+    missing_customer_documents_available = fields.Boolean(compute="_compute_tiles")
+
+    def _compute_tiles(self):
+        kpis = self.env["plasticos.sales.dashboard"].get_sales_kpis()
+        for rec in self:
+            for kpi in kpis:
+                rec[f"{kpi['key']}_available"] = kpi["available"]
+                rec[f"{kpi['key']}_value"] = kpi["value"] if kpi["available"] else False
+
+    def action_open_kpi(self):
+        """Tile button: the KPI key comes from the button context."""
+        key = self.env.context.get("kpi_key")
+        return self.env["plasticos.sales.dashboard"].action_open_sales_kpi(key)
+
+    @api.model
+    def action_open_command_center(self):
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Sales Command Center",
+            "res_model": self._name,
+            "res_id": 1,
+            "view_mode": "form",
+            "views": [(self.env.ref("plasticos_commission.view_sales_command_center_form").id, "form")],
+            "target": "current",
         }

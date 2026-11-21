@@ -323,10 +323,129 @@
        Each server action calls action_open_sales_kpi(key), which builds the
        window from the same declaration that computes the KPI value (DEC-007).
   ═══════════════════════════════════════════════════════════ -->
+  <!-- ═══════════════════════════════════════════════════════════
+       SALES COMMAND CENTER TILES (TASK-033) — read-only presentation row.
+       Each tile shows get_sales_kpis() for the current user and opens the
+       KPI's drill; an unavailable KPI reads "Unavailable", never 0.
+  ═══════════════════════════════════════════════════════════ -->
+  <record id="view_sales_command_center_form" model="ir.ui.view">
+    <field name="name">plasticos.sales.command.center.form</field>
+    <field name="model">plasticos.sales.command.center</field>
+    <field name="arch" type="xml">
+      <form string="Sales Command Center" create="false" edit="false" delete="false">
+        <sheet>
+          <field name="open_opportunities_available" invisible="1"/>
+          <field name="outstanding_offers_available" invisible="1"/>
+          <field name="active_deals_available" invisible="1"/>
+          <field name="pending_confirmations_available" invisible="1"/>
+          <field name="margin_available" invisible="1"/>
+          <field name="expected_commission_available" invisible="1"/>
+          <field name="missing_customer_documents_available" invisible="1"/>
+          <div class="oe_button_box" name="button_box">
+            <button name="action_open_kpi" type="object" class="oe_stat_button" icon="fa-bar-chart"
+                    context="{'kpi_key': 'open_opportunities'}" invisible="not open_opportunities_available">
+              <div class="o_stat_info">
+                <span class="o_stat_value"><field name="open_opportunities_value"/></span>
+                <span class="o_stat_text">My Open Opportunities</span>
+              </div>
+            </button>
+            <div class="o_stat_info text-muted" invisible="open_opportunities_available">
+              <span class="o_stat_value">Unavailable</span>
+              <span class="o_stat_text">My Open Opportunities</span>
+            </div>
+            <button name="action_open_kpi" type="object" class="oe_stat_button" icon="fa-bar-chart"
+                    context="{'kpi_key': 'outstanding_offers'}" invisible="not outstanding_offers_available">
+              <div class="o_stat_info">
+                <span class="o_stat_value"><field name="outstanding_offers_value"/></span>
+                <span class="o_stat_text">My Outstanding Offers</span>
+              </div>
+            </button>
+            <div class="o_stat_info text-muted" invisible="outstanding_offers_available">
+              <span class="o_stat_value">Unavailable</span>
+              <span class="o_stat_text">My Outstanding Offers</span>
+            </div>
+            <button name="action_open_kpi" type="object" class="oe_stat_button" icon="fa-bar-chart"
+                    context="{'kpi_key': 'active_deals'}" invisible="not active_deals_available">
+              <div class="o_stat_info">
+                <span class="o_stat_value"><field name="active_deals_value"/></span>
+                <span class="o_stat_text">My Active Deals</span>
+              </div>
+            </button>
+            <div class="o_stat_info text-muted" invisible="active_deals_available">
+              <span class="o_stat_value">Unavailable</span>
+              <span class="o_stat_text">My Active Deals</span>
+            </div>
+            <button name="action_open_kpi" type="object" class="oe_stat_button" icon="fa-bar-chart"
+                    context="{'kpi_key': 'pending_confirmations'}" invisible="not pending_confirmations_available">
+              <div class="o_stat_info">
+                <span class="o_stat_value"><field name="pending_confirmations_value"/></span>
+                <span class="o_stat_text">Pending Supplier Confirmations</span>
+              </div>
+            </button>
+            <div class="o_stat_info text-muted" invisible="pending_confirmations_available">
+              <span class="o_stat_value">Unavailable</span>
+              <span class="o_stat_text">Pending Supplier Confirmations</span>
+            </div>
+            <button name="action_open_kpi" type="object" class="oe_stat_button" icon="fa-bar-chart"
+                    context="{'kpi_key': 'margin'}" invisible="not margin_available">
+              <div class="o_stat_info">
+                <span class="o_stat_value"><field name="margin_value"/></span>
+                <span class="o_stat_text">Margin on Active Deals</span>
+              </div>
+            </button>
+            <div class="o_stat_info text-muted" invisible="margin_available">
+              <span class="o_stat_value">Unavailable</span>
+              <span class="o_stat_text">Margin on Active Deals</span>
+            </div>
+            <button name="action_open_kpi" type="object" class="oe_stat_button" icon="fa-bar-chart"
+                    context="{'kpi_key': 'expected_commission'}" invisible="not expected_commission_available">
+              <div class="o_stat_info">
+                <span class="o_stat_value"><field name="expected_commission_value"/></span>
+                <span class="o_stat_text">Expected Commission</span>
+              </div>
+            </button>
+            <div class="o_stat_info text-muted" invisible="expected_commission_available">
+              <span class="o_stat_value">Unavailable</span>
+              <span class="o_stat_text">Expected Commission</span>
+            </div>
+            <button name="action_open_kpi" type="object" class="oe_stat_button" icon="fa-bar-chart"
+                    context="{'kpi_key': 'missing_customer_documents'}" invisible="not missing_customer_documents_available">
+              <div class="o_stat_info">
+                <span class="o_stat_value"><field name="missing_customer_documents_value"/></span>
+                <span class="o_stat_text">Deals Missing Customer Documents</span>
+              </div>
+            </button>
+            <div class="o_stat_info text-muted" invisible="missing_customer_documents_available">
+              <span class="o_stat_value">Unavailable</span>
+              <span class="o_stat_text">Deals Missing Customer Documents</span>
+            </div>
+          </div>
+          <p class="text-muted">
+            Your records only, in your active companies. Deals without a sale order are not counted.
+          </p>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_sales_command_center" model="ir.actions.server">
+    <field name="name">Sales Command Center</field>
+    <field name="model_id" ref="plasticos_commission.model_plasticos_sales_command_center"/>
+    <field name="state">code</field>
+    <field name="code">action = model.action_open_command_center()</field>
+  </record>
+
   <menuitem id="menu_sales_command_center"
             name="Command Center"
             parent="menu_sales_rep_root"
             sequence="5"
+            groups="plasticos_security_base.group_sales_rep"/>
+
+  <menuitem id="menu_sales_command_center_overview"
+            name="Overview"
+            parent="menu_sales_command_center"
+            action="action_sales_command_center"
+            sequence="1"
             groups="plasticos_security_base.group_sales_rep"/>
 
   <record id="action_sales_kpi_open_opportunities" model="ir.actions.server">
@@ -405,6 +524,19 @@
             parent="menu_sales_command_center"
             action="action_sales_kpi_missing_customer_documents"
             sequence="60"
+            groups="plasticos_security_base.group_sales_rep"/>
+
+  <record id="action_sales_kpi_outstanding_offers" model="ir.actions.server">
+    <field name="name">My Outstanding Offers</field>
+    <field name="model_id" ref="plasticos_commission.model_plasticos_sales_dashboard"/>
+    <field name="state">code</field>
+    <field name="code">action = model.action_open_sales_kpi("outstanding_offers")</field>
+  </record>
+  <menuitem id="menu_sales_kpi_outstanding_offers"
+            name="My Outstanding Offers"
+            parent="menu_sales_command_center"
+            action="action_sales_kpi_outstanding_offers"
+            sequence="15"
             groups="plasticos_security_base.group_sales_rep"/>
 
 </odoo>
