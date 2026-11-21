@@ -142,9 +142,14 @@ class PlasticosSalesDashboard(models.Model):
 
     # ── Commission ────────────────────────────────────────────────────────────
     commission_amount = fields.Float(string="Est. Commission", digits="Product Price", readonly=True)
+    # DEC-006: locked amount from the transaction once its commission is locked;
+    # pay status from the newest non-cancelled payout linked through
+    # commission_payout_tx_rel, else unpaid. plasticos.transaction.commission_payout_state
+    # is never the source (no payout action writes it; RISK-003).
+    commission_locked = fields.Boolean(string="Commission Locked", readonly=True)
     commission_locked_amount = fields.Float(string="Final Commission", digits="Product Price", readonly=True)
     commission_payout_state = fields.Selection(
-        [("unpaid", "Unpaid"), ("confirmed", "Awaiting Payment"), ("paid", "Paid")],
+        [("unpaid", "Unpaid"), ("draft", "Payout Draft"), ("confirmed", "Awaiting Payment"), ("paid", "Paid")],
         string="Pay Status",
         readonly=True,
     )
@@ -153,6 +158,22 @@ class PlasticosSalesDashboard(models.Model):
 
     # ── SQL View ──────────────────────────────────────────────────────────────
     def init(self):
+        """Create the view once every column it reads exists.
+
+        Odoo 19 ``Registry.init_models`` runs ``_auto_init(); init()`` model by
+        model in import order, and this module's ``plasticos.transaction``
+        extension (``commission_locked``, ``commission_locked_amount``) is
+        initialised after this model. Inside ``init_models`` the view is queued
+        with ``Registry.post_init`` so it is built after every table and column
+        of the module; a direct call builds it at once.
+        """
+        tools.drop_view_if_exists(self.env.cr, self._table)
+        if hasattr(self.pool, "_post_init_queue"):
+            self.pool.post_init(self._create_view)
+        else:
+            self._create_view()
+
+    def _create_view(self):
         tools.drop_view_if_exists(self.env.cr, self._table)
         self.env.cr.execute("""
             CREATE VIEW plasticos_sales_dashboard AS
@@ -179,8 +200,11 @@ class PlasticosSalesDashboard(models.Model):
                 t.state                                       AS transaction_state,
                 t.write_date                                  AS write_date,
                 COALESCE(t.commission_amount, 0.0)            AS commission_amount,
-                0.0::double precision                         AS commission_locked_amount,
-                'unpaid'::varchar                             AS commission_payout_state,
+                COALESCE(t.commission_locked, FALSE)          AS commission_locked,
+                CASE WHEN t.commission_locked
+                     THEN t.commission_locked_amount
+                END                                           AS commission_locked_amount,
+                COALESCE(lp.state, 'unpaid')::varchar         AS commission_payout_state,
                 l.id                                          AS load_id,
                 COALESCE(lc.load_count, 0)                    AS load_count,
                 l.state                                       AS load_state,
@@ -207,6 +231,15 @@ class PlasticosSalesDashboard(models.Model):
             ) lc ON lc.transaction_id = t.id
             LEFT JOIN plasticos_load l ON l.id = lc.sole_load_id
             LEFT JOIN res_partner rp ON rp.id = l.carrier_id
+            LEFT JOIN LATERAL (
+                SELECT p.state
+                  FROM commission_payout_tx_rel rel
+                  JOIN plasticos_commission_payout p ON p.id = rel.payout_id
+                 WHERE rel.transaction_id = t.id
+                   AND p.state != 'cancelled'
+                 ORDER BY p.id DESC
+                 LIMIT 1
+            ) lp ON TRUE
             WHERE t.state != 'cancelled'
         """)
 
@@ -448,7 +481,7 @@ class PlasticosSalesDashboard(models.Model):
         }
 
     def action_view_payout(self):
-        """Commission payout batch detail — shown when pay status is not Unpaid."""
+        """Commission payout batch detail — shown when a non-cancelled payout exists."""
         self.ensure_one()
         payout_ids = (
             self.env["plasticos.commission.payout"]

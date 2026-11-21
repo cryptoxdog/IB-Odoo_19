@@ -85,7 +85,7 @@
                widget="badge"
                decoration-success="commission_payout_state == 'paid'"
                decoration-warning="commission_payout_state == 'confirmed'"
-               decoration-muted="commission_payout_state == 'unpaid'"
+               decoration-muted="commission_payout_state in ('unpaid','draft')"
                optional="show"/>
         <!-- Hidden helpers for list decorations -->
         <field name="docs_all_clear"          column_invisible="1"/>
@@ -194,11 +194,13 @@
 
           <group string="My Commission">
             <field name="commission_amount"         string="Estimated"      widget="monetary" readonly="1"/>
-            <field name="commission_locked_amount"  string="Final (Locked)" widget="monetary" readonly="1"/>
+            <field name="commission_locked"         invisible="1"/>
+            <field name="commission_locked_amount"  string="Final (Locked)" widget="monetary" readonly="1"
+                   invisible="not commission_locked"/>
             <field name="commission_payout_state"   string="Pay Status" widget="badge"
                    decoration-success="commission_payout_state == 'paid'"
                    decoration-warning="commission_payout_state == 'confirmed'"
-                   decoration-muted="commission_payout_state == 'unpaid'"
+                   decoration-muted="commission_payout_state in ('unpaid','draft')"
                    readonly="1"/>
             <button name="action_view_payout" type="object"
                     string="↗ View Payout Details" class="btn-link"
@@ -244,7 +246,7 @@
                 domain="[('transaction_state','not in',['closed','cancelled','draft'])]"/>
         <filter name="commission_unpaid"
                 string="Commission Unpaid"
-                domain="[('commission_payout_state','=','unpaid'),('transaction_state','=','closed')]"/>
+                domain="[('commission_payout_state','!=','paid'),('transaction_state','=','closed')]"/>
         <filter name="load_exception"
                 string="Load Exception"
                 domain="[('load_state','=','exception')]"/>
