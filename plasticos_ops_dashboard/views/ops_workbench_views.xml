@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Operations Manager workbench (TASK-040, DEC-004, DEC-005 b, DEC-007). Every menu opens a drill built by
+     plasticos.ops.workbench.action_open_kpi from the same declaration that counts it. Menus are visible to
+     group_operations_manager only; the records stay protected by their own ACLs and record rules. -->
+<odoo>
+    <record id="view_ops_activity_search" model="ir.ui.view">
+        <field name="name">plasticos.ops.activity.search</field>
+        <field name="model">mail.activity</field>
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="summary"/>
+                <field name="res_name"/>
+                <field name="user_id"/>
+                <field name="activity_type_id"/>
+                <filter name="filter_mine" string="Mine" domain="[('user_id', '=', uid)]"/>
+                <filter name="filter_overdue" string="Overdue" domain="[('date_deadline', '&lt;', context_today().strftime('%Y-%m-%d'))]"/>
+                <filter name="group_type" string="Exception Class" context="{'group_by': 'activity_type_id'}"/>
+                <filter name="group_user" string="Owner" context="{'group_by': 'user_id'}"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_ops_activity_list" model="ir.ui.view">
+        <field name="name">plasticos.ops.activity.list</field>
+        <field name="model">mail.activity</field>
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <list create="false" decoration-danger="date_deadline &lt; current_date">
+                <field name="date_deadline"/>
+                <field name="activity_type_id"/>
+                <field name="summary"/>
+                <field name="res_name" string="Record"/>
+                <field name="res_model" optional="hide"/>
+                <field name="user_id" widget="many2one_avatar_user"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_ops_request_correction_form" model="ir.ui.view">
+        <field name="name">plasticos.ops.request.correction.form</field>
+        <field name="model">plasticos.ops.request.correction</field>
+        <field name="arch" type="xml">
+            <form>
+                <p>An internal note on the record and the reason on this same exception. Nothing is sent outside the company.</p>
+                <group>
+                    <field name="activity_id" readonly="1"/>
+                    <field name="reason" placeholder="What must be corrected and why"/>
+                </group>
+                <footer>
+                    <button name="action_request_correction" type="object" string="Request Correction" class="btn-primary"/>
+                    <button string="Cancel" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_ops_request_correction" model="ir.actions.act_window">
+        <field name="name">Request Correction</field>
+        <field name="res_model">plasticos.ops.request.correction</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="group_ids" eval="[(4, ref('plasticos_security_base.group_operations_manager'))]"/>
+    </record>
+
+    <record id="view_ops_activity_form" model="ir.ui.view">
+        <field name="name">plasticos.ops.activity.form</field>
+        <field name="model">mail.activity</field>
+        <field name="mode">primary</field>
+        <field name="priority">100</field>
+        <field name="arch" type="xml">
+            <form create="false" delete="false">
+                <header>
+                    <button name="action_plasticos_confirm_classification" type="object" string="Confirm Classification"
+                            class="btn-primary" invisible="res_model != 'documents.document'"/>
+                    <button name="action_open_document" type="object" string="Associate to Exact Record"
+                            invisible="res_model != 'documents.document'"/>
+                    <button name="action_open_document" type="object" string="Open AP/AR Record"
+                            class="btn-primary" invisible="res_model != 'account.move'"/>
+                    <button name="action_open_document" type="object" string="Open Record"
+                            invisible="res_model in ('documents.document', 'account.move')"/>
+                    <button name="%(plasticos_ops_dashboard.action_ops_request_correction)d" type="action"
+                            string="Request Correction" context="{'default_activity_id': id}"
+                            groups="plasticos_security_base.group_operations_manager"/>
+                    <button name="action_plasticos_return_to_logistics" type="object" string="Return to Logistics"
+                            invisible="not plasticos_can_return_to_logistics"
+                            groups="plasticos_security_base.group_operations_manager"
+                            confirm="Reassign this exception to its Logistics owner?"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="activity_type_id" readonly="1"/>
+                            <field name="summary" readonly="1"/>
+                            <field name="res_name" string="Record" readonly="1"/>
+                            <field name="res_model" invisible="1"/>
+                            <field name="plasticos_can_return_to_logistics" invisible="1"/>
+                        </group>
+                        <group>
+                            <field name="user_id" string="Owner" readonly="1"/>
+                            <field name="date_deadline" string="Due" readonly="1"/>
+                            <field name="plasticos_original_attachment_id" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Discrepancy">
+                        <field name="note" nolabel="1" readonly="1" colspan="2"/>
+                    </group>
+                    <group string="Candidate Facts (not verified)">
+                        <field name="plasticos_candidate_facts" nolabel="1" colspan="2"/>
+                    </group>
+                    <group string="Linked Record">
+                        <field name="plasticos_record_values" nolabel="1" colspan="2"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_ops_mine" model="ir.actions.server">
+        <field name="name">My Exceptions</field>
+        <field name="model_id" ref="plasticos_ops_dashboard.model_plasticos_ops_workbench"/>
+        <field name="group_ids" eval="[(4, ref('plasticos_security_base.group_operations_manager'))]"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_open_kpi('my_exceptions')</field>
+    </record>
+    <record id="action_ops_team" model="ir.actions.server">
+        <field name="name">Operations Team Exceptions</field>
+        <field name="model_id" ref="plasticos_ops_dashboard.model_plasticos_ops_workbench"/>
+        <field name="group_ids" eval="[(4, ref('plasticos_security_base.group_operations_manager'))]"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_open_kpi('team_exceptions')</field>
+    </record>
+    <record id="action_ops_unassigned" model="ir.actions.server">
+        <field name="name">Unassigned Exceptions</field>
+        <field name="model_id" ref="plasticos_ops_dashboard.model_plasticos_ops_workbench"/>
+        <field name="group_ids" eval="[(4, ref('plasticos_security_base.group_operations_manager'))]"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_open_kpi('unassigned_exceptions')</field>
+    </record>
+    <record id="action_ops_escalated" model="ir.actions.server">
+        <field name="name">Overdue Operations Exceptions</field>
+        <field name="model_id" ref="plasticos_ops_dashboard.model_plasticos_ops_workbench"/>
+        <field name="group_ids" eval="[(4, ref('plasticos_security_base.group_operations_manager'))]"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_open_kpi('overdue_exceptions')</field>
+    </record>
+    <record id="action_ops_classification" model="ir.actions.server">
+        <field name="name">Classification Reviews</field>
+        <field name="model_id" ref="plasticos_ops_dashboard.model_plasticos_ops_workbench"/>
+        <field name="group_ids" eval="[(4, ref('plasticos_security_base.group_operations_manager'))]"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_open_kpi('classification_reviews')</field>
+    </record>
+    <record id="action_ops_document_gaps" model="ir.actions.server">
+        <field name="name">Document Gaps</field>
+        <field name="model_id" ref="plasticos_ops_dashboard.model_plasticos_ops_workbench"/>
+        <field name="group_ids" eval="[(4, ref('plasticos_security_base.group_operations_manager'))]"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_open_kpi('document_gaps')</field>
+    </record>
+    <record id="action_ops_blocked_bills" model="ir.actions.server">
+        <field name="name">Held Vendor Bills</field>
+        <field name="model_id" ref="plasticos_ops_dashboard.model_plasticos_ops_workbench"/>
+        <field name="group_ids" eval="[(4, ref('plasticos_security_base.group_operations_manager'))]"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_open_kpi('held_vendor_bills')</field>
+    </record>
+    <record id="action_ops_linda" model="ir.actions.server">
+        <field name="name">Linda Approvals for Operations</field>
+        <field name="model_id" ref="plasticos_ops_dashboard.model_plasticos_ops_workbench"/>
+        <field name="group_ids" eval="[(4, ref('plasticos_security_base.group_operations_manager'))]"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_open_kpi('linda_operations')</field>
+    </record>
+    <record id="action_ops_claims" model="ir.actions.server">
+        <field name="name">Escalated or Overdue Claims</field>
+        <field name="model_id" ref="plasticos_ops_dashboard.model_plasticos_ops_workbench"/>
+        <field name="group_ids" eval="[(4, ref('plasticos_security_base.group_operations_manager'))]"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_open_kpi('claims_attention')</field>
+    </record>
+
+    <menuitem id="menu_ops_root" name="Operations Workbench" sequence="45"
+              groups="plasticos_security_base.group_operations_manager"/>
+    <menuitem id="menu_ops_inbox" name="Inbox" parent="menu_ops_root" sequence="10"
+              groups="plasticos_security_base.group_operations_manager"/>
+    <menuitem id="menu_ops_mine" name="Mine" parent="menu_ops_inbox" action="action_ops_mine" sequence="10"
+              groups="plasticos_security_base.group_operations_manager"/>
+    <menuitem id="menu_ops_team" name="Team" parent="menu_ops_inbox" action="action_ops_team" sequence="20"
+              groups="plasticos_security_base.group_operations_manager"/>
+    <menuitem id="menu_ops_unassigned" name="Unassigned" parent="menu_ops_inbox" action="action_ops_unassigned"
+              sequence="30" groups="plasticos_security_base.group_operations_manager"/>
+    <menuitem id="menu_ops_escalated" name="Escalated" parent="menu_ops_inbox" action="action_ops_escalated"
+              sequence="40" groups="plasticos_security_base.group_operations_manager"/>
+    <menuitem id="menu_ops_queues" name="Queues" parent="menu_ops_root" sequence="20"
+              groups="plasticos_security_base.group_operations_manager"/>
+    <menuitem id="menu_ops_classification" name="Classification Reviews" parent="menu_ops_queues"
+              action="action_ops_classification" sequence="10"
+              groups="plasticos_security_base.group_operations_manager"/>
+    <menuitem id="menu_ops_document_gaps" name="Document Gaps" parent="menu_ops_queues"
+              action="action_ops_document_gaps" sequence="20"
+              groups="plasticos_security_base.group_operations_manager"/>
+    <menuitem id="menu_ops_blocked_bills" name="Held Vendor Bills" parent="menu_ops_queues"
+              action="action_ops_blocked_bills" sequence="30"
+              groups="plasticos_security_base.group_operations_manager"/>
+    <menuitem id="menu_ops_linda" name="Linda Approvals" parent="menu_ops_queues" action="action_ops_linda"
+              sequence="40" groups="plasticos_security_base.group_operations_manager"/>
+    <menuitem id="menu_ops_claims" name="Escalated Claims" parent="menu_ops_queues" action="action_ops_claims"
+              sequence="50" groups="plasticos_security_base.group_operations_manager"/>
+</odoo>

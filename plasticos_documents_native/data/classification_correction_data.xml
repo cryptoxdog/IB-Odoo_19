@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <!-- DEC-015 (TASK-070): the reason message of a classification correction. -->
+        <record id="mt_classification_correction" model="mail.message.subtype">
+            <field name="name">Classification Corrected</field>
+            <field name="res_model">documents.document</field>
+            <field name="internal" eval="True"/>
+            <field name="default" eval="False"/>
+            <field name="description">Classification corrected</field>
+        </record>
+    </data>
+</odoo>

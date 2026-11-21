@@ -94,6 +94,22 @@
         </div>
     </button>
 
+    <button name="action_open_commission_unlocked" type="object"
+            class="btn-secondary oe_stat_button" icon="fa-unlock"
+            invisible="commission_unlocked == 0">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="commission_unlocked" readonly="1"/></span>
+            <span class="o_stat_text">Unlocked Commissions</span>
+        </div>
+    </button>
+
+</group>
+
+<!-- Intakes, offers and web leads carry no company (DEC-008): their figures are
+     shown separately as all-company figures, never mixed into company KPIs. -->
+<group string="⚡ Urgent — All companies (not company-scoped)" col="2"
+       class="o_stat_button_box">
+
     <button name="action_open_expiring_offers" type="object"
             class="btn-warning oe_stat_button" icon="fa-hourglass-half"
             invisible="offer_expiring_soon == 0">
@@ -112,15 +128,6 @@
         </div>
     </button>
 
-    <button name="action_open_commission_unlocked" type="object"
-            class="btn-secondary oe_stat_button" icon="fa-unlock"
-            invisible="commission_unlocked == 0">
-        <div class="o_stat_info">
-            <span class="o_stat_value"><field name="commission_unlocked" readonly="1"/></span>
-            <span class="o_stat_text">Unlocked Commissions</span>
-        </div>
-    </button>
-
 </group>
 
 <separator/>
@@ -129,7 +136,7 @@
      SECTION B — PIPELINE BANDS
      Intakes / Offers / Transactions live counts
 ════════════════════════════════════════════════════════════ -->
-<group string="📥 Intake Pipeline" col="8">
+<group string="📥 Intake Pipeline — All companies (not company-scoped)" col="8">
     <field name="intake_draft"       string="Draft"        class="o_field_integer"/>
     <field name="intake_matched"     string="Matched"      class="o_field_integer"/>
     <field name="intake_offer_sent"  string="Offer Sent"   class="o_field_integer"/>
@@ -141,7 +148,7 @@
     <field name="avg_intake_age_days" string="Avg Age d"   widget="float" digits="[5,1]"/>
 </group>
 
-<group string="📨 Offers" col="8">
+<group string="📨 Offers — All companies (not company-scoped)" col="8">
     <field name="offer_draft"         string="Draft"          class="o_field_integer"/>
     <field name="offer_sent"          string="Sent"           class="o_field_integer font-weight-bold"/>
     <field name="offer_responded"     string="Responded"      class="o_field_integer"/>
@@ -197,7 +204,7 @@
 <!-- ═══════════════════════════════════════════════════════════
      SECTION E — WEB LEAD FUNNEL
 ════════════════════════════════════════════════════════════ -->
-<group string="🌐 Web Lead Funnel" col="7">
+<group string="🌐 Web Lead Funnel — All companies (not company-scoped)" col="7">
     <field name="lead_received_today" string="Today"/>
     <field name="lead_received_wtd"   string="WTD"/>
     <field name="lead_received_mtd"   string="MTD"/>
@@ -211,7 +218,7 @@
 <!-- ═══════════════════════════════════════════════════════════
      SECTION F — AI ENGINE STATS
 ════════════════════════════════════════════════════════════ -->
-<group string="🤖 AI Engine Stats">
+<group string="🤖 AI Engine Stats — All companies (not company-scoped)">
     <group string="Config Health">
         <field name="ai_openai_key_set"     string="OpenAI Key Set"
                widget="boolean_toggle" readonly="1"/>
@@ -264,8 +271,8 @@
             <field name="net_margin"      string="Net $"      sum="Total" widget="monetary"
                    decoration-danger="net_margin &lt; 0"/>
             <field name="commission"      string="Commission" sum="Total" widget="monetary"/>
-            <field name="deals_open"      string="Open"       optional="show"/>
-            <field name="pipeline_val"    string="Pipeline $" widget="monetary" optional="show"/>
+            <field name="deals_open"      string="Open (now)" optional="show"/>
+            <field name="pipeline_val"    string="Pipeline $ (now)" widget="monetary" optional="show"/>
             <field name="intakes_created" string="Intakes"    optional="show"/>
             <field name="offers_sent"     string="Offers Out" optional="show"/>
             <field name="offers_accepted" string="Accepted"   optional="show"/>
@@ -292,14 +299,13 @@
 </record>
 
 <!-- ── Actions ────────────────────────────────────────────────────────────── -->
-<record id="action_admin_kpi_form" model="ir.actions.act_window">
+<!-- The menu opens the stored KPI record through action_open_admin_dashboard;
+     a plain act_window with no res_id would open a new unsaved record. -->
+<record id="action_server_open_admin_dashboard" model="ir.actions.server">
     <field name="name">RevOps Command Center</field>
-    <field name="res_model">plasticos.admin.kpi</field>
-    <field name="view_mode">form</field>
-    <field name="target">current</field>
-    <field name="context">{
-        "form_view_initial_mode": "readonly"
-    }</field>
+    <field name="model_id" ref="model_plasticos_admin_kpi"/>
+    <field name="state">code</field>
+    <field name="code">action = model.action_open_admin_dashboard()</field>
 </record>
 
 <record id="action_rep_performance_list" model="ir.actions.act_window">
@@ -318,7 +324,7 @@
 <menuitem id="menu_plasticos_admin_dashboard"
           name="Command Center"
           parent="menu_plasticos_admin_root"
-          action="action_admin_kpi_form"
+          action="action_server_open_admin_dashboard"
           sequence="1"
           groups="plasticos_security_base.group_system_admin"/>
 

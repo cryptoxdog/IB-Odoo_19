@@ -1,0 +1,25 @@
+{
+    "name": "PlasticOS Operations Manager Workbench",
+    "version": "19.0.1.0.0",
+    "summary": "Operations Manager inbox and review surface over DEC-012 exception activities (no queue model)",
+    "category": "PlasticOS",
+    "author": "Igor Beylin",
+    "license": "Other proprietary",
+    "depends": [
+        "mail",
+        "account",
+        "plasticos_security_base",
+        "plasticos_documents",
+        "plasticos_documents_native",
+        "plasticos_logistics",
+        "plasticos_claims",
+        "plasticos_commission",
+    ],
+    "data": [
+        "security/ir.model.access.csv",
+        "views/ops_workbench_views.xml",
+    ],
+    "installable": True,
+    "application": False,
+    "auto_install": False,
+}

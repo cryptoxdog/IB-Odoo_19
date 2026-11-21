@@ -107,5 +107,101 @@
             <field name="sequence">43</field>
         </record>
 
+        <!-- DEC-014 OPT-A (TASK-069): document types the v2.0 Auto-Sort prompts name. New xmlids only. -->
+        <record id="tag_purchase_order" model="documents.tag">
+            <field name="name">Purchase Order</field>
+            <field name="sequence">51</field>
+        </record>
+        <record id="tag_packing_list" model="documents.tag">
+            <field name="name">Packing List</field>
+            <field name="sequence">52</field>
+        </record>
+        <record id="tag_receiving_report" model="documents.tag">
+            <field name="name">Receiving Report</field>
+            <field name="sequence">53</field>
+        </record>
+        <record id="tag_certified_scale_ticket" model="documents.tag">
+            <field name="name">Certified Scale Ticket (CST)</field>
+            <field name="sequence">54</field>
+        </record>
+        <record id="tag_delivery_order_confirmation" model="documents.tag">
+            <field name="name">Delivery Order Confirmation</field>
+            <field name="sequence">55</field>
+        </record>
+        <record id="tag_carrier_certification" model="documents.tag">
+            <field name="name">Carrier Certification</field>
+            <field name="sequence">56</field>
+        </record>
+        <record id="tag_customer_invoice" model="documents.tag">
+            <field name="name">Customer Invoice</field>
+            <field name="sequence">57</field>
+        </record>
+        <record id="tag_financial_document" model="documents.tag">
+            <field name="name">Financial Document</field>
+            <field name="sequence">58</field>
+        </record>
+        <record id="tag_carrier_invoice" model="documents.tag">
+            <field name="name">Carrier Invoice</field>
+            <field name="sequence">59</field>
+        </record>
+        <record id="tag_credit_note" model="documents.tag">
+            <field name="name">Credit Note</field>
+            <field name="sequence">60</field>
+        </record>
+        <record id="tag_debit_note" model="documents.tag">
+            <field name="name">Debit Note</field>
+            <field name="sequence">61</field>
+        </record>
+        <record id="tag_statement" model="documents.tag">
+            <field name="name">Statement</field>
+            <field name="sequence">62</field>
+        </record>
+        <record id="tag_payment_confirmation" model="documents.tag">
+            <field name="name">Payment Confirmation</field>
+            <field name="sequence">63</field>
+        </record>
+        <record id="tag_delivery_receipt" model="documents.tag">
+            <field name="name">Delivery Receipt</field>
+            <field name="sequence">64</field>
+        </record>
+        <record id="tag_order_confirmation" model="documents.tag">
+            <field name="name">Order Confirmation</field>
+            <field name="sequence">65</field>
+        </record>
+        <record id="tag_material_certification" model="documents.tag">
+            <field name="name">Material Certification</field>
+            <field name="sequence">66</field>
+        </record>
+        <record id="tag_technical_specification" model="documents.tag">
+            <field name="name">Technical Specification</field>
+            <field name="sequence">67</field>
+        </record>
+        <record id="tag_unloading_pic" model="documents.tag">
+            <field name="name">Unloading Pic</field>
+            <field name="sequence">68</field>
+        </record>
+        <record id="tag_delivery_photo" model="documents.tag">
+            <field name="name">Delivery Photo</field>
+            <field name="sequence">69</field>
+        </record>
+        <record id="tag_damage_photo" model="documents.tag">
+            <field name="name">Damage Photo</field>
+            <field name="sequence">70</field>
+        </record>
+
+        <!-- DEC-014 / DEC-019 review signals (Needs Review and To Split exist above). Never a doc_type. -->
+        <record id="tag_evidence_gap" model="documents.tag">
+            <field name="name">Evidence Gap</field>
+            <field name="sequence">44</field>
+        </record>
+        <record id="tag_duplicate_candidate" model="documents.tag">
+            <field name="name">Duplicate Candidate</field>
+            <field name="sequence">45</field>
+        </record>
+        <record id="tag_includes_supporting_evidence" model="documents.tag">
+            <field name="name">Includes Supporting Evidence</field>
+            <field name="sequence">46</field>
+        </record>
+
     </data>
 </odoo>

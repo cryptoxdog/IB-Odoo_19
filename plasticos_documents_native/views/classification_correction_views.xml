@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_classification_correction_form" model="ir.ui.view">
+        <field name="name">plasticos.document.classification.correction.form</field>
+        <field name="model">plasticos.document.classification.correction</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <field name="document_id"/>
+                    <field name="doc_type"/>
+                    <field name="folder_id"/>
+                    <field name="reason" placeholder="Why the type or folder is wrong"/>
+                </group>
+                <footer>
+                    <button name="action_apply" type="object" string="Correct" class="btn-primary"/>
+                    <button special="cancel" string="Cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>
