@@ -41,6 +41,10 @@ KNOWN_ODOO_ADDONS = frozenset(
     {
         "account",
         "account_debit_note",
+        # Enterprise ai + ai_documents: plasticos_documents_ai (DEC-017; auto_install False,
+        # so it is not in the install-smoke roster until an operator installs it).
+        "ai",
+        "ai_documents",
         "account_invoice_extract",
         "barcodes",
         "base",
