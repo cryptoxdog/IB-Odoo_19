@@ -23,10 +23,42 @@ Models created:
 """
 
 import logging
+from datetime import timedelta
 
 from odoo import api, fields, models, tools
 
 _logger = logging.getLogger(__name__)
+
+PLASTICOS_TRANSACTION = "plasticos.transaction"
+PLASTICOS_OFFER = "plasticos.offer"
+PLASTICOS_WEB_LEAD = "plasticos.web.lead"
+
+_TX_TERMINAL_STATES = ["closed", "cancelled"]
+_OFFER_OPEN_STATES = ["draft", "sent", "responded"]
+_LEGACY_SALE_XMLID_PREFIX = "legacy_erp_so_"
+
+# DEC-007 KPI-drill parity: each urgency KPI is declared once as
+# (drill title, source model, domain builder). The displayed count is
+# search_count(domain) and the drill opens the same model with the same domain,
+# so the two can never diverge.
+URGENCY_KPIS = {
+    "tx_negative_margin": ("⚠ Negative Margin Deals", PLASTICOS_TRANSACTION, "_urgency_domain_negative_margin"),
+    "tx_delivered_uninvoiced": (
+        "⚠ Delivered — No Posted Invoice",
+        PLASTICOS_TRANSACTION,
+        "_urgency_domain_delivered_uninvoiced",
+    ),
+    "tx_missing_docs": ("⚠ Missing Docs", PLASTICOS_TRANSACTION, "_urgency_domain_missing_docs"),
+    "tx_sup_not_ready": ("⚠ Supplier Not Ready", PLASTICOS_TRANSACTION, "_urgency_domain_supplier_not_ready"),
+    "tx_stalled_followup": ("⚠ 3+ Followups No Response", PLASTICOS_TRANSACTION, "_urgency_domain_stalled_followup"),
+    "offer_expiring_soon": ("⏰ Offers Expiring ≤3 Days", PLASTICOS_OFFER, "_urgency_domain_expiring_offers"),
+    "lead_error_open": ("Lead Triage Errors", PLASTICOS_WEB_LEAD, "_urgency_domain_lead_errors"),
+    "commission_unlocked": (
+        "Commission Unlocked on Closed TXs",
+        PLASTICOS_TRANSACTION,
+        "_urgency_domain_commission_unlocked",
+    ),
+}
 
 # ─────────────────────────────────────────────────────────────────────────────
 # KPI SINGLETON
@@ -187,8 +219,11 @@ class PlasticosAdminKpi(models.Model):
 
     @api.depends()
     def _compute_kpis(self):
+        urgency_counts = {name: self._urgency_count(name) for name in URGENCY_KPIS}
         for rec in self:
             cr = self.env.cr
+            for name, count in urgency_counts.items():
+                rec[name] = count
 
             # ── Date helpers ──────────────────────────────────────────────────
             cr.execute("""
@@ -196,15 +231,13 @@ class PlasticosAdminKpi(models.Model):
                     date_trunc('month', NOW())::date  AS mtd_start,
                     date_trunc('year',  NOW())::date  AS ytd_start,
                     date_trunc('week',  NOW())::date  AS wtd_start,
-                    NOW()::date                       AS today,
-                    (NOW() + INTERVAL '3 days')::date AS in_3_days
+                    NOW()::date                       AS today
             """)
             row = cr.dictfetchone()
             mtd = row["mtd_start"]
             ytd = row["ytd_start"]
             wtd = row["wtd_start"]
             today = row["today"]
-            in_3d = row["in_3_days"]
 
             # ── INTAKES ───────────────────────────────────────────────────────
             cr.execute(
@@ -251,13 +284,10 @@ class PlasticosAdminKpi(models.Model):
                     COUNT(*) FILTER (WHERE state='rejected'
                                      AND create_date >= %s)               AS rejected_mtd,
                     COUNT(*) FILTER (WHERE state='expired'
-                                     AND create_date >= %s)               AS expired_mtd,
-                    COUNT(*) FILTER (WHERE state IN ('draft','sent','responded')
-                                     AND valid_until IS NOT NULL
-                                     AND valid_until <= %s)               AS expiring_soon
+                                     AND create_date >= %s)               AS expired_mtd
                 FROM plasticos_offer
             """,
-                (mtd, mtd, mtd, in_3d),
+                (mtd, mtd, mtd),
             )
             r = cr.dictfetchone()
             rec.offer_draft = r["draft"] or 0
@@ -266,7 +296,6 @@ class PlasticosAdminKpi(models.Model):
             rec.offer_accepted_mtd = r["accepted_mtd"] or 0
             rec.offer_rejected_mtd = r["rejected_mtd"] or 0
             rec.offer_expired_mtd = r["expired_mtd"] or 0
-            rec.offer_expiring_soon = r["expiring_soon"] or 0
 
             acc = rec.offer_accepted_mtd
             rej = rec.offer_rejected_mtd
@@ -278,20 +307,6 @@ class PlasticosAdminKpi(models.Model):
                 SELECT
                     COUNT(*) FILTER (WHERE state NOT IN ('closed','cancelled'))         AS tx_open,
                     COUNT(*) FILTER (WHERE state IN ('dispatched','in_progress','in_transit')) AS in_motion,
-                    COUNT(*) FILTER (WHERE state='delivered'
-                                     AND (customer_invoice_id IS NULL
-                                          OR EXISTS(
-                                            SELECT 1 FROM account_move am
-                                            WHERE am.id=customer_invoice_id
-                                            AND am.state='draft')))                    AS delivered_uninv,
-                    COUNT(*) FILTER (WHERE compliance_status='missing'
-                                     AND state NOT IN ('draft','cancelled'))            AS missing_docs,
-                    COUNT(*) FILTER (WHERE gross_margin < 0
-                                     AND state NOT IN ('closed','cancelled'))           AS neg_margin,
-                    COUNT(*) FILTER (WHERE state='supplier_not_ready')                 AS sup_not_ready,
-                    COUNT(*) FILTER (WHERE supplier_confirmation_followup_count >= 3
-                                     AND supplier_confirmation_received IS NULL
-                                     AND state NOT IN ('closed','cancelled'))           AS stalled_fu,
                     COUNT(*) FILTER (WHERE state='closed' AND legacy_erp_history = FALSE
                                      AND write_date >= %s
                                      AND NOT EXISTS (
@@ -310,11 +325,6 @@ class PlasticosAdminKpi(models.Model):
             r = cr.dictfetchone()
             rec.tx_open = r["tx_open"] or 0
             rec.tx_in_motion = r["in_motion"] or 0
-            rec.tx_delivered_uninvoiced = r["delivered_uninv"] or 0
-            rec.tx_missing_docs = r["missing_docs"] or 0
-            rec.tx_negative_margin = r["neg_margin"] or 0
-            rec.tx_sup_not_ready = r["sup_not_ready"] or 0
-            rec.tx_stalled_followup = r["stalled_fu"] or 0
             rec.tx_closed_mtd = r["closed_mtd"] or 0
             rec.pipeline_value_open = r["pipeline_val"] or 0.0
 
@@ -329,9 +339,7 @@ class PlasticosAdminKpi(models.Model):
                     SUM(net_margin)      FILTER (WHERE write_date >= %s)  AS nm_mtd,
                     SUM(net_margin)      FILTER (WHERE write_date >= %s)  AS nm_ytd,
                     SUM(commission_amount) FILTER (WHERE write_date >= %s) AS comm_mtd,
-                    SUM(commission_amount) FILTER (WHERE write_date >= %s) AS comm_ytd,
-                    COUNT(*) FILTER (WHERE state='closed'
-                                     AND commission_locked=FALSE)         AS comm_unlocked
+                    SUM(commission_amount) FILTER (WHERE write_date >= %s) AS comm_ytd
                 FROM plasticos_transaction
                 WHERE state='closed' AND legacy_erp_history = FALSE
                   AND NOT EXISTS (
@@ -353,7 +361,6 @@ class PlasticosAdminKpi(models.Model):
             rec.net_margin_ytd = r["nm_ytd"] or 0.0
             rec.commission_mtd = r["comm_mtd"] or 0.0
             rec.commission_ytd = r["comm_ytd"] or 0.0
-            rec.commission_unlocked = r["comm_unlocked"] or 0
 
             rev_mtd = rec.revenue_mtd
             rev_ytd = rec.revenue_ytd
@@ -370,8 +377,7 @@ class PlasticosAdminKpi(models.Model):
                     COUNT(*) FILTER (WHERE decision='hot'
                                      AND create_date >= %s)               AS hot_mtd,
                     COUNT(*) FILTER (WHERE decision='cold'
-                                     AND create_date >= %s)               AS cold_mtd,
-                    COUNT(*) FILTER (WHERE state='error')                 AS err_open
+                                     AND create_date >= %s)               AS cold_mtd
                 FROM plasticos_web_lead
             """,
                 (today, wtd, mtd, mtd, mtd),
@@ -382,7 +388,6 @@ class PlasticosAdminKpi(models.Model):
             rec.lead_received_mtd = r["mtd"] or 0
             rec.lead_hot_mtd = r["hot_mtd"] or 0
             rec.lead_cold_mtd = r["cold_mtd"] or 0
-            rec.lead_error_open = r["err_open"] or 0
 
             total_leads = rec.lead_hot_mtd + rec.lead_cold_mtd
             rec.lead_hot_rate_mtd = round(rec.lead_hot_mtd / total_leads * 100, 1) if total_leads else 0.0
@@ -518,14 +523,116 @@ class PlasticosAdminKpi(models.Model):
             "target": "current",
         }
 
+    # ── DEC-007 urgency declarations ─────────────────────────────────────────
+
+    @api.model
+    def _urgency_domain(self, kpi_name):
+        """Return the one domain that both counts and drills the urgency KPI."""
+        _title, _model, builder = URGENCY_KPIS[kpi_name]
+        return getattr(self, builder)()
+
+    @api.model
+    def _urgency_count(self, kpi_name):
+        _title, model_name, _builder = URGENCY_KPIS[kpi_name]
+        return self.env[model_name].search_count(self._urgency_domain(kpi_name))
+
+    @api.model
+    def _urgency_drill(self, kpi_name):
+        title, model_name, _builder = URGENCY_KPIS[kpi_name]
+        return {
+            "type": "ir.actions.act_window",
+            "name": title,
+            "res_model": model_name,
+            "view_mode": "list,form",
+            "domain": self._urgency_domain(kpi_name),
+            "target": "current",
+        }
+
+    @api.model
+    def _urgency_domain_negative_margin(self):
+        return [("gross_margin", "<", 0), ("state", "not in", _TX_TERMINAL_STATES)]
+
+    @api.model
+    def _urgency_domain_delivered_uninvoiced(self):
+        return [
+            ("state", "=", "delivered"),
+            "|",
+            ("customer_invoice_id", "=", False),
+            ("customer_invoice_id.state", "=", "draft"),
+        ]
+
+    @api.model
+    def _urgency_domain_missing_docs(self):
+        return [("compliance_status", "=", "missing"), ("state", "not in", ["draft", "cancelled"])]
+
+    @api.model
+    def _urgency_domain_supplier_not_ready(self):
+        return [("state", "=", "supplier_not_ready")]
+
+    @api.model
+    def _urgency_domain_stalled_followup(self):
+        return [
+            ("supplier_confirmation_followup_count", ">=", 3),
+            ("supplier_confirmation_received", "=", False),
+            ("state", "not in", _TX_TERMINAL_STATES),
+        ]
+
+    @api.model
+    def _urgency_domain_expiring_offers(self):
+        horizon = fields.Date.context_today(self) + timedelta(days=3)
+        return [
+            ("state", "in", _OFFER_OPEN_STATES),
+            ("valid_until", "!=", False),
+            ("valid_until", "<=", horizon),
+        ]
+
+    @api.model
+    def _urgency_domain_lead_errors(self):
+        return [("state", "=", "error")]
+
+    @api.model
+    def _urgency_domain_commission_unlocked(self):
+        """Closed, live (non-historical) transactions whose commission is not locked.
+
+        Historical ERP trades are excluded the same two ways the financial KPIs
+        and commission payouts exclude them: the legacy_erp_history flag, and a
+        sale order imported under a legacy_erp_so_* external id.
+        """
+        domain = [
+            ("state", "=", "closed"),
+            ("legacy_erp_history", "=", False),
+            ("commission_locked", "=", False),
+        ]
+        orders = self.env[PLASTICOS_TRANSACTION].search(domain).sale_order_id
+        if not orders:
+            return domain
+        legacy_rows = (
+            self.env["ir.model.data"]
+            .sudo()  # sudo: core grants ir.model.data to group_erp_manager; reads legacy sale markers only
+            .search(
+                [
+                    ("module", "=", "plasticos_transaction"),
+                    ("model", "=", "sale.order"),
+                    ("res_id", "in", orders.ids),
+                    ("name", "=like", f"{_LEGACY_SALE_XMLID_PREFIX}%"),
+                ]
+            )
+        )
+        legacy_order_ids = sorted({row.res_id for row in legacy_rows if row.name.startswith(_LEGACY_SALE_XMLID_PREFIX)})
+        if legacy_order_ids:
+            domain.append(("sale_order_id", "not in", legacy_order_ids))
+        return domain
+
+    # ── Drill actions ────────────────────────────────────────────────────────
+
     def action_open_sales_dashboard(self):
-        """Jump to Sales Pipeline Dashboard (filtered to open deals)."""
+        """Jump to Sales Pipeline Dashboard with its "Active" deals filter applied."""
         return {
             "type": "ir.actions.act_window",
             "name": "Sales Pipeline",
             "res_model": "plasticos.sales.dashboard",
             "view_mode": "list,kanban",
-            "context": {"search_default_filter_open": 1},
+            "context": {"search_default_active_deals": 1},
         }
 
     def action_open_logistics_dashboard(self):
@@ -538,82 +645,28 @@ class PlasticosAdminKpi(models.Model):
         }
 
     def action_open_negative_margin(self):
-        return {
-            "type": "ir.actions.act_window",
-            "name": "⚠ Negative Margin Deals",
-            "res_model": "plasticos.sales.dashboard",
-            "view_mode": "list",
-            "domain": [("has_negative_margin", "=", True)],
-        }
+        return self._urgency_drill("tx_negative_margin")
 
     def action_open_supplier_not_ready(self):
-        return {
-            "type": "ir.actions.act_window",
-            "name": "⚠ Supplier Not Ready",
-            "res_model": "plasticos.sales.dashboard",
-            "view_mode": "list",
-            "domain": [("state", "=", "supplier_not_ready")],
-        }
+        return self._urgency_drill("tx_sup_not_ready")
 
     def action_open_stalled_followup(self):
-        return {
-            "type": "ir.actions.act_window",
-            "name": "⚠ 3+ Followups No Response",
-            "res_model": "plasticos.sales.dashboard",
-            "view_mode": "list",
-            "domain": [
-                ("supplier_followup_count", ">=", 3),
-                ("is_supplier_confirmed", "=", False),
-            ],
-        }
+        return self._urgency_drill("tx_stalled_followup")
 
     def action_open_delivered_uninvoiced(self):
-        return {
-            "type": "ir.actions.act_window",
-            "name": "⚠ Delivered — No Posted Invoice",
-            "res_model": "plasticos.sales.dashboard",
-            "view_mode": "list",
-            "domain": [("state", "=", "delivered"), ("invoice_state", "in", ["draft", "-"])],
-        }
+        return self._urgency_drill("tx_delivered_uninvoiced")
 
     def action_open_missing_docs(self):
-        return {
-            "type": "ir.actions.act_window",
-            "name": "⚠ Missing Docs",
-            "res_model": "plasticos.sales.dashboard",
-            "view_mode": "list",
-            "domain": [("compliance_status", "=", "missing")],
-        }
+        return self._urgency_drill("tx_missing_docs")
 
     def action_open_expiring_offers(self):
-        return {
-            "type": "ir.actions.act_window",
-            "name": "⏰ Offers Expiring ≤3 Days",
-            "res_model": "plasticos.offer",
-            "view_mode": "list,form",
-            "domain": [
-                ("state", "in", ["draft", "sent", "responded"]),
-                ("valid_until", "<=", fields.Date.today() + __import__("datetime").timedelta(days=3)),
-            ],
-        }
+        return self._urgency_drill("offer_expiring_soon")
 
     def action_open_commission_unlocked(self):
-        return {
-            "type": "ir.actions.act_window",
-            "name": "Commission Unlocked on Closed TXs",
-            "res_model": "plasticos.sales.dashboard",
-            "view_mode": "list",
-            "domain": [("state", "=", "closed"), ("commission_locked", "=", False)],
-        }
+        return self._urgency_drill("commission_unlocked")
 
     def action_open_lead_errors(self):
-        return {
-            "type": "ir.actions.act_window",
-            "name": "Lead Triage Errors",
-            "res_model": "plasticos.web.lead",
-            "view_mode": "list,form",
-            "domain": [("state", "=", "error")],
-        }
+        return self._urgency_drill("lead_error_open")
 
     def action_open_ai_pending_review(self):
         return {
