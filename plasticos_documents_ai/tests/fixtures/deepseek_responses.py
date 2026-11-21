@@ -45,7 +45,7 @@ FILE_UPLOADED = {
 
 FILE_DELETED = {"id": "file-api-synthetic0001", "object": "file", "deleted": True}
 
-ERROR_RATE_LIMITED = {"error": {"message": "Rate limit reached for requests", "type": "rate_limit_error"}}
+ERROR_RATE_LIMITED = {"error": {"message": "Synthetic rate limit reached for requests", "type": "rate_limit_error"}}
 
 FIXTURES = {
     "response_message.json": RESPONSE_MESSAGE,
