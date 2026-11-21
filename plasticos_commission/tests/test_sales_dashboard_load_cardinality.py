@@ -37,5 +37,9 @@ class TestSalesDashboardLoadCardinality(TransactionCase):
         self.assertEqual(str(rows.pickup_datetime), early)
         self.assertEqual(rows.revenue_total, tx.revenue_total)
         self.assertEqual(rows.gross_margin, tx.gross_margin)
+        # F-004 / DEC-003: several loads open a filtered list of exactly those loads.
         action = rows.action_view_load()
-        self.assertEqual(action["tag"], "display_notification")
+        self.assertEqual(action["type"], "ir.actions.act_window")
+        self.assertEqual(action["res_model"], "plasticos.load")
+        self.assertEqual(action["domain"], [("transaction_id", "=", tx.id)])
+        self.assertEqual(self.env["plasticos.load"].search(action["domain"]), loads)

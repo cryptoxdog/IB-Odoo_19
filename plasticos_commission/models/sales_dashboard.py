@@ -14,8 +14,9 @@ class PlasticosSalesDashboard(models.Model):
     transaction. Row-level security in plasticos_security_base/security/record_rules.xml
     limits reps to their own deals (user_id = uid).
 
-    Reps NEVER access plasticos.transaction, plasticos.load, or
-    plasticos.commission.payout directly. All data surfaces here.
+    DEC-003: a row opens its underlying records (the transaction, its loads, its
+    payout) only where the user's own access rights and record rules already allow
+    reading them. Navigation never widens access and never uses sudo.
     """
 
     _name = "plasticos.sales.dashboard"
@@ -158,6 +159,13 @@ class PlasticosSalesDashboard(models.Model):
     )
 
     write_date = fields.Datetime(string="Last Updated", readonly=True)
+
+    # ── Navigation (computed, not in SQL view) ───────────────────────────────
+    can_open_transaction = fields.Boolean(
+        string="Can Open Deal",
+        compute="_compute_can_open_transaction",
+        help="True when the current user may read the underlying transaction (ACL and record rules).",
+    )
 
     # ── SQL View ──────────────────────────────────────────────────────────────
     def init(self):
@@ -403,6 +411,11 @@ class PlasticosSalesDashboard(models.Model):
         txs = self.env["plasticos.transaction"].search([("compliance_status", "=", compliance_val)])
         return [("transaction_id", "in", txs.ids)]
 
+    @api.depends("transaction_id")
+    def _compute_can_open_transaction(self):
+        for rec in self:
+            rec.can_open_transaction = bool(rec.transaction_id) and rec.transaction_id.has_access("read")
+
     # ══════════════════════════════════════════════════════════════════════════
     # Drill-Through Actions
     # ══════════════════════════════════════════════════════════════════════════
@@ -448,22 +461,37 @@ class PlasticosSalesDashboard(models.Model):
             "context": {"create": False, "edit": False},
         }
 
-    def action_view_load(self):
-        """Open the one load on this deal.
+    def action_view_transaction(self):
+        """Open the owning transaction (DEC-003) when the user may read it.
 
-        Several loads are not collapsed into a single shipment. The deal row
-        stays one financial record and the rep opens the transaction to see each load.
+        The check runs here, server-side; the hidden button is not the control.
+        """
+        self.ensure_one()
+        self.transaction_id.check_access("read")
+        return {
+            "type": "ir.actions.act_window",
+            "name": self.transaction_ref,
+            "res_model": PLASTICOS_TRANSACTION,
+            "res_id": self.transaction_id.id,
+            "view_mode": "form",
+        }
+
+    def action_view_load(self):
+        """Open the load, or the loads, of this deal.
+
+        One load opens its form. Several loads open a list of exactly the loads
+        whose transaction_id is this deal; record rules decide which of them the
+        user reads. The deal row stays one financial record.
         """
         self.ensure_one()
         if self.load_count > 1:
             return {
-                "type": "ir.actions.client",
-                "tag": "display_notification",
-                "params": {
-                    "title": "Several Loads",
-                    "message": "This deal has more than one load. Open the transaction to see each load.",
-                    "type": "warning",
-                },
+                "type": "ir.actions.act_window",
+                "name": f"Loads — {self.transaction_ref}",
+                "res_model": "plasticos.load",
+                "view_mode": "list,form",
+                "domain": [("transaction_id", "=", self.transaction_id.id)],
+                "context": {"create": False},
             }
         if not self.load_id:
             return {
