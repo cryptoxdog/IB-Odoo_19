@@ -263,8 +263,12 @@ class PlasticosExceptionRouter(models.AbstractModel):
         ``existing`` is the caller's preloaded open activities of this obligation (a batched page
         searches once); None searches here.
         """
-        activity_type = self.env.ref(route.activity_type_xmlid)
-        note = f"{obligation.note} Routed to {route.role}: {route.reason}".strip()
+        activity_type = self.env.ref(route.activity_type_xmlid, raise_if_not_found=False)
+        if not activity_type:
+            # Module data is missing: fail closed and visible; the caller notes the record unrouted.
+            _logger.error("Activity type %s is missing; %s is not routed.", route.activity_type_xmlid, record)
+            return self.env["mail.activity"]
+        note =f"{obligation.note} Routed to {route.role}: {route.reason}".strip()
         if existing is None:
             existing = self._open_activities(record, obligation.summary)
         else:
