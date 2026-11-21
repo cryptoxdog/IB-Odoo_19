@@ -4,7 +4,10 @@
     <record id="ir_actions_server_view_form_plasticos_llm_model" model="ir.ui.view">
         <field name="name">ir.actions.server.view.form.inherit.plasticos.documents.ai</field>
         <field name="model">ir.actions.server</field>
-        <field name="inherit_id" ref="ai.ir_actions_server_view_form"/>
+        <!-- Inherits the base form after Enterprise ai's own extension (priority 20),
+             which adds the "ai_action_prompt" page this view extends. -->
+        <field name="inherit_id" ref="base.view_server_action_form"/>
+        <field name="priority">30</field>
         <field name="arch" type="xml">
             <xpath expr="//page[@name='ai_action_prompt']/group" position="inside">
                 <field name="plasticos_llm_model" groups="base.group_system"/>
