@@ -28,7 +28,11 @@ class TestRepPerformanceReconciliation(PlasticosTestCase):
         for state, revenue in [("closed", 10000.0), ("closed", 20000.0)] + [("active", 5000.0)] * 3:
             tx = Tx.create({"user_id": cls.rep.id})
             tx.write({"state": state})
-            tx.write({"revenue_total": revenue})
+            vals = {"revenue_total": revenue}
+            if state == "closed":
+                # DEC-002: a closed deal's period is its commission_earned_date.
+                vals["commission_earned_date"] = fields.Date.context_today(tx)
+            tx.write(vals)
         for _intake in range(2):
             intake = cls._create_intake(
                 partner=cls.supplier,
@@ -77,6 +81,12 @@ class TestRepPerformanceReconciliation(PlasticosTestCase):
     def test_historical_erp_closed_deal_is_excluded(self):
         historical = self.env["plasticos.transaction"].with_context(**_BYPASS).create({"user_id": self.rep.id})
         historical.write({"state": "closed"})
-        historical.write({"revenue_total": 99000.0, "legacy_erp_history": True})
+        historical.write(
+            {
+                "revenue_total": 99000.0,
+                "legacy_erp_history": True,
+                "commission_earned_date": fields.Date.context_today(historical),
+            }
+        )
         self.env.flush_all()
         self.assertAlmostEqual(self._row("YTD").revenue_closed, 30000.0, places=2)

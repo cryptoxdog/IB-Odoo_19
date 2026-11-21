@@ -330,18 +330,13 @@ class PlasticosAdminKpi(models.Model):
                 rec[name] = rec._urgency_count(name)
 
             # ── Date helpers ──────────────────────────────────────────────────
-            cr.execute("""
-                SELECT
-                    date_trunc('month', NOW())::date  AS mtd_start,
-                    date_trunc('year',  NOW())::date  AS ytd_start,
-                    date_trunc('week',  NOW())::date  AS wtd_start,
-                    NOW()::date                       AS today
-            """)
-            row = cr.dictfetchone()
-            mtd = row["mtd_start"]
-            ytd = row["ytd_start"]
-            wtd = row["wtd_start"]
-            today = row["today"]
+            # Period boundaries in the user's calendar: commission_earned_date is
+            # recorded with fields.Date.context_today, so MTD/YTD must use the same
+            # calendar or a deal closed late on the last day of a month drops out.
+            today = fields.Date.context_today(rec)
+            mtd = today.replace(day=1)
+            ytd = today.replace(month=1, day=1)
+            wtd = today - timedelta(days=today.weekday())
 
             # ── INTAKES ───────────────────────────────────────────────────────
             cr.execute(
@@ -885,7 +880,9 @@ class PlasticosRepPerformance(models.Model):
         join cardinality (F-002); aggregating first keeps every measure exact.
         Historical ERP trades are excluded exactly as in the Admin KPI SQL
         (DEC-009). Open pipeline is a point-in-time snapshot, identical in every
-        period row.
+        period row. Closed deals are attributed by commission_earned_date (DEC-002).
+        A SQL view has no viewer, so its WTD/MTD/YTD starts are the database
+        calendar's (UTC); the Admin KPI form uses the viewer's calendar.
         """
         tools.drop_view_if_exists(self.env.cr, self._table)
         self.env.cr.execute("""
