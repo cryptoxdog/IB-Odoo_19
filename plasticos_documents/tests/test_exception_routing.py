@@ -43,9 +43,7 @@ class TestExceptionRouting(TransactionCase):
         cls.operations_group = cls.env.ref(OPERATIONS_GROUP)
         cls.cron_user = cls.env.ref("plasticos_base.user_system_cron")
         cls.linda = cls.env.ref("plasticos_logistics.user_linda")
-        # Service users holding the Logistics group must still never own an exception.
-        cls.cron_user.write({"group_ids": [fields.Command.link(cls.logistics_group.id)]})
-        cls.linda.write({"group_ids": [fields.Command.link(cls.logistics_group.id)]})
+        # Seed users are never modified (AGENTS.md); a dedicated fixture stands in for a service user.
         cls.ops_manager = cls._user("route.ops.manager", cls.operations_group)
         cls.logistics_user = cls._user("route.logistics.user", cls.logistics_group)
         cls.buyer = cls.env["res.partner"].create({"name": "Route Buyer", "customer_rank": 1})
@@ -126,6 +124,18 @@ class TestExceptionRouting(TransactionCase):
         self.assertTrue(ops_owner.has_group(OPERATIONS_GROUP))
         self.assertNotIn(ops_owner, self.cron_user | self.linda)
         self.assertFalse(self.router.owner(route, self.env.company | self.env["res.company"].create({"name": "X"})))
+
+    def test_a_service_user_holding_the_group_is_never_the_owner(self):
+        """Linda is excluded by her seed XML id; a stand-in proves the exclusion beats group membership."""
+        self.assertIn(self.linda.id, self.router._service_user_ids())
+        stand_in = self._user("route.service.standin", self.logistics_group)
+        router_cls = type(self.router)
+        route = self.router.route(self.router.purpose_from_tag_codes(["BOL"]), EXC_MISSING_DOCUMENTS)
+        with patch.object(router_cls, "_service_user_ids", lambda router: [stand_in.id]):
+            owner = self.router.owner(route, self.env.company)
+            self.assertNotEqual(owner, stand_in)
+            self.assertFalse(self.router.owner_is_valid(stand_in, route, self.env.company))
+            self.assertTrue(self.router.owner_is_valid(owner, route, self.env.company))
 
     # ── Idempotent activities (A18) ──
     def test_schedule_reassign_resolve_never_duplicates_or_wrongly_closes(self):
@@ -250,3 +260,23 @@ class TestExceptionRouting(TransactionCase):
         second = reroute.reroute_open_escalations()
         self.assertEqual(second.rerouted, 0)
         self.assertEqual(second.before, second.after)
+
+    def test_current_ticket_closes_the_escalation_and_rearms_it(self):
+        """A resolved gap closes its activity and clears the flag, so a later gap escalates again."""
+        if not self.env["plasticos.document.tag"].search([("code", "=", "SCALE")], limit=1):
+            self.env["plasticos.document.tag"].create({"name": "Scale Ticket", "code": "SCALE"})
+        load = self._delivered_load("TX-ROUTE-SCALE-REARM")
+        summary = f"ESCALATION: Missing scale ticket on {load.name}"
+        self._run_scale_cron(load)
+        self.assertTrue(load.scale_ticket_escalated)
+        self.assertEqual(len(self._open(load, summary)), 1)
+        model = type(self.env["plasticos.transaction"])
+        with patch.object(model, "_load_has_current_scale_ticket", lambda self, load, tag: True):
+            self._run_scale_cron(load)
+        self.assertFalse(load.scale_ticket_escalated)
+        self.assertFalse(self._open(load, summary))
+        # The ticket is later invalidated: the still-missing ticket is escalated again, once.
+        self._run_scale_cron(load)
+        self._run_scale_cron(load)
+        self.assertTrue(load.scale_ticket_escalated)
+        self.assertEqual(len(self._open(load, summary)), 1)

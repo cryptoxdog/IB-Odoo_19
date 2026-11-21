@@ -92,7 +92,6 @@ class TestReviewRoutingAndHold(PlasticosTestCase):
 
     def test_cron_user_is_never_the_reviewer(self):
         cron_user = self.env.ref("plasticos_base.user_system_cron")
-        cron_user.write({"group_ids": [(4, self.manager_group.id)]})
         router, route = self._ops_route()
         self.assertNotEqual(router.owner(route, self.env.company), cron_user)
         native = self._native(doc_type="bol")
