@@ -268,7 +268,7 @@ class PlasticosExceptionRouter(models.AbstractModel):
             # Module data is missing: fail closed and visible; the caller notes the record unrouted.
             _logger.error("Activity type %s is missing; %s is not routed.", route.activity_type_xmlid, record)
             return self.env["mail.activity"]
-        note =f"{obligation.note} Routed to {route.role}: {route.reason}".strip()
+        note = f"{obligation.note} Routed to {route.role}: {route.reason}".strip()
         if existing is None:
             existing = self._open_activities(record, obligation.summary)
         else:
