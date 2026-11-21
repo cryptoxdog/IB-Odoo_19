@@ -188,7 +188,43 @@ class TestOpsWorkbench(PlasticosTestCase):
         self.assertIn(activity, self._drill(self.ops_b, "team_exceptions"))
 
     def test_module_defines_no_queue_model(self):
-        """DEC-004 / A29: presentation only. Its one model is abstract and stores nothing."""
+        """DEC-004 / A29: presentation only. No stored model; the correction wizard is transient."""
         owned = self.env["ir.model"].search([("model", "=like", "plasticos.ops.%")])
-        self.assertEqual(owned.mapped("model"), ["plasticos.ops.workbench"])
+        self.assertEqual(sorted(owned.mapped("model")), ["plasticos.ops.request.correction", "plasticos.ops.workbench"])
         self.assertTrue(self.env["plasticos.ops.workbench"]._abstract)
+        self.assertTrue(self.env["plasticos.ops.request.correction"]._transient)
+
+    def _correction(self, activity, user, reason):
+        wizard = (
+            self.env["plasticos.ops.request.correction"]
+            .with_user(user)
+            .create({"activity_id": activity.id, "reason": reason})
+        )
+        return wizard.action_request_correction()
+
+    def test_request_correction_is_internal_and_keeps_the_one_activity(self):
+        """CTO ruling on Request Correction: internal note, reason on the same activity, no external mail."""
+        api = _router_api()
+        activity = self._schedule(self.tx, "TASK-040 BOL wrong load", ["BOL"], api.EXC_MISSING_DOCUMENTS, False)
+        owner = activity.user_id
+        mails_before = self.env["mail.mail"].search_count([])
+        activities_before = self.env["mail.activity"].search_count([("summary", "=", activity.summary)])
+        self._correction(activity, self.ops, "BOL names load 12, the original is for load 14.")
+        self.assertEqual(activity.user_id, owner)
+        self.assertIn("load 14", activity.note)
+        self.assertEqual(
+            self.env["mail.activity"].search_count([("summary", "=", activity.summary)]), activities_before
+        )
+        notes = self.tx.message_ids.filtered(lambda m: "Correction requested" in (m.body or ""))
+        self.assertEqual(len(notes), 1)
+        self.assertEqual(notes.subtype_id, self.env.ref("mail.mt_note"))
+        self.assertFalse(notes.partner_ids)
+        self.assertEqual(self.env["mail.mail"].search_count([]), mails_before)
+
+    def test_request_correction_requires_operations_and_a_reason(self):
+        api = _router_api()
+        activity = self._schedule(self.tx, "TASK-040 correction refused", ["BOL"], api.EXC_MISSING_DOCUMENTS, False)
+        with self.assertRaises(UserError):
+            self._correction(activity, self.ops, "   ")
+        with self.assertRaises(AccessError):
+            self._correction(activity, self.logistics_ops, "Not an Operations Manager.")

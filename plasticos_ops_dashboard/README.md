@@ -18,6 +18,7 @@ depends:
   - plasticos_commission
 models_owned:
   - plasticos.ops.workbench
+  - plasticos.ops.request.correction
 models_extended:
   - mail.activity
 crons: []
@@ -55,6 +56,9 @@ Team, Escalated and Document Gaps show only activities owned by an Operations Ma
   command and the record's own actions live. Return to Logistics (`action_plasticos_return_to_logistics`) reassigns the
   one activity to the Logistics owner chosen by the DEC-010 router; it refuses Operations-only classes, non-Operations
   users and a company with no Logistics owner. The router re-evaluates the activity the next time its writer runs.
+- Request Correction (`plasticos.ops.request.correction`, transient) takes a required reason, posts an internal note
+  on the record and adds the reason to the same activity, due today, with the same routed owner. It sends nothing
+  outside the company (Linda stays the only external chase sender) and does not edit the document or its evidence.
 
 ## Security
 
@@ -67,6 +71,7 @@ Team, Escalated and Document Gaps show only activities owned by an Operations Ma
 | --- | --- | --- |
 | `plasticos.ops.workbench` | owned, abstract | `models/ops_workbench.py` |
 | `mail.activity` | extended (non-stored review fields, Return to Logistics) | `models/mail_activity.py` |
+| `plasticos.ops.request.correction` | owned, transient (one-click reason) | `models/request_correction.py` |
 
 ## Runtime
 

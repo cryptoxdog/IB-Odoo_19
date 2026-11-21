@@ -37,6 +37,32 @@
         </field>
     </record>
 
+    <record id="view_ops_request_correction_form" model="ir.ui.view">
+        <field name="name">plasticos.ops.request.correction.form</field>
+        <field name="model">plasticos.ops.request.correction</field>
+        <field name="arch" type="xml">
+            <form>
+                <p>An internal note on the record and the reason on this same exception. Nothing is sent outside the company.</p>
+                <group>
+                    <field name="activity_id" readonly="1"/>
+                    <field name="reason" placeholder="What must be corrected and why"/>
+                </group>
+                <footer>
+                    <button name="action_request_correction" type="object" string="Request Correction" class="btn-primary"/>
+                    <button string="Cancel" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_ops_request_correction" model="ir.actions.act_window">
+        <field name="name">Request Correction</field>
+        <field name="res_model">plasticos.ops.request.correction</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="group_ids" eval="[(4, ref('plasticos_security_base.group_operations_manager'))]"/>
+    </record>
+
     <record id="view_ops_activity_form" model="ir.ui.view">
         <field name="name">plasticos.ops.activity.form</field>
         <field name="model">mail.activity</field>
@@ -53,6 +79,9 @@
                             class="btn-primary" invisible="res_model != 'account.move'"/>
                     <button name="action_open_document" type="object" string="Open Record"
                             invisible="res_model in ('documents.document', 'account.move')"/>
+                    <button name="%(plasticos_ops_dashboard.action_ops_request_correction)d" type="action"
+                            string="Request Correction" context="{'default_activity_id': id}"
+                            groups="plasticos_security_base.group_operations_manager"/>
                     <button name="action_plasticos_return_to_logistics" type="object" string="Return to Logistics"
                             invisible="not plasticos_can_return_to_logistics"
                             groups="plasticos_security_base.group_operations_manager"
