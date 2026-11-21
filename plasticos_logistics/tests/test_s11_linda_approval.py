@@ -1156,6 +1156,23 @@ class TestLindaAuthorityByClass(_LindaCase):
         self.assertEqual(result["status"], "applied", result)
         self.assertEqual(self.env[PROPOSAL].browse(result["record_id"]).create_uid, self.linda)
 
+    def test_an_unverified_reply_approval_keeps_every_other_owner_guard(self):
+        """CTO ANSWER 1: Logistics confirms the reply only; a failing evidence guard still blocks and re-routes."""
+        po, _tx, loads = self._five_container_order()
+        reply = self._linda_reply(po, disposition="identity_unverified")
+        values = self._loaded_values(loads[0], reply)
+        held = self._linda(PROPOSAL).action_propose_shipment_event(values, "lcp-guard")
+        approval = self._held(held, "unverified_linda_reply", "propose_shipment_event")
+        # The original leaves the load after the hold, so the proposal's evidence guard refuses at replay.
+        evidence = self.env["ir.attachment"].browse(values["evidence_attachment_id"])
+        evidence.sudo().write({"res_id": loads[1].id})  # sudo: fixture moves the original to another load
+        result = self._approve(approval, self.ops)
+        self.assertEqual((result["status"], result.get("rerouted_to")), ("blocked", "operations_manager"), result)
+        self.assertEqual(
+            (approval.state, approval.routed_role, approval.result_status), ("pending", "operations_manager", "blocked")
+        )
+        self.assertFalse(self.env[PROPOSAL].search([("operation_key", "=", "lcp-guard")]), "nothing is applied")
+
     def test_a_still_failing_guard_blocks_and_reroutes_to_operations(self):
         """Out of sequence, still unresolved: nothing applied, blocked, one Operations Manager activity."""
         journey = self._journey("S11-L-REROUTE")
