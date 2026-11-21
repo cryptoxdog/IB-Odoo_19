@@ -2,6 +2,17 @@ import logging
 from datetime import date, timedelta
 
 from odoo import api, fields, models
+from odoo.tools import html2plaintext
+
+from .exception_router import (
+    EXC_MISSING_DOCUMENTS,
+    EXC_MISSING_SCALE_TICKET,
+    LOGISTICS,
+    OPERATIONS,
+    OWNER_GROUPS,
+    Obligation,
+    RerouteResult,
+)
 
 _logger = logging.getLogger(__name__)
 
@@ -164,11 +175,14 @@ class PlasticosTransactionDocs(models.Model):
     def _apply_missing_doc_page(self, transactions):
         """Apply missing-document status, reminders, and escalations to one page.
 
-        An escalation is assigned to an Operations Manager. With none, the
-        escalation is logged, noted once on the transaction, and counted as a failure.
+        The escalation owner comes from the DEC-010 router: missing shipping paperwork only is
+        Logistics work, anything financial or cross-department is the Operations Manager's.
+        With no owner the escalation is logged, noted once on the transaction, and counted as a
+        failure. A transaction whose documents are complete has its escalation closed.
         """
         if not transactions:
             return {"processed": 0, "failures": 0}
+        router = self.env["plasticos.exception.router"]
         today = date.today()
         overdue_threshold = 2
         escalation_threshold = 5
@@ -183,30 +197,30 @@ class PlasticosTransactionDocs(models.Model):
                 escalation_threshold = min(escalation_threshold, rule.escalation_business_days)
 
         summaries = {tx.id: f"ESCALATION: Missing documents on {tx.name}" for tx in transactions}
-        activities = self.env["mail.activity"].search(
+        companies = {tx.id: tx.sale_order_id.company_id | tx.purchase_order_ids.company_id for tx in transactions}
+        # One query for the page's open escalations and one for its "no owner" notes (batched page).
+        open_by_tx = (
+            self.env["mail.activity"]
+            .search(
+                [
+                    ("res_model", "=", "plasticos.transaction"),
+                    ("res_id", "in", transactions.ids),
+                    ("summary", "in", list(summaries.values())),
+                ],
+                order="id ASC",
+            )
+            .grouped("res_id")
+        )
+        notes = self.env["mail.message"].search(
             [
-                ("res_model", "=", "plasticos.transaction"),
+                ("model", "=", "plasticos.transaction"),
                 ("res_id", "in", transactions.ids),
-                # Open activities of any deadline: an escalated transaction keeps one open
-                # Activity per obligation, not a new one each day (BRS-POS-09-R003).
-                ("summary", "in", list(summaries.values())),
+                ("body", "ilike", self._UNASSIGNED_ESCALATION_MARKER),
             ]
         )
-        existing = {(activity.res_id, activity.summary) for activity in activities}
-        owners = self._escalation_owners(
-            self._escalation_manager_group(),
-            {tx.id: tx.sale_order_id.company_id | tx.purchase_order_ids.company_id for tx in transactions},
-        )
-        unassigned_noted = set()
-        if not all(owners.values()):
-            notes = self.env["mail.message"].search(
-                [
-                    ("model", "=", "plasticos.transaction"),
-                    ("res_id", "in", transactions.ids),
-                    ("body", "ilike", self._UNASSIGNED_ESCALATION_MARKER),
-                ]
-            )
-            unassigned_noted = set(notes.mapped("res_id"))
+        unassigned_noted = set(notes.mapped("res_id"))
+        no_activity = self.env["mail.activity"]
+        owners_by_role = {}
         processed = 0
         failures = 0
 
@@ -218,6 +232,12 @@ class PlasticosTransactionDocs(models.Model):
             if not has_missing:
                 if tx.missing_doc_status != "complete":
                     tx.missing_doc_status = "complete"
+                router.resolve(
+                    tx,
+                    summaries[tx.id],
+                    "The required documents are present.",
+                    open_by_tx.get(tx.id, no_activity),
+                )
                 continue
 
             start_date = tx.create_date.date() if tx.create_date else today
@@ -246,36 +266,51 @@ class PlasticosTransactionDocs(models.Model):
                     message_type="notification",
                 )
             elif new_status == "escalated":
-                summary = summaries[tx.id]
-                if (tx.id, summary) in existing:
-                    continue
-                manager = owners[tx.id]
-                if not manager:
+                missing_codes = self.env["plasticos.compliance.service"].get_missing_documents(
+                    "plasticos.transaction", tx.id
+                )
+                purpose = router.purpose_from_tag_codes(missing_codes)
+                route = router.route(purpose, EXC_MISSING_DOCUMENTS)
+                if route.role not in owners_by_role:
+                    owners_by_role[route.role] = self.with_context(
+                        **router.exclusion_context(route.role)
+                    )._escalation_owners(self._escalation_group_for(route.role), companies)
+                manager = owners_by_role[route.role][tx.id]
+                obligation = Obligation(
+                    summaries[tx.id],
+                    purpose,
+                    EXC_MISSING_DOCUMENTS,
+                    f"Transaction {tx.name} has missing documents for {bd} business days. "
+                    "Manual intervention required.",
+                )
+                activity = router.upsert(
+                    tx,
+                    obligation,
+                    route,
+                    manager,
+                    companies[tx.id],
+                    self._escalation_group_for(route.role),
+                    open_by_tx.get(tx.id, no_activity),
+                )
+                if not activity:
                     failures += 1
                     _logger.error(
-                        "Missing-document ESCALATION not assigned: transaction %s has no Operations Manager "
-                        "in its company.",
+                        "Missing-document ESCALATION not assigned: transaction %s has no %s owner in its company.",
                         tx.name,
+                        route.role,
                     )
                     if tx.id not in unassigned_noted:
+                        unassigned_noted.add(tx.id)
                         tx.message_post(
                             body=(
                                 f"{self._UNASSIGNED_ESCALATION_MARKER} Transaction {tx.name} has missing "
-                                f"documents for {bd} business days and no active Operations Manager exists in its company."
+                                f"documents for {bd} business days and no active {route.role} owner exists "
+                                "in its company."
                             ),
                             message_type="notification",
                             subtype_xmlid="mail.mt_note",
                         )
                     continue
-                tx.activity_schedule(
-                    "mail.mail_activity_data_todo",
-                    user_id=manager.id,
-                    summary=summary,
-                    note=(
-                        f"Transaction {tx.name} has missing documents for {bd} business days. "
-                        "Manual intervention required."
-                    ),
-                )
 
             _logger.info(
                 "Documents extension: TX %s status=%s (bd=%d, missing: supplier=%s, carrier=%s, buyer=%s)",
@@ -424,26 +459,46 @@ class PlasticosTransactionDocs(models.Model):
         return owners
 
     def _escalation_manager_group(self):
-        """Operations Manager owns document escalations. Logistics and sales members do not."""
-        return self.env.ref("plasticos_security_base.group_operations_manager", raise_if_not_found=False)
+        """Operations Manager owns financial, cross-department and unattributed escalations (DEC-010)."""
+        return self.env.ref(OWNER_GROUPS[OPERATIONS], raise_if_not_found=False)
+
+    def _logistics_escalation_group(self):
+        """Logistics Operations owns confidently attributed shipping-document escalations (DEC-010)."""
+        return self.env.ref(OWNER_GROUPS[LOGISTICS], raise_if_not_found=False)
 
     def _scale_ticket_manager_group(self):
-        return self._escalation_manager_group()
+        """A load's own missing scale ticket is attributed shipping paperwork: Logistics."""
+        return self._logistics_escalation_group()
 
-    def _record_scale_ticket_escalation(self, load, manager, bd_since_pickup, existing_escalations):
-        summary = f"ESCALATION: Missing scale ticket on {load.name}"
-        if (load.id, summary) not in existing_escalations:
-            load.activity_schedule(
-                "mail.mail_activity_data_todo",
-                user_id=manager.id,
-                summary=summary,
-                note=(
-                    f"Load {load.name} on transaction {load.transaction_id.name} is missing a scale ticket.\n"
-                    f"Pickup was {bd_since_pickup} business days ago.\n"
-                    f"Carrier: {load.carrier_id.name if load.carrier_id else 'Unknown'}\n"
-                    "Please follow up with the carrier immediately."
-                ),
-            )
+    def _escalation_group_for(self, role):
+        return self._logistics_escalation_group() if role == LOGISTICS else self._escalation_manager_group()
+
+    def _scale_ticket_route(self):
+        router = self.env["plasticos.exception.router"]
+        purpose = router.purpose_from_tag_codes(["SCALE"])
+        return router.route(purpose, EXC_MISSING_SCALE_TICKET), purpose
+
+    def _record_scale_ticket_escalation(self, load, manager, bd_since_pickup, open_activities):
+        router = self.env["plasticos.exception.router"]
+        route, purpose = self._scale_ticket_route()
+        obligation = Obligation(
+            f"ESCALATION: Missing scale ticket on {load.name}",
+            purpose,
+            EXC_MISSING_SCALE_TICKET,
+            f"Load {load.name} on transaction {load.transaction_id.name} is missing a scale ticket. "
+            f"Pickup was {bd_since_pickup} business days ago. "
+            f"Carrier: {load.carrier_id.name if load.carrier_id else 'Unknown'}. "
+            "Please follow up with the carrier.",
+        )
+        router.upsert(
+            load,
+            obligation,
+            route,
+            manager,
+            load.company_id,
+            self._scale_ticket_manager_group(),
+            open_activities,
+        )
         load._write_scale_ticket_status({"scale_ticket_escalated": True})
         _logger.info(
             "Scale ticket ESCALATION: load %s transaction %s, %s BD since pickup, assigned to %s",
@@ -530,19 +585,26 @@ class PlasticosTransactionDocs(models.Model):
             else:
                 overdue_bd = 2
                 escalation_bd = 7
-            owners = self._escalation_owners(
+            route, _purpose = self._scale_ticket_route()
+            router = self.env["plasticos.exception.router"]
+            owners = self.with_context(**router.exclusion_context(route.role))._escalation_owners(
                 self._scale_ticket_manager_group(), {load.id: load.company_id for load in loads}
             )
             summaries = {load.id: f"ESCALATION: Missing scale ticket on {load.name}" for load in loads}
-            activities = self.env["mail.activity"].search(
-                [
-                    ("res_model", "=", "plasticos.load"),
-                    ("res_id", "in", list(summaries)),
-                    ("summary", "in", list(summaries.values())),
-                ],
-                order="id ASC",
+            # One query for the page's open escalations (batched page).
+            open_by_load = (
+                self.env["mail.activity"]
+                .search(
+                    [
+                        ("res_model", "=", "plasticos.load"),
+                        ("res_id", "in", list(summaries)),
+                        ("summary", "in", list(summaries.values())),
+                    ],
+                    order="id ASC",
+                )
+                .grouped("res_id")
             )
-            existing_escalations = {(activity.res_id, activity.summary) for activity in activities}
+            no_activity = self.env["mail.activity"]
 
             failed_ids = []
             attempted_ids = set()
@@ -551,6 +613,16 @@ class PlasticosTransactionDocs(models.Model):
                 try:
                     with self.env.cr.savepoint():
                         if self._load_has_current_scale_ticket(load, scale_ticket_tag):
+                            router.resolve(
+                                load,
+                                summaries[load.id],
+                                "The load's scale ticket is current.",
+                                open_by_load.get(load.id, no_activity),
+                            )
+                            if load.scale_ticket_escalated:
+                                # The gap is closed: a later invalid, expired or superseded ticket
+                                # must be able to escalate again.
+                                load._write_scale_ticket_status({"scale_ticket_escalated": False})
                             continue
                         delivery_date, pickup_date = self._scale_ticket_clock_dates(load)
                         bd_since_delivery = self._count_business_days(delivery_date, today) if delivery_date else 0
@@ -562,19 +634,19 @@ class PlasticosTransactionDocs(models.Model):
                             if not manager:
                                 failures += 1
                                 _logger.error(
-                                    "Scale ticket ESCALATION skipped: load %s has no Operations Manager in its company.",
+                                    "Scale ticket ESCALATION skipped: load %s has no Logistics owner in its company.",
                                     load.name,
                                 )
                                 self.env["res.users"]._plasticos_note_unrouted_escalation(
                                     load,
                                     "scale ticket escalation",
                                     f"Load {load.name} is missing a scale ticket {bd_since_pickup} business days "
-                                    "after pickup and no active Operations Manager exists in its company. "
+                                    "after pickup and no active Logistics owner exists in its company. "
                                     "Assign it manually.",
                                 )
                             else:
                                 self._record_scale_ticket_escalation(
-                                    load, manager, bd_since_pickup, existing_escalations
+                                    load, manager, bd_since_pickup, open_by_load.get(load.id, no_activity)
                                 )
                         if due_reminder:
                             self._record_scale_ticket_reminder(load, bd_since_delivery)
@@ -611,3 +683,82 @@ class PlasticosLoadScaleTicket(models.Model):
         default=False,
         help="True after the escalation for this load's own missing scale ticket.",
     )
+
+
+class PlasticosEscalationReroute(models.AbstractModel):
+    """Move open document escalations to their DEC-010 owner. Repeatable: a second run changes nothing."""
+
+    _name = "plasticos.escalation.reroute"
+    _description = "Reroute open document escalations (DEC-010)"
+
+    @api.model
+    def _owner_roles(self, activities):
+        operations = self.env.ref(OWNER_GROUPS[OPERATIONS], raise_if_not_found=False)
+        counts = {LOGISTICS: 0, OPERATIONS: 0, "other": 0}
+        for activity in activities.exists():
+            user = activity.user_id
+            if operations and user and operations in user.all_group_ids:
+                counts[OPERATIONS] += 1
+            elif user and user.has_group(OWNER_GROUPS[LOGISTICS]):
+                counts[LOGISTICS] += 1
+            else:
+                counts["other"] += 1
+        return counts
+
+    @api.model
+    def _base_note(self, activity):
+        text = html2plaintext(activity.note or "").strip()
+        return text.split(" Routed to ")[0]
+
+    @api.model
+    def reroute_open_escalations(self):
+        """Return a ``RerouteResult``: owner counts by role before and after, and the changed count."""
+        Activity = self.env["mail.activity"]
+        router = self.env["plasticos.exception.router"]
+        transactions = self.env["plasticos.transaction"]
+        activities = Activity.search(
+            [
+                "|",
+                "&",
+                ("res_model", "=", "plasticos.transaction"),
+                ("summary", "=like", "ESCALATION: Missing documents on %"),
+                "&",
+                ("res_model", "=", "plasticos.load"),
+                ("summary", "=like", "ESCALATION: Missing scale ticket on %"),
+            ],
+            order="id ASC",
+        )
+        before = self._owner_roles(activities)
+        rerouted = 0
+        for activity in activities:
+            if not activity.exists():
+                continue  # closed as a duplicate of an earlier one in this run
+            snapshot = (activity.user_id.id, activity.activity_type_id.id)
+            record = self.env[activity.res_model].browse(activity.res_id).exists()
+            if not record:
+                continue
+            if record._name == "plasticos.transaction":
+                purpose = router.purpose_from_tag_codes(
+                    self.env["plasticos.compliance.service"].get_missing_documents("plasticos.transaction", record.id)
+                )
+                exception_class = EXC_MISSING_DOCUMENTS
+                company = record.sale_order_id.company_id | record.purchase_order_ids.company_id
+                group = transactions._escalation_group_for(router.route(purpose, exception_class).role)
+            else:
+                purpose = router.purpose_from_tag_codes(["SCALE"])
+                exception_class = EXC_MISSING_SCALE_TICKET
+                company = record.company_id
+                group = transactions._scale_ticket_manager_group()
+            route = router.route(purpose, exception_class)
+            owner = router.owner(route, company or None, group)
+            obligation = Obligation(activity.summary, purpose, exception_class, self._base_note(activity))
+            kept = router.upsert(record, obligation, route, owner, company or None, group)
+            if not owner and not router.owner_is_valid(kept.user_id, route, company or None, group):
+                _logger.error(
+                    "Escalation activity %s has no eligible %s owner; it stays assigned.", activity.id, route.role
+                )
+            if (kept.user_id.id, kept.activity_type_id.id) != snapshot:
+                rerouted += 1
+        after = self._owner_roles(activities)
+        _logger.info("Rerouted %d escalation activities: before %s, after %s", rerouted, before, after)
+        return RerouteResult(before, after, rerouted)

@@ -60,8 +60,8 @@ class TestAdminKpiCompanyIsolation(TransactionCase):
         self.assertEqual(self._value(self.kpi_a, "tx_open"), open_a + 1)
         self.assertEqual(self._value(self.kpi_b, "tx_open"), open_b + 1)
 
-        drill_a = self.env["plasticos.transaction"].search(self.kpi_a._urgency_drill("tx_sup_not_ready")["domain"])
-        drill_b = self.env["plasticos.transaction"].search(self.kpi_b._urgency_drill("tx_sup_not_ready")["domain"])
+        drill_a = self.env["plasticos.transaction"].search(self.kpi_a._kpi_drill("tx_sup_not_ready")["domain"])
+        drill_b = self.env["plasticos.transaction"].search(self.kpi_b._kpi_drill("tx_sup_not_ready")["domain"])
         self.assertIn(tx_a, drill_a)
         self.assertNotIn(tx_b, drill_a)
         self.assertIn(tx_b, drill_b)

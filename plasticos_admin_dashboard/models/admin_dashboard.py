@@ -23,20 +23,32 @@ Models created:
 """
 
 import logging
+from collections import namedtuple
 from datetime import timedelta
 
 from psycopg2 import errors as pg_errors
 
 from odoo import api, fields, models, tools
-from odoo.exceptions import ConcurrencyError
+from odoo.exceptions import ConcurrencyError, UserError
 
 _logger = logging.getLogger(__name__)
 
 PLASTICOS_TRANSACTION = "plasticos.transaction"
 PLASTICOS_OFFER = "plasticos.offer"
 PLASTICOS_WEB_LEAD = "plasticos.web.lead"
+PLASTICOS_INTAKE = "plasticos.intake"
+PLASTICOS_DOCUMENT = "plasticos.document"
+PLASTICOS_LINDA_APPROVAL = "plasticos.linda.approval"
+MAIL_ACTIVITY = "mail.activity"
 
 _TX_TERMINAL_STATES = ["closed", "cancelled"]
+_TX_PRE_SHIPPING_STATES = ["draft", "active", "pending_supplier", "supplier_not_ready", "supplier_ready"]
+_TX_SHIPPING_STATES = ["do_created", "dispatched", "in_progress", "in_transit"]
+_TX_DELIVERED_STATES = ["delivered", "invoiced"]
+_TX_IN_MOTION_STATES = ["dispatched", "in_progress", "in_transit"]
+_INVOICE_SETTLED_PAYMENT_STATES = ["paid", "in_payment", "reversed"]
+_INTAKE_CLOSED_STATUSES = ["won", "lost", "expired"]
+_DOCS_COMPLETE = "complete"  # plasticos.transaction.missing_doc_status (plasticos_documents)
 
 # Intakes, offers and web leads carry no company, so their KPIs cannot be scoped to the
 # record's company (DEC-008). They are shown as all-company figures, never faked per company.
@@ -46,6 +58,15 @@ _ALL_COMPANIES_HELP = (
 )
 _OFFER_OPEN_STATES = ["draft", "sent", "responded"]
 _LEGACY_SALE_XMLID_PREFIX = "legacy_erp_so_"
+_MANUAL_OVERRIDE_MARKER = "Manual override"
+
+# KPI aggregate kinds (KPI_AGGREGATES); a KPI not listed there is a record count.
+AGG_COUNT = "count"
+AGG_SUM = "sum"
+AGG_AVG_AGE_DAYS = "avg_age_days"
+
+# Period boundaries in the user's timezone.
+KpiPeriods = namedtuple("KpiPeriods", ["today", "tomorrow", "week_start", "month_start", "year_start"])
 
 # DEC-002: closed-deal and earned-commission periods use commission_earned_date,
 # never write_date. These are operational figures, not accounting revenue.
@@ -54,6 +75,30 @@ _CLOSED_DEAL_HELP = (
     "attributed to the period of their commission_earned_date. Not accounting-recognized revenue; "
     "posted invoices, invoice aging and cash are separate figures with their own dates."
 )
+
+# DEC-012 exception activity types (plasticos_documents, TASK-060) and the owner roles the
+# exception router writes into each activity note ("Routed to <role>: <reason>").
+EXCEPTION_ACTIVITY_TYPES = (
+    "plasticos_documents.activity_type_missing_documents",
+    "plasticos_documents.activity_type_missing_scale_ticket",
+    "plasticos_documents.activity_type_association_review",
+    "plasticos_documents.activity_type_classification_review",
+    "plasticos_documents.activity_type_evidence_gap",
+    "plasticos_documents.activity_type_split_review",
+    "plasticos_documents.activity_type_duplicate_candidate",
+    "plasticos_documents.activity_type_blocked_bill",
+)
+
+# DEC-008: the company path of each source model. A model absent here carries no company.
+_COMPANY_PATHS = {
+    PLASTICOS_TRANSACTION: "sale_order_id.company_id",
+    PLASTICOS_DOCUMENT: "subject_company_id",
+    PLASTICOS_LINDA_APPROVAL: "company_id",
+}
+
+# Source models the Admin may lack read access to. Without access the KPI is
+# unavailable, never 0.
+_OPTIONAL_ACCESS_MODELS = frozenset({PLASTICOS_DOCUMENT, PLASTICOS_LINDA_APPROVAL, MAIL_ACTIVITY})
 
 # DEC-007 KPI-drill parity: each urgency KPI is declared once as
 # (drill title, source model, domain builder). The displayed count is
@@ -76,6 +121,97 @@ URGENCY_KPIS = {
         PLASTICOS_TRANSACTION,
         "_urgency_domain_commission_unlocked",
     ),
+}
+
+# Every other actionable Admin KPI, declared the same way (TASK-031, F-005).
+KPI_DECLARATIONS = {
+    **URGENCY_KPIS,
+    # Intake pipeline
+    "intake_draft": ("Intakes: Draft", PLASTICOS_INTAKE, "_kpi_domain_intake_draft"),
+    "intake_matched": ("Intakes: Matched", PLASTICOS_INTAKE, "_kpi_domain_intake_matched"),
+    "intake_offer_sent": ("Intakes: Offer Sent", PLASTICOS_INTAKE, "_kpi_domain_intake_offer_sent"),
+    "intake_processing": ("Intakes: Processing", PLASTICOS_INTAKE, "_kpi_domain_intake_processing"),
+    "intake_total_open": ("Open Intakes", PLASTICOS_INTAKE, "_kpi_domain_intake_total_open"),
+    "intake_won_mtd": ("Intakes Won (MTD)", PLASTICOS_INTAKE, "_kpi_domain_intake_won_mtd"),
+    "intake_lost_mtd": ("Intakes Lost (MTD)", PLASTICOS_INTAKE, "_kpi_domain_intake_lost_mtd"),
+    "avg_intake_age_days": ("Aging Intakes", PLASTICOS_INTAKE, "_kpi_domain_intake_aging"),
+    # Offers
+    "offer_draft": ("Offers: Draft", PLASTICOS_OFFER, "_kpi_domain_offer_draft"),
+    "offer_sent": ("Offers: Sent", PLASTICOS_OFFER, "_kpi_domain_offer_sent"),
+    "offer_responded": ("Offers: Responded", PLASTICOS_OFFER, "_kpi_domain_offer_responded"),
+    "offer_accepted_mtd": ("Offers Accepted (MTD)", PLASTICOS_OFFER, "_kpi_domain_offer_accepted_mtd"),
+    "offer_rejected_mtd": ("Offers Rejected (MTD)", PLASTICOS_OFFER, "_kpi_domain_offer_rejected_mtd"),
+    "offer_expired_mtd": ("Offers Expired (MTD)", PLASTICOS_OFFER, "_kpi_domain_offer_expired_mtd"),
+    # Transactions
+    "tx_open": ("Open Transactions", PLASTICOS_TRANSACTION, "_kpi_domain_tx_open"),
+    "tx_in_motion": ("Transactions In Motion", PLASTICOS_TRANSACTION, "_kpi_domain_tx_in_motion"),
+    "tx_closed_mtd": ("Closed Deals MTD (earned date)", PLASTICOS_TRANSACTION, "_kpi_domain_closed_mtd"),
+    "pipeline_value_open": ("Open Pipeline", PLASTICOS_TRANSACTION, "_kpi_domain_pipeline_open"),
+    # Closed-deal financials (DEC-002)
+    "revenue_mtd": ("Closed-Deal Revenue MTD", PLASTICOS_TRANSACTION, "_kpi_domain_closed_mtd"),
+    "revenue_ytd": ("Closed-Deal Revenue YTD", PLASTICOS_TRANSACTION, "_kpi_domain_closed_ytd"),
+    "gm_mtd": ("Closed-Deal Gross Margin MTD", PLASTICOS_TRANSACTION, "_kpi_domain_closed_mtd"),
+    "gm_ytd": ("Closed-Deal Gross Margin YTD", PLASTICOS_TRANSACTION, "_kpi_domain_closed_ytd"),
+    "net_margin_mtd": ("Closed-Deal Net Margin MTD", PLASTICOS_TRANSACTION, "_kpi_domain_closed_mtd"),
+    "net_margin_ytd": ("Closed-Deal Net Margin YTD", PLASTICOS_TRANSACTION, "_kpi_domain_closed_ytd"),
+    "commission_mtd": ("Earned Commission MTD", PLASTICOS_TRANSACTION, "_kpi_domain_closed_mtd"),
+    "commission_ytd": ("Earned Commission YTD", PLASTICOS_TRANSACTION, "_kpi_domain_closed_ytd"),
+    # Web leads
+    "lead_received_today": ("Leads Today", PLASTICOS_WEB_LEAD, "_kpi_domain_lead_today"),
+    "lead_received_wtd": ("Leads WTD", PLASTICOS_WEB_LEAD, "_kpi_domain_lead_wtd"),
+    "lead_received_mtd": ("Leads MTD", PLASTICOS_WEB_LEAD, "_kpi_domain_lead_mtd"),
+    "lead_hot_mtd": ("HOT Leads MTD", PLASTICOS_WEB_LEAD, "_kpi_domain_lead_hot_mtd"),
+    "lead_cold_mtd": ("COLD Leads MTD", PLASTICOS_WEB_LEAD, "_kpi_domain_lead_cold_mtd"),
+    # AI engine
+    "ai_leads_normalized_mtd": ("AI Normalized MTD", PLASTICOS_WEB_LEAD, "_kpi_domain_ai_normalized_mtd"),
+    "ai_leads_vision_mtd": ("Vision Analyzed MTD", PLASTICOS_WEB_LEAD, "_kpi_domain_ai_vision_mtd"),
+    "ai_hot_auto_mtd": ("Auto-HOT MTD", PLASTICOS_WEB_LEAD, "_kpi_domain_ai_hot_auto_mtd"),
+    "ai_cold_auto_mtd": ("Auto-COLD MTD", PLASTICOS_WEB_LEAD, "_kpi_domain_lead_cold_mtd"),
+    "ai_error_mtd": ("AI Errors MTD", PLASTICOS_WEB_LEAD, "_kpi_domain_ai_error_mtd"),
+    "ai_intakes_auto_created": ("Auto-Intakes MTD", PLASTICOS_INTAKE, "_kpi_domain_ai_intakes_auto_created"),
+    "ai_manual_override_mtd": ("Manual Overrides MTD", PLASTICOS_WEB_LEAD, "_kpi_domain_ai_manual_override_mtd"),
+    "ai_pending_review": ("HOT Intakes Pending Buyer Match", PLASTICOS_INTAKE, "_kpi_domain_ai_pending_review"),
+    # Stage funnel Transaction -> Shipping -> Documents -> Invoicing -> Payment (open transactions)
+    "funnel_transaction": ("Funnel: Transaction", PLASTICOS_TRANSACTION, "_kpi_domain_funnel_transaction"),
+    "funnel_shipping": ("Funnel: Shipping", PLASTICOS_TRANSACTION, "_kpi_domain_funnel_shipping"),
+    "funnel_documents": ("Funnel: Documents", PLASTICOS_TRANSACTION, "_kpi_domain_funnel_documents"),
+    "funnel_invoicing": ("Funnel: Invoicing", PLASTICOS_TRANSACTION, "_kpi_domain_funnel_invoicing"),
+    "funnel_payment": ("Funnel: Payment", PLASTICOS_TRANSACTION, "_kpi_domain_funnel_payment"),
+    # Open exceptions by owner role (DEC-012)
+    "exceptions_operations_open": ("Open Exceptions: Operations", MAIL_ACTIVITY, "_kpi_domain_exceptions_operations"),
+    "exceptions_logistics_open": ("Open Exceptions: Logistics", MAIL_ACTIVITY, "_kpi_domain_exceptions_logistics"),
+    # Document processing and Linda
+    "documents_verified_mtd": ("Documents Verified MTD", PLASTICOS_DOCUMENT, "_kpi_domain_documents_verified_mtd"),
+    "documents_review_backlog": ("Documents Awaiting Association", PLASTICOS_DOCUMENT, "_kpi_domain_documents_backlog"),
+    "linda_held_mtd": ("Linda Commands Held MTD", PLASTICOS_LINDA_APPROVAL, "_kpi_domain_linda_held_mtd"),
+    "linda_held_pending": ("Linda Commands Awaiting Approval", PLASTICOS_LINDA_APPROVAL, "_kpi_domain_linda_pending"),
+    "linda_held_approved_mtd": ("Linda Holds Approved MTD", PLASTICOS_LINDA_APPROVAL, "_kpi_domain_linda_approved_mtd"),
+    "linda_held_rejected_mtd": ("Linda Holds Rejected MTD", PLASTICOS_LINDA_APPROVAL, "_kpi_domain_linda_rejected_mtd"),
+}
+
+# Aggregate per KPI; a KPI not listed is a record count.
+KPI_AGGREGATES = {
+    "pipeline_value_open": (AGG_SUM, "revenue_total"),
+    "revenue_mtd": (AGG_SUM, "revenue_total"),
+    "revenue_ytd": (AGG_SUM, "revenue_total"),
+    "gm_mtd": (AGG_SUM, "gross_margin"),
+    "gm_ytd": (AGG_SUM, "gross_margin"),
+    "net_margin_mtd": (AGG_SUM, "net_margin"),
+    "net_margin_ytd": (AGG_SUM, "net_margin"),
+    "commission_mtd": (AGG_SUM, "commission_amount"),
+    "commission_ytd": (AGG_SUM, "commission_amount"),
+    "avg_intake_age_days": (AGG_AVG_AGE_DAYS, "create_date"),
+}
+
+# Ratios: (numerator KPI, denominator KPIs). Value = numerator / sum(denominators) x 100.
+# The drill opens the denominator set. An empty denominator is unavailable, not 0.
+RATIO_KPIS = {
+    "intake_win_rate_mtd": ("intake_won_mtd", ("intake_won_mtd", "intake_lost_mtd")),
+    "offer_accept_rate_mtd": ("offer_accepted_mtd", ("offer_accepted_mtd", "offer_rejected_mtd")),
+    "gm_pct_mtd": ("gm_mtd", ("revenue_mtd",)),
+    "gm_pct_ytd": ("gm_ytd", ("revenue_ytd",)),
+    "lead_hot_rate_mtd": ("lead_hot_mtd", ("lead_hot_mtd", "lead_cold_mtd")),
+    "ai_hot_rate_mtd": ("ai_hot_auto_mtd", ("ai_hot_auto_mtd", "ai_cold_auto_mtd")),
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -318,242 +454,136 @@ class PlasticosAdminKpi(models.Model):
     ai_openai_key_set = fields.Boolean(string="OpenAI Key Set", compute="_compute_ai_config", store=False)
 
     # ══════════════════════════════════════════════════════════════════════════
+    # SECTION G — BUSINESS HEALTH & BOTTLENECKS (TASK-031)
+    # ══════════════════════════════════════════════════════════════════════════
+
+    funnel_transaction = fields.Integer(
+        string="Funnel: Transaction",
+        compute="_compute_kpis",
+        store=False,
+        help="Open transactions before shipping: draft, active, pending/not ready/ready supplier.",
+    )
+    funnel_shipping = fields.Integer(
+        string="Funnel: Shipping",
+        compute="_compute_kpis",
+        store=False,
+        help="Transactions with a delivery order or in motion: DO created, dispatched, in progress, in transit.",
+    )
+    funnel_documents = fields.Integer(
+        string="Funnel: Documents",
+        compute="_compute_kpis",
+        store=False,
+        help="Delivered/invoiced transactions whose document status (missing_doc_status) is not complete.",
+    )
+    funnel_invoicing = fields.Integer(
+        string="Funnel: Invoicing",
+        compute="_compute_kpis",
+        store=False,
+        help="Delivered/invoiced transactions with document status complete and no posted customer invoice.",
+    )
+    funnel_payment = fields.Integer(
+        string="Funnel: Payment",
+        compute="_compute_kpis",
+        store=False,
+        help="Delivered/invoiced transactions with document status complete and a posted customer invoice "
+        "not yet paid (payment_state not paid, in_payment or reversed).",
+    )
+    exceptions_operations_open = fields.Integer(
+        string="Open Exceptions: Operations",
+        compute="_compute_kpis",
+        store=False,
+        help="Open document-exception activities the exception router assigned to the Operations Manager role.",
+    )
+    exceptions_logistics_open = fields.Integer(
+        string="Open Exceptions: Logistics",
+        compute="_compute_kpis",
+        store=False,
+        help="Open document-exception activities the exception router assigned to the Logistics role.",
+    )
+    documents_verified_mtd = fields.Integer(
+        string="Documents Verified MTD",
+        compute="_compute_kpis",
+        store=False,
+        help="Plasticos documents of this company verified since the start of the month.",
+    )
+    documents_review_backlog = fields.Integer(
+        string="Documents Awaiting Association",
+        compute="_compute_kpis",
+        store=False,
+        help="Plasticos documents of this company whose association is pending or under review.",
+    )
+    linda_held_mtd = fields.Integer(
+        string="Linda Commands Held MTD",
+        compute="_compute_kpis",
+        store=False,
+        help="Linda commands held for Operations Manager approval since the start of the month (refusals excluded).",
+    )
+    linda_held_pending = fields.Integer(
+        string="Linda Commands Awaiting Approval",
+        compute="_compute_kpis",
+        store=False,
+        help="Held Linda commands still pending an Operations Manager decision (plasticos.linda.approval).",
+    )
+    linda_held_approved_mtd = fields.Integer(
+        string="Linda Holds Approved MTD",
+        compute="_compute_kpis",
+        store=False,
+        help="Linda commands held this month that an Operations Manager approved.",
+    )
+    linda_held_rejected_mtd = fields.Integer(
+        string="Linda Holds Rejected MTD",
+        compute="_compute_kpis",
+        store=False,
+        help="Linda commands held this month that an Operations Manager rejected.",
+    )
+    linda_intervention_rate = fields.Float(
+        string="Linda Intervention Rate %",
+        compute="_compute_kpis",
+        store=False,
+        digits=(5, 1),
+        help="Held / (held + auto-applied). Unavailable: straight-through Linda commands are applied at once "
+        "and leave no ledger row, so the auto-applied count has no source.",
+    )
+
+    # Availability: False renders "n/a", distinct from a true 0 (TASK-031).
+    intake_win_rate_mtd_available = fields.Boolean(compute="_compute_kpis", store=False)
+    offer_accept_rate_mtd_available = fields.Boolean(compute="_compute_kpis", store=False)
+    gm_pct_mtd_available = fields.Boolean(compute="_compute_kpis", store=False)
+    gm_pct_ytd_available = fields.Boolean(compute="_compute_kpis", store=False)
+    lead_hot_rate_mtd_available = fields.Boolean(compute="_compute_kpis", store=False)
+    ai_hot_rate_mtd_available = fields.Boolean(compute="_compute_kpis", store=False)
+    avg_intake_age_days_available = fields.Boolean(compute="_compute_kpis", store=False)
+    exceptions_operations_open_available = fields.Boolean(compute="_compute_kpis", store=False)
+    exceptions_logistics_open_available = fields.Boolean(compute="_compute_kpis", store=False)
+    documents_verified_mtd_available = fields.Boolean(compute="_compute_kpis", store=False)
+    documents_review_backlog_available = fields.Boolean(compute="_compute_kpis", store=False)
+    linda_held_mtd_available = fields.Boolean(compute="_compute_kpis", store=False)
+    linda_held_pending_available = fields.Boolean(compute="_compute_kpis", store=False)
+    linda_held_approved_mtd_available = fields.Boolean(compute="_compute_kpis", store=False)
+    linda_held_rejected_mtd_available = fields.Boolean(compute="_compute_kpis", store=False)
+    linda_intervention_rate_available = fields.Boolean(compute="_compute_kpis", store=False)
+
+    # ══════════════════════════════════════════════════════════════════════════
     # COMPUTE
     # ══════════════════════════════════════════════════════════════════════════
 
     @api.depends()
     def _compute_kpis(self):
+        """Every KPI value comes from its declaration (DEC-007); unavailable is never 0."""
         for rec in self:
-            cr = self.env.cr
-            company_id = rec.company_id.id
-            for name in URGENCY_KPIS:
-                rec[name] = rec._urgency_count(name)
-
-            # ── Date helpers ──────────────────────────────────────────────────
-            # Period boundaries in the user's calendar: commission_earned_date is
-            # recorded with fields.Date.context_today, so MTD/YTD must use the same
-            # calendar or a deal closed late on the last day of a month drops out.
-            today = fields.Date.context_today(rec)
-            mtd = today.replace(day=1)
-            ytd = today.replace(month=1, day=1)
-            wtd = today - timedelta(days=today.weekday())
-
-            # ── INTAKES ───────────────────────────────────────────────────────
-            cr.execute(
-                """
-                SELECT
-                    COUNT(*) FILTER (WHERE status='draft')                AS draft,
-                    COUNT(*) FILTER (WHERE status='matched')              AS matched,
-                    COUNT(*) FILTER (WHERE status='offer_sent')           AS offer_sent,
-                    COUNT(*) FILTER (WHERE status='processing')           AS processing,
-                    COUNT(*) FILTER (WHERE status='won'
-                                     AND create_date >= %s)               AS won_mtd,
-                    COUNT(*) FILTER (WHERE status='lost'
-                                     AND create_date >= %s)               AS lost_mtd,
-                    COUNT(*) FILTER (WHERE status NOT IN ('won','lost','expired')) AS total_open,
-                    AVG(EXTRACT(EPOCH FROM NOW()-create_date)/86400)
-                        FILTER (WHERE status NOT IN ('won','lost','expired','draft')) AS avg_age
-                FROM plasticos_intake
-            """,
-                (mtd, mtd),
-            )
-            r = cr.dictfetchone()
-            rec.intake_draft = r["draft"] or 0
-            rec.intake_matched = r["matched"] or 0
-            rec.intake_offer_sent = r["offer_sent"] or 0
-            rec.intake_processing = r["processing"] or 0
-            rec.intake_won_mtd = r["won_mtd"] or 0
-            rec.intake_lost_mtd = r["lost_mtd"] or 0
-            rec.intake_total_open = r["total_open"] or 0
-            rec.avg_intake_age_days = round(r["avg_age"] or 0, 1)
-
-            won = rec.intake_won_mtd
-            lost = rec.intake_lost_mtd
-            rec.intake_win_rate_mtd = round(won / (won + lost) * 100, 1) if (won + lost) else 0.0
-
-            # ── OFFERS ────────────────────────────────────────────────────────
-            cr.execute(
-                """
-                SELECT
-                    COUNT(*) FILTER (WHERE state='draft')                 AS draft,
-                    COUNT(*) FILTER (WHERE state='sent')                  AS sent,
-                    COUNT(*) FILTER (WHERE state='responded')             AS responded,
-                    COUNT(*) FILTER (WHERE state='accepted'
-                                     AND create_date >= %s)               AS accepted_mtd,
-                    COUNT(*) FILTER (WHERE state='rejected'
-                                     AND create_date >= %s)               AS rejected_mtd,
-                    COUNT(*) FILTER (WHERE state='expired'
-                                     AND create_date >= %s)               AS expired_mtd
-                FROM plasticos_offer
-            """,
-                (mtd, mtd, mtd),
-            )
-            r = cr.dictfetchone()
-            rec.offer_draft = r["draft"] or 0
-            rec.offer_sent = r["sent"] or 0
-            rec.offer_responded = r["responded"] or 0
-            rec.offer_accepted_mtd = r["accepted_mtd"] or 0
-            rec.offer_rejected_mtd = r["rejected_mtd"] or 0
-            rec.offer_expired_mtd = r["expired_mtd"] or 0
-
-            acc = rec.offer_accepted_mtd
-            rej = rec.offer_rejected_mtd
-            rec.offer_accept_rate_mtd = round(acc / (acc + rej) * 100, 1) if (acc + rej) else 0.0
-
-            # ── TRANSACTIONS ──────────────────────────────────────────────────
-            cr.execute(
-                """
-                SELECT
-                    COUNT(*) FILTER (WHERE state NOT IN ('closed','cancelled'))         AS tx_open,
-                    COUNT(*) FILTER (WHERE state IN ('dispatched','in_progress','in_transit')) AS in_motion,
-                    COUNT(*) FILTER (WHERE state='closed' AND legacy_erp_history = FALSE
-                                     AND commission_earned_date >= %s
-                                     AND NOT EXISTS (
-                                         SELECT 1 FROM ir_model_data import_id
-                                         WHERE import_id.model = 'sale.order'
-                                           AND import_id.module = 'plasticos_transaction'
-                                           AND import_id.res_id = plasticos_transaction.sale_order_id
-                                           AND import_id.name LIKE 'legacy_erp_so_%%'
-                                     ))                                                AS closed_mtd,
-                    SUM(revenue_total) FILTER (WHERE state NOT IN ('closed','cancelled')
-                                              AND revenue_total > 0)                   AS pipeline_val
-                FROM plasticos_transaction
-                WHERE sale_order_id IN (SELECT so.id FROM sale_order so WHERE so.company_id = %s)
-            """,
-                (mtd, company_id),
-            )
-            r = cr.dictfetchone()
-            rec.tx_open = r["tx_open"] or 0
-            rec.tx_in_motion = r["in_motion"] or 0
-            rec.tx_closed_mtd = r["closed_mtd"] or 0
-            rec.pipeline_value_open = r["pipeline_val"] or 0.0
-
-            # ── FINANCIALS ────────────────────────────────────────────────────
-            cr.execute(
-                """
-                SELECT
-                    SUM(revenue_total)   FILTER (WHERE commission_earned_date >= %s)  AS rev_mtd,
-                    SUM(revenue_total)   FILTER (WHERE commission_earned_date >= %s)  AS rev_ytd,
-                    SUM(gross_margin)    FILTER (WHERE commission_earned_date >= %s)  AS gm_mtd,
-                    SUM(gross_margin)    FILTER (WHERE commission_earned_date >= %s)  AS gm_ytd,
-                    SUM(net_margin)      FILTER (WHERE commission_earned_date >= %s)  AS nm_mtd,
-                    SUM(net_margin)      FILTER (WHERE commission_earned_date >= %s)  AS nm_ytd,
-                    SUM(commission_amount) FILTER (WHERE commission_earned_date >= %s) AS comm_mtd,
-                    SUM(commission_amount) FILTER (WHERE commission_earned_date >= %s) AS comm_ytd
-                FROM plasticos_transaction
-                WHERE state='closed' AND legacy_erp_history = FALSE
-                  AND sale_order_id IN (SELECT so.id FROM sale_order so WHERE so.company_id = %s)
-                  AND NOT EXISTS (
-                    SELECT 1 FROM ir_model_data import_id
-                    WHERE import_id.model = 'sale.order'
-                      AND import_id.module = 'plasticos_transaction'
-                      AND import_id.res_id = plasticos_transaction.sale_order_id
-                      AND import_id.name LIKE 'legacy_erp_so_%%'
-                  )
-            """,
-                (mtd, ytd, mtd, ytd, mtd, ytd, mtd, ytd, company_id),
-            )
-            r = cr.dictfetchone()
-            rec.revenue_mtd = r["rev_mtd"] or 0.0
-            rec.revenue_ytd = r["rev_ytd"] or 0.0
-            rec.gm_mtd = r["gm_mtd"] or 0.0
-            rec.gm_ytd = r["gm_ytd"] or 0.0
-            rec.net_margin_mtd = r["nm_mtd"] or 0.0
-            rec.net_margin_ytd = r["nm_ytd"] or 0.0
-            rec.commission_mtd = r["comm_mtd"] or 0.0
-            rec.commission_ytd = r["comm_ytd"] or 0.0
-
-            rev_mtd = rec.revenue_mtd
-            rev_ytd = rec.revenue_ytd
-            rec.gm_pct_mtd = round(rec.gm_mtd / rev_mtd * 100, 1) if rev_mtd else 0.0
-            rec.gm_pct_ytd = round(rec.gm_ytd / rev_ytd * 100, 1) if rev_ytd else 0.0
-
-            # ── WEB LEADS ─────────────────────────────────────────────────────
-            cr.execute(
-                """
-                SELECT
-                    COUNT(*) FILTER (WHERE create_date::date = %s)        AS today,
-                    COUNT(*) FILTER (WHERE create_date >= %s)             AS wtd,
-                    COUNT(*) FILTER (WHERE create_date >= %s)             AS mtd,
-                    COUNT(*) FILTER (WHERE decision='hot'
-                                     AND create_date >= %s)               AS hot_mtd,
-                    COUNT(*) FILTER (WHERE decision='cold'
-                                     AND create_date >= %s)               AS cold_mtd
-                FROM plasticos_web_lead
-            """,
-                (today, wtd, mtd, mtd, mtd),
-            )
-            r = cr.dictfetchone()
-            rec.lead_received_today = r["today"] or 0
-            rec.lead_received_wtd = r["wtd"] or 0
-            rec.lead_received_mtd = r["mtd"] or 0
-            rec.lead_hot_mtd = r["hot_mtd"] or 0
-            rec.lead_cold_mtd = r["cold_mtd"] or 0
-
-            total_leads = rec.lead_hot_mtd + rec.lead_cold_mtd
-            rec.lead_hot_rate_mtd = round(rec.lead_hot_mtd / total_leads * 100, 1) if total_leads else 0.0
-
-            # ── AI STATS ──────────────────────────────────────────────────────
-            cr.execute(
-                """
-                SELECT
-                    COUNT(*) FILTER (WHERE ai_normalized IS NOT NULL
-                                     AND create_date >= %s)               AS normalized_mtd,
-                    COUNT(*) FILTER (WHERE ai_vision_results IS NOT NULL
-                                     AND create_date >= %s)               AS vision_mtd,
-                    COUNT(*) FILTER (WHERE decision='hot'
-                                     AND state='intake_created'
-                                     AND create_date >= %s)               AS hot_auto_mtd,
-                    COUNT(*) FILTER (WHERE decision='cold'
-                                     AND create_date >= %s)               AS cold_auto_mtd,
-                    COUNT(*) FILTER (WHERE state='error'
-                                     AND create_date >= %s)               AS err_mtd
-                FROM plasticos_web_lead
-            """,
-                (mtd, mtd, mtd, mtd, mtd),
-            )
-            r = cr.dictfetchone()
-            rec.ai_leads_normalized_mtd = r["normalized_mtd"] or 0
-            rec.ai_leads_vision_mtd = r["vision_mtd"] or 0
-            rec.ai_hot_auto_mtd = r["hot_auto_mtd"] or 0
-            rec.ai_cold_auto_mtd = r["cold_auto_mtd"] or 0
-            rec.ai_error_mtd = r["err_mtd"] or 0
-
-            hot = rec.ai_hot_auto_mtd
-            cold = rec.ai_cold_auto_mtd
-            rec.ai_hot_rate_mtd = round(hot / (hot + cold) * 100, 1) if (hot + cold) else 0.0
-
-            # Auto-intakes: HOT leads that created intakes MTD
-            cr.execute(
-                """
-                SELECT COUNT(*) FROM plasticos_intake i
-                WHERE i.source_lead_id IS NOT NULL
-                AND i.create_date >= %s
-            """,
-                (mtd,),
-            )
-            rec.ai_intakes_auto_created = cr.fetchone()[0] or 0
-
-            # Manual overrides: COLD leads forced to HOT
-            cr.execute(
-                """
-                SELECT COUNT(*) FROM plasticos_web_lead
-                WHERE decision='hot'
-                AND triage_log ILIKE '%%Manual override%%'
-                AND create_date >= %s
-            """,
-                (mtd,),
-            )
-            rec.ai_manual_override_mtd = cr.fetchone()[0] or 0
-
-            # Pending review: HOT intakes from web leads with no partner
-            cr.execute("""
-                SELECT COUNT(*) FROM plasticos_intake
-                WHERE source_lead_id IS NOT NULL
-                AND partner_id IS NULL
-                AND status NOT IN ('won','lost','expired')
-            """)
-            rec.ai_pending_review = cr.fetchone()[0] or 0
+            values = {name: rec._kpi_value(name) for name in KPI_DECLARATIONS}
+            for name, (numerator, denominators) in RATIO_KPIS.items():
+                parts = [values[numerator], *(values[d] for d in denominators)]
+                denominator = None if None in parts else sum(values[d] for d in denominators)
+                values[name] = round(values[numerator] / denominator * 100, 1) if denominator else None
+            values["linda_intervention_rate"] = None
+            for name, value in values.items():
+                flag = f"{name}_available"
+                if flag in rec._fields:
+                    rec[flag] = value is not None
+                elif value is None:
+                    raise UserError(f"KPI {name} has no availability flag and could not be computed.")
+                rec[name] = value or 0
 
     @api.depends()
     def _compute_ai_config(self):
@@ -632,7 +662,7 @@ class PlasticosAdminKpi(models.Model):
             "target": "current",
         }
 
-    # ── DEC-007 urgency declarations ─────────────────────────────────────────
+    # ── DEC-007 KPI declarations ─────────────────────────────────────────────
 
     def _kpi_company(self):
         """The company a KPI record counts for; the current company outside a single record."""
@@ -640,32 +670,330 @@ class PlasticosAdminKpi(models.Model):
             return self.company_id
         return self.env.company
 
-    def _urgency_domain(self, kpi_name):
-        """Return the one domain that both counts and drills the urgency KPI.
+    def _kpi_domain(self, kpi_name):
+        """Return the one domain that both computes and drills the KPI.
 
-        Transaction KPIs are scoped to the record's company through the sale
-        order (DEC-008). Offers and web leads carry no company.
+        Sources with a company path are scoped to the record's company (DEC-008).
+        Intakes, offers, web leads and activities carry no company.
         """
-        _title, model_name, builder = URGENCY_KPIS[kpi_name]
+        _title, model_name, builder = KPI_DECLARATIONS[kpi_name]
         domain = getattr(self, builder)()
-        if model_name == PLASTICOS_TRANSACTION:
-            domain = [("sale_order_id.company_id", "=", self._kpi_company().id), *domain]
+        company_path = _COMPANY_PATHS.get(model_name)
+        if company_path:
+            domain = [(company_path, "=", self._kpi_company().id), *domain]
         return domain
 
-    def _urgency_count(self, kpi_name):
-        _title, model_name, _builder = URGENCY_KPIS[kpi_name]
-        return self.env[model_name].search_count(self._urgency_domain(kpi_name))
+    def _kpi_value(self, kpi_name):
+        """The KPI value from its declaration, or None when it is unavailable."""
+        _title, model_name, _builder = KPI_DECLARATIONS[kpi_name]
+        if model_name not in self.env:
+            return None
+        Model = self.env[model_name]
+        if model_name in _OPTIONAL_ACCESS_MODELS and not Model.has_access("read"):
+            return None
+        domain = self._kpi_domain(kpi_name)
+        aggregate = KPI_AGGREGATES.get(kpi_name, (AGG_COUNT,))
+        if aggregate[0] == AGG_COUNT:
+            return Model.search_count(domain)
+        if aggregate[0] == AGG_SUM:
+            [(total,)] = Model._read_group(domain, aggregates=[f"{aggregate[1]}:sum"])
+            return total or 0.0
+        records = Model.search(domain)
+        if not records:
+            return None
+        now = fields.Datetime.now()
+        ages = [(now - record[aggregate[1]]).total_seconds() / 86400 for record in records]
+        return round(sum(ages) / len(ages), 1)
 
-    def _urgency_drill(self, kpi_name):
-        title, model_name, _builder = URGENCY_KPIS[kpi_name]
+    def _kpi_drill(self, kpi_name):
+        title, model_name, _builder = KPI_DECLARATIONS[kpi_name]
         return {
             "type": "ir.actions.act_window",
             "name": title,
             "res_model": model_name,
             "view_mode": "list,form",
-            "domain": self._urgency_domain(kpi_name),
+            "domain": self._kpi_domain(kpi_name),
             "target": "current",
         }
+
+    def _ratio_drill(self, ratio_name):
+        """A ratio drills to its denominator set: the records it is a share of."""
+        _numerator, denominators = RATIO_KPIS[ratio_name]
+        action = self._kpi_drill(denominators[0])
+        if len(denominators) > 1:
+            action["domain"] = ["|"] * (len(denominators) - 1)
+            for name in denominators:
+                action["domain"] += self._kpi_domain(name)
+        action["name"] = self._fields[ratio_name].string
+        return action
+
+    def action_open_kpi(self):
+        """Drill for the KPI named in the button context (declared KPIs and ratios only)."""
+        kpi_name = self.env.context.get("kpi")
+        if kpi_name in RATIO_KPIS:
+            return self._ratio_drill(kpi_name)
+        if kpi_name not in KPI_DECLARATIONS:
+            raise UserError(f"Unknown Admin KPI: {kpi_name!r}")
+        return self._kpi_drill(kpi_name)
+
+    def action_open_exceptions_by_owner(self):
+        """All open document exceptions, grouped by owner role note and assignee (DEC-012)."""
+        action = self._kpi_drill("exceptions_operations_open")
+        action["name"] = "Open Exceptions by Owner"
+        action["domain"] = [("activity_type_id", "in", self._exception_type_ids())]
+        action["context"] = {"group_by": ["user_id", "activity_type_id"]}
+        return action
+
+    # ── Domain builders (no company term; _kpi_domain adds it) ──────────────
+
+    @api.model
+    def _kpi_periods(self):
+        today = fields.Date.context_today(self)
+        return KpiPeriods(
+            today=today,
+            tomorrow=today + timedelta(days=1),
+            week_start=today - timedelta(days=today.weekday()),
+            month_start=today.replace(day=1),
+            year_start=today.replace(month=1, day=1),
+        )
+
+    @api.model
+    def _kpi_domain_intake_draft(self):
+        return [("status", "=", "draft")]
+
+    @api.model
+    def _kpi_domain_intake_matched(self):
+        return [("status", "=", "matched")]
+
+    @api.model
+    def _kpi_domain_intake_offer_sent(self):
+        return [("status", "=", "offer_sent")]
+
+    @api.model
+    def _kpi_domain_intake_processing(self):
+        return [("status", "=", "processing")]
+
+    @api.model
+    def _kpi_domain_intake_total_open(self):
+        return [("status", "not in", _INTAKE_CLOSED_STATUSES)]
+
+    @api.model
+    def _kpi_domain_intake_won_mtd(self):
+        return [("status", "=", "won"), ("create_date", ">=", self._kpi_periods().month_start)]
+
+    @api.model
+    def _kpi_domain_intake_lost_mtd(self):
+        return [("status", "=", "lost"), ("create_date", ">=", self._kpi_periods().month_start)]
+
+    @api.model
+    def _kpi_domain_intake_aging(self):
+        return [("status", "not in", [*_INTAKE_CLOSED_STATUSES, "draft"])]
+
+    @api.model
+    def _kpi_domain_offer_draft(self):
+        return [("state", "=", "draft")]
+
+    @api.model
+    def _kpi_domain_offer_sent(self):
+        return [("state", "=", "sent")]
+
+    @api.model
+    def _kpi_domain_offer_responded(self):
+        return [("state", "=", "responded")]
+
+    @api.model
+    def _kpi_domain_offer_accepted_mtd(self):
+        return [("state", "=", "accepted"), ("create_date", ">=", self._kpi_periods().month_start)]
+
+    @api.model
+    def _kpi_domain_offer_rejected_mtd(self):
+        return [("state", "=", "rejected"), ("create_date", ">=", self._kpi_periods().month_start)]
+
+    @api.model
+    def _kpi_domain_offer_expired_mtd(self):
+        return [("state", "=", "expired"), ("create_date", ">=", self._kpi_periods().month_start)]
+
+    @api.model
+    def _kpi_domain_tx_open(self):
+        return [("state", "not in", _TX_TERMINAL_STATES)]
+
+    @api.model
+    def _kpi_domain_tx_in_motion(self):
+        return [("state", "in", _TX_IN_MOTION_STATES)]
+
+    @api.model
+    def _kpi_domain_pipeline_open(self):
+        return [("state", "not in", _TX_TERMINAL_STATES), ("revenue_total", ">", 0)]
+
+    @api.model
+    def _kpi_domain_closed_mtd(self):
+        return self._live_closed_domain([("commission_earned_date", ">=", self._kpi_periods().month_start)])
+
+    @api.model
+    def _kpi_domain_closed_ytd(self):
+        return self._live_closed_domain([("commission_earned_date", ">=", self._kpi_periods().year_start)])
+
+    @api.model
+    def _kpi_domain_lead_today(self):
+        periods = self._kpi_periods()
+        return [("create_date", ">=", periods.today), ("create_date", "<", periods.tomorrow)]
+
+    @api.model
+    def _kpi_domain_lead_wtd(self):
+        return [("create_date", ">=", self._kpi_periods().week_start)]
+
+    @api.model
+    def _kpi_domain_lead_mtd(self):
+        return [("create_date", ">=", self._kpi_periods().month_start)]
+
+    @api.model
+    def _kpi_domain_lead_hot_mtd(self):
+        return [("decision", "=", "hot"), ("create_date", ">=", self._kpi_periods().month_start)]
+
+    @api.model
+    def _kpi_domain_lead_cold_mtd(self):
+        return [("decision", "=", "cold"), ("create_date", ">=", self._kpi_periods().month_start)]
+
+    @api.model
+    def _kpi_domain_ai_normalized_mtd(self):
+        return [("ai_normalized", "!=", False), ("create_date", ">=", self._kpi_periods().month_start)]
+
+    @api.model
+    def _kpi_domain_ai_vision_mtd(self):
+        return [("ai_vision_results", "!=", False), ("create_date", ">=", self._kpi_periods().month_start)]
+
+    @api.model
+    def _kpi_domain_ai_hot_auto_mtd(self):
+        return [
+            ("decision", "=", "hot"),
+            ("state", "=", "intake_created"),
+            ("create_date", ">=", self._kpi_periods().month_start),
+        ]
+
+    @api.model
+    def _kpi_domain_ai_error_mtd(self):
+        return [("state", "=", "error"), ("create_date", ">=", self._kpi_periods().month_start)]
+
+    @api.model
+    def _kpi_domain_ai_intakes_auto_created(self):
+        return [("source_lead_id", "!=", False), ("create_date", ">=", self._kpi_periods().month_start)]
+
+    @api.model
+    def _kpi_domain_ai_manual_override_mtd(self):
+        return [
+            ("decision", "=", "hot"),
+            ("triage_log", "ilike", _MANUAL_OVERRIDE_MARKER),
+            ("create_date", ">=", self._kpi_periods().month_start),
+        ]
+
+    @api.model
+    def _kpi_domain_ai_pending_review(self):
+        return [
+            ("source_lead_id", "!=", False),
+            ("partner_id", "=", False),
+            ("status", "not in", _INTAKE_CLOSED_STATUSES),
+        ]
+
+    @api.model
+    def _kpi_domain_funnel_transaction(self):
+        return [("state", "in", _TX_PRE_SHIPPING_STATES)]
+
+    @api.model
+    def _kpi_domain_funnel_shipping(self):
+        return [("state", "in", _TX_SHIPPING_STATES)]
+
+    @api.model
+    def _kpi_domain_funnel_documents(self):
+        return [("state", "in", _TX_DELIVERED_STATES), ("missing_doc_status", "!=", _DOCS_COMPLETE)]
+
+    @api.model
+    def _kpi_domain_funnel_invoicing(self):
+        return [
+            ("state", "in", _TX_DELIVERED_STATES),
+            ("missing_doc_status", "=", _DOCS_COMPLETE),
+            "|",
+            ("customer_invoice_id", "=", False),
+            ("customer_invoice_id.state", "!=", "posted"),
+        ]
+
+    @api.model
+    def _kpi_domain_funnel_payment(self):
+        return [
+            ("state", "in", _TX_DELIVERED_STATES),
+            ("missing_doc_status", "=", _DOCS_COMPLETE),
+            ("customer_invoice_id.state", "=", "posted"),
+            ("customer_invoice_id.payment_state", "not in", _INVOICE_SETTLED_PAYMENT_STATES),
+        ]
+
+    @api.model
+    def _exception_type_ids(self):
+        types = self.env["mail.activity.type"]
+        for xmlid in EXCEPTION_ACTIVITY_TYPES:
+            types |= self.env.ref(xmlid, raise_if_not_found=False) or types.browse()
+        return types.ids
+
+    @api.model
+    def _exceptions_routed_to(self, role):
+        return [("activity_type_id", "in", self._exception_type_ids()), ("note", "ilike", f"Routed to {role}:")]
+
+    @api.model
+    def _kpi_domain_exceptions_operations(self):
+        return self._exceptions_routed_to("operations")
+
+    @api.model
+    def _kpi_domain_exceptions_logistics(self):
+        return self._exceptions_routed_to("logistics")
+
+    @api.model
+    def _kpi_domain_documents_verified_mtd(self):
+        return [("verified", "=", True), ("verified_at", ">=", self._kpi_periods().month_start)]
+
+    @api.model
+    def _kpi_domain_documents_backlog(self):
+        return [("association_state", "in", ["pending", "review"])]
+
+    @api.model
+    def _kpi_domain_linda_held_mtd(self):
+        return [("edge_case", "!=", "refusal"), ("requested_at", ">=", self._kpi_periods().month_start)]
+
+    @api.model
+    def _kpi_domain_linda_pending(self):
+        return [("state", "=", "pending")]
+
+    @api.model
+    def _kpi_domain_linda_approved_mtd(self):
+        return [*self._kpi_domain_linda_held_mtd(), ("state", "=", "approved")]
+
+    @api.model
+    def _kpi_domain_linda_rejected_mtd(self):
+        return [*self._kpi_domain_linda_held_mtd(), ("state", "=", "rejected")]
+
+    @api.model
+    def _live_closed_domain(self, extra):
+        """Closed, live (non-historical) transactions; historical ERP trades are excluded the
+        same two ways the commission payouts exclude them (flag and legacy sale import)."""
+        domain = [("state", "=", "closed"), ("legacy_erp_history", "=", False), *extra]
+        return domain + self._legacy_sale_exclusion(domain)
+
+    @api.model
+    def _legacy_sale_exclusion(self, domain):
+        orders = self.env[PLASTICOS_TRANSACTION].search(domain).sale_order_id
+        if not orders:
+            return []
+        legacy_rows = (
+            self.env["ir.model.data"]
+            .sudo()  # sudo: core grants ir.model.data to group_erp_manager; reads legacy sale markers only
+            .search(
+                [
+                    ("module", "=", "plasticos_transaction"),
+                    ("model", "=", "sale.order"),
+                    ("res_id", "in", orders.ids),
+                    ("name", "=like", f"{_LEGACY_SALE_XMLID_PREFIX}%"),
+                ]
+            )
+        )
+        legacy_order_ids = sorted({row.res_id for row in legacy_rows if row.name.startswith(_LEGACY_SALE_XMLID_PREFIX)})
+        return [("sale_order_id", "not in", legacy_order_ids)] if legacy_order_ids else []
 
     @api.model
     def _urgency_domain_negative_margin(self):
@@ -711,36 +1039,8 @@ class PlasticosAdminKpi(models.Model):
 
     @api.model
     def _urgency_domain_commission_unlocked(self):
-        """Closed, live (non-historical) transactions whose commission is not locked.
-
-        Historical ERP trades are excluded the same two ways the financial KPIs
-        and commission payouts exclude them: the legacy_erp_history flag, and a
-        sale order imported under a legacy_erp_so_* external id.
-        """
-        domain = [
-            ("state", "=", "closed"),
-            ("legacy_erp_history", "=", False),
-            ("commission_locked", "=", False),
-        ]
-        orders = self.env[PLASTICOS_TRANSACTION].search(domain).sale_order_id
-        if not orders:
-            return domain
-        legacy_rows = (
-            self.env["ir.model.data"]
-            .sudo()  # sudo: core grants ir.model.data to group_erp_manager; reads legacy sale markers only
-            .search(
-                [
-                    ("module", "=", "plasticos_transaction"),
-                    ("model", "=", "sale.order"),
-                    ("res_id", "in", orders.ids),
-                    ("name", "=like", f"{_LEGACY_SALE_XMLID_PREFIX}%"),
-                ]
-            )
-        )
-        legacy_order_ids = sorted({row.res_id for row in legacy_rows if row.name.startswith(_LEGACY_SALE_XMLID_PREFIX)})
-        if legacy_order_ids:
-            domain.append(("sale_order_id", "not in", legacy_order_ids))
-        return domain
+        """Closed, live (non-historical) transactions whose commission is not locked."""
+        return self._live_closed_domain([("commission_locked", "=", False)])
 
     # ── Drill actions ────────────────────────────────────────────────────────
 
@@ -764,41 +1064,31 @@ class PlasticosAdminKpi(models.Model):
         }
 
     def action_open_negative_margin(self):
-        return self._urgency_drill("tx_negative_margin")
+        return self._kpi_drill("tx_negative_margin")
 
     def action_open_supplier_not_ready(self):
-        return self._urgency_drill("tx_sup_not_ready")
+        return self._kpi_drill("tx_sup_not_ready")
 
     def action_open_stalled_followup(self):
-        return self._urgency_drill("tx_stalled_followup")
+        return self._kpi_drill("tx_stalled_followup")
 
     def action_open_delivered_uninvoiced(self):
-        return self._urgency_drill("tx_delivered_uninvoiced")
+        return self._kpi_drill("tx_delivered_uninvoiced")
 
     def action_open_missing_docs(self):
-        return self._urgency_drill("tx_missing_docs")
+        return self._kpi_drill("tx_missing_docs")
 
     def action_open_expiring_offers(self):
-        return self._urgency_drill("offer_expiring_soon")
+        return self._kpi_drill("offer_expiring_soon")
 
     def action_open_commission_unlocked(self):
-        return self._urgency_drill("commission_unlocked")
+        return self._kpi_drill("commission_unlocked")
 
     def action_open_lead_errors(self):
-        return self._urgency_drill("lead_error_open")
+        return self._kpi_drill("lead_error_open")
 
     def action_open_ai_pending_review(self):
-        return {
-            "type": "ir.actions.act_window",
-            "name": "HOT Intakes Pending Buyer Match",
-            "res_model": "plasticos.intake",
-            "view_mode": "list,form",
-            "domain": [
-                ("source_lead_id", "!=", False),
-                ("partner_id", "=", False),
-                ("status", "not in", ["won", "lost", "expired"]),
-            ],
-        }
+        return self._kpi_drill("ai_pending_review")
 
     @api.model
     def action_open_admin_dashboard(self):

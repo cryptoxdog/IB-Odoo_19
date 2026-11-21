@@ -134,35 +134,165 @@
 
 <!-- ═══════════════════════════════════════════════════════════
      SECTION B — PIPELINE BANDS
-     Intakes / Offers / Transactions live counts
+     Every KPI is a DEC-007 drill: the value and the list it opens come from one
+     declaration (model, domain, aggregate). "n/a" means unavailable, never 0.
 ════════════════════════════════════════════════════════════ -->
-<group string="📥 Intake Pipeline — All companies (not company-scoped)" col="8">
-    <field name="intake_draft"       string="Draft"        class="o_field_integer"/>
-    <field name="intake_matched"     string="Matched"      class="o_field_integer"/>
-    <field name="intake_offer_sent"  string="Offer Sent"   class="o_field_integer"/>
-    <field name="intake_processing"  string="Processing"   class="o_field_integer"/>
-    <field name="intake_total_open"  string="Total Open"   class="o_field_integer font-weight-bold"/>
-    <field name="intake_won_mtd"     string="Won MTD"      class="o_field_integer text-success"/>
-    <field name="intake_lost_mtd"    string="Lost MTD"     class="o_field_integer text-danger"/>
-    <field name="intake_win_rate_mtd" string="Win Rate %"  widget="float" digits="[5,1]"/>
-    <field name="avg_intake_age_days" string="Avg Age d"   widget="float" digits="[5,1]"/>
+<group string="📥 Intake Pipeline — All companies (not company-scoped)" col="9">
+    <button name="action_open_kpi" type="object" context="{'kpi': 'intake_draft'}"
+            class="btn-light oe_stat_button" icon="fa-inbox">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="intake_draft" readonly="1"/></span>
+            <span class="o_stat_text">Draft</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'intake_matched'}"
+            class="btn-light oe_stat_button" icon="fa-random">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="intake_matched" readonly="1"/></span>
+            <span class="o_stat_text">Matched</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'intake_offer_sent'}"
+            class="btn-light oe_stat_button" icon="fa-paper-plane">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="intake_offer_sent" readonly="1"/></span>
+            <span class="o_stat_text">Offer Sent</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'intake_processing'}"
+            class="btn-light oe_stat_button" icon="fa-cogs">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="intake_processing" readonly="1"/></span>
+            <span class="o_stat_text">Processing</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'intake_total_open'}"
+            class="btn-light oe_stat_button" icon="fa-folder-open">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="intake_total_open" readonly="1"/></span>
+            <span class="o_stat_text">Total Open</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'intake_won_mtd'}"
+            class="btn-light oe_stat_button" icon="fa-trophy">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="intake_won_mtd" readonly="1"/></span>
+            <span class="o_stat_text">Won MTD</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'intake_lost_mtd'}"
+            class="btn-light oe_stat_button" icon="fa-times-circle">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="intake_lost_mtd" readonly="1"/></span>
+            <span class="o_stat_text">Lost MTD</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'intake_win_rate_mtd'}"
+            class="btn-light oe_stat_button" icon="fa-percent">
+        <div class="o_stat_info">
+            <span class="o_stat_value">
+                <field name="intake_win_rate_mtd" readonly="1" invisible="not intake_win_rate_mtd_available"/>
+                <span class="text-muted" invisible="intake_win_rate_mtd_available">n/a</span>
+            </span>
+            <span class="o_stat_text">Win Rate %</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'avg_intake_age_days'}"
+            class="btn-light oe_stat_button" icon="fa-hourglass-o">
+        <div class="o_stat_info">
+            <span class="o_stat_value">
+                <field name="avg_intake_age_days" readonly="1" invisible="not avg_intake_age_days_available"/>
+                <span class="text-muted" invisible="avg_intake_age_days_available">n/a</span>
+            </span>
+            <span class="o_stat_text">Avg Age (days)</span>
+        </div>
+    </button>
 </group>
 
-<group string="📨 Offers — All companies (not company-scoped)" col="8">
-    <field name="offer_draft"         string="Draft"          class="o_field_integer"/>
-    <field name="offer_sent"          string="Sent"           class="o_field_integer font-weight-bold"/>
-    <field name="offer_responded"     string="Responded"      class="o_field_integer"/>
-    <field name="offer_accepted_mtd"  string="Accepted MTD"   class="o_field_integer text-success"/>
-    <field name="offer_rejected_mtd"  string="Rejected MTD"   class="o_field_integer text-danger"/>
-    <field name="offer_expired_mtd"   string="Expired MTD"    class="o_field_integer text-muted"/>
-    <field name="offer_accept_rate_mtd" string="Accept Rate %" widget="float" digits="[5,1]"/>
+<group string="📨 Offers — All companies (not company-scoped)" col="7">
+    <button name="action_open_kpi" type="object" context="{'kpi': 'offer_draft'}"
+            class="btn-light oe_stat_button" icon="fa-pencil">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="offer_draft" readonly="1"/></span>
+            <span class="o_stat_text">Draft</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'offer_sent'}"
+            class="btn-light oe_stat_button" icon="fa-paper-plane">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="offer_sent" readonly="1"/></span>
+            <span class="o_stat_text">Sent</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'offer_responded'}"
+            class="btn-light oe_stat_button" icon="fa-reply">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="offer_responded" readonly="1"/></span>
+            <span class="o_stat_text">Responded</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'offer_accepted_mtd'}"
+            class="btn-light oe_stat_button" icon="fa-check">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="offer_accepted_mtd" readonly="1"/></span>
+            <span class="o_stat_text">Accepted MTD</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'offer_rejected_mtd'}"
+            class="btn-light oe_stat_button" icon="fa-times">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="offer_rejected_mtd" readonly="1"/></span>
+            <span class="o_stat_text">Rejected MTD</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'offer_expired_mtd'}"
+            class="btn-light oe_stat_button" icon="fa-clock-o">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="offer_expired_mtd" readonly="1"/></span>
+            <span class="o_stat_text">Expired MTD</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'offer_accept_rate_mtd'}"
+            class="btn-light oe_stat_button" icon="fa-percent">
+        <div class="o_stat_info">
+            <span class="o_stat_value">
+                <field name="offer_accept_rate_mtd" readonly="1" invisible="not offer_accept_rate_mtd_available"/>
+                <span class="text-muted" invisible="offer_accept_rate_mtd_available">n/a</span>
+            </span>
+            <span class="o_stat_text">Accept Rate %</span>
+        </div>
+    </button>
 </group>
 
-<group string="🔄 Transactions" col="7">
-    <field name="tx_open"           string="Open"           class="o_field_integer font-weight-bold"/>
-    <field name="tx_in_motion"      string="In Motion"      class="o_field_integer text-info"/>
-    <field name="tx_closed_mtd"     string="Closed MTD (earned date)" class="o_field_integer text-success"/>
-    <field name="pipeline_value_open" string="Pipeline $"   widget="monetary"/>
+<group string="🔄 Transactions" col="4">
+    <button name="action_open_kpi" type="object" context="{'kpi': 'tx_open'}"
+            class="btn-light oe_stat_button" icon="fa-exchange">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="tx_open" readonly="1"/></span>
+            <span class="o_stat_text">Open</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'tx_in_motion'}"
+            class="btn-light oe_stat_button" icon="fa-truck">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="tx_in_motion" readonly="1"/></span>
+            <span class="o_stat_text">In Motion</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'tx_closed_mtd'}"
+            class="btn-light oe_stat_button" icon="fa-check-square-o">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="tx_closed_mtd" readonly="1"/></span>
+            <span class="o_stat_text">Closed MTD (earned date)</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'pipeline_value_open'}"
+            class="btn-light oe_stat_button" icon="fa-usd">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="pipeline_value_open" readonly="1" widget="monetary"/></span>
+            <span class="o_stat_text">Open Pipeline $ (now)</span>
+        </div>
+    </button>
 </group>
 
 <separator/>
@@ -172,21 +302,83 @@
      MTD and YTD side by side
 ════════════════════════════════════════════════════════════ -->
 <!-- DEC-002: operational closed-deal figures by commission earned date; not accounting revenue. -->
-<group string="💰 Closed-Deal Revenue &amp; Margin (operational, by commission earned date — not accounting revenue)" col="6">
-    <group string="MTD">
-        <field name="revenue_mtd"    string="Closed-Deal Revenue" widget="monetary"/>
-        <field name="gm_mtd"         string="Gross $"    widget="monetary"/>
-        <field name="gm_pct_mtd"     string="GM %"       widget="float" digits="[5,1]"/>
-        <field name="net_margin_mtd" string="Net Margin" widget="monetary"/>
-        <field name="commission_mtd" string="Earned Commission" widget="monetary"/>
-    </group>
-    <group string="YTD">
-        <field name="revenue_ytd"    string="Closed-Deal Revenue" widget="monetary"/>
-        <field name="gm_ytd"         string="Gross $"    widget="monetary"/>
-        <field name="gm_pct_ytd"     string="GM %"       widget="float" digits="[5,1]"/>
-        <field name="net_margin_ytd" string="Net Margin" widget="monetary"/>
-        <field name="commission_ytd" string="Earned Commission" widget="monetary"/>
-    </group>
+<group string="💰 Closed-Deal Revenue &amp; Margin (operational, by commission earned date — not accounting revenue)" col="5">
+    <button name="action_open_kpi" type="object" context="{'kpi': 'revenue_mtd'}"
+            class="btn-light oe_stat_button" icon="fa-usd">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="revenue_mtd" readonly="1" widget="monetary"/></span>
+            <span class="o_stat_text">Closed-Deal Revenue MTD</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'gm_mtd'}"
+            class="btn-light oe_stat_button" icon="fa-line-chart">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="gm_mtd" readonly="1" widget="monetary"/></span>
+            <span class="o_stat_text">Gross $ MTD</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'gm_pct_mtd'}"
+            class="btn-light oe_stat_button" icon="fa-percent">
+        <div class="o_stat_info">
+            <span class="o_stat_value">
+                <field name="gm_pct_mtd" readonly="1" invisible="not gm_pct_mtd_available"/>
+                <span class="text-muted" invisible="gm_pct_mtd_available">n/a</span>
+            </span>
+            <span class="o_stat_text">GM % MTD</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'net_margin_mtd'}"
+            class="btn-light oe_stat_button" icon="fa-balance-scale">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="net_margin_mtd" readonly="1" widget="monetary"/></span>
+            <span class="o_stat_text">Net Margin MTD</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'commission_mtd'}"
+            class="btn-light oe_stat_button" icon="fa-money">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="commission_mtd" readonly="1" widget="monetary"/></span>
+            <span class="o_stat_text">Earned Commission MTD</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'revenue_ytd'}"
+            class="btn-light oe_stat_button" icon="fa-usd">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="revenue_ytd" readonly="1" widget="monetary"/></span>
+            <span class="o_stat_text">Closed-Deal Revenue YTD</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'gm_ytd'}"
+            class="btn-light oe_stat_button" icon="fa-line-chart">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="gm_ytd" readonly="1" widget="monetary"/></span>
+            <span class="o_stat_text">Gross $ YTD</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'gm_pct_ytd'}"
+            class="btn-light oe_stat_button" icon="fa-percent">
+        <div class="o_stat_info">
+            <span class="o_stat_value">
+                <field name="gm_pct_ytd" readonly="1" invisible="not gm_pct_ytd_available"/>
+                <span class="text-muted" invisible="gm_pct_ytd_available">n/a</span>
+            </span>
+            <span class="o_stat_text">GM % YTD</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'net_margin_ytd'}"
+            class="btn-light oe_stat_button" icon="fa-balance-scale">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="net_margin_ytd" readonly="1" widget="monetary"/></span>
+            <span class="o_stat_text">Net Margin YTD</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'commission_ytd'}"
+            class="btn-light oe_stat_button" icon="fa-money">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="commission_ytd" readonly="1" widget="monetary"/></span>
+            <span class="o_stat_text">Earned Commission YTD</span>
+        </div>
+    </button>
 </group>
 
 <separator/>
@@ -205,13 +397,52 @@
 <!-- ═══════════════════════════════════════════════════════════
      SECTION E — WEB LEAD FUNNEL
 ════════════════════════════════════════════════════════════ -->
-<group string="🌐 Web Lead Funnel — All companies (not company-scoped)" col="7">
-    <field name="lead_received_today" string="Today"/>
-    <field name="lead_received_wtd"   string="WTD"/>
-    <field name="lead_received_mtd"   string="MTD"/>
-    <field name="lead_hot_mtd"        string="HOT MTD"  class="text-success font-weight-bold"/>
-    <field name="lead_cold_mtd"       string="COLD MTD" class="text-muted"/>
-    <field name="lead_hot_rate_mtd"   string="HOT Rate %" widget="float" digits="[5,1]"/>
+<group string="🌐 Web Lead Funnel — All companies (not company-scoped)" col="6">
+    <button name="action_open_kpi" type="object" context="{'kpi': 'lead_received_today'}"
+            class="btn-light oe_stat_button" icon="fa-globe">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="lead_received_today" readonly="1"/></span>
+            <span class="o_stat_text">Today</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'lead_received_wtd'}"
+            class="btn-light oe_stat_button" icon="fa-globe">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="lead_received_wtd" readonly="1"/></span>
+            <span class="o_stat_text">WTD</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'lead_received_mtd'}"
+            class="btn-light oe_stat_button" icon="fa-globe">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="lead_received_mtd" readonly="1"/></span>
+            <span class="o_stat_text">MTD</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'lead_hot_mtd'}"
+            class="btn-light oe_stat_button" icon="fa-fire">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="lead_hot_mtd" readonly="1"/></span>
+            <span class="o_stat_text">HOT MTD</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'lead_cold_mtd'}"
+            class="btn-light oe_stat_button" icon="fa-snowflake-o">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="lead_cold_mtd" readonly="1"/></span>
+            <span class="o_stat_text">COLD MTD</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'lead_hot_rate_mtd'}"
+            class="btn-light oe_stat_button" icon="fa-percent">
+        <div class="o_stat_info">
+            <span class="o_stat_value">
+                <field name="lead_hot_rate_mtd" readonly="1" invisible="not lead_hot_rate_mtd_available"/>
+                <span class="text-muted" invisible="lead_hot_rate_mtd_available">n/a</span>
+            </span>
+            <span class="o_stat_text">HOT Rate %</span>
+        </div>
+    </button>
 </group>
 
 <separator/>
@@ -228,22 +459,216 @@
         <field name="ai_vision_enabled"     string="Vision Analyzer"
                widget="boolean_toggle" readonly="1"/>
     </group>
-    <group string="MTD Throughput">
-        <field name="ai_leads_normalized_mtd" string="Normalized"/>
-        <field name="ai_leads_vision_mtd"     string="Vision Analyzed"/>
-        <field name="ai_hot_auto_mtd"         string="Auto-HOT" class="text-success"/>
-        <field name="ai_cold_auto_mtd"        string="Auto-COLD" class="text-muted"/>
-        <field name="ai_hot_rate_mtd"         string="HOT Rate %" widget="float" digits="[5,1]"/>
-        <field name="ai_error_mtd"            string="Errors"    class="text-danger"/>
-        <field name="ai_manual_override_mtd"  string="Manual Overrides"/>
-        <field name="ai_intakes_auto_created" string="Auto-Intakes Created"/>
-    </group>
-    <button name="action_open_ai_pending_review" type="object"
-            class="btn-primary" icon="fa-eye"
-            invisible="ai_pending_review == 0">
-        <field name="ai_pending_review" readonly="1" class="font-weight-bold"/>
-        Pending Buyer Match →
+</group>
+<group string="AI — MTD Throughput — All companies (not company-scoped)" col="9">
+    <button name="action_open_kpi" type="object" context="{'kpi': 'ai_leads_normalized_mtd'}"
+            class="btn-light oe_stat_button" icon="fa-magic">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="ai_leads_normalized_mtd" readonly="1"/></span>
+            <span class="o_stat_text">Normalized</span>
+        </div>
     </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'ai_leads_vision_mtd'}"
+            class="btn-light oe_stat_button" icon="fa-eye">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="ai_leads_vision_mtd" readonly="1"/></span>
+            <span class="o_stat_text">Vision Analyzed</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'ai_hot_auto_mtd'}"
+            class="btn-light oe_stat_button" icon="fa-fire">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="ai_hot_auto_mtd" readonly="1"/></span>
+            <span class="o_stat_text">Auto-HOT</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'ai_cold_auto_mtd'}"
+            class="btn-light oe_stat_button" icon="fa-snowflake-o">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="ai_cold_auto_mtd" readonly="1"/></span>
+            <span class="o_stat_text">Auto-COLD</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'ai_hot_rate_mtd'}"
+            class="btn-light oe_stat_button" icon="fa-percent">
+        <div class="o_stat_info">
+            <span class="o_stat_value">
+                <field name="ai_hot_rate_mtd" readonly="1" invisible="not ai_hot_rate_mtd_available"/>
+                <span class="text-muted" invisible="ai_hot_rate_mtd_available">n/a</span>
+            </span>
+            <span class="o_stat_text">HOT Rate %</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'ai_error_mtd'}"
+            class="btn-light oe_stat_button" icon="fa-bug">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="ai_error_mtd" readonly="1"/></span>
+            <span class="o_stat_text">Errors</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'ai_manual_override_mtd'}"
+            class="btn-light oe_stat_button" icon="fa-hand-paper-o">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="ai_manual_override_mtd" readonly="1"/></span>
+            <span class="o_stat_text">Manual Overrides</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'ai_intakes_auto_created'}"
+            class="btn-light oe_stat_button" icon="fa-inbox">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="ai_intakes_auto_created" readonly="1"/></span>
+            <span class="o_stat_text">Auto-Intakes Created</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'ai_pending_review'}"
+            class="btn-light oe_stat_button" icon="fa-eye">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="ai_pending_review" readonly="1"/></span>
+            <span class="o_stat_text">Pending Buyer Match</span>
+        </div>
+    </button>
+</group>
+
+<separator/>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION G — BUSINESS HEALTH &amp; BOTTLENECKS (TASK-031)
+     Are we making money (sections B–C), where is work stuck (funnel),
+     who owns the resolution (exceptions by owner).
+════════════════════════════════════════════════════════════ -->
+<group string="🧭 Stage Funnel — open transactions of this company" col="5">
+    <button name="action_open_kpi" type="object" context="{'kpi': 'funnel_transaction'}"
+            class="btn-light oe_stat_button" icon="fa-handshake-o">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="funnel_transaction" readonly="1"/></span>
+            <span class="o_stat_text">Transaction</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'funnel_shipping'}"
+            class="btn-light oe_stat_button" icon="fa-truck">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="funnel_shipping" readonly="1"/></span>
+            <span class="o_stat_text">Shipping</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'funnel_documents'}"
+            class="btn-light oe_stat_button" icon="fa-file-text-o">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="funnel_documents" readonly="1"/></span>
+            <span class="o_stat_text">Documents</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'funnel_invoicing'}"
+            class="btn-light oe_stat_button" icon="fa-file-o">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="funnel_invoicing" readonly="1"/></span>
+            <span class="o_stat_text">Invoicing</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'funnel_payment'}"
+            class="btn-light oe_stat_button" icon="fa-credit-card">
+        <div class="o_stat_info">
+            <span class="o_stat_value"><field name="funnel_payment" readonly="1"/></span>
+            <span class="o_stat_text">Payment</span>
+        </div>
+    </button>
+</group>
+
+<group string="🚩 Open Exceptions by Owner (DEC-012)" col="3">
+    <button name="action_open_kpi" type="object" context="{'kpi': 'exceptions_operations_open'}"
+            class="btn-light oe_stat_button" icon="fa-user-circle">
+        <div class="o_stat_info">
+            <span class="o_stat_value">
+                <field name="exceptions_operations_open" readonly="1" invisible="not exceptions_operations_open_available"/>
+                <span class="text-muted" invisible="exceptions_operations_open_available">n/a</span>
+            </span>
+            <span class="o_stat_text">Operations Manager</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'exceptions_logistics_open'}"
+            class="btn-light oe_stat_button" icon="fa-truck">
+        <div class="o_stat_info">
+            <span class="o_stat_value">
+                <field name="exceptions_logistics_open" readonly="1" invisible="not exceptions_logistics_open_available"/>
+                <span class="text-muted" invisible="exceptions_logistics_open_available">n/a</span>
+            </span>
+            <span class="o_stat_text">Logistics</span>
+        </div>
+    </button>
+    <button name="action_open_exceptions_by_owner" type="object"
+            string="By assignee →" class="btn-link" icon="fa-users"/>
+</group>
+
+<group string="📄 Document Processing &amp; Linda" col="7">
+    <button name="action_open_kpi" type="object" context="{'kpi': 'documents_verified_mtd'}"
+            class="btn-light oe_stat_button" icon="fa-check-circle">
+        <div class="o_stat_info">
+            <span class="o_stat_value">
+                <field name="documents_verified_mtd" readonly="1" invisible="not documents_verified_mtd_available"/>
+                <span class="text-muted" invisible="documents_verified_mtd_available">n/a</span>
+            </span>
+            <span class="o_stat_text">Documents Verified MTD</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'documents_review_backlog'}"
+            class="btn-light oe_stat_button" icon="fa-inbox">
+        <div class="o_stat_info">
+            <span class="o_stat_value">
+                <field name="documents_review_backlog" readonly="1" invisible="not documents_review_backlog_available"/>
+                <span class="text-muted" invisible="documents_review_backlog_available">n/a</span>
+            </span>
+            <span class="o_stat_text">Awaiting Association</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'linda_held_mtd'}"
+            class="btn-light oe_stat_button" icon="fa-pause-circle">
+        <div class="o_stat_info">
+            <span class="o_stat_value">
+                <field name="linda_held_mtd" readonly="1" invisible="not linda_held_mtd_available"/>
+                <span class="text-muted" invisible="linda_held_mtd_available">n/a</span>
+            </span>
+            <span class="o_stat_text">Linda Held MTD</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'linda_held_pending'}"
+            class="btn-light oe_stat_button" icon="fa-hourglass-half">
+        <div class="o_stat_info">
+            <span class="o_stat_value">
+                <field name="linda_held_pending" readonly="1" invisible="not linda_held_pending_available"/>
+                <span class="text-muted" invisible="linda_held_pending_available">n/a</span>
+            </span>
+            <span class="o_stat_text">Linda Awaiting Approval</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'linda_held_approved_mtd'}"
+            class="btn-light oe_stat_button" icon="fa-check">
+        <div class="o_stat_info">
+            <span class="o_stat_value">
+                <field name="linda_held_approved_mtd" readonly="1" invisible="not linda_held_approved_mtd_available"/>
+                <span class="text-muted" invisible="linda_held_approved_mtd_available">n/a</span>
+            </span>
+            <span class="o_stat_text">Linda Approved MTD</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'linda_held_rejected_mtd'}"
+            class="btn-light oe_stat_button" icon="fa-times">
+        <div class="o_stat_info">
+            <span class="o_stat_value">
+                <field name="linda_held_rejected_mtd" readonly="1" invisible="not linda_held_rejected_mtd_available"/>
+                <span class="text-muted" invisible="linda_held_rejected_mtd_available">n/a</span>
+            </span>
+            <span class="o_stat_text">Linda Rejected MTD</span>
+        </div>
+    </button>
+    <div class="oe_stat_button" title="Held / (held + auto-applied). Unavailable: straight-through Linda commands leave no ledger row.">
+        <div class="o_stat_info">
+            <span class="o_stat_value">
+                <field name="linda_intervention_rate" readonly="1" invisible="not linda_intervention_rate_available"/>
+                <span class="text-muted" invisible="linda_intervention_rate_available">n/a</span>
+            </span>
+            <span class="o_stat_text">Linda Intervention %</span>
+        </div>
+    </div>
 </group>
 
             </sheet>
