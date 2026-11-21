@@ -37,4 +37,4 @@ access_linda_sweep_cursor_manager,plasticos.linda.sweep.cursor.manager,model_pla
 access_linda_approval_manager,plasticos.linda.approval.manager,model_plasticos_linda_approval,base.group_system,1,0,0,0
 access_load_appointment_user,plasticos.load.appointment.user,model_plasticos_load_appointment,base.group_user,1,1,1,0
 access_load_appointment_manager,plasticos.load.appointment.manager,model_plasticos_load_appointment,base.group_system,1,1,1,1
-access_control_tower_user,plasticos.logistics.control.tower.user,model_plasticos_logistics_control_tower,base.group_user,1,0,1,0
+access_control_tower_user,plasticos.logistics.control.tower.user,model_plasticos_logistics_control_tower,base.group_user,1,1,1,0

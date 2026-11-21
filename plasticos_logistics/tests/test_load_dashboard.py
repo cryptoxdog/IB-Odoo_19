@@ -336,3 +336,14 @@ class TestLogisticsControlTower(_LindaCase):
         self.assertIn(own.id, rep_ids)
         self.assertNotIn(other.id, rep_ids, "a rep's count never includes another rep's load")
         self.assertLess(self._kpis(rep)["needs_attention"]["value"], self._kpis(self.ops)["needs_attention"]["value"])
+
+    def test_the_menu_server_action_opens_the_tiles(self):
+        """The menu runs ir.actions.server; Odoo checks write on its model when it carries no groups."""
+        action = self.env.ref("plasticos_logistics.action_logistics_control_tower")
+        for user in (self.logistics, self.ops, self.manager):
+            with self.subTest(user=user.login):
+                result = action.with_user(user).with_context(active_model=TOWER).run()
+                self.assertEqual((result["res_model"], result["view_mode"]), (TOWER, "form"))
+        plain = self._make_user("ct-plain-menu", "base.group_user")
+        with self.assertRaises(AccessError):
+            action.with_user(plain).run()
