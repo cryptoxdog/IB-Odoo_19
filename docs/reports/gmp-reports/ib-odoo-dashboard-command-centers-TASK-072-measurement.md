@@ -42,6 +42,14 @@ These are code properties, not model results. Their tests are listed. The Odoo r
 
 ## Specialist benefit (TASK-073)
 
+**Post-P1 refinement is not provided** (CTO decision, 2026-11-21). Enterprise runs every Auto-Sort tool under `ai_documents_skip_autosort`, so a P1 move never starts the destination folder's rule. No code here starts one AI action from another. A specialist refines only three entry paths:
+
+- a direct upload into its folder;
+- a person's move into its folder;
+- a manual *AI Sort*.
+
+GATE-006 benefit is measured on those entry paths only. If measurement later shows that P1 alone misroutes enough to need refinement, that is a new operator decision outside this campaign.
+
 `harness.score_specialist` compares a specialist with P1 alone on the labeled cases of its family. Each case is read as a document arriving in the folder untyped. Benefit requires all of:
 
 - strictly higher exact-type accuracy than P1;
