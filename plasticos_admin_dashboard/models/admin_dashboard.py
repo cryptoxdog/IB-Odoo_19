@@ -737,8 +737,17 @@ class PlasticosRepPerformance(models.Model):
     net_margin = fields.Float(string="Net $", readonly=True, digits=(16, 2))
     commission = fields.Float(string="Commission", readonly=True, digits=(16, 2))
 
-    deals_open = fields.Integer(string="Open Deals", readonly=True)
-    pipeline_val = fields.Float(string="Pipeline", readonly=True, digits=(16, 2))
+    deals_open = fields.Integer(
+        string="Open Deals (snapshot)",
+        readonly=True,
+        help="Open transactions right now; a point-in-time snapshot, the same in every period row.",
+    )
+    pipeline_val = fields.Float(
+        string="Open Pipeline (snapshot)",
+        readonly=True,
+        digits=(16, 2),
+        help="Revenue of open transactions right now; a point-in-time snapshot, not a period total.",
+    )
     intakes_created = fields.Integer(string="Intakes", readonly=True)
     offers_sent = fields.Integer(string="Offers Sent", readonly=True)
     offers_accepted = fields.Integer(string="Acc'd", readonly=True)
@@ -746,6 +755,14 @@ class PlasticosRepPerformance(models.Model):
     avg_gm_pct = fields.Float(string="Avg GM %", readonly=True, digits=(5, 1))
 
     def init(self):
+        """One CTE per measure, each pre-aggregated per (user, period) before the join.
+
+        Joining raw closed, open, intake and offer rows multiplies money by the
+        join cardinality (F-002); aggregating first keeps every measure exact.
+        Historical ERP trades are excluded exactly as in the Admin KPI SQL
+        (DEC-009). Open pipeline is a point-in-time snapshot, identical in every
+        period row.
+        """
         tools.drop_view_if_exists(self.env.cr, self._table)
         self.env.cr.execute("""
             CREATE VIEW plasticos_rep_performance AS
@@ -757,80 +774,98 @@ class PlasticosRepPerformance(models.Model):
                 UNION ALL
                 SELECT 'YTD', 3, date_trunc('year', NOW())
             ),
-            closed_tx AS (
-                SELECT
-                    t.id,
-                    t.user_id,
-                    rp.name AS rep_name,
-                    t.revenue_total,
-                    t.gross_margin,
-                    t.net_margin,
-                    t.commission_amount,
-                    t.write_date
-                FROM plasticos_transaction t
-                LEFT JOIN res_users u ON u.id = t.user_id
-                LEFT JOIN res_partner rp ON rp.id = u.partner_id
-                WHERE t.state = 'closed'
+            reps AS (
+                SELECT DISTINCT user_id FROM plasticos_transaction WHERE user_id IS NOT NULL
             ),
-            open_tx AS (
-                SELECT
-                    t.user_id,
-                    t.revenue_total
+            closed_tx AS (
+                SELECT t.id, t.user_id, t.revenue_total, t.gross_margin, t.net_margin,
+                       t.commission_amount, t.write_date
+                FROM plasticos_transaction t
+                WHERE t.state = 'closed'
+                  AND t.user_id IS NOT NULL
+                  AND t.legacy_erp_history = FALSE
+                  AND NOT EXISTS (
+                      SELECT 1 FROM ir_model_data import_id
+                      WHERE import_id.model = 'sale.order'
+                        AND import_id.module = 'plasticos_transaction'
+                        AND import_id.res_id = t.sale_order_id
+                        AND import_id.name LIKE 'legacy_erp_so_%%'
+                  )
+            ),
+            closed_agg AS (
+                SELECT ct.user_id, p.period_label,
+                       COUNT(ct.id)                              AS deals_closed,
+                       COALESCE(SUM(ct.revenue_total), 0)        AS revenue_closed,
+                       COALESCE(SUM(ct.gross_margin), 0)         AS gm_closed,
+                       COALESCE(SUM(ct.net_margin), 0)           AS net_margin,
+                       COALESCE(SUM(ct.commission_amount), 0)    AS commission
+                FROM closed_tx ct
+                JOIN periods p ON ct.write_date >= p.period_start
+                GROUP BY ct.user_id, p.period_label
+            ),
+            open_agg AS (
+                SELECT t.user_id,
+                       COUNT(DISTINCT t.id)                      AS deals_open,
+                       COALESCE(SUM(t.revenue_total), 0)         AS pipeline_val
                 FROM plasticos_transaction t
                 WHERE t.state NOT IN ('closed','cancelled')
+                  AND t.user_id IS NOT NULL
+                GROUP BY t.user_id
+            ),
+            intake_agg AS (
+                SELECT i.assigned_user_id AS user_id, p.period_label,
+                       COUNT(i.id)                               AS intakes_created
+                FROM plasticos_intake i
+                JOIN periods p ON i.create_date >= p.period_start
+                WHERE i.assigned_user_id IS NOT NULL
+                GROUP BY i.assigned_user_id, p.period_label
+            ),
+            offer_agg AS (
+                SELECT i.assigned_user_id AS user_id, p.period_label,
+                       COUNT(o.id) FILTER (WHERE o.state != 'draft')                  AS offers_sent,
+                       COUNT(o.id) FILTER (WHERE o.state = 'accepted')                AS offers_accepted,
+                       COUNT(o.id) FILTER (WHERE o.state IN ('accepted','rejected'))  AS offers_decided
+                FROM plasticos_offer o
+                JOIN plasticos_intake i ON i.id = o.intake_id
+                JOIN periods p ON o.create_date >= p.period_start
+                WHERE i.assigned_user_id IS NOT NULL
+                GROUP BY i.assigned_user_id, p.period_label
             )
             SELECT
-                ROW_NUMBER() OVER () AS id,
-                rp.name             AS rep_name,
-                t.user_id           AS salesperson_id,
-                p.period_label      AS period,
-                p.period_sort       AS period_sort,
+                ROW_NUMBER() OVER (ORDER BY r.user_id, p.period_sort) AS id,
+                rp.name                                 AS rep_name,
+                r.user_id                               AS salesperson_id,
+                p.period_label                          AS period,
+                p.period_sort                           AS period_sort,
 
-                COUNT(DISTINCT ct.id) FILTER (WHERE ct.write_date >= p.period_start) AS deals_closed,
-                COALESCE(SUM(ct.revenue_total)  FILTER (WHERE ct.write_date >= p.period_start), 0) AS revenue_closed,
-                COALESCE(SUM(ct.gross_margin)   FILTER (WHERE ct.write_date >= p.period_start), 0) AS gm_closed,
-                CASE WHEN COALESCE(SUM(ct.revenue_total) FILTER (WHERE ct.write_date >= p.period_start),0) = 0 THEN 0
-                     ELSE ROUND((COALESCE(SUM(ct.gross_margin) FILTER (WHERE ct.write_date >= p.period_start),0)
-                          / SUM(ct.revenue_total) FILTER (WHERE ct.write_date >= p.period_start) * 100)::numeric, 1)
-                END                             AS gm_pct,
-                COALESCE(SUM(ct.net_margin)     FILTER (WHERE ct.write_date >= p.period_start), 0) AS net_margin,
-                COALESCE(SUM(ct.commission_amount) FILTER (WHERE ct.write_date >= p.period_start), 0) AS commission,
+                COALESCE(ca.deals_closed, 0)            AS deals_closed,
+                COALESCE(ca.revenue_closed, 0)          AS revenue_closed,
+                COALESCE(ca.gm_closed, 0)               AS gm_closed,
+                CASE WHEN COALESCE(ca.revenue_closed, 0) = 0 THEN 0
+                     ELSE ROUND((ca.gm_closed / ca.revenue_closed * 100)::numeric, 1)
+                END                                     AS gm_pct,
+                COALESCE(ca.net_margin, 0)              AS net_margin,
+                COALESCE(ca.commission, 0)              AS commission,
 
-                COUNT(DISTINCT ot.user_id)                                         AS deals_open,
-                COALESCE(SUM(ot.revenue_total), 0)                                 AS pipeline_val,
+                COALESCE(oa.deals_open, 0)              AS deals_open,
+                COALESCE(oa.pipeline_val, 0)            AS pipeline_val,
 
-                COUNT(DISTINCT i.id) FILTER (WHERE i.create_date >= p.period_start) AS intakes_created,
+                COALESCE(ia.intakes_created, 0)         AS intakes_created,
+                COALESCE(fa.offers_sent, 0)             AS offers_sent,
+                COALESCE(fa.offers_accepted, 0)         AS offers_accepted,
+                CASE WHEN COALESCE(fa.offers_decided, 0) = 0 THEN 0
+                     ELSE ROUND((fa.offers_accepted::numeric / fa.offers_decided * 100)::numeric, 1)
+                END                                     AS offer_acc_rate,
+                CASE WHEN COALESCE(ca.revenue_closed, 0) = 0 THEN 0
+                     ELSE ROUND((ca.gm_closed / ca.revenue_closed * 100)::numeric, 1)
+                END                                     AS avg_gm_pct
 
-                COUNT(DISTINCT o.id) FILTER (WHERE o.create_date >= p.period_start
-                                              AND o.state != 'draft')              AS offers_sent,
-                COUNT(DISTINCT o.id) FILTER (WHERE o.create_date >= p.period_start
-                                              AND o.state = 'accepted')            AS offers_accepted,
-
-                CASE WHEN COUNT(o.id) FILTER (WHERE o.create_date >= p.period_start
-                                              AND o.state IN ('accepted','rejected')) = 0 THEN 0
-                     ELSE ROUND((
-                         COUNT(o.id) FILTER (WHERE o.create_date >= p.period_start AND o.state='accepted')::numeric
-                         / COUNT(o.id) FILTER (WHERE o.create_date >= p.period_start
-                                               AND o.state IN ('accepted','rejected'))
-                         * 100
-                     )::numeric, 1)
-                END                             AS offer_acc_rate,
-
-                CASE WHEN COALESCE(SUM(ct.revenue_total) FILTER (WHERE ct.write_date >= p.period_start),0) = 0 THEN 0
-                     ELSE ROUND((
-                         COALESCE(SUM(ct.gross_margin) FILTER (WHERE ct.write_date >= p.period_start),0)
-                         / COALESCE(SUM(ct.revenue_total) FILTER (WHERE ct.write_date >= p.period_start),1)
-                         * 100
-                     )::numeric, 1)
-                END                             AS avg_gm_pct
-
-            FROM (SELECT DISTINCT user_id FROM plasticos_transaction WHERE user_id IS NOT NULL) t
+            FROM reps r
             CROSS JOIN periods p
-            LEFT JOIN res_users u   ON u.id = t.user_id
+            LEFT JOIN res_users u    ON u.id = r.user_id
             LEFT JOIN res_partner rp ON rp.id = u.partner_id
-            LEFT JOIN closed_tx ct  ON ct.user_id = t.user_id
-            LEFT JOIN open_tx ot    ON ot.user_id = t.user_id
-            LEFT JOIN plasticos_intake i    ON i.assigned_user_id = t.user_id
-            LEFT JOIN plasticos_offer  o    ON o.intake_id = i.id
-            GROUP BY t.user_id, rp.name, p.period_label, p.period_sort
+            LEFT JOIN closed_agg ca  ON ca.user_id = r.user_id AND ca.period_label = p.period_label
+            LEFT JOIN open_agg oa    ON oa.user_id = r.user_id
+            LEFT JOIN intake_agg ia  ON ia.user_id = r.user_id AND ia.period_label = p.period_label
+            LEFT JOIN offer_agg fa   ON fa.user_id = r.user_id AND fa.period_label = p.period_label
         """)
