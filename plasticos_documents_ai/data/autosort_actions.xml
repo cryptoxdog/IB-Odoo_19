@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!--
+        Explicit administrator actions (TASK-071, DEC-018). Installing the addon only
+        creates these two buttons; no Auto-Sort prompt, rule or AI action exists until
+        a system administrator runs "Activate". Authority is enforced server-side in
+        plasticos.documents.ai.autosort._check_system_admin, not by these groups.
+    -->
+    <record id="action_autosort_activate_p1" model="ir.actions.server">
+        <field name="name">Auto-Sort: Activate P1 Inbox Classifier (DeepSeek Flash)</field>
+        <field name="model_id" ref="model_plasticos_documents_ai_autosort"/>
+        <field name="state">code</field>
+        <field name="group_ids" eval="[(6, 0, [ref('base.group_system')])]"/>
+        <field name="code">action = model.action_activate_p1()</field>
+    </record>
+
+    <record id="action_autosort_deactivate_p1" model="ir.actions.server">
+        <field name="name">Auto-Sort: Deactivate P1 Inbox Classifier</field>
+        <field name="model_id" ref="model_plasticos_documents_ai_autosort"/>
+        <field name="state">code</field>
+        <field name="group_ids" eval="[(6, 0, [ref('base.group_system')])]"/>
+        <field name="code">action = model.action_deactivate_p1()</field>
+    </record>
+
+    <menuitem id="menu_autosort_root"
+        name="Auto-Sort (AI)"
+        parent="documents.Config"
+        groups="base.group_system"
+        sequence="60"/>
+    <menuitem id="menu_autosort_activate_p1"
+        name="Activate P1 Inbox Classifier"
+        parent="menu_autosort_root"
+        action="action_autosort_activate_p1"
+        groups="base.group_system"
+        sequence="10"/>
+    <menuitem id="menu_autosort_deactivate_p1"
+        name="Deactivate P1 Inbox Classifier"
+        parent="menu_autosort_root"
+        action="action_autosort_deactivate_p1"
+        groups="base.group_system"
+        sequence="20"/>
+</odoo>

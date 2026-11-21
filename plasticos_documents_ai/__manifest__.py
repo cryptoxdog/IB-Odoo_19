@@ -1,7 +1,7 @@
 {
     "name": "Plasticos Documents AI",
-    "version": "19.0.1.0.0",
-    "summary": "DeepSeek Flash provider adapter for Odoo AI server actions used by Documents Auto-Sort",
+    "version": "19.0.1.1.0",
+    "summary": "DeepSeek Flash provider adapter and explicitly activated Auto-Sort prompts for Plasticos Documents",
     # The Apps page renders this text as reStructuredText; the Markdown README carries
     # YAML front matter that is not valid reStructuredText.
     "description": (
@@ -22,6 +22,7 @@
     ],
     "data": [
         "views/ir_actions_server_views.xml",
+        "data/autosort_actions.xml",
     ],
     "installable": True,
     "application": False,

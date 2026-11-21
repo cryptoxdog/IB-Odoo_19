@@ -381,11 +381,15 @@ class TestDeepSeekAdapter(TransactionCase):
 class TestInstallIsInert(TransactionCase):
     """Installing the addon sends nothing and creates no Auto-Sort rule (GATE-005)."""
 
-    def test_module_data_holds_no_rule_action_or_cron(self):
+    def test_module_data_holds_no_rule_ai_action_or_cron(self):
         data = self.env["ir.model.data"].search([("module", "=", "plasticos_documents_ai")])
-        self.assertEqual(
-            set(data.mapped("model")) - {"ir.ui.view", "ir.model.fields", "ir.model.fields.selection"}, set()
+        self.assertFalse({"base.automation", "ir.cron"} & set(data.mapped("model")))
+        actions = self.env["ir.actions.server"].browse(
+            data.filtered(lambda d: d.model == "ir.actions.server").mapped("res_id")
         )
+        # Only the explicit administrator buttons (TASK-071); none of them is an AI action.
+        self.assertTrue(all(action.state == "code" for action in actions))
+        self.assertFalse(actions.filtered("ai_autosort_folder_id"))
 
     def test_no_action_is_switched_to_deepseek_and_inbox_has_no_prompt(self):
         self.assertFalse(self.env["ir.actions.server"].sudo().search([("plasticos_llm_model", "!=", False)]))
