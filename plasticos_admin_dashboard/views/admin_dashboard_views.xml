@@ -154,7 +154,7 @@
 <group string="🔄 Transactions" col="7">
     <field name="tx_open"           string="Open"           class="o_field_integer font-weight-bold"/>
     <field name="tx_in_motion"      string="In Motion"      class="o_field_integer text-info"/>
-    <field name="tx_closed_mtd"     string="Closed MTD"     class="o_field_integer text-success"/>
+    <field name="tx_closed_mtd"     string="Closed MTD (earned date)" class="o_field_integer text-success"/>
     <field name="pipeline_value_open" string="Pipeline $"   widget="monetary"/>
 </group>
 
@@ -164,20 +164,21 @@
      SECTION C — REVENUE / FINANCIAL
      MTD and YTD side by side
 ════════════════════════════════════════════════════════════ -->
-<group string="💰 Revenue &amp; Margin" col="6">
+<!-- DEC-002: operational closed-deal figures by commission earned date; not accounting revenue. -->
+<group string="💰 Closed-Deal Revenue &amp; Margin (operational, by commission earned date — not accounting revenue)" col="6">
     <group string="MTD">
-        <field name="revenue_mtd"    string="Revenue"    widget="monetary"/>
+        <field name="revenue_mtd"    string="Closed-Deal Revenue" widget="monetary"/>
         <field name="gm_mtd"         string="Gross $"    widget="monetary"/>
         <field name="gm_pct_mtd"     string="GM %"       widget="float" digits="[5,1]"/>
         <field name="net_margin_mtd" string="Net Margin" widget="monetary"/>
-        <field name="commission_mtd" string="Commission" widget="monetary"/>
+        <field name="commission_mtd" string="Earned Commission" widget="monetary"/>
     </group>
     <group string="YTD">
-        <field name="revenue_ytd"    string="Revenue"    widget="monetary"/>
+        <field name="revenue_ytd"    string="Closed-Deal Revenue" widget="monetary"/>
         <field name="gm_ytd"         string="Gross $"    widget="monetary"/>
         <field name="gm_pct_ytd"     string="GM %"       widget="float" digits="[5,1]"/>
         <field name="net_margin_ytd" string="Net Margin" widget="monetary"/>
-        <field name="commission_ytd" string="Commission" widget="monetary"/>
+        <field name="commission_ytd" string="Earned Commission" widget="monetary"/>
     </group>
 </group>
 
@@ -257,13 +258,13 @@
                    decoration-primary="period=='MTD'" decoration-muted="period=='YTD'"/>
             <field name="rep_name"        string="Rep"/>
             <field name="deals_closed"    string="Closed"     sum="Total"/>
-            <field name="revenue_closed"  string="Revenue $"  sum="Total" widget="monetary"/>
+            <field name="revenue_closed"  string="Closed-Deal Revenue $" sum="Total" widget="monetary"/>
             <field name="gm_closed"       string="GM $"       sum="Total" widget="monetary"/>
             <field name="gm_pct"          string="GM %"       widget="float" digits="[5,1]"
                    decoration-danger="gm_pct &lt; 5" decoration-warning="gm_pct &lt; 10"/>
             <field name="net_margin"      string="Net $"      sum="Total" widget="monetary"
                    decoration-danger="net_margin &lt; 0"/>
-            <field name="commission"      string="Commission" sum="Total" widget="monetary"/>
+            <field name="commission"      string="Earned Commission" sum="Total" widget="monetary"/>
             <field name="deals_open"      string="Open (now)" optional="show"/>
             <field name="pipeline_val"    string="Pipeline $ (now)" widget="monetary" optional="show"/>
             <field name="intakes_created" string="Intakes"    optional="show"/>
