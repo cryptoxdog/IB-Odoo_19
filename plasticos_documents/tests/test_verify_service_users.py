@@ -7,7 +7,6 @@ from odoo.addons.plasticos_base.test_common import PlasticosTestCase
 from odoo.exceptions import AccessError
 from odoo.tests.common import tagged
 
-
 SERVICE_REFUSAL = "Service and portal users cannot verify business evidence"
 
 
