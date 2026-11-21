@@ -1,6 +1,7 @@
 from . import test_account_move_transaction_link
 from . import test_compliance_service
 from . import test_document_query_batch
+from . import test_exception_routing
 from . import test_expiry_final_gate
 from . import test_integrity_controls
 from . import test_load_document_association
