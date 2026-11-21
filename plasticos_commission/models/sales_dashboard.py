@@ -1,10 +1,15 @@
 import logging
 
 from odoo import api, fields, models, tools
+from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
 
 PLASTICOS_TRANSACTION = "plasticos.transaction"
+
+# Deal states that are not active. Same list as the "active_deals" search filter
+# in views/sales_dashboard_views.xml.
+INACTIVE_DEAL_STATES = ["closed", "cancelled", "draft"]
 
 
 class PlasticosSalesDashboard(models.Model):
@@ -537,4 +542,132 @@ class PlasticosSalesDashboard(models.Model):
             "view_mode": "list,form",
             "domain": [("id", "in", payout_ids)],
             "context": {"create": False, "edit": False},
+        }
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # Sales command center (TASK-033, DEC-007 KPI-drill parity)
+    # ══════════════════════════════════════════════════════════════════════════
+    # Each KPI is declared once: source model, domain, aggregate. Its value and
+    # its drill both come from that declaration. Every domain names the logged-in
+    # user, so a KPI never counts another rep's records whatever the user's group;
+    # record rules still apply because nothing here uses sudo. A KPI whose model
+    # or fields are not installed, or that the user may not read, is unavailable
+    # (value None), never 0.
+
+    def _sales_kpi_declarations(self):
+        uid = self.env.uid
+        active_deals = [("transaction_state", "not in", INACTIVE_DEAL_STATES), ("user_id", "=", uid)]
+        return {
+            "open_opportunities": {
+                "label": "My Open Opportunities",
+                "model": "crm.lead",
+                "domain": [
+                    ("type", "=", "opportunity"),
+                    ("active", "=", True),
+                    ("user_id", "=", uid),
+                    ("stage_id.is_won", "=", False),
+                ],
+                "aggregate": "count",
+            },
+            "active_deals": {
+                "label": "My Active Deals",
+                "model": self._name,
+                "domain": active_deals,
+                "aggregate": "count",
+            },
+            "pending_confirmations": {
+                "label": "Pending Supplier Confirmations",
+                "model": PLASTICOS_TRANSACTION,
+                "domain": [
+                    ("state", "not in", INACTIVE_DEAL_STATES),
+                    ("user_id", "=", uid),
+                    ("is_supplier_confirmed", "=", False),
+                ],
+                "aggregate": "count",
+            },
+            "margin": {
+                "label": "Margin on Active Deals",
+                "model": self._name,
+                "domain": active_deals,
+                "aggregate": "sum:gross_margin",
+            },
+            "expected_commission": {
+                "label": "Expected Commission on Active Deals",
+                "model": self._name,
+                "domain": active_deals,
+                "aggregate": "sum:commission_amount",
+            },
+            "missing_customer_documents": {
+                "label": "Deals Missing Customer Documents",
+                "model": PLASTICOS_TRANSACTION,
+                "domain": [
+                    ("state", "!=", "cancelled"),
+                    ("user_id", "=", uid),
+                    ("missing_buyer_docs", "=", True),
+                ],
+                "aggregate": "count",
+            },
+        }
+
+    def _sales_kpi_available(self, declaration):
+        """The model is installed, every field the KPI reads exists, and the user may read the model."""
+        model_name = declaration["model"]
+        if model_name not in self.env:
+            return False
+        model = self.env[model_name]
+        names = {leaf[0].split(".", 1)[0] for leaf in declaration["domain"] if isinstance(leaf, (list, tuple))}
+        if declaration["aggregate"].startswith("sum:"):
+            names.add(declaration["aggregate"].split(":", 1)[1])
+        if any(name not in model._fields for name in names):
+            return False
+        return model.has_access("read")
+
+    def _sales_kpi_value(self, declaration):
+        model = self.env[declaration["model"]]
+        aggregate = declaration["aggregate"]
+        if aggregate == "count":
+            return model.search_count(declaration["domain"])
+        field_name = aggregate.split(":", 1)[1]
+        [(total,)] = model._read_group(declaration["domain"], aggregates=[f"{field_name}:sum"])
+        return total or 0.0
+
+    @api.model
+    def get_sales_kpis(self):
+        """Command-center KPIs for the logged-in user, in declaration order.
+
+        Each entry carries its declaration; ``available`` False means the value is
+        unavailable (None), which is distinct from a true zero.
+        """
+        kpis = []
+        for key, declaration in self._sales_kpi_declarations().items():
+            available = self._sales_kpi_available(declaration)
+            kpis.append(
+                {
+                    "key": key,
+                    "label": declaration["label"],
+                    "model": declaration["model"],
+                    "domain": declaration["domain"],
+                    "aggregate": declaration["aggregate"],
+                    "available": available,
+                    "value": self._sales_kpi_value(declaration) if available else None,
+                }
+            )
+        return kpis
+
+    @api.model
+    def action_open_sales_kpi(self, key):
+        """Drill for one KPI: the declared source model with the declared domain."""
+        declaration = self._sales_kpi_declarations().get(key)
+        if declaration is None:
+            raise UserError(f"Unknown sales KPI: {key}")
+        if not self._sales_kpi_available(declaration):
+            raise UserError(f"{declaration['label']} is unavailable: its records are not installed or not readable.")
+        view_mode = "list,form,pivot,graph" if declaration["model"] == self._name else "list,form"
+        return {
+            "type": "ir.actions.act_window",
+            "name": declaration["label"],
+            "res_model": declaration["model"],
+            "view_mode": view_mode,
+            "domain": declaration["domain"],
+            "context": {"create": False},
         }
