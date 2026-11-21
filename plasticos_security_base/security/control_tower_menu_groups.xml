@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- DEC-005 (CTO 2026-11-21): the Logistics Control Tower menu and its server action are
+         role-restricted. plasticos_logistics owns both records but cannot name these groups
+         (this module depends on it, not the reverse), so the binding lives here. No group,
+         membership or record-rule change. The tiles model also refuses other users server-side. -->
+    <record id="plasticos_logistics.menu_logistics_control_tower" model="ir.ui.menu">
+        <field name="group_ids" eval="[Command.set([
+            ref('plasticos_security_base.group_logistics'),
+            ref('plasticos_security_base.group_logistics_ops'),
+            ref('plasticos_security_base.group_operations_manager'),
+        ])]"/>
+    </record>
+    <record id="plasticos_logistics.action_logistics_control_tower" model="ir.actions.server">
+        <field name="group_ids" eval="[Command.set([
+            ref('plasticos_security_base.group_logistics'),
+            ref('plasticos_security_base.group_logistics_ops'),
+            ref('plasticos_security_base.group_operations_manager'),
+        ])]"/>
+    </record>
+</odoo>
