@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Admin Business Health & Bottleneck board (TASK-031), shipped as module data in the
+    Admin Business Health and Bottleneck board (TASK-031), shipped as module data in the
     official Odoo 19.0 record shape (DEC-001; TASK-001 report, PR #569). Updatable: every
     -u reproduces the shipped JSON, so a UI edit is not a source of truth.
     Visibility: group_ids (Admin) and company_ids; spreadsheet_dashboard Dashboard Admins
