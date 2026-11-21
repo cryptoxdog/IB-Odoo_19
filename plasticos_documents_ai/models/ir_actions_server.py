@@ -27,9 +27,10 @@ class IrActionsServer(models.Model):
     )
 
     def _plasticos_uses_deepseek(self) -> bool:
-        # sudo: the field is restricted to system administrators for editing; any
-        # user whose upload triggers the action must still run it on its model.
-        return len(self) == 1 and self.sudo().plasticos_llm_model == protocol.MODEL
+        # The field is readable by system administrators only; a user whose upload triggers
+        # the action must still run it on the model the administrator chose.
+        action = self.sudo()  # sudo: read the admin-only plasticos_llm_model of this one action
+        return len(self) == 1 and action.plasticos_llm_model == protocol.MODEL
 
     @property
     def AI_PROVIDER(self):  # noqa: N802 - the Enterprise attribute name
