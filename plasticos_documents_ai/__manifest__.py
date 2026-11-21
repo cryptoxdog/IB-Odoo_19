@@ -1,6 +1,6 @@
 {
     "name": "Plasticos Documents AI",
-    "version": "19.0.1.1.0",
+    "version": "19.0.1.1.1",
     "summary": "DeepSeek Flash provider adapter and explicitly activated Auto-Sort prompts for Plasticos Documents",
     # The Apps page renders this text as reStructuredText; the Markdown README carries
     # YAML front matter that is not valid reStructuredText.
