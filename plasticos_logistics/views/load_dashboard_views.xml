@@ -219,4 +219,154 @@
               action="action_load_dashboard"
               sequence="5"/>
 
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Logistics Live Control Tower — tiles (TASK-032). Every tile opens
+         the drill of the same KPI declaration its number counted (DEC-007).
+         An unavailable source reads Unavailable, never 0.
+    ═══════════════════════════════════════════════════════════════ -->
+    <record id="view_logistics_control_tower_form" model="ir.ui.view">
+        <field name="name">plasticos.logistics.control.tower.form</field>
+        <field name="model">plasticos.logistics.control.tower</field>
+        <field name="arch" type="xml">
+            <form string="Logistics Control Tower" create="0" edit="0" delete="0">
+                <sheet>
+                    <div class="oe_title"><h1><field name="name" readonly="1"/></h1></div>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_drill" type="object" class="oe_stat_button" icon="fa-exclamation-triangle"
+                                context="{'control_tower_kpi': 'needs_attention'}" invisible="needs_attention_unavailable">
+                            <field name="needs_attention" widget="statinfo" string="Needs Attention"/>
+                        </button>
+                        <button name="action_drill" type="object" class="oe_stat_button text-muted" icon="fa-exclamation-triangle"
+                                context="{'control_tower_kpi': 'needs_attention'}" invisible="not needs_attention_unavailable" disabled="1">
+                            <div class="o_stat_info"><span class="o_stat_value">Unavailable</span><span class="o_stat_text">Needs Attention</span></div>
+                        </button>
+                        <field name="needs_attention_unavailable" invisible="1"/>
+                        <button name="action_drill" type="object" class="oe_stat_button" icon="fa-truck"
+                                context="{'control_tower_kpi': 'pickups_today'}" invisible="pickups_today_unavailable">
+                            <field name="pickups_today" widget="statinfo" string="Pickups Today"/>
+                        </button>
+                        <button name="action_drill" type="object" class="oe_stat_button text-muted" icon="fa-truck"
+                                context="{'control_tower_kpi': 'pickups_today'}" invisible="not pickups_today_unavailable" disabled="1">
+                            <div class="o_stat_info"><span class="o_stat_value">Unavailable</span><span class="o_stat_text">Pickups Today</span></div>
+                        </button>
+                        <field name="pickups_today_unavailable" invisible="1"/>
+                        <button name="action_drill" type="object" class="oe_stat_button" icon="fa-calendar"
+                                context="{'control_tower_kpi': 'pickups_next_48h'}" invisible="pickups_next_48h_unavailable">
+                            <field name="pickups_next_48h" widget="statinfo" string="Pickups Next 48h"/>
+                        </button>
+                        <button name="action_drill" type="object" class="oe_stat_button text-muted" icon="fa-calendar"
+                                context="{'control_tower_kpi': 'pickups_next_48h'}" invisible="not pickups_next_48h_unavailable" disabled="1">
+                            <div class="o_stat_info"><span class="o_stat_value">Unavailable</span><span class="o_stat_text">Pickups Next 48h</span></div>
+                        </button>
+                        <field name="pickups_next_48h_unavailable" invisible="1"/>
+                        <button name="action_drill" type="object" class="oe_stat_button" icon="fa-flag-checkered"
+                                context="{'control_tower_kpi': 'deliveries_next_48h'}" invisible="deliveries_next_48h_unavailable">
+                            <field name="deliveries_next_48h" widget="statinfo" string="Deliveries Next 48h"/>
+                        </button>
+                        <button name="action_drill" type="object" class="oe_stat_button text-muted" icon="fa-flag-checkered"
+                                context="{'control_tower_kpi': 'deliveries_next_48h'}" invisible="not deliveries_next_48h_unavailable" disabled="1">
+                            <div class="o_stat_info"><span class="o_stat_value">Unavailable</span><span class="o_stat_text">Deliveries Next 48h</span></div>
+                        </button>
+                        <field name="deliveries_next_48h_unavailable" invisible="1"/>
+                        <button name="action_drill" type="object" class="oe_stat_button" icon="fa-pause-circle"
+                                context="{'control_tower_kpi': 'linda_held'}" invisible="linda_held_unavailable">
+                            <field name="linda_held" widget="statinfo" string="Linda Held"/>
+                        </button>
+                        <button name="action_drill" type="object" class="oe_stat_button text-muted" icon="fa-pause-circle"
+                                context="{'control_tower_kpi': 'linda_held'}" invisible="not linda_held_unavailable" disabled="1">
+                            <div class="o_stat_info"><span class="o_stat_value">Unavailable</span><span class="o_stat_text">Linda Held</span></div>
+                        </button>
+                        <field name="linda_held_unavailable" invisible="1"/>
+                        <button name="action_drill" type="object" class="oe_stat_button" icon="fa-gavel"
+                                context="{'control_tower_kpi': 'linda_held_logistics'}" invisible="linda_held_logistics_unavailable">
+                            <field name="linda_held_logistics" widget="statinfo" string="Linda: Logistics Decides"/>
+                        </button>
+                        <button name="action_drill" type="object" class="oe_stat_button text-muted" icon="fa-gavel"
+                                context="{'control_tower_kpi': 'linda_held_logistics'}" invisible="not linda_held_logistics_unavailable" disabled="1">
+                            <div class="o_stat_info"><span class="o_stat_value">Unavailable</span><span class="o_stat_text">Linda: Logistics Decides</span></div>
+                        </button>
+                        <field name="linda_held_logistics_unavailable" invisible="1"/>
+                        <button name="action_drill" type="object" class="oe_stat_button" icon="fa-tasks"
+                                context="{'control_tower_kpi': 'logistics_exceptions'}" invisible="logistics_exceptions_unavailable">
+                            <field name="logistics_exceptions" widget="statinfo" string="Logistics Exceptions"/>
+                        </button>
+                        <button name="action_drill" type="object" class="oe_stat_button text-muted" icon="fa-tasks"
+                                context="{'control_tower_kpi': 'logistics_exceptions'}" invisible="not logistics_exceptions_unavailable" disabled="1">
+                            <div class="o_stat_info"><span class="o_stat_value">Unavailable</span><span class="o_stat_text">Logistics Exceptions</span></div>
+                        </button>
+                        <field name="logistics_exceptions_unavailable" invisible="1"/>
+                        <button name="action_drill" type="object" class="oe_stat_button" icon="fa-file-text-o"
+                                context="{'control_tower_kpi': 'evidence_gaps'}" invisible="evidence_gaps_unavailable">
+                            <field name="evidence_gaps" widget="statinfo" string="Evidence Gaps"/>
+                        </button>
+                        <button name="action_drill" type="object" class="oe_stat_button text-muted" icon="fa-file-text-o"
+                                context="{'control_tower_kpi': 'evidence_gaps'}" invisible="not evidence_gaps_unavailable" disabled="1">
+                            <div class="o_stat_info"><span class="o_stat_value">Unavailable</span><span class="o_stat_text">Evidence Gaps</span></div>
+                        </button>
+                        <field name="evidence_gaps_unavailable" invisible="1"/>
+                        <button name="action_drill" type="object" class="oe_stat_button" icon="fa-balance-scale"
+                                context="{'control_tower_kpi': 'scale_ticket_exceptions'}" invisible="scale_ticket_exceptions_unavailable">
+                            <field name="scale_ticket_exceptions" widget="statinfo" string="Missing Scale Tickets"/>
+                        </button>
+                        <button name="action_drill" type="object" class="oe_stat_button text-muted" icon="fa-balance-scale"
+                                context="{'control_tower_kpi': 'scale_ticket_exceptions'}" invisible="not scale_ticket_exceptions_unavailable" disabled="1">
+                            <div class="o_stat_info"><span class="o_stat_value">Unavailable</span><span class="o_stat_text">Missing Scale Tickets</span></div>
+                        </button>
+                        <field name="scale_ticket_exceptions_unavailable" invisible="1"/>
+                        <button name="action_drill" type="object" class="oe_stat_button" icon="fa-file-o"
+                                context="{'control_tower_kpi': 'missing_bol'}" invisible="missing_bol_unavailable">
+                            <field name="missing_bol" widget="statinfo" string="Missing BOL"/>
+                        </button>
+                        <button name="action_drill" type="object" class="oe_stat_button text-muted" icon="fa-file-o"
+                                context="{'control_tower_kpi': 'missing_bol'}" invisible="not missing_bol_unavailable" disabled="1">
+                            <div class="o_stat_info"><span class="o_stat_value">Unavailable</span><span class="o_stat_text">Missing BOL</span></div>
+                        </button>
+                        <field name="missing_bol_unavailable" invisible="1"/>
+                        <button name="action_drill" type="object" class="oe_stat_button" icon="fa-question-circle"
+                                context="{'control_tower_kpi': 'carrier_unconfirmed'}" invisible="carrier_unconfirmed_unavailable">
+                            <field name="carrier_unconfirmed" widget="statinfo" string="Unconfirmed Carriers"/>
+                        </button>
+                        <button name="action_drill" type="object" class="oe_stat_button text-muted" icon="fa-question-circle"
+                                context="{'control_tower_kpi': 'carrier_unconfirmed'}" invisible="not carrier_unconfirmed_unavailable" disabled="1">
+                            <div class="o_stat_info"><span class="o_stat_value">Unavailable</span><span class="o_stat_text">Unconfirmed Carriers</span></div>
+                        </button>
+                        <field name="carrier_unconfirmed_unavailable" invisible="1"/>
+                        <button name="action_drill" type="object" class="oe_stat_button" icon="fa-ban"
+                                context="{'control_tower_kpi': 'release_blocked'}" invisible="release_blocked_unavailable">
+                            <field name="release_blocked" widget="statinfo" string="Blocked From Release"/>
+                        </button>
+                        <button name="action_drill" type="object" class="oe_stat_button text-muted" icon="fa-ban"
+                                context="{'control_tower_kpi': 'release_blocked'}" invisible="not release_blocked_unavailable" disabled="1">
+                            <div class="o_stat_info"><span class="o_stat_value">Unavailable</span><span class="o_stat_text">Blocked From Release</span></div>
+                        </button>
+                        <field name="release_blocked_unavailable" invisible="1"/>
+                        <button name="action_drill" type="object" class="oe_stat_button" icon="fa-clock-o"
+                                context="{'control_tower_kpi': 'sla_breached'}" invisible="sla_breached_unavailable">
+                            <field name="sla_breached" widget="statinfo" string="SLA Breached"/>
+                        </button>
+                        <button name="action_drill" type="object" class="oe_stat_button text-muted" icon="fa-clock-o"
+                                context="{'control_tower_kpi': 'sla_breached'}" invisible="not sla_breached_unavailable" disabled="1">
+                            <div class="o_stat_info"><span class="o_stat_value">Unavailable</span><span class="o_stat_text">SLA Breached</span></div>
+                        </button>
+                        <field name="sla_breached_unavailable" invisible="1"/>
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_logistics_control_tower" model="ir.actions.server">
+        <field name="name">Logistics Control Tower</field>
+        <field name="model_id" ref="model_plasticos_logistics_control_tower"/>
+        <field name="state">code</field>
+        <field name="code">action = model.action_open()</field>
+    </record>
+
+    <menuitem id="menu_logistics_control_tower"
+              name="Control Tower"
+              parent="plasticos_logistics.menu_plasticos_logistics_root"
+              action="action_logistics_control_tower"
+              sequence="4"/>
+
 </odoo>

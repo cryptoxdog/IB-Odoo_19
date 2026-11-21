@@ -10,6 +10,23 @@ _logger = logging.getLogger(__name__)
 
 PLASTICOS_LOAD = "plasticos.load"
 LINDA_APPROVAL = "plasticos.linda.approval"
+MAIL_ACTIVITY = "mail.activity"
+# DEC-012 exception activity types owned by plasticos_documents (TASK-060). plasticos_documents
+# depends on this module, so they are looked up by XML id; when absent the KPI is unavailable.
+DOCUMENT_EXCEPTION_TYPES = (
+    "plasticos_documents.activity_type_missing_documents",
+    "plasticos_documents.activity_type_missing_scale_ticket",
+    "plasticos_documents.activity_type_association_review",
+    "plasticos_documents.activity_type_classification_review",
+    "plasticos_documents.activity_type_evidence_gap",
+    "plasticos_documents.activity_type_split_review",
+    "plasticos_documents.activity_type_duplicate_candidate",
+    "plasticos_documents.activity_type_blocked_bill",
+)
+EVIDENCE_GAP_TYPE = "plasticos_documents.activity_type_evidence_gap"
+SCALE_TICKET_TYPE = "plasticos_documents.activity_type_missing_scale_ticket"
+# The router (plasticos.exception.router.upsert) stamps the owning role into the activity note.
+LOGISTICS_ROUTED_NOTE = "Routed to logistics:"
 
 # Control Tower (TASK-032, DEC-007). Load states that still move: neither delivered nor closed.
 OPEN_STATES = (
@@ -513,6 +530,9 @@ class PlasticosLoadDashboard(models.Model):
             ("state", "in", PRE_RELEASE_STATES),
             ("carrier_id", "=", False),
         ]
+        exception_types = self._activity_type_ids(DOCUMENT_EXCEPTION_TYPES)
+        evidence_gap = self._activity_type_ids((EVIDENCE_GAP_TYPE,))
+        scale_ticket = self._activity_type_ids((SCALE_TICKET_TYPE,))
         return [
             (
                 "pickups_today",
@@ -566,7 +586,37 @@ class PlasticosLoadDashboard(models.Model):
                 PLASTICOS_LOAD,
                 [*open_load, ("sla_breached", "=", True)],
             ),
+            (
+                "logistics_exceptions",
+                "Logistics Exceptions",
+                MAIL_ACTIVITY,
+                exception_types
+                and [("activity_type_id", "in", exception_types), ("note", "ilike", LOGISTICS_ROUTED_NOTE)],
+            ),
+            (
+                "evidence_gaps",
+                "Evidence Gaps (shipping paperwork)",
+                MAIL_ACTIVITY,
+                evidence_gap and [("activity_type_id", "in", evidence_gap), ("note", "ilike", LOGISTICS_ROUTED_NOTE)],
+            ),
+            (
+                "scale_ticket_exceptions",
+                "Missing Scale Tickets",
+                PLASTICOS_LOAD,
+                scale_ticket and [("activity_ids.activity_type_id", "in", scale_ticket)],
+            ),
         ]
+
+    @api.model
+    def _activity_type_ids(self, xmlids):
+        """The ids of the named activity types, or None when any is not installed (KPI unavailable)."""
+        ids = []
+        for xmlid in xmlids:
+            record = self.env.ref(xmlid, raise_if_not_found=False)
+            if not record or record._name != "mail.activity.type":
+                return None
+            ids.append(record.id)
+        return ids
 
     @api.model
     def control_tower_kpis(self):
@@ -577,6 +627,11 @@ class PlasticosLoadDashboard(models.Model):
         """
         kpis = []
         for key, label, model, domain in self._control_tower_declarations():
+            if domain is None:
+                kpis.append(
+                    {"key": key, "label": label, "model": model, "domain": None, "value": None, "available": False}
+                )
+                continue
             try:
                 value = self.env[model].search_count(domain)
                 available = True
@@ -594,6 +649,8 @@ class PlasticosLoadDashboard(models.Model):
         key = key or self.env.context.get("control_tower_kpi")
         for kpi_key, label, model, domain in self._control_tower_declarations():
             if kpi_key == key:
+                if domain is None:
+                    raise UserError(f"{label} is unavailable: its exception types are not installed.")
                 return {
                     "type": "ir.actions.act_window",
                     "name": label,
@@ -604,3 +661,87 @@ class PlasticosLoadDashboard(models.Model):
                     "target": "current",
                 }
         raise UserError(f"Unknown Control Tower KPI {key!r}.")
+
+
+# The tiles, in display order: (key, label). Each key is a KPI of _control_tower_declarations.
+CONTROL_TOWER_TILES = (
+    ("needs_attention", "Needs Attention"),
+    ("pickups_today", "Pickups Today"),
+    ("pickups_next_48h", "Pickups Next 48h"),
+    ("deliveries_next_48h", "Deliveries Next 48h"),
+    ("linda_held", "Linda Held"),
+    ("linda_held_logistics", "Linda: Logistics Decides"),
+    ("logistics_exceptions", "Logistics Exceptions"),
+    ("evidence_gaps", "Evidence Gaps"),
+    ("scale_ticket_exceptions", "Missing Scale Tickets"),
+    ("missing_bol", "Missing BOL"),
+    ("carrier_unconfirmed", "Unconfirmed Carriers"),
+    ("release_blocked", "Blocked From Release"),
+    ("sla_breached", "SLA Breached"),
+)
+
+
+class PlasticosLogisticsControlTower(models.TransientModel):
+    """Logistics Live Control Tower tiles (TASK-032). Presentation only: no business data.
+
+    Every tile reads its value from plasticos.load.dashboard.control_tower_kpis() as the viewer
+    and opens the same declaration's drill (DEC-007). An unavailable source shows Unavailable,
+    never 0.
+    """
+
+    _name = "plasticos.logistics.control.tower"
+    _description = "Logistics Control Tower"
+
+    name = fields.Char(default="Logistics Control Tower", readonly=True)
+    needs_attention = fields.Integer(compute="_compute_tiles")
+    needs_attention_unavailable = fields.Boolean(compute="_compute_tiles")
+    pickups_today = fields.Integer(compute="_compute_tiles")
+    pickups_today_unavailable = fields.Boolean(compute="_compute_tiles")
+    pickups_next_48h = fields.Integer(compute="_compute_tiles")
+    pickups_next_48h_unavailable = fields.Boolean(compute="_compute_tiles")
+    deliveries_next_48h = fields.Integer(compute="_compute_tiles")
+    deliveries_next_48h_unavailable = fields.Boolean(compute="_compute_tiles")
+    linda_held = fields.Integer(compute="_compute_tiles")
+    linda_held_unavailable = fields.Boolean(compute="_compute_tiles")
+    linda_held_logistics = fields.Integer(compute="_compute_tiles")
+    linda_held_logistics_unavailable = fields.Boolean(compute="_compute_tiles")
+    logistics_exceptions = fields.Integer(compute="_compute_tiles")
+    logistics_exceptions_unavailable = fields.Boolean(compute="_compute_tiles")
+    evidence_gaps = fields.Integer(compute="_compute_tiles")
+    evidence_gaps_unavailable = fields.Boolean(compute="_compute_tiles")
+    scale_ticket_exceptions = fields.Integer(compute="_compute_tiles")
+    scale_ticket_exceptions_unavailable = fields.Boolean(compute="_compute_tiles")
+    missing_bol = fields.Integer(compute="_compute_tiles")
+    missing_bol_unavailable = fields.Boolean(compute="_compute_tiles")
+    carrier_unconfirmed = fields.Integer(compute="_compute_tiles")
+    carrier_unconfirmed_unavailable = fields.Boolean(compute="_compute_tiles")
+    release_blocked = fields.Integer(compute="_compute_tiles")
+    release_blocked_unavailable = fields.Boolean(compute="_compute_tiles")
+    sla_breached = fields.Integer(compute="_compute_tiles")
+    sla_breached_unavailable = fields.Boolean(compute="_compute_tiles")
+
+    @api.depends_context("uid", "allowed_company_ids", "tz")
+    def _compute_tiles(self):
+        kpis = {kpi["key"]: kpi for kpi in self.env["plasticos.load.dashboard"].control_tower_kpis()}
+        for rec in self:
+            for key, _label in CONTROL_TOWER_TILES:
+                kpi = kpis.get(key) or {"available": False, "value": None}
+                rec[key] = kpi["value"] or 0
+                rec[f"{key}_unavailable"] = not kpi["available"]
+
+    @api.model
+    def action_open(self):
+        """Open a fresh tiles screen for the viewer."""
+        tower = self.create({})
+        return {
+            "type": "ir.actions.act_window",
+            "name": "Logistics Control Tower",
+            "res_model": self._name,
+            "res_id": tower.id,
+            "view_mode": "form",
+            "target": "current",
+        }
+
+    def action_drill(self):
+        """Open the clicked tile's KPI drill (the same model and domain its value counted)."""
+        return self.env["plasticos.load.dashboard"].action_drill_kpi(self.env.context.get("control_tower_kpi"))

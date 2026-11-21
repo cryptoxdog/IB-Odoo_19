@@ -19,6 +19,10 @@ from .test_s11_linda_approval import LOGISTICS_OPS, MANAGER, _LindaCase
 
 DASHBOARD = "plasticos.load.dashboard"
 APPROVAL = "plasticos.linda.approval"
+TOWER = "plasticos.logistics.control.tower"
+EVIDENCE_GAP = "plasticos_documents.activity_type_evidence_gap"
+SCALE_TICKET = "plasticos_documents.activity_type_missing_scale_ticket"
+EXCEPTION_KPIS = {"logistics_exceptions", "evidence_gaps", "scale_ticket_exceptions"}
 
 
 @tagged("post_install", "-at_install", "plasticos", "logistics")
@@ -88,11 +92,19 @@ class TestLogisticsControlTower(_LindaCase):
                 "carrier_unconfirmed",
                 "release_blocked",
                 "sla_breached",
+                "logistics_exceptions",
+                "evidence_gaps",
+                "scale_ticket_exceptions",
             },
         )
         for key, kpi in kpis.items():
             with self.subTest(kpi=key):
-                self.assertTrue(kpi["available"])
+                if not kpi["available"]:
+                    # Only the exception KPIs may be unavailable, and only without plasticos_documents' types.
+                    self.assertIn(key, EXCEPTION_KPIS)
+                    self.assertFalse(self.env.ref(EVIDENCE_GAP, raise_if_not_found=False))
+                    self.assertIsNone(kpi["value"])
+                    continue
                 action = self.env[DASHBOARD].with_user(self.ops).action_drill_kpi(key)
                 self.assertEqual(action["res_model"], kpi["model"], "the drill opens the source model")
                 self.assertEqual(action["domain"], kpi["domain"])
@@ -230,3 +242,72 @@ class TestLogisticsControlTower(_LindaCase):
         for key in ("needs_attention", "missing_bol", "carrier_unconfirmed", "sla_breached"):
             self.assertEqual(manager[key]["value"], ops[key]["value"], key)
         self.assertTrue(self.manager.has_group(MANAGER))
+
+    # ── DEC-012 exception activities (TASK-060 types) and the tiles screen ──
+
+    def _exception_types(self):
+        gap = self.env.ref(EVIDENCE_GAP, raise_if_not_found=False)
+        scale = self.env.ref(SCALE_TICKET, raise_if_not_found=False)
+        if not (gap and scale):
+            # Legitimate exception: plasticos_documents (which depends on this module) owns these types;
+            # without it the exception KPIs are unavailable, which test_every_kpi_value_equals_its_drill_count
+            # asserts. The runtime roster installs plasticos_documents, so this runs there.
+            self.skipTest("plasticos_documents exception activity types are not installed")
+        return gap, scale
+
+    def _activity(self, record, activity_type, role, assignee):
+        return (
+            self.env["mail.activity"]
+            .sudo()  # sudo: fixture writes an activity as the exception router would
+            .create(
+                {
+                    "res_model_id": self.env["ir.model"]._get_id(record._name),
+                    "res_id": record.id,
+                    "activity_type_id": activity_type.id,
+                    "summary": f"CT {activity_type.name}",
+                    "note": f"Fixture. Routed to {role}: test reason",
+                    "user_id": assignee.id,
+                }
+            )
+        )
+
+    def test_logistics_routed_exceptions_count_and_drill_to_the_exact_load(self):
+        gap, scale = self._exception_types()
+        load = self._load(name="CT-EXC")
+        other = self._load(name="CT-EXC-OPS")
+        logistics_gap = self._activity(load, gap, "logistics", self.ops)
+        operations_gap = self._activity(other, gap, "operations", self.manager)
+        self._activity(load, scale, "logistics", self.ops)
+        kpis = self._kpis(self.ops)
+        for key in ("logistics_exceptions", "evidence_gaps"):
+            with self.subTest(kpi=key):
+                found = self.env["mail.activity"].search(kpis[key]["domain"])
+                self.assertIn(logistics_gap, found)
+                self.assertNotIn(operations_gap, found, "an Operations-routed exception is not Logistics'")
+                self.assertEqual(kpis[key]["value"], len(found))
+        drill = self.env[DASHBOARD].with_user(self.ops).action_drill_kpi("scale_ticket_exceptions")
+        self.assertEqual(drill["res_model"], LOAD, "one click lands on the exact load")
+        self.assertIn(load, self.env[LOAD].search(drill["domain"]))
+        self.assertNotIn(other, self.env[LOAD].search(drill["domain"]))
+
+    def test_tiles_show_the_kpi_values_and_open_their_drills(self):
+        self._fixture()
+        tower_model = self.env[TOWER].with_user(self.ops)
+        tower = tower_model.browse(tower_model.action_open()["res_id"])
+        for key, kpi in self._kpis(self.ops).items():
+            with self.subTest(tile=key):
+                self.assertEqual(tower[f"{key}_unavailable"], not kpi["available"])
+                if kpi["available"]:
+                    self.assertEqual(tower[key], kpi["value"])
+                    drill = tower.with_context(control_tower_kpi=key).action_drill()
+                    self.assertEqual((drill["res_model"], drill["domain"]), (kpi["model"], kpi["domain"]))
+
+    def test_an_uninstalled_exception_type_is_unavailable_on_the_tile(self):
+        tower_model = self.env[TOWER].with_user(self.ops)
+        with patch.object(type(self.env[DASHBOARD]), "_activity_type_ids", lambda model, xmlids: None):
+            kpis = self._kpis(self.ops)
+            tower = tower_model.browse(tower_model.action_open()["res_id"])
+            self.assertTrue(tower.logistics_exceptions_unavailable)
+            with self.assertRaises(UserError):
+                self.env[DASHBOARD].action_drill_kpi("logistics_exceptions")
+        self.assertEqual((kpis["evidence_gaps"]["available"], kpis["evidence_gaps"]["value"]), (False, None))
