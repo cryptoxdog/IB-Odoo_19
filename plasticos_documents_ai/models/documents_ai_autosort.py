@@ -1,4 +1,4 @@
-"""Explicit administrator activation of Auto-Sort slices (TASK-071, DEC-018).
+"""Explicit administrator activation of Auto-Sort slices (TASK-071, TASK-073, DEC-018).
 
 Nothing here runs on install or upgrade. A system administrator activates the P1
 Inbox classifier from Documents > Configuration > Auto-Sort, and can deactivate
@@ -8,8 +8,13 @@ folder and lets Enterprise ``ai_documents`` create its rule
 folder and add tags. The rule's AI action is set to DeepSeek Flash (TASK-068).
 The applied prompt version is recorded in the rule's chatter.
 
+Slice 2 (TASK-073) does the same for each destination specialist P2–P7 on its
+own folder, with the add-tags tool only. Each specialist is inactive until an
+administrator activates it with the reference of its GATE-006 approval, which is
+recorded in the rule's chatter.
+
 Real documents reach DeepSeek only after the operator's GATE-005 approval;
-activating P1 on a database that receives real documents is that operator act.
+activating a prompt on a database that receives real documents is that operator act.
 """
 
 from markupsafe import Markup
@@ -41,7 +46,9 @@ class PlasticosDocumentsAiAutosort(models.AbstractModel):
         return self.env.ref(MOVE_TOOL_XMLID) | self.env.ref(ADD_TAGS_TOOL_XMLID)
 
     def _p1_missing_tags(self) -> list[str]:
-        names = prompts.p1_tag_names()
+        return self._missing_tags(prompts.p1_tag_names())
+
+    def _missing_tags(self, names) -> list[str]:
         found = set(self.env["documents.tag"].search([("name", "in", list(names))]).mapped("name"))
         return [name for name in names if name not in found]
 
@@ -63,17 +70,53 @@ class PlasticosDocumentsAiAutosort(models.AbstractModel):
             params=dict(message=message, type=kind, sticky=False),
         )
 
-    # ── P1 Inbox ────────────────────────────────────────────────
-    def _p1_is_current(self, inbox, prompt) -> bool:
-        action, rule = self._autosort_records(inbox)
+    # ── Shared ──────────────────────────────────────────────────
+    def _is_current(self, folder, prompt, tools) -> bool:
+        action, rule = self._autosort_records(folder)
         if not (action and rule):
             return False
-        stored = inbox._fields["ai_sort_prompt"].convert_to_cache(prompt, inbox)
+        stored = folder._fields["ai_sort_prompt"].convert_to_cache(prompt, folder)
         return (
             action.plasticos_llm_model == protocol.MODEL
-            and action.ai_tool_ids == self._p1_tools()
-            and str(inbox.ai_sort_prompt or "") == str(stored or "")
+            and action.ai_tool_ids == tools
+            and str(folder.ai_sort_prompt or "") == str(stored or "")
         )
+
+    def _apply(self, folder, prompt, tools, version, extra_lines=()):
+        """Write ``prompt`` on ``folder``, let Enterprise build the rule, pin DeepSeek Flash."""
+        replaced = bool(folder.ai_sort_prompt)
+        folder.ai_sort_prompt = prompt
+        folder._ai_setup_sort_actions(tools.ids)
+        action, rule = self._autosort_records(folder)
+        action.plasticos_llm_model = protocol.MODEL
+        lines = [
+            _("prompt_version: %s", version),
+            _("Model: %s (non-thinking)", protocol.MODEL_LABEL),
+            _("Tools: %s", ", ".join(tools.mapped("name"))),
+            *extra_lines,
+            _("Replaced an existing folder prompt.") if replaced else _("No previous folder prompt."),
+        ]
+        items = Markup("").join(Markup("<li>%s</li>") % line for line in lines)
+        rule.message_post(
+            body=Markup("<p>%s</p><ul>%s</ul>") % (_("Auto-Sort prompt applied by explicit activation."), items),
+            subtype_xmlid="mail.mt_note",
+        )
+
+    def _remove(self, folder):
+        """Remove the folder prompt, rule and AI action. Returns False when nothing was active."""
+        action, rule = self._autosort_records(folder)
+        if not (action or rule or folder.ai_sort_prompt):
+            return False
+        folder.ai_sort_prompt = False
+        folder._ai_setup_sort_actions(())
+        folder.message_post(
+            body=_("Auto-Sort deactivated on this folder by explicit action."), subtype_xmlid="mail.mt_note"
+        )
+        return True
+
+    # ── P1 Inbox ────────────────────────────────────────────────
+    def _p1_is_current(self, inbox, prompt) -> bool:
+        return self._is_current(inbox, prompt, self._p1_tools())
 
     def action_activate_p1(self):
         """Apply P1 at ``P1_PROMPT_VERSION`` on the Inbox. Idempotent."""
@@ -86,36 +129,58 @@ class PlasticosDocumentsAiAutosort(models.AbstractModel):
         version = f"{prompts.P1_PROMPT_ID} v{prompts.P1_PROMPT_VERSION}"
         if self._p1_is_current(inbox, prompt):
             return self._notify(_("Auto-Sort %s is already active on %s.", version, inbox.name), "info")
-
-        replaced = bool(inbox.ai_sort_prompt)
-        inbox.ai_sort_prompt = prompt
-        tools = self._p1_tools()
-        inbox._ai_setup_sort_actions(tools.ids)
-        action, rule = self._autosort_records(inbox)
-        action.plasticos_llm_model = protocol.MODEL
-        rule.message_post(
-            body=Markup("<p>%s</p><ul><li>%s</li><li>%s</li><li>%s</li><li>%s</li></ul>")
-            % (
-                _("Auto-Sort prompt applied by explicit activation."),
-                _("prompt_version: %s", version),
-                _("Model: %s (non-thinking)", protocol.MODEL_LABEL),
-                _("Tools: %s", ", ".join(tools.mapped("name"))),
-                _("Replaced an existing folder prompt.") if replaced else _("No previous folder prompt."),
-            ),
-            subtype_xmlid="mail.mt_note",
-        )
+        self._apply(inbox, prompt, self._p1_tools(), version)
         return self._notify(_("Auto-Sort %s activated on %s.", version, inbox.name))
 
     def action_deactivate_p1(self):
         """Remove the Inbox prompt, rule and AI action. Idempotent."""
         self._check_system_admin()
         inbox = self.env.ref(prompts.INBOX_FOLDER_XMLID)
-        action, rule = self._autosort_records(inbox)
-        if not (action or rule or inbox.ai_sort_prompt):
+        if not self._remove(inbox):
             return self._notify(_("Auto-Sort is not active on %s.", inbox.name), "info")
-        inbox.ai_sort_prompt = False
-        inbox._ai_setup_sort_actions(())
-        inbox.message_post(
-            body=_("Auto-Sort deactivated on this folder by explicit action."), subtype_xmlid="mail.mt_note"
-        )
         return self._notify(_("Auto-Sort deactivated on %s.", inbox.name))
+
+    # ── P2–P7 destination specialists (TASK-073) ────────────────
+    def _specialist_tools(self):
+        return self.env.ref(ADD_TAGS_TOOL_XMLID)
+
+    def _specialist_folder(self, prompt_id):
+        if prompt_id not in prompts.SPECIALIST_IDS:
+            raise UserError(_("Unknown Auto-Sort specialist: %s", prompt_id))
+        return self.env.ref(prompts.specialist_folder_xmlid(prompt_id))
+
+    def action_activate_specialist(self, prompt_id, gate_006_reference):
+        """Apply specialist ``prompt_id`` at ``SPECIALIST_PROMPT_VERSION`` on its folder. Idempotent.
+
+        ``gate_006_reference`` names the operator's GATE-006 approval of this
+        specialist (loop safety and measured benefit); it is required and recorded.
+        """
+        self._check_system_admin()
+        folder = self._specialist_folder(prompt_id)
+        reference = (gate_006_reference or "").strip()
+        if not reference:
+            raise UserError(_("Activating %s needs the reference of its GATE-006 approval.", prompt_id))
+        missing = self._missing_tags(prompts.specialist_tag_names(prompt_id))
+        if missing:
+            raise UserError(
+                _(
+                    "Auto-Sort %(prompt)s needs these document tags, which do not exist yet: %(tags)s",
+                    prompt=prompt_id,
+                    tags=", ".join(missing),
+                )
+            )
+        prompt = Markup(prompts.build_specialist_prompt(prompt_id))  # noqa: S704 - built from module constants only
+        version = f"{prompt_id} v{prompts.SPECIALIST_PROMPT_VERSION}"
+        tools = self._specialist_tools()
+        if self._is_current(folder, prompt, tools):
+            return self._notify(_("Auto-Sort %s is already active on %s.", version, folder.name), "info")
+        self._apply(folder, prompt, tools, version, [_("GATE-006 approval: %s", reference)])
+        return self._notify(_("Auto-Sort %s activated on %s.", version, folder.name))
+
+    def action_deactivate_specialist(self, prompt_id):
+        """Remove specialist ``prompt_id`` from its folder. Idempotent."""
+        self._check_system_admin()
+        folder = self._specialist_folder(prompt_id)
+        if not self._remove(folder):
+            return self._notify(_("Auto-Sort is not active on %s.", folder.name), "info")
+        return self._notify(_("Auto-Sort %s deactivated on %s.", prompt_id, folder.name))

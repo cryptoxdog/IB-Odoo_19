@@ -1,6 +1,6 @@
 {
     "name": "Plasticos Documents AI",
-    "version": "19.0.1.1.1",
+    "version": "19.0.1.2.0",
     "summary": "DeepSeek Flash provider adapter and explicitly activated Auto-Sort prompts for Plasticos Documents",
     # The Apps page renders this text as reStructuredText; the Markdown README carries
     # YAML front matter that is not valid reStructuredText.
@@ -21,8 +21,10 @@
         "ai_documents",
     ],
     "data": [
+        "security/ir.model.access.csv",
         "views/ir_actions_server_views.xml",
         "data/autosort_actions.xml",
+        "views/autosort_specialist_wizard_views.xml",
     ],
     "installable": True,
     "application": False,

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!--
+        Slice 2 (TASK-073): each P2-P7 specialist stays inactive until an administrator
+        activates it here with the reference of its GATE-006 approval. Authority is
+        enforced server-side in plasticos.documents.ai.autosort._check_system_admin.
+    -->
+    <record id="view_plasticos_documents_ai_specialist_wizard_form" model="ir.ui.view">
+        <field name="name">plasticos.documents.ai.specialist.wizard.form</field>
+        <field name="model">plasticos.documents.ai.specialist.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Auto-Sort Specialist">
+                <p>
+                    A specialist only adds tags to documents in its own folder, with DeepSeek Flash.
+                    It never moves a document. Activate it only after its GATE-006 approval,
+                    and only after GATE-005 on a database that receives real documents.
+                </p>
+                <group>
+                    <field name="prompt_id"/>
+                    <field name="gate_006_reference"/>
+                </group>
+                <footer>
+                    <button name="action_activate" string="Activate" type="object" class="btn-primary"/>
+                    <button name="action_deactivate" string="Deactivate" type="object"/>
+                    <button string="Close" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_plasticos_documents_ai_specialist_wizard" model="ir.actions.act_window">
+        <field name="name">Auto-Sort Specialists (P2-P7)</field>
+        <field name="res_model">plasticos.documents.ai.specialist.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="group_ids" eval="[(6, 0, [ref('base.group_system')])]"/>
+    </record>
+
+    <menuitem id="menu_autosort_specialists"
+        name="Specialists (P2-P7)"
+        parent="menu_autosort_root"
+        action="action_plasticos_documents_ai_specialist_wizard"
+        groups="base.group_system"
+        sequence="30"/>
+</odoo>

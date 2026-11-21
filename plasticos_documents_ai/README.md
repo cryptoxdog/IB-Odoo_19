@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_documents_ai
 component_name: Plasticos Documents AI
-module_version: 19.0.1.1.1
+module_version: 19.0.1.2.0
 installable: true
 auto_install: false
 application: false
@@ -107,6 +107,38 @@ Running the action again with the same version changes nothing. A new prompt ver
 Install and upgrade never write a folder prompt or create a rule. An administrator's later edit of the Inbox prompt therefore survives an upgrade. Folder moves are limited to the six Plasticos destination folders named in the prompt. Enterprise enforces this.
 
 The owner activity for review signals belongs to the activity router (TASK-060 / TASK-070), never to the prompt.
+
+## Auto-Sort P2–P7: destination specialists (TASK-073)
+
+`services/autosort_prompts.py` also builds one versioned prompt per destination folder (`SPECIALIST_PROMPT_VERSION`): P2 Bills of Lading, P3 Scale Tickets, P4 Loading Pictures, P5 Orders and Shipping Paperwork (the existing Customer Orders folder), P6 Vendor Bills and financial documents, P7 Compliance. Each follows its `AI_PROMPT_INVENTORY.yaml` entry: specialist invariant, allowed tags, must-not list and acceptance examples.
+
+Every specialist is inactive until a system administrator activates it in **Documents > Configuration > Auto-Sort (AI) > Specialists (P2-P7)**. The administrator picks the specialist and enters the reference of its GATE-006 approval. The server checks the administrator group, refuses a missing reference or a missing tag, and then:
+
+1. Writes the specialist prompt on its folder.
+2. Lets Enterprise `ai_documents` create the folder's rule with one tool only, *AI: Add Tags*.
+3. Sets the rule's AI action to DeepSeek Flash.
+4. Posts `prompt_version` and the GATE-006 reference in the rule's chatter.
+
+**Deactivate** in the same wizard removes that folder's prompt, rule and AI action and leaves the others in place.
+
+When a specialist runs. Enterprise runs every Auto-Sort tool under `ai_documents_skip_autosort`, and the rules trigger on the folder only. So:
+
+- a P1 move into a destination folder never starts that folder's rule;
+- a tag added by any rule never starts any rule;
+- a specialist runs on a document uploaded straight into its folder, on one a person moves there (for example out of the Inbox after Needs Review), and on one someone sorts with *AI Sort*.
+
+No AI action can start another AI action. The tests count every rule run across all seven rules with adversarial model outputs.
+
+What the application enforces, whatever the prompt says (`models/documents_document.py`). These checks apply only to rules this addon configured:
+
+- A rule adds only the tags of its own prompt.
+- Verified is never added.
+- A destination specialist may add a type from another family only together with Needs Review. That is the v2.0 refinement conflict.
+- A specialist cannot move a document, even if someone edits its rule to grant the move tool.
+
+Two type tags send a document to a person through the TASK-070 bridge. For that reason a specialist adds no second type tag when the document already has a type that fits its folder.
+
+The harness measures each specialist's benefit over P1 alone (`harness.score_specialist`, `--specialists`). It reads each labeled case of the specialist's family as a document arriving in that folder untyped, and compares exact-type accuracy, unnecessary review and unauthorized actions. A specialist without a measured benefit stays inactive. `eval/recorded/harness_fixture_specialists.py` is a hand-written fixture that tests the scorer. It is not a measurement.
 
 ## Evaluation and replay harness (TASK-074)
 
