@@ -234,11 +234,13 @@ class TestMissingDocEscalationOwner(PlasticosTestCase):
         ):
             return page.with_user(self.cron_user)._apply_missing_doc_page(page.with_user(self.cron_user))
 
-    def test_escalation_group_is_operations_manager(self):
+    def test_escalation_groups_follow_dec_010(self):
+        """Financial and cross-department escalations: Operations Manager. A load's scale ticket: Logistics."""
         model = self.env["plasticos.transaction"]
         operations = self.env.ref("plasticos_security_base.group_operations_manager")
+        logistics = self.env.ref("plasticos_security_base.group_logistics_ops")
         self.assertEqual(model._escalation_manager_group(), operations)
-        self.assertEqual(model._scale_ticket_manager_group(), operations)
+        self.assertEqual(model._scale_ticket_manager_group(), logistics)
         sales = self._user("integrity.sales.only", self.env.ref("plasticos_security_base.group_sales_rep"))
         logistics = self._user("integrity.logistics.only", self.env.ref("plasticos_security_base.group_logistics"))
         owner = model._get_logistics_manager(operations)

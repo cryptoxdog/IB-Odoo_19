@@ -13,14 +13,23 @@ Enterprise module.
 
 import logging
 
-from odoo import SUPERUSER_ID, api, fields, models
-from odoo.tools import html2plaintext
+from odoo import api, models
+from odoo.addons.plasticos_documents.models.exception_router import (
+    EXC_ASSOCIATION_REVIEW,
+    EXC_BLOCKED_BILL,
+    OPERATIONS,
+    OWNER_GROUPS,
+    Obligation,
+    RerouteResult,
+)
 
+from .account_move import BILL_REVIEW_SUMMARY
 from .reference_match import extract_tokens, number_pattern, split_email_body
 
 _logger = logging.getLogger(__name__)
 
-REVIEW_GROUP_XMLID = "plasticos_security_base.group_operations_manager"
+# The default owner group named in "no reviewer" errors. The owner itself is routed (DEC-010).
+REVIEW_GROUP_XMLID = OWNER_GROUPS[OPERATIONS]
 DOCUMENT_REVIEW_SUMMARY = "Document association needs review"
 # (model, ir.sequence code). The format itself is read from the sequence row.
 REFERENCE_SEQUENCE_CODES = (
@@ -85,6 +94,12 @@ class DocumentSyncService(models.AbstractModel):
         if legacy and legacy.association_state != "accepted":
             self._apply_reference_match(native_doc, legacy)
             self._schedule_review_once(native_doc)
+        elif legacy:
+            self.env["plasticos.exception.router"].resolve(
+                native_doc, DOCUMENT_REVIEW_SUMMARY, "The original was associated by the association command."
+            )
+        if legacy:
+            self._schedule_review_signals(native_doc)
         return legacy
 
     @api.model
@@ -144,29 +159,10 @@ class DocumentSyncService(models.AbstractModel):
         return "Original is unassigned."
 
     @api.model
-    def _manager_reviewer(self, company=None):
-        """Deterministic manager-level reviewer: lowest-id active internal Operations Manager.
-
-        The uploader is never the reviewer by default. The superuser the
-        scheduler runs as is not a reviewer. Returns an empty recordset when
-        nobody is eligible; the caller must say so.
-        """
-        group = self.env.ref(REVIEW_GROUP_XMLID, raise_if_not_found=False)
-        users = self.env["res.users"]
-        if not group:
-            return users
-        members = group.sudo().all_user_ids  # sudo: reviewer identity only; an uploader cannot read membership
-        candidates = members.filtered(lambda user: user.active and not user.share and user.id != SUPERUSER_ID)
-        if company:
-            candidates = candidates.filtered(lambda user: company in user.company_ids)
-        return candidates.sorted("id")[:1].sudo(False)
-
-    @api.model
     def _report_no_reviewer(self, record, subject):
-        """No eligible reviewer is an error on the record, never a silent skip."""
+        """No eligible owner is an error on the record, never a silent skip."""
         _logger.error(
-            "No active internal user in %s can review %s %s (%s).",
-            REVIEW_GROUP_XMLID,
+            "No eligible owner can review %s %s (%s).",
             record._name,
             record.id,
             subject,
@@ -182,43 +178,96 @@ class DocumentSyncService(models.AbstractModel):
         )
 
     @api.model
+    def _schedule_routed_activity(self, record, obligation, company):
+        """One open activity for ``obligation`` with its DEC-010 owner; no owner is reported."""
+        router = self.env["plasticos.exception.router"]
+        route = router.route(obligation.purpose, obligation.exception_class)
+        owner = router.owner(route, company or None)
+        activity = router.upsert(record, obligation, route, owner, company or None)
+        if not activity:
+            self._report_no_reviewer(record, obligation.summary)
+        return activity
+
+    @api.model
     def _schedule_manager_activity(self, record, summary, note):
-        """At most one open manager activity per record and summary. The note follows the reason."""
-        activity = self.env["mail.activity"]
-        existing = activity.search(
-            [("res_model", "=", record._name), ("res_id", "=", record.id), ("summary", "=", summary)],
-            limit=1,
+        """Hold-review entry point for a digitized vendor bill (account_move.py): Operations Manager.
+
+        Kept as the bill guard's call site. The owner, the activity type and the idempotency come
+        from the DEC-010 router; a blocked bill is never Logistics work.
+        """
+        router = self.env["plasticos.exception.router"]
+        purpose = (
+            router.purpose_from_move(record) if record._name == "account.move" else router.purpose_from_tag_codes(())
         )
-        if existing:
-            if note and html2plaintext(existing.note or "").strip() != note.strip():
-                existing.write({"note": note})
-            return existing
         company = record.company_id if "company_id" in record._fields else self.env["res.company"]
-        reviewer = self._manager_reviewer(company)
-        todo = self.env.ref("mail.mail_activity_data_todo", raise_if_not_found=False)
-        if not reviewer or not todo:
-            self._report_no_reviewer(record, summary)
-            return activity
-        return activity.with_context(mail_activity_quick_update=True).create(
-            {
-                "res_model_id": self.env["ir.model"]._get_id(record._name),
-                "res_id": record.id,
-                "activity_type_id": todo.id,
-                "summary": summary,
-                "note": note,
-                "user_id": reviewer.id,
-                "date_deadline": fields.Date.context_today(record),
-            }
-        )
+        return self._schedule_routed_activity(record, Obligation(summary, purpose, EXC_BLOCKED_BILL, note), company)
+
+    @api.model
+    def _review_purpose(self, native_doc):
+        """Confirmed purpose of a held original: its doc_type plus whether one record was resolved.
+
+        A classification without a single resolved subject (no reference, conflicting references,
+        a sender who is not a party) is not attributed: Operations Manager owns it (DEC-010).
+        """
+        shell = native_doc.plasticos_doc_id
+        attributed = bool(shell.association_subject_model and shell.association_subject_id)
+        reason = shell.pending_reason or self._navigation_reason(native_doc)
+        return self.env["plasticos.exception.router"].purpose_from_doc_type(native_doc.doc_type, attributed, reason)
 
     @api.model
     def _schedule_review_once(self, native_doc):
-        """One internal activity for an Operations Manager, never the uploader by default."""
-        return self._schedule_manager_activity(
-            native_doc,
-            DOCUMENT_REVIEW_SUMMARY,
-            native_doc.plasticos_doc_id.pending_reason or self._navigation_reason(native_doc),
+        """One association-review activity on the original, owned per DEC-010, never by the uploader."""
+        note = native_doc.plasticos_doc_id.pending_reason or self._navigation_reason(native_doc)
+        obligation = Obligation(DOCUMENT_REVIEW_SUMMARY, self._review_purpose(native_doc), EXC_ASSOCIATION_REVIEW, note)
+        return self._schedule_routed_activity(native_doc, obligation, native_doc.company_id)
+
+    @api.model
+    def _schedule_review_signals(self, native_doc):
+        """One activity per DEC-019 review signal tag on the original; a removed signal is closed."""
+        names = native_doc.tag_ids.mapped("name") if "tag_ids" in native_doc._fields else []
+        return self.env["plasticos.exception.router"].schedule_signals(
+            native_doc, names, self._review_purpose(native_doc), native_doc.company_id or None
         )
+
+    @api.model
+    def reroute_open_reviews(self):
+        """Move open association reviews and bill holds to their DEC-010 owner. Repeatable.
+
+        Returns a ``RerouteResult``: owner counts by role before and after, and the changed count.
+        """
+        reroute = self.env["plasticos.escalation.reroute"]
+        activities = self.env["mail.activity"].search(
+            [
+                "|",
+                "&",
+                ("res_model", "=", "documents.document"),
+                ("summary", "=", DOCUMENT_REVIEW_SUMMARY),
+                "&",
+                ("res_model", "=", "account.move"),
+                ("summary", "=", BILL_REVIEW_SUMMARY),
+            ],
+            order="id ASC",
+        )
+        before = reroute._owner_roles(activities)
+        rerouted = 0
+        for activity in activities:
+            if not activity.exists():
+                continue
+            snapshot = (activity.user_id.id, activity.activity_type_id.id)
+            record = self.env[activity.res_model].browse(activity.res_id).exists()
+            if not record:
+                continue
+            if record._name == "documents.document":
+                if record.plasticos_doc_id.association_state == "accepted":
+                    continue  # accepted: the next sync closes it; a migration does not decide that
+                kept = self._schedule_review_once(record)
+            else:
+                kept = self._schedule_manager_activity(record, BILL_REVIEW_SUMMARY, reroute._base_note(activity))
+            if kept and (kept.user_id.id, kept.activity_type_id.id) != snapshot:
+                rerouted += 1
+        after = reroute._owner_roles(activities)
+        _logger.info("Rerouted %d review activities: before %s, after %s", rerouted, before, after)
+        return RerouteResult(before, after, rerouted)
 
     # ── Deterministic reference matching (email subject, body, filename, bill reference) ──
     @api.model

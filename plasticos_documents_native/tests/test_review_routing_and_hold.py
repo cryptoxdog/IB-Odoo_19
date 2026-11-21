@@ -4,6 +4,7 @@ import base64
 from unittest.mock import patch
 
 from odoo.addons.plasticos_base.test_common import PlasticosTestCase
+from odoo.addons.plasticos_documents.models.exception_router import EXC_ASSOCIATION_REVIEW
 from odoo.exceptions import AccessError
 from odoo.tests.common import tagged
 
@@ -64,26 +65,43 @@ class TestReviewRoutingAndHold(PlasticosTestCase):
         native = self._native(doc_type="bol", owner_id=False)
         self.assertEqual(len(self._activities(native)), 1)
 
+    def _ops_route(self):
+        router = self.env["plasticos.exception.router"]
+        purpose = router.purpose_from_doc_type("bol", attributed=False, attribution_reason="No reference.")
+        return router, router.route(purpose, EXC_ASSOCIATION_REVIEW)
+
     def test_reviewer_is_deterministic_and_skips_inactive_users(self):
-        first = self.service._manager_reviewer(self.env.company)
-        self.assertEqual(first, self.service._manager_reviewer(self.env.company))
+        router, route = self._ops_route()
+        first = router.owner(route, self.env.company)
+        self.assertEqual(first, router.owner(route, self.env.company))
         self.assertTrue(first.active)
         self.assertFalse(first.share)
         self.assertNotEqual(first.id, 1)
+        self.assertNotEqual(first, self.env.ref("plasticos_base.user_system_cron"))
         first.active = False
-        second = self.service._manager_reviewer(self.env.company)
+        second = router.owner(route, self.env.company)
         self.assertNotEqual(second, first)
         self.assertTrue(not second or second.active)
 
     def test_reviewer_outside_the_company_is_not_chosen(self):
+        router, route = self._ops_route()
         other = self.env["res.company"].create({"name": "B1 Other Company"})
-        reviewer = self.service._manager_reviewer(other)
+        reviewer = router.owner(route, other)
         self.assertTrue(not reviewer or other in reviewer.company_ids)
         self.assertNotEqual(reviewer, self.manager)
 
+    def test_cron_user_is_never_the_reviewer(self):
+        cron_user = self.env.ref("plasticos_base.user_system_cron")
+        cron_user.write({"group_ids": [(4, self.manager_group.id)]})
+        router, route = self._ops_route()
+        self.assertNotEqual(router.owner(route, self.env.company), cron_user)
+        native = self._native(doc_type="bol")
+        self.assertNotEqual(self._activities(native).user_id, cron_user)
+
     def test_no_eligible_reviewer_is_logged_and_noted_once(self):
         empty = self.env["res.users"]
-        with patch.object(type(self.service), "_manager_reviewer", lambda self, company=None: empty):
+        router_cls = type(self.env["plasticos.exception.router"])
+        with patch.object(router_cls, "owner", lambda self, route, company=None, group=None: empty):
             with self.assertLogs("odoo.addons.plasticos_documents_native.models.document_sync", level="ERROR"):
                 native = self._native(doc_type="bol")
             self.assertFalse(self._activities(native))
