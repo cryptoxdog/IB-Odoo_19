@@ -105,3 +105,30 @@ class TestSalesDashboardPayoutProjection(TransactionCase):
         tx = self._deal(locked_amount=10.0)
         tx.write({"commission_payout_state": "paid"})
         self.assertEqual(self._row(tx).commission_payout_state, "unpaid")
+
+    def test_another_reps_payout_is_not_projected(self):
+        rep_b = (
+            self.env["res.users"]
+            .with_context(no_reset_password=True)
+            .create(
+                {
+                    "name": "Projection Rep B",
+                    "login": "f003_projection_rep_b",
+                    "group_ids": [Command.set([self.env.ref("plasticos_security_base.group_sales_rep").id])],
+                }
+            )
+        )
+        tx = self._deal(locked_amount=10.0)
+        today = fields.Date.today()
+        self.env["plasticos.commission.payout"].create(
+            {
+                "sales_rep_id": rep_b.id,
+                "period_start": today,
+                "period_end": today,
+                "transaction_ids": [Command.set(tx.ids)],
+            }
+        )
+        row = self._row(tx)
+        self.assertEqual(row.commission_payout_state, "unpaid")
+        action = row.action_view_payout()
+        self.assertEqual(action["type"], "ir.actions.client")
