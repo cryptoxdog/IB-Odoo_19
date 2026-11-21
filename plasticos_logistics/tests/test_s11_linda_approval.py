@@ -1003,3 +1003,245 @@ class TestLindaPause(_LindaCase):
         message = self._reply_to(issue, "CONFIRMED")
         response = self.env["plasticos.logistics.response"].search([("mail_message_id", "=", message.id)])
         self.assertEqual((len(response), response.request_id), (1, issue), "a reply is evidence, recorded while paused")
+
+
+LOGISTICS_OPS = "plasticos_security_base.group_logistics_ops"
+_ALL_EDGES = (
+    "correction",
+    "unverified_linda_reply",
+    "acceptance",
+    "value_conflict",
+    "out_of_sequence",
+    "unit_mismatch",
+    "evidence_unverified",
+    "refusal_retry",
+)
+
+
+@tagged("post_install", "-at_install", "plasticos", "logistics", "export")
+class TestLindaAuthorityByClass(_LindaCase):
+    """DEC-011 OPT-A, fail-closed (TASK-061): who decides each held (command, edge case)."""
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.ops = cls._make_user("s11-logistics-ops", LOGISTICS_OPS)
+        cls.rep = cls._make_user("s11-sales-rep", "plasticos_security_base.group_sales_rep")
+        from odoo.addons.plasticos_logistics.models import linda_approval as module
+
+        cls.module = module
+
+    def _filed(self, command, edge_case, key):
+        held = self.module.hold_for_approval(
+            self.env(user=self.linda), command, edge_case, f"test {edge_case}", {"n": key}, key, self.company
+        )
+        self.assertEqual(held["status"], "pending", held)
+        return self.env[APPROVAL].browse(held["approval_id"])
+
+    def _open_activities(self, approval):
+        return self.env["mail.activity"].search([("res_model", "=", APPROVAL), ("res_id", "=", approval.id)])
+
+    def _activity_type(self, role):
+        return self.env.ref(self.module.ROLE_ACTIVITY_TYPES[role])
+
+    def test_the_authority_table_is_the_decided_one(self):
+        expected = {
+            ("schedule_load", "acceptance"),
+            ("dispatch_load", "acceptance"),
+            ("confirm_ready", "acceptance"),
+            ("accept_appointment", "acceptance"),
+            ("accept_shipment_event", "acceptance"),
+            ("propose_shipment_event", "unverified_linda_reply"),
+            ("record_gate_in", "evidence_unverified"),
+            ("record_gate_in", "out_of_sequence"),
+            ("record_departure", "evidence_unverified"),
+            ("record_departure", "out_of_sequence"),
+            ("record_actual_event", "evidence_unverified"),
+            ("record_actual_event", "out_of_sequence"),
+        }
+        self.assertEqual(set(self.module.LOGISTICS_AUTHORITY), expected)
+        roles = {value for value, _label in self.env[APPROVAL]._fields["routed_role"].selection}
+        self.assertEqual(roles, {self.module.ROLE_LOGISTICS, self.module.ROLE_OPERATIONS})
+        operations_only = {
+            "correct_fact",
+            "record_container_tare",
+            "record_verified_gross_mass",
+            "record_regulatory_parties",
+        }
+        forbidden_edges = {"correction", "value_conflict", "unit_mismatch", "refusal_retry"}
+        for command, edge_case in expected:
+            self.assertNotIn(command, operations_only)
+            self.assertNotIn(edge_case, forbidden_edges)
+
+    def test_every_command_and_edge_case_is_decided_server_side(self):
+        """Positive and negative per (command, edge case): Logistics Ops only on its table, OM on all."""
+        commands = [value for value, _label in self.env[APPROVAL]._fields["command"].selection]
+        for command in commands:
+            for edge_case in _ALL_EDGES:
+                with self.subTest(command=command, edge_case=edge_case):
+                    approval = self._filed(command, edge_case, f"auth:{command}:{edge_case}")
+                    logistics = (command, edge_case) in self.module.LOGISTICS_AUTHORITY
+                    self.assertEqual(approval.routed_role, "logistics_ops" if logistics else "operations_manager")
+                    self.assertEqual(approval.with_user(self.manager)._require_approver(), "operations_manager")
+                    if logistics:
+                        self.assertEqual(approval.with_user(self.ops)._require_approver(), "logistics_ops")
+                    else:
+                        with self.assertRaises(AccessError):
+                            approval.with_user(self.ops)._require_approver()
+                        with self.assertRaises(AccessError):
+                            approval.with_user(self.ops).action_approve()
+                        with self.assertRaises(AccessError):
+                            approval.with_user(self.ops).action_reject()
+                    for user in (self.linda, self.logistics, self.rep):
+                        with self.assertRaises(AccessError):
+                            approval.with_user(user)._require_approver()
+                    self.assertEqual(approval.state, "pending")
+
+    def test_logistics_ops_rejects_its_class_and_the_activity_closes(self):
+        approval = self._filed("schedule_load", "acceptance", "auth-reject")
+        self.assertEqual(len(self._open_activities(approval)), 1)
+        approval.with_user(self.ops).action_reject("wrong slot")
+        self.assertEqual((approval.state, approval.decided_by), ("rejected", self.ops))
+        self.assertFalse(self._open_activities(approval), "a decided approval keeps no open activity")
+
+    def test_a_pending_approval_has_exactly_one_activity_for_its_owning_role(self):
+        for command, edge_case, role in (
+            ("confirm_ready", "acceptance", "logistics_ops"),
+            ("correct_fact", "correction", "operations_manager"),
+            ("record_gate_in", "value_conflict", "operations_manager"),
+        ):
+            with self.subTest(command=command, edge_case=edge_case):
+                key = f"act:{command}"
+                approval = self._filed(command, edge_case, key)
+                self._filed(command, edge_case, key)  # the same hold again schedules nothing new
+                activities = self._open_activities(approval)
+                self.assertEqual(len(activities), 1)
+                self.assertEqual(activities.activity_type_id, self._activity_type(role))
+                group = self.module.ROLE_GROUPS["logistics_ops" if role == "logistics_ops" else "operations_manager"]
+                self.assertTrue(activities.user_id.has_group(group), "assigned to the owning role")
+                self.assertNotEqual(activities.user_id, self.linda)
+
+    def test_logistics_approval_applies_a_routine_acceptance(self):
+        load = self._load()
+        load._transition("awaiting_ready")
+        approval = self._held(load.with_user(self.linda).action_confirm_ready(), "acceptance", "confirm_ready")
+        result = self._approve(approval, self.ops)
+        self.assertEqual(result["status"], "applied", result)
+        self.assertEqual(
+            (approval.state, approval.decided_by, approval.routed_role), ("approved", self.ops, "logistics_ops")
+        )
+        self.assertTrue(load.ready_confirmed_at)
+        self.assertEqual(load.ready_confirmed_by, self.linda.name, "the record keeps Linda as its author")
+        self.assertFalse(self._open_activities(approval))
+        again = self._approve(approval, self.ops)
+        self.assertEqual(again["status"], "already_applied", "replay idempotency holds")
+
+    def test_logistics_approval_accepts_a_shipment_event(self):
+        _po, _tx, loads = self._five_container_order()
+        proposed = (
+            self.env[PROPOSAL]
+            .with_user(self.logistics)
+            .action_propose_shipment_event(self._loaded_values(loads[0]), "lca-1")
+        )
+        proposal = self.env[PROPOSAL].browse(proposed["record_id"])
+        approval = self._held(proposal.with_user(self.linda).action_accept(), "acceptance", "accept_shipment_event")
+        self.assertEqual(self._approve(approval, self.ops)["status"], "applied")
+        proposal.invalidate_recordset()
+        self.assertEqual(proposal.state, "accepted")
+
+    def test_logistics_approval_confirms_an_unverified_reply_proposal(self):
+        po, _tx, loads = self._five_container_order()
+        reply = self._linda_reply(po, disposition="identity_unverified")
+        held = self._linda(PROPOSAL).action_propose_shipment_event(self._loaded_values(loads[0], reply), "lcp-1")
+        approval = self._held(held, "unverified_linda_reply", "propose_shipment_event")
+        result = self._approve(approval, self.ops)
+        self.assertEqual(result["status"], "applied", result)
+        self.assertEqual(self.env[PROPOSAL].browse(result["record_id"]).create_uid, self.linda)
+
+    def test_an_unverified_reply_approval_keeps_every_other_owner_guard(self):
+        """CTO ANSWER 1: Logistics confirms the reply only; a failing evidence guard still blocks and re-routes."""
+        po, _tx, loads = self._five_container_order()
+        reply = self._linda_reply(po, disposition="identity_unverified")
+        values = self._loaded_values(loads[0], reply)
+        held = self._linda(PROPOSAL).action_propose_shipment_event(values, "lcp-guard")
+        approval = self._held(held, "unverified_linda_reply", "propose_shipment_event")
+        # The original leaves the load after the hold, so the proposal's evidence guard refuses at replay.
+        evidence = self.env["ir.attachment"].browse(values["evidence_attachment_id"])
+        evidence.sudo().write({"res_id": loads[1].id})  # sudo: fixture moves the original to another load
+        result = self._approve(approval, self.ops)
+        self.assertEqual((result["status"], result.get("rerouted_to")), ("blocked", "operations_manager"), result)
+        self.assertEqual(
+            (approval.state, approval.routed_role, approval.result_status), ("pending", "operations_manager", "blocked")
+        )
+        self.assertFalse(self.env[PROPOSAL].search([("operation_key", "=", "lcp-guard")]), "nothing is applied")
+
+    def test_a_still_failing_guard_blocks_and_reroutes_to_operations(self):
+        """Out of sequence, still unresolved: nothing applied, blocked, one Operations Manager activity."""
+        journey = self._journey("S11-L-REROUTE")
+        doc = self._attach(journey, "sailed.pdf")
+        held = self._linda().action_record_departure(journey.id, self._ago(2), "MSC Aurora", "A1", doc.id, "lcr1")
+        approval = self._held(held, "out_of_sequence", "record_departure")
+        self.assertEqual(approval.routed_role, "logistics_ops")
+        result = self._approve(approval, self.ops)
+        self.assertEqual((result["status"], result["rerouted_to"]), ("blocked", "operations_manager"), result)
+        self.assertEqual(
+            (approval.state, approval.routed_role, approval.result_status, approval.rerouted_by),
+            ("pending", "operations_manager", "blocked", self.ops),
+        )
+        self.assertFalse(approval.decided_by, "a re-route is not a decision")
+        self.assertFalse(self.env[FACT].search([("journey_id", "=", journey.id)]), "nothing is applied")
+        activities = self._open_activities(approval)
+        self.assertEqual(activities.activity_type_id, self._activity_type("operations_manager"))
+        self.assertEqual(len(activities), 1)
+        with self.assertRaises(AccessError):
+            approval.with_user(self.ops).action_approve()
+        manager = self._approve(approval)
+        self.assertEqual(manager["status"], "blocked", "Operations Manager keeps today's semantics")
+        self.assertEqual((approval.state, approval.decided_by), ("approved", self.manager))
+        self.assertFalse(self._open_activities(approval))
+
+    def test_a_resolved_sequence_applies_on_logistics_approval(self):
+        journey = self._journey("S11-L-RESOLVED")
+        doc = self._attach(journey, "sailed.pdf")
+        held = self._linda().action_record_departure(journey.id, self._ago(2), "MSC Aurora", "A1", doc.id, "lcs1")
+        approval = self._held(held, "out_of_sequence", "record_departure")
+        self._gate_in(journey, hours=6, key="lcs-gate")
+        result = self._approve(approval, self.ops)
+        self.assertEqual(result["status"], "applied", result)
+        self.assertEqual(journey.current_fact("departure").recorded_by, self.linda)
+
+    def test_unverified_evidence_stays_blocked_for_logistics(self):
+        journey = self._journey("S11-L-EVID-OPS")
+        elsewhere = self._attach(self._load(), "unrelated.pdf")
+        held = self._linda().action_record_gate_in(journey.id, self._ago(5), self.terminal.id, elsewhere.id, "lce1")
+        approval = self._held(held, "evidence_unverified", "record_gate_in")
+        result = self._approve(approval, self.ops)
+        self.assertEqual(result.get("rerouted_to"), "operations_manager", result)
+        self.assertFalse(self.env[FACT].search([("journey_id", "=", journey.id)]))
+
+    def test_an_owner_guard_refusal_on_a_consequential_command_reroutes(self):
+        """Dispatch of a load that is not scheduled: the owner guard refuses; Logistics cannot push it through."""
+        load = self._load()
+        held = load.with_user(self.linda).action_dispatch()
+        approval = self._held(held, "acceptance", "dispatch_load")
+        result = self._approve(approval, self.ops)
+        self.assertEqual(result.get("rerouted_to"), "operations_manager", result)
+        self.assertNotEqual(load.state, "dispatched")
+        self.assertEqual((approval.state, approval.routed_role), ("pending", "operations_manager"))
+
+    def test_kill_switch_refuses_a_logistics_approval_and_writes_nothing(self):
+        load = self._load()
+        load._transition("awaiting_ready")
+        approval = self._held(load.with_user(self.linda).action_confirm_ready(), "acceptance", "confirm_ready")
+        self.linda.active = False
+        try:
+            with self.assertRaises(UserError):
+                approval.with_user(self.ops).action_approve()
+        finally:
+            self.linda.active = True
+        self.assertEqual((approval.state, approval.routed_role), ("pending", "logistics_ops"))
+        self.assertFalse(load.ready_confirmed_at)
+
+    def test_no_logistics_user_is_made_an_operations_manager(self):
+        self.assertFalse(self.ops.has_group(MANAGER))
+        self.assertFalse(self.linda.has_group(MANAGER))

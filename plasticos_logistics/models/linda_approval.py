@@ -20,7 +20,14 @@ approves or rejects it:
   her next call of the same command on the same subject, under any operation
   key, is held.
 
-Neither Linda nor a Logistics user without Operations Manager rights can approve.
+Who may decide a held command is a server-side table keyed on (command, edge case)
+(DEC-011 OPT-A, fail-closed): Logistics Operations decides the routine operational
+classes in ``LOGISTICS_AUTHORITY``; an Operations Manager decides every held command.
+A Logistics approval first replays the command as Linda against the current state with
+her own gate active and no approval token: when that replay would still hold anything
+but a plain acceptance, or any owner guard refuses, nothing is applied, the result is
+``blocked`` and the case is re-routed to Operations Manager. Linda and a plain Logistics
+user never approve. Each pending approval has one open activity for its owning role.
 
 The supported stop is to archive ``user_linda``, which pauses her: every gated
 command she runs and every approval of her held commands is refused and writes
@@ -37,6 +44,7 @@ path calls a gated command (EVIDENCE/S11).
 """
 
 import json
+import logging
 from datetime import date, datetime
 
 import psycopg2.errors
@@ -46,8 +54,44 @@ from odoo.exceptions import AccessError, UserError, ValidationError
 
 from .iso_journey import _lock, _normalize_text
 
+_logger = logging.getLogger(__name__)
+
 LINDA_XMLID = "plasticos_logistics.user_linda"
 MANAGER_GROUP = "plasticos_security_base.group_operations_manager"
+LOGISTICS_OPS_GROUP = "plasticos_security_base.group_logistics_ops"
+ROLE_LOGISTICS = "logistics_ops"
+ROLE_OPERATIONS = "operations_manager"
+ROLE_GROUPS = {ROLE_LOGISTICS: LOGISTICS_OPS_GROUP, ROLE_OPERATIONS: MANAGER_GROUP}
+ROLE_ACTIVITY_TYPES = {
+    ROLE_LOGISTICS: "plasticos_logistics.mail_act_linda_approval_logistics",
+    ROLE_OPERATIONS: "plasticos_logistics.mail_act_linda_approval_operations",
+}
+# DEC-011 OPT-A: the (command, edge case) pairs Logistics Operations may decide. Every
+# pair a Linda gate can hold for these commands except correction, value_conflict,
+# unit_mismatch and refusal_retry, which stay with Operations Manager like every other
+# command (correct_fact, record_container_tare, record_verified_gross_mass,
+# record_regulatory_parties). Anything absent from this table is Operations Manager's.
+LOGISTICS_AUTHORITY = frozenset(
+    {
+        ("schedule_load", "acceptance"),
+        ("dispatch_load", "acceptance"),
+        ("confirm_ready", "acceptance"),
+        ("accept_appointment", "acceptance"),
+        ("accept_shipment_event", "acceptance"),
+        ("propose_shipment_event", "unverified_linda_reply"),
+        ("record_gate_in", "evidence_unverified"),
+        ("record_gate_in", "out_of_sequence"),
+        ("record_departure", "evidence_unverified"),
+        ("record_departure", "out_of_sequence"),
+        ("record_actual_event", "evidence_unverified"),
+        ("record_actual_event", "out_of_sequence"),
+    }
+)
+# The only fresh classifications a Logistics replay may meet: a human confirmation, never a
+# guard. An unverified Linda reply can never become verified (linda_response is append-only and
+# has no verified disposition), so it is the human's confirmation that the reply is right, like an
+# acceptance; the proposal's own guards still run on the replay.
+_CLEAR_EDGES = frozenset({"acceptance", "unverified_linda_reply"})
 FACT = "plasticos.iso.journey.fact"
 PROPOSAL = "plasticos.shipment.event.proposal"
 LOAD = "plasticos.load"
@@ -59,6 +103,19 @@ _APPROVED_TOKEN = object()
 _DECISION_WRITE = "plasticos_linda_approval_decision"
 _DECISION_TOKEN = object()
 REFUSAL_STATUSES = ("blocked", "not_available")
+
+
+def owning_role(command, edge_case):
+    """The role that decides a held (command, edge case): Logistics Operations or Operations Manager."""
+    return ROLE_LOGISTICS if (command, edge_case) in LOGISTICS_AUTHORITY else ROLE_OPERATIONS
+
+
+class _ReplayRollback(Exception):
+    """Rolls back a probe or a refused Logistics replay and carries its answer."""
+
+    def __init__(self, result):
+        super().__init__("replay")
+        self.result = result
 
 
 def linda_user(env):
@@ -198,7 +255,7 @@ def record_refusal(env, command, subject_key, company, result, arguments, operat
 def hold_for_approval(
     env, command, edge_case, reason, arguments, operation_key, company, subject=None, subject_key=None, extra=None
 ):
-    """Hold Linda's edge case pending Operations Manager approval.
+    """Hold Linda's edge case pending approval by its owning role (DEC-011).
 
     Idempotent per company, command and key: the same arguments answer the same
     pending approval, different arguments under that key are refused, and a
@@ -248,16 +305,21 @@ def hold_for_approval(
             "approval_id": pending.id,
             "reason": "this operation key is already pending approval with different arguments",
         }
+    pending._ensure_owner_activity()
+    role = dict(pending._fields["routed_role"].selection)[pending.routed_role]
     return {
         "status": "pending",
         "approval_id": pending.id,
-        "reason": f"held for Operations Manager approval ({pending.edge_case}): {pending.edge_reason}",
+        "reason": f"held for {role} approval ({pending.edge_case}): {pending.edge_reason}",
     }
 
 
 class PlasticosLindaApproval(models.Model):
     _name = "plasticos.linda.approval"
+    _inherit = ["mail.activity.mixin"]
     _description = "Plasticos Linda Edge-Case Approval"
+    # Readers of an approval may close its activity; deciding still goes through _require_approver.
+    _mail_post_access = "read"
     _order = "state, requested_at desc, id desc"
 
     company_id = fields.Many2one("res.company", required=True, readonly=True, index=True, ondelete="restrict")
@@ -331,6 +393,18 @@ class PlasticosLindaApproval(models.Model):
     )
     result_record_id = fields.Integer(readonly=True)
     result_reason = fields.Text(readonly=True)
+    routed_role = fields.Selection(
+        # Literal values (== ROLE_LOGISTICS, ROLE_OPERATIONS) so static enum audits can read them.
+        [("logistics_ops", "Logistics Operations"), ("operations_manager", "Operations Manager")],
+        string="Owning Role",
+        required=True,
+        readonly=True,
+        default=ROLE_OPERATIONS,
+        index=True,
+        help="Who decides this held command (DEC-011). A blocked Logistics approval re-routes it to Operations Manager.",
+    )
+    rerouted_by = fields.Many2one("res.users", readonly=True, ondelete="restrict")
+    rerouted_at = fields.Datetime(readonly=True)
 
     _one_pending_per_key = models.UniqueIndex(
         "(company_id, command, operation_key) WHERE state = 'pending'",
@@ -354,6 +428,9 @@ class PlasticosLindaApproval(models.Model):
     def create(self, vals_list):
         if not self._is_decision():
             raise UserError("A Linda approval is filed only by a held Linda command.")
+        for vals in vals_list:
+            # The owning role always comes from the authority table, never from the caller.
+            vals["routed_role"] = owning_role(vals.get("command"), vals.get("edge_case"))
         return super().create(vals_list)
 
     def write(self, vals):
@@ -372,10 +449,159 @@ class PlasticosLindaApproval(models.Model):
         return decider.with_context(**{_DECISION_WRITE: _DECISION_TOKEN})
 
     def _require_approver(self):
+        """The decider's role for every row of ``self``: ``ROLE_OPERATIONS`` or ``ROLE_LOGISTICS``.
+
+        Server-side, per (command, edge case) and per row (DEC-011). Raises AccessError otherwise.
+        """
         if is_linda(self.env):
             raise AccessError("Linda cannot approve her own edge cases.")
-        if not self.env.user.has_group(MANAGER_GROUP):
-            raise AccessError("Only an Operations Manager can approve or reject a Linda edge case.")
+        user = self.env.user
+        if user.has_group(MANAGER_GROUP):
+            return ROLE_OPERATIONS
+        if user.has_group(LOGISTICS_OPS_GROUP):
+            outside = self.filtered(
+                lambda rec: rec.routed_role != ROLE_LOGISTICS or (rec.command, rec.edge_case) not in LOGISTICS_AUTHORITY
+            )
+            if not outside:
+                return ROLE_LOGISTICS
+            raise AccessError(
+                "Only an Operations Manager can decide this Linda edge case: "
+                + ", ".join(sorted({f"{rec.command} ({rec.edge_case})" for rec in outside}))
+            )
+        raise AccessError("Only Logistics Operations or an Operations Manager can decide a Linda edge case.")
+
+    # ── Owner activity (DEC-012: one open activity per pending approval) ──
+
+    def _owner_for(self, role):
+        users = self.env["res.users"].with_context(plasticos_escalation_exclude_user_ids=linda_user(self.env).ids)
+        group = self.env.ref(ROLE_GROUPS[role], raise_if_not_found=False)
+        return users._plasticos_escalation_manager_in_group(group, self.company_id)
+
+    def _activity_doc(self):
+        return self.sudo()  # sudo: activity bookkeeping on a read-only ledger row, never a decision
+
+    def _close_owner_activities(self, feedback):
+        for rec in self:
+            rec._activity_doc().activity_feedback(list(ROLE_ACTIVITY_TYPES.values()), feedback=feedback)
+
+    def _ensure_owner_activity(self):
+        """Exactly one open activity for the owning role while pending; idempotent (searched before create)."""
+        for rec in self:
+            doc = rec._activity_doc()
+            # activity_schedule never deduplicates: search-then-create runs under the approval row lock.
+            # justification: serialize the owner activity on the approval row, as _locked_state does.
+            self.env.cr.execute("SELECT id FROM plasticos_linda_approval WHERE id = %s FOR UPDATE", [rec.id])
+            rec.invalidate_recordset(["state", "routed_role"])
+            if rec.state != "pending":
+                continue
+            wanted = ROLE_ACTIVITY_TYPES[rec.routed_role]
+            stale = [xmlid for role, xmlid in ROLE_ACTIVITY_TYPES.items() if role != rec.routed_role]
+            if doc.activity_search(stale):
+                doc.activity_feedback(stale, feedback="re-routed to Operations Manager")
+            if doc.activity_search([wanted]):
+                continue
+            owner = rec._owner_for(rec.routed_role)
+            if not owner and rec.routed_role == ROLE_LOGISTICS:
+                owner = rec._owner_for(ROLE_OPERATIONS)
+            if not owner:
+                _logger.error(
+                    "Linda approval %s (%s, %s) has no eligible %s in company %s; assign it manually.",
+                    rec.id,
+                    rec.command,
+                    rec.edge_case,
+                    rec.routed_role,
+                    rec.company_id.id,
+                )
+                continue
+            doc.activity_schedule(
+                wanted,
+                summary=f"Decide Linda's {rec.command.replace('_', ' ')} ({rec.edge_case.replace('_', ' ')})",
+                note=rec.edge_reason or "",
+                user_id=owner.id,
+            )
+
+    # ── Logistics replay (DEC-011 fail-closed) ─────────────────────────
+
+    def _linda_env(self, approved):
+        linda = linda_user(self.env)
+        context = {**self.env.context, "allowed_company_ids": [self.company_id.id]}
+        if approved:
+            context[_APPROVED_RUN] = _APPROVED_TOKEN
+        else:
+            context.pop(_APPROVED_RUN, None)
+        return self.env(user=linda.id, su=False, context=context)
+
+    def _replay_clear(self):
+        """Replay the command as Linda with her gate active and no approval token; never applies anything.
+
+        Returns ``None`` when the replay would apply straight through or meet only a plain
+        acceptance, else the refusal reason. The probe frees this row's pending key so the
+        gate classifies the current state afresh; everything it writes is rolled back.
+        """
+        self.ensure_one()
+        ledger = _ledger(self.env)
+        floor = ledger.search([], order="id desc", limit=1).id or 0
+        arguments = json.loads(self.arguments or "{}")
+        try:
+            with self.env.cr.savepoint():
+                self._decided().write({"operation_key": f"{self.operation_key}:replay:{self.id}"})
+                result = self._dispatch(self._linda_env(approved=False), arguments)
+                fresh = ledger.search([("id", ">", floor)])
+                raise _ReplayRollback(
+                    {"result": result, "fresh": [(r.state, r.edge_case, r.edge_reason) for r in fresh]}
+                )
+        except _ReplayRollback as done:
+            outcome = done.result
+        except (UserError, ValidationError, AccessError) as error:
+            outcome = {
+                "result": {"status": "blocked", "reason": str(error.args[0] if error.args else error)},
+                "fresh": [],
+            }
+        self.env.invalidate_all()
+        result = outcome["result"]
+        results = result if isinstance(result, list) else [result]
+        for answer in results:
+            if (answer or {}).get("status") in REFUSAL_STATUSES:
+                return answer.get("reason") or answer.get("status")
+        for state, edge_case, reason in outcome["fresh"]:
+            if state != "pending" or edge_case not in _CLEAR_EDGES:
+                return f"{edge_case}: {reason}" if reason else edge_case
+        return None
+
+    def _reroute_to_operations(self, reason):
+        self.ensure_one()
+        self._decided().write(
+            {
+                "routed_role": ROLE_OPERATIONS,
+                "result_status": "blocked",
+                "result_reason": reason,
+                "rerouted_by": self.env.uid,
+                "rerouted_at": fields.Datetime.now(),
+            }
+        )
+        self._ensure_owner_activity()
+        return {
+            "status": "blocked",
+            "approval_id": self.id,
+            "rerouted_to": ROLE_OPERATIONS,
+            "reason": f"not applied; re-routed to Operations Manager: {reason}",
+        }
+
+    def _approve_as_logistics(self):
+        """Apply only when the replay passes every current guard; otherwise block and re-route."""
+        self.ensure_one()
+        refusal = self._replay_clear()
+        if refusal:
+            return self._reroute_to_operations(refusal)
+        try:
+            with self.env.cr.savepoint():
+                result = self._execute()
+                if result.get("status") in REFUSAL_STATUSES:
+                    raise _ReplayRollback(result)
+        except _ReplayRollback as done:
+            self.env.invalidate_all()
+            return self._reroute_to_operations(done.result.get("reason") or done.result.get("status"))
+        return result
 
     def _locked_state(self):
         self.ensure_one()
@@ -392,7 +618,7 @@ class PlasticosLindaApproval(models.Model):
         the recorded result when approved, ``rejected`` when rejected. A ledger
         refusal is not an approval and cannot be approved.
         """
-        self._require_approver()
+        role = self._require_approver()
         if linda_stopped(self.env):
             raise UserError("Linda is archived (operator stop). Reactivate her before approving her held commands.")
         results = []
@@ -406,7 +632,16 @@ class PlasticosLindaApproval(models.Model):
             if state in ("rejected", "refused"):
                 results.append({"status": "rejected", "approval_id": rec.id, "reason": f"this request is {state}"})
                 continue
-            result = rec._execute()
+            if role == ROLE_LOGISTICS:
+                # Re-checked under the row lock: a concurrent re-route moves the row to Operations Manager.
+                rec._require_approver()
+                result = rec._approve_as_logistics()
+                if result.get("rerouted_to"):
+                    results.append(result)
+                    continue
+            else:
+                result = rec._execute()
+            rec._close_owner_activities(f"approved: {result.get('status')}")
             rec._decided().write(
                 {
                     "state": "approved",
@@ -428,6 +663,8 @@ class PlasticosLindaApproval(models.Model):
         for rec in self:
             if rec._locked_state() != "pending":
                 continue
+            rec._require_approver()
+            rec._close_owner_activities("rejected")
             rec._decided().write(
                 {
                     "state": "rejected",
