@@ -680,6 +680,15 @@ CONTROL_TOWER_TILES = (
 )
 
 
+# Who may open the tiles (CTO 2026-11-21). The groups belong to plasticos_security_base, which depends on
+# this module, so they are resolved by XML id at run time; none resolvable means nobody passes (fail-closed).
+CONTROL_TOWER_GROUPS = (
+    "plasticos_security_base.group_logistics",
+    "plasticos_security_base.group_logistics_ops",
+    "plasticos_security_base.group_operations_manager",
+)
+
+
 class PlasticosLogisticsControlTower(models.TransientModel):
     """Logistics Live Control Tower tiles (TASK-032). Presentation only: no business data.
 
@@ -721,6 +730,7 @@ class PlasticosLogisticsControlTower(models.TransientModel):
 
     @api.depends_context("uid", "allowed_company_ids", "tz")
     def _compute_tiles(self):
+        # Counts are computed as the viewer: control_tower_kpis searches under their ACLs and rules, no sudo.
         kpis = {kpi["key"]: kpi for kpi in self.env["plasticos.load.dashboard"].control_tower_kpis()}
         for rec in self:
             for key, _label in CONTROL_TOWER_TILES:
@@ -729,8 +739,19 @@ class PlasticosLogisticsControlTower(models.TransientModel):
                 rec[f"{key}_unavailable"] = not kpi["available"]
 
     @api.model
+    def _require_control_tower_role(self):
+        """Server-side gate: Logistics, Logistics Operations or Operations Manager only."""
+        user = self.env.user
+        for xmlid in CONTROL_TOWER_GROUPS:
+            group = self.env.ref(xmlid, raise_if_not_found=False)
+            if group and group._name == "res.groups" and group in user.all_group_ids:
+                return
+        raise AccessError("The Logistics Control Tower is for Logistics and Operations Manager users.")
+
+    @api.model
     def action_open(self):
         """Open a fresh tiles screen for the viewer."""
+        self._require_control_tower_role()
         tower = self.create({})
         return {
             "type": "ir.actions.act_window",
@@ -743,4 +764,5 @@ class PlasticosLogisticsControlTower(models.TransientModel):
 
     def action_drill(self):
         """Open the clicked tile's KPI drill (the same model and domain its value counted)."""
+        self._require_control_tower_role()
         return self.env["plasticos.load.dashboard"].action_drill_kpi(self.env.context.get("control_tower_kpi"))

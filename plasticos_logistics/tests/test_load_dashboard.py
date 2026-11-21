@@ -311,3 +311,28 @@ class TestLogisticsControlTower(_LindaCase):
             with self.assertRaises(UserError):
                 self.env[DASHBOARD].action_drill_kpi("logistics_exceptions")
         self.assertEqual((kpis["evidence_gaps"]["available"], kpis["evidence_gaps"]["value"]), (False, None))
+
+    # ── Tiles access (CTO 2026-11-21) ──
+
+    def test_a_plain_internal_user_cannot_open_the_tiles(self):
+        plain = self._make_user("ct-plain-internal", "base.group_user")
+        with self.assertRaises(AccessError):
+            self.env[TOWER].with_user(plain).action_open()
+        tower = self.env[TOWER].with_user(self.ops).browse(self.env[TOWER].with_user(self.ops).action_open()["res_id"])
+        with self.assertRaises(AccessError):
+            tower.with_user(plain).with_context(control_tower_kpi="needs_attention").action_drill()
+        for user in (self.logistics, self.ops, self.manager):
+            with self.subTest(user=user.login):
+                self.assertTrue(self.env[TOWER].with_user(user).action_open()["res_id"])
+
+    def test_counts_respect_the_sales_rep_own_loads_rule(self):
+        rep = self._make_user("ct-rep-counts", "plasticos_security_base.group_sales_rep")
+        own, other = self._load(name="CT-REP-OWN"), self._load(name="CT-REP-OTHER")
+        for load in (own, other):
+            self._set(load, state="exception")
+        self._set(own, create_uid=rep.id)  # the rep rule: sale_order_id.user_id or create_uid is the rep
+        self.env.flush_all()
+        rep_ids = set(self.env[LOAD].with_user(rep).search(self._kpis(rep)["needs_attention"]["domain"]).ids)
+        self.assertIn(own.id, rep_ids)
+        self.assertNotIn(other.id, rep_ids, "a rep's count never includes another rep's load")
+        self.assertLess(self._kpis(rep)["needs_attention"]["value"], self._kpis(self.ops)["needs_attention"]["value"])
