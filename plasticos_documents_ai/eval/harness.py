@@ -8,7 +8,9 @@ labeled set, with no Odoo and no network:
   business actions, human-correction overwrites;
 * a per-type confusion matrix;
 * a regression replay that names every case a candidate version gets wrong that
-  the previous version got right.
+  the previous version got right;
+* for each destination specialist P2–P7 (TASK-073), its benefit over P1 alone on
+  the labeled cases of its folder's family.
 
 A recorded output lists the tool calls the model made for a case:
 ``{"tool": "move_in_folder", "folder": "<family key>"}`` and
@@ -24,7 +26,8 @@ Usage::
 
     python3 plasticos_documents_ai/eval/harness.py \\
         --dataset plasticos_documents_ai/eval/dataset/synthetic_v1.py \\
-        --recorded <candidate .py or .json> [--baseline <previous .py or .json>]
+        --recorded <candidate .py or .json> [--baseline <previous .py or .json>] \\
+        [--specialists <specialist recordings .py or .json>]
 """
 
 from __future__ import annotations
@@ -250,6 +253,88 @@ def regression(baseline_report: dict, candidate_report: dict) -> dict:
     )
 
 
+SPECIALISTS_KEY = "specialists"
+BENEFIT = "benefit"
+NO_BENEFIT = "no_benefit"
+UNKNOWN = "unknown"
+
+
+def score_specialist(dataset: dict, prompt_id: str, p1_report: dict, recorded: dict) -> dict:
+    """A specialist's benefit over P1 alone, on the labeled cases of its folder's family.
+
+    Each case is read as a document arriving in the specialist's folder with no type
+    tag yet (a direct upload, or a person's move out of the Inbox): Enterprise never
+    runs a folder rule after an AI move, so the specialist does not see P1's output.
+    The comparison is exact-type accuracy: the specialist's own type against the type
+    P1 gives the same document. Benefit needs strictly higher accuracy, no unauthorized
+    action and no more unnecessary review than P1. Missing outputs or an empty family
+    make the verdict unknown, never a benefit.
+    """
+    item = prompts.specialist(prompt_id)
+    types = set(prompts.type_tag_names())
+    cases = [
+        case
+        for case in dataset["cases"]
+        if not case.get("human_classification")
+        and case["expected"]["primary_type"]
+        and _family_key(case["expected"]["primary_type"]) == item.family_key
+    ]
+    outputs = _outputs_by_case(recorded.get("outputs") or {})
+    missing = [case["id"] for case in cases if case["id"] not in outputs]
+    p1_cases = p1_report["cases"]
+    p1_correct = specialist_correct = p1_review = specialist_review = 0
+    unauthorized = []
+    for case in cases:
+        expected = case["expected"]["primary_type"]
+        p1 = p1_cases.get(case["id"], {})
+        p1_correct += p1.get("predicted_type") == expected and not p1.get("needs_review")
+        p1_review += bool(p1.get("unnecessary_review"))
+        tags = []
+        for call in (outputs.get(case["id"]) or {}).get("tool_calls", []):
+            if call.get("tool") != ADD_TAGS_TOOL:
+                unauthorized.append(f"{case['id']}:tool:{call.get('tool')}")
+                continue
+            refusal = prompts.tag_refusal(prompt_id, call.get("tags", []), tags)
+            if refusal:
+                unauthorized.append(f"{case['id']}:{refusal}")
+                continue
+            tags.extend(call.get("tags", []))
+        added = [tag for tag in tags if tag in types]
+        needs_review = prompts.NEEDS_REVIEW in tags
+        specialist_correct += added == [expected] and not needs_review
+        specialist_review += needs_review
+    total = len(cases)
+    p1_accuracy = _ratio(p1_correct, total)
+    specialist_accuracy = _ratio(specialist_correct, total)
+    if missing or not total:
+        verdict = UNKNOWN
+    elif specialist_accuracy > p1_accuracy and not unauthorized and specialist_review <= p1_review:
+        verdict = BENEFIT
+    else:
+        verdict = NO_BENEFIT
+    return dict(
+        prompt=prompt_id,
+        prompt_version=recorded.get("prompt_version"),
+        family=item.family_key,
+        cases=total,
+        missing_outputs=missing,
+        p1_type_accuracy=p1_accuracy,
+        specialist_type_accuracy=specialist_accuracy,
+        p1_unnecessary_review=p1_review,
+        specialist_review=specialist_review,
+        unauthorized_actions=unauthorized,
+        verdict=verdict,
+    )
+
+
+def score_specialists(dataset: dict, p1_report: dict, recordings: dict) -> dict:
+    """``recordings`` maps prompt id to that specialist's recording."""
+    return {
+        prompt_id: score_specialist(dataset, prompt_id, p1_report, recording)
+        for prompt_id, recording in sorted(recordings.items())
+    }
+
+
 def mandatory_case_coverage(dataset: dict, required: list[str]) -> dict:
     present = {tag for case in dataset["cases"] for tag in case.get("mandatory_cases", [])}
     return {"required": required, "missing": [tag for tag in required if tag not in present]}
@@ -288,12 +373,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--dataset", required=True)
     parser.add_argument("--recorded", required=True)
     parser.add_argument("--baseline")
+    parser.add_argument("--specialists", help="recordings of the P2-P7 specialists, keyed by prompt id")
     args = parser.parse_args(argv)
     dataset = _load(args.dataset)
     report = score(dataset, _load(args.recorded))
     report["coverage"] = mandatory_case_coverage(dataset, MANDATORY_CASES)
     if args.baseline:
         report["regression"] = regression(score(dataset, _load(args.baseline)), report)
+    if args.specialists:
+        report[SPECIALISTS_KEY] = score_specialists(dataset, report, _load(args.specialists)[SPECIALISTS_KEY])
     sys.stdout.write(json.dumps({key: value for key, value in report.items() if key != CASES_KEY}, indent=2) + "\n")
     failed = bool(report["missing_outputs"] or report["coverage"]["missing"])
     if args.baseline and not report["regression"]["passes"]:
