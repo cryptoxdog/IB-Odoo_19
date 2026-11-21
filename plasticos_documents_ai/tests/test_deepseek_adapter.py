@@ -1,7 +1,7 @@
 """AC-068: the DeepSeek adapter's request contract, offline on synthetic fixtures.
 
 No test reaches the network. ``requests.request`` is replaced by a recorder that
-answers from ``tests/fixtures`` (shapes from the DeepSeek API docs, EVID-012), and
+answers from ``tests/fixtures/deepseek_responses.py`` (shapes from the DeepSeek API docs, EVID-012), and
 the retry sleep is replaced so a 429 costs no wall time.
 """
 
@@ -20,10 +20,12 @@ from odoo.addons.plasticos_documents_ai.services.deepseek_llm_api_service import
     PDF_PURPOSE_PARAM,
     DeepSeekLLMApiService,
 )
+from odoo.addons.plasticos_documents_ai.tests.fixtures import deepseek_responses
 from odoo.exceptions import UserError
 from odoo.tests import TransactionCase, tagged
 
 FIXTURES = Path(__file__).parent / "fixtures"
+FIXTURE_MODULE = FIXTURES / "deepseek_responses.py"
 SYNTHETIC_KEY = "synthetic-test-key-not-a-secret"
 DOC_MARKER = "SYNTHETIC-DOC-MARKER-7731"
 SYNTHETIC_TEXT = (DOC_MARKER + " Straight Bill of Lading. Shipper Example Recycler. Consignee Example Mill. ") * 5
@@ -31,7 +33,7 @@ SYNTHETIC_PDF = b"%PDF-1.4\n% synthetic scanned page, no text layer\n%%EOF\n"
 
 
 def _fixture(name):
-    return json.loads((FIXTURES / name).read_text(encoding="utf-8"))
+    return copy.deepcopy(deepseek_responses.FIXTURES[name])
 
 
 class FakeResponse:
@@ -370,11 +372,13 @@ class TestDeepSeekAdapter(TransactionCase):
     def test_fixtures_hold_no_key_and_no_real_document(self):
         key_shape = re.compile(r"sk-[A-Za-z0-9]{16,}")
         for path in FIXTURES.iterdir():
+            if path.is_dir():
+                continue
             text = path.read_text(encoding="utf-8")
             self.assertIsNone(key_shape.search(text), path.name)
             self.assertNotIn("file_data", text, path.name)
-            if path.suffix == ".json":
-                self.assertIn("synthetic", text.lower(), f"{path.name} must be visibly synthetic")
+        for name, payload in deepseek_responses.FIXTURES.items():
+            self.assertIn("synthetic", json.dumps(payload).lower(), f"{name} must be visibly synthetic")
 
 
 @tagged("post_install", "-at_install", "plasticos_documents_ai")
