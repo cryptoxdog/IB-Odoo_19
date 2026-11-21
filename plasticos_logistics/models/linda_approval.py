@@ -406,6 +406,54 @@ class PlasticosLindaApproval(models.Model):
     rerouted_by = fields.Many2one("res.users", readonly=True, ondelete="restrict")
     rerouted_at = fields.Datetime(readonly=True)
 
+    # ── Case view (TASK-032): what the decider needs to resolve this in place ──
+    affected_load_id = fields.Many2one(LOAD, compute="_compute_case", string="Affected Load")
+    original_reply_id = fields.Many2one(
+        "plasticos.logistics.response", compute="_compute_case", string="Original Linda Reply"
+    )
+    conflict_fact_ref_id = fields.Many2one(FACT, compute="_compute_case", string="Conflicting Fact")
+    next_action = fields.Char(compute="_compute_case")
+    can_decide = fields.Boolean(compute="_compute_case", help="Whether you may approve or reject this case now.")
+
+    @api.depends_context("uid")
+    @api.depends("state", "routed_role", "command", "edge_case", "subject_model", "subject_id", "arguments")
+    def _compute_case(self):
+        loads, responses, facts = self.env[LOAD], self.env["plasticos.logistics.response"], self.env[FACT]
+        for rec in self:
+            arguments = json.loads(rec.arguments or "{}")
+            values = arguments.get("values") if isinstance(arguments.get("values"), dict) else {}
+            subject = (
+                self.env[rec.subject_model].browse(rec.subject_id).exists()
+                if rec.subject_model in self.env and rec.subject_id
+                else None
+            )
+            load = loads
+            if subject is not None and subject._name == LOAD:
+                load = subject
+            elif subject is not None and "load_id" in subject._fields:
+                load = subject.load_id
+            if not load:
+                load = loads.browse(int(arguments.get("load_id") or values.get("load_id") or 0)).exists()
+            reply = responses.browse(int(values.get("linda_response_id") or 0)).exists()
+            if not reply and subject is not None and "linda_response_id" in subject._fields:
+                reply = subject.linda_response_id
+            rec.affected_load_id = load
+            rec.original_reply_id = reply
+            rec.conflict_fact_ref_id = facts.browse(rec.conflict_fact_id).exists() if rec.conflict_fact_id else facts
+            try:
+                role = rec._require_approver() if rec.state == "pending" else None
+            except AccessError:
+                role = None
+            rec.can_decide = bool(role)
+            if rec.state != "pending":
+                rec.next_action = "Decided; nothing to do."
+            elif rec.result_status == "blocked" and rec.rerouted_at:
+                rec.next_action = "A Logistics approval was blocked by a current guard: Operations Manager decides."
+            elif rec.routed_role == ROLE_LOGISTICS:
+                rec.next_action = "Logistics Operations approves or rejects; a guard that still refuses re-routes it."
+            else:
+                rec.next_action = "Operations Manager approves or rejects."
+
     _one_pending_per_key = models.UniqueIndex(
         "(company_id, command, operation_key) WHERE state = 'pending'",
         "Linda already has this command pending approval under that operation key.",
@@ -447,6 +495,19 @@ class PlasticosLindaApproval(models.Model):
         """The manager's decision write; approval rows are read-only to every role."""
         decider = self.sudo()  # sudo: the manager decides; approval rows grant no write to any role
         return decider.with_context(**{_DECISION_WRITE: _DECISION_TOKEN})
+
+    def action_view_affected_load(self):
+        """One click from the case to the exact load it concerns."""
+        self.ensure_one()
+        if not self.affected_load_id:
+            return False
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": LOAD,
+            "res_id": self.affected_load_id.id,
+            "view_mode": "form",
+            "target": "current",
+        }
 
     def _require_approver(self):
         """The decider's role for every row of ``self``: ``ROLE_OPERATIONS`` or ``ROLE_LOGISTICS``.

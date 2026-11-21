@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_documents
 component_name: Plasticos Documents Engine
-module_version: 19.0.2.1.23
+module_version: 19.0.2.1.24
 layer: 4
 installable: true
 auto_install: true

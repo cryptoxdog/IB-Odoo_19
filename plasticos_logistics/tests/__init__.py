@@ -10,3 +10,4 @@ from . import test_linda_booking_source
 from . import test_s9_logistics_features
 from . import test_s11_fact_corrections
 from . import test_s11_linda_approval
+from . import test_load_dashboard
