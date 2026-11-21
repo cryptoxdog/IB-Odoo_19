@@ -487,6 +487,10 @@ class PlasticosLindaApproval(models.Model):
         """Exactly one open activity for the owning role while pending; idempotent (searched before create)."""
         for rec in self:
             doc = rec._activity_doc()
+            # justification: serialize search-then-create of the owner activity on the approval row,
+            # the same row lock _locked_state takes; activity_schedule never deduplicates.
+            self.env.cr.execute("SELECT id FROM plasticos_linda_approval WHERE id = %s FOR UPDATE", [rec.id])
+            rec.invalidate_recordset(["state", "routed_role"])
             if rec.state != "pending":
                 continue
             wanted = ROLE_ACTIVITY_TYPES[rec.routed_role]
