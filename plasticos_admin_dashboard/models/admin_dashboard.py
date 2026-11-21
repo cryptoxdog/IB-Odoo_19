@@ -47,6 +47,14 @@ _ALL_COMPANIES_HELP = (
 _OFFER_OPEN_STATES = ["draft", "sent", "responded"]
 _LEGACY_SALE_XMLID_PREFIX = "legacy_erp_so_"
 
+# DEC-002: closed-deal and earned-commission periods use commission_earned_date,
+# never write_date. These are operational figures, not accounting revenue.
+_CLOSED_DEAL_HELP = (
+    "Operational closed-deal figure: live (non-historical) closed transactions of this company, "
+    "attributed to the period of their commission_earned_date. Not accounting-recognized revenue; "
+    "posted invoices, invoice aging and cash are separate figures with their own dates."
+)
+
 # DEC-007 KPI-drill parity: each urgency KPI is declared once as
 # (drill title, source model, domain builder). The displayed count is
 # search_count(domain) and the drill opens the same model with the same domain,
@@ -181,7 +189,12 @@ class PlasticosAdminKpi(models.Model):
     tx_negative_margin = fields.Integer(string="Negative Margin ⚠", compute="_compute_kpis", store=False)
     tx_sup_not_ready = fields.Integer(string="Supplier Not Ready ⚠", compute="_compute_kpis", store=False)
     tx_stalled_followup = fields.Integer(string="3+ Followups No Resp ⚠", compute="_compute_kpis", store=False)
-    tx_closed_mtd = fields.Integer(string="Closed (MTD)", compute="_compute_kpis", store=False)
+    tx_closed_mtd = fields.Integer(
+        string="Closed Deals MTD (earned date)",
+        compute="_compute_kpis",
+        store=False,
+        help=_CLOSED_DEAL_HELP,
+    )
 
     # Web Leads
     lead_received_today = fields.Integer(
@@ -210,16 +223,36 @@ class PlasticosAdminKpi(models.Model):
     # SECTION B — FINANCIAL SNAPSHOT
     # ══════════════════════════════════════════════════════════════════════════
 
-    revenue_mtd = fields.Float(string="Revenue MTD", compute="_compute_kpis", store=False)
-    revenue_ytd = fields.Float(string="Revenue YTD", compute="_compute_kpis", store=False)
-    gm_mtd = fields.Float(string="Gross Margin MTD", compute="_compute_kpis", store=False)
-    gm_ytd = fields.Float(string="Gross Margin YTD", compute="_compute_kpis", store=False)
-    gm_pct_mtd = fields.Float(string="GM % MTD", compute="_compute_kpis", store=False, digits=(5, 1))
-    gm_pct_ytd = fields.Float(string="GM % YTD", compute="_compute_kpis", store=False, digits=(5, 1))
-    net_margin_mtd = fields.Float(string="Net Margin MTD", compute="_compute_kpis", store=False)
-    net_margin_ytd = fields.Float(string="Net Margin YTD", compute="_compute_kpis", store=False)
-    commission_mtd = fields.Float(string="Commission MTD", compute="_compute_kpis", store=False)
-    commission_ytd = fields.Float(string="Commission YTD", compute="_compute_kpis", store=False)
+    revenue_mtd = fields.Float(
+        string="Closed-Deal Revenue MTD", compute="_compute_kpis", store=False, help=_CLOSED_DEAL_HELP
+    )
+    revenue_ytd = fields.Float(
+        string="Closed-Deal Revenue YTD", compute="_compute_kpis", store=False, help=_CLOSED_DEAL_HELP
+    )
+    gm_mtd = fields.Float(
+        string="Closed-Deal Gross Margin MTD", compute="_compute_kpis", store=False, help=_CLOSED_DEAL_HELP
+    )
+    gm_ytd = fields.Float(
+        string="Closed-Deal Gross Margin YTD", compute="_compute_kpis", store=False, help=_CLOSED_DEAL_HELP
+    )
+    gm_pct_mtd = fields.Float(
+        string="Closed-Deal GM % MTD", compute="_compute_kpis", store=False, digits=(5, 1), help=_CLOSED_DEAL_HELP
+    )
+    gm_pct_ytd = fields.Float(
+        string="Closed-Deal GM % YTD", compute="_compute_kpis", store=False, digits=(5, 1), help=_CLOSED_DEAL_HELP
+    )
+    net_margin_mtd = fields.Float(
+        string="Closed-Deal Net Margin MTD", compute="_compute_kpis", store=False, help=_CLOSED_DEAL_HELP
+    )
+    net_margin_ytd = fields.Float(
+        string="Closed-Deal Net Margin YTD", compute="_compute_kpis", store=False, help=_CLOSED_DEAL_HELP
+    )
+    commission_mtd = fields.Float(
+        string="Earned Commission MTD", compute="_compute_kpis", store=False, help=_CLOSED_DEAL_HELP
+    )
+    commission_ytd = fields.Float(
+        string="Earned Commission YTD", compute="_compute_kpis", store=False, help=_CLOSED_DEAL_HELP
+    )
     commission_unlocked = fields.Integer(string="Comm Unlocked (closed)", compute="_compute_kpis", store=False)
     pipeline_value_open = fields.Float(
         string="Open Pipeline Value",
@@ -297,18 +330,13 @@ class PlasticosAdminKpi(models.Model):
                 rec[name] = rec._urgency_count(name)
 
             # ── Date helpers ──────────────────────────────────────────────────
-            cr.execute("""
-                SELECT
-                    date_trunc('month', NOW())::date  AS mtd_start,
-                    date_trunc('year',  NOW())::date  AS ytd_start,
-                    date_trunc('week',  NOW())::date  AS wtd_start,
-                    NOW()::date                       AS today
-            """)
-            row = cr.dictfetchone()
-            mtd = row["mtd_start"]
-            ytd = row["ytd_start"]
-            wtd = row["wtd_start"]
-            today = row["today"]
+            # Period boundaries in the user's calendar: commission_earned_date is
+            # recorded with fields.Date.context_today, so MTD/YTD must use the same
+            # calendar or a deal closed late on the last day of a month drops out.
+            today = fields.Date.context_today(rec)
+            mtd = today.replace(day=1)
+            ytd = today.replace(month=1, day=1)
+            wtd = today - timedelta(days=today.weekday())
 
             # ── INTAKES ───────────────────────────────────────────────────────
             cr.execute(
@@ -379,7 +407,7 @@ class PlasticosAdminKpi(models.Model):
                     COUNT(*) FILTER (WHERE state NOT IN ('closed','cancelled'))         AS tx_open,
                     COUNT(*) FILTER (WHERE state IN ('dispatched','in_progress','in_transit')) AS in_motion,
                     COUNT(*) FILTER (WHERE state='closed' AND legacy_erp_history = FALSE
-                                     AND write_date >= %s
+                                     AND commission_earned_date >= %s
                                      AND NOT EXISTS (
                                          SELECT 1 FROM ir_model_data import_id
                                          WHERE import_id.model = 'sale.order'
@@ -404,14 +432,14 @@ class PlasticosAdminKpi(models.Model):
             cr.execute(
                 """
                 SELECT
-                    SUM(revenue_total)   FILTER (WHERE write_date >= %s)  AS rev_mtd,
-                    SUM(revenue_total)   FILTER (WHERE write_date >= %s)  AS rev_ytd,
-                    SUM(gross_margin)    FILTER (WHERE write_date >= %s)  AS gm_mtd,
-                    SUM(gross_margin)    FILTER (WHERE write_date >= %s)  AS gm_ytd,
-                    SUM(net_margin)      FILTER (WHERE write_date >= %s)  AS nm_mtd,
-                    SUM(net_margin)      FILTER (WHERE write_date >= %s)  AS nm_ytd,
-                    SUM(commission_amount) FILTER (WHERE write_date >= %s) AS comm_mtd,
-                    SUM(commission_amount) FILTER (WHERE write_date >= %s) AS comm_ytd
+                    SUM(revenue_total)   FILTER (WHERE commission_earned_date >= %s)  AS rev_mtd,
+                    SUM(revenue_total)   FILTER (WHERE commission_earned_date >= %s)  AS rev_ytd,
+                    SUM(gross_margin)    FILTER (WHERE commission_earned_date >= %s)  AS gm_mtd,
+                    SUM(gross_margin)    FILTER (WHERE commission_earned_date >= %s)  AS gm_ytd,
+                    SUM(net_margin)      FILTER (WHERE commission_earned_date >= %s)  AS nm_mtd,
+                    SUM(net_margin)      FILTER (WHERE commission_earned_date >= %s)  AS nm_ytd,
+                    SUM(commission_amount) FILTER (WHERE commission_earned_date >= %s) AS comm_mtd,
+                    SUM(commission_amount) FILTER (WHERE commission_earned_date >= %s) AS comm_ytd
                 FROM plasticos_transaction
                 WHERE state='closed' AND legacy_erp_history = FALSE
                   AND sale_order_id IN (SELECT so.id FROM sale_order so WHERE so.company_id = %s)
@@ -821,12 +849,12 @@ class PlasticosRepPerformance(models.Model):
     period = fields.Char(string="Period", readonly=True)
     period_sort = fields.Integer(string="_psort", readonly=True)
 
-    deals_closed = fields.Integer(string="Closed", readonly=True)
-    revenue_closed = fields.Float(string="Revenue", readonly=True, digits=(16, 2))
-    gm_closed = fields.Float(string="GM $", readonly=True, digits=(16, 2))
+    deals_closed = fields.Integer(string="Closed (earned date)", readonly=True, help=_CLOSED_DEAL_HELP)
+    revenue_closed = fields.Float(string="Closed-Deal Revenue", readonly=True, digits=(16, 2), help=_CLOSED_DEAL_HELP)
+    gm_closed = fields.Float(string="Closed-Deal GM $", readonly=True, digits=(16, 2), help=_CLOSED_DEAL_HELP)
     gm_pct = fields.Float(string="GM %", readonly=True, digits=(5, 1))
-    net_margin = fields.Float(string="Net $", readonly=True, digits=(16, 2))
-    commission = fields.Float(string="Commission", readonly=True, digits=(16, 2))
+    net_margin = fields.Float(string="Closed-Deal Net $", readonly=True, digits=(16, 2), help=_CLOSED_DEAL_HELP)
+    commission = fields.Float(string="Earned Commission", readonly=True, digits=(16, 2), help=_CLOSED_DEAL_HELP)
 
     deals_open = fields.Integer(
         string="Open Deals (snapshot)",
@@ -852,7 +880,9 @@ class PlasticosRepPerformance(models.Model):
         join cardinality (F-002); aggregating first keeps every measure exact.
         Historical ERP trades are excluded exactly as in the Admin KPI SQL
         (DEC-009). Open pipeline is a point-in-time snapshot, identical in every
-        period row.
+        period row. Closed deals are attributed by commission_earned_date (DEC-002).
+        A SQL view has no viewer, so its WTD/MTD/YTD starts are the database
+        calendar's (UTC); the Admin KPI form uses the viewer's calendar.
         """
         tools.drop_view_if_exists(self.env.cr, self._table)
         self.env.cr.execute("""
@@ -870,7 +900,7 @@ class PlasticosRepPerformance(models.Model):
             ),
             closed_tx AS (
                 SELECT t.id, t.user_id, t.revenue_total, t.gross_margin, t.net_margin,
-                       t.commission_amount, t.write_date
+                       t.commission_amount, t.commission_earned_date
                 FROM plasticos_transaction t
                 WHERE t.state = 'closed'
                   AND t.user_id IS NOT NULL
@@ -891,7 +921,7 @@ class PlasticosRepPerformance(models.Model):
                        COALESCE(SUM(ct.net_margin), 0)           AS net_margin,
                        COALESCE(SUM(ct.commission_amount), 0)    AS commission
                 FROM closed_tx ct
-                JOIN periods p ON ct.write_date >= p.period_start
+                JOIN periods p ON ct.commission_earned_date >= p.period_start
                 GROUP BY ct.user_id, p.period_label
             ),
             open_agg AS (
