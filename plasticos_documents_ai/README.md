@@ -67,7 +67,7 @@ All calls go to `https://api.deepseek.com`, authenticated with `ai.deepseek_key`
      - An administrator can pin one purpose with the parameter above.
 3. `DELETE /files/{id}`, sent for every uploaded file once the run ends, whether it succeeded or failed.
 
-Nothing else is sent: no partner records, e-mail addresses, user identities or attachments other than the document being classified. The original file always stays in Odoo.
+The adapter itself fetches and adds nothing else: no partner records, e-mail addresses, user identities or other attachments. The prompt, the document's content and the tool results are sent as they are, so whatever personal data they contain is sent too. The GATE-005 approval has to cover that. The original file always stays in Odoo.
 
 ## Retention and deletion
 
