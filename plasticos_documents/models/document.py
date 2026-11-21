@@ -3,6 +3,8 @@ import logging
 from odoo import SUPERUSER_ID, api, fields, models
 from odoo.exceptions import AccessError, UserError
 
+from .exception_router import EXC_ASSOCIATION_REVIEW, Obligation
+
 _logger = logging.getLogger(__name__)
 
 # Identity that is not an exact business evidence scope. Partner recency and a
@@ -247,6 +249,21 @@ class PlasticosDocument(models.Model):
         string="Subject Company",
         readonly=True,
         ondelete="restrict",
+    )
+    evidence_company_id = fields.Many2one(
+        "res.company",
+        string="Evidence Company",
+        compute="_compute_evidence_company_id",
+        store=True,
+        index=True,
+        readonly=True,
+        ondelete="restrict",
+        help=(
+            "Company a pending row is visible in (DEC-005 d). Accepted rows take their subject company. "
+            "A pending row takes the one company its original file, its subject record and its attachment "
+            "agree on; conflicting or missing sources leave it empty, which hides it from every "
+            "company-scoped user and routes it to the Operations Manager."
+        ),
     )
     candidate_partner_id = fields.Many2one(
         "res.partner",
@@ -521,6 +538,7 @@ class PlasticosDocument(models.Model):
             self._refuse_direct_decision_write(vals)
             self._refuse_direct_association_write(vals)
         records = super().create(vals_list)
+        records._route_unresolved_company()
         records._invalidate_native_projection()
         self._trigger_transaction_recompute(records)
         return records
@@ -536,6 +554,8 @@ class PlasticosDocument(models.Model):
         if ASSOCIATION_IDENTITY.intersection(vals) or SCOPE_FIELDS.intersection(vals):
             previous = self._get_related_transactions(self)
         result = super().write(vals)
+        if {"association_state", "attachment_id", "res_model", "res_id", "subject_company_id"}.intersection(vals):
+            self._route_unresolved_company()
         # Recompute if any compliance-affecting field changed
         compliance_fields = {
             "tag_id",
@@ -801,6 +821,71 @@ class PlasticosDocument(models.Model):
     def _original_file_company(self, attachment):
         """Company recorded on the native original. Native Documents supplies it."""
         return self.env["res.company"]
+
+    @api.depends("association_state", "subject_company_id", "attachment_id.company_id", "res_model", "res_id")
+    def _compute_evidence_company_id(self):
+        for rec in self:
+            if rec.association_state == "accepted":
+                rec.evidence_company_id = rec.subject_company_id
+            else:
+                rec.evidence_company_id = rec._pending_company()
+
+    def _pending_company(self):
+        """The one company every source of a pending row agrees on, or an empty recordset.
+
+        Sources: the native original's company, the subject record's legal company and the
+        attachment's company. Disagreement or a conflicting original is unresolved (fail closed).
+        """
+        self.ensure_one()
+        empty = self.env["res.company"]
+        try:
+            companies = self._original_file_company(self.attachment_id)
+        except UserError:
+            return empty
+        if self.res_model and self.res_model in self.env and self.res_id:
+            target = self.env[self.res_model].sudo().browse(self.res_id).exists()  # sudo: company identity only
+            if target:
+                candidates, _requires = self._subject_company_candidates(target)
+                companies |= candidates
+        attachment = self.attachment_id.sudo()  # sudo: company identity only; not a read of the file
+        companies |= attachment.company_id
+        return companies if len(companies) == 1 else empty
+
+    PENDING_COMPANY_SUMMARY = "Pending evidence company unresolved"
+
+    def _route_unresolved_company(self):
+        """One Operations activity per pending row nobody can see because its company is unresolved.
+
+        The activity sits on the row's original record (the row itself is hidden). A row that
+        resolves has its activity closed. With no original record the row is noted and logged.
+        """
+        router = self.env["plasticos.exception.router"]
+        for rec in self:
+            target = (
+                self.env[rec.res_model].browse(rec.res_id).exists()
+                if rec.res_model and rec.res_model in self.env and rec.res_id
+                else None
+            )
+            summary = f"{self.PENDING_COMPANY_SUMMARY}: {rec.name} (evidence {rec.id})"
+            if rec.association_state == "accepted" or rec.evidence_company_id:
+                if target:
+                    router.resolve(target, summary, "The evidence company is resolved.")
+                continue
+            if target is None or "activity_ids" not in target._fields:
+                self.env["res.users"]._plasticos_note_unrouted_escalation(
+                    rec.sudo(),  # sudo: note on a row hidden from every company-scoped user
+                    self.PENDING_COMPANY_SUMMARY,
+                    "The pending evidence has no single company and no original record to route it on.",
+                )
+                continue
+            obligation = Obligation(
+                summary,
+                router.purpose_from_tag_codes((), attributed=False),
+                EXC_ASSOCIATION_REVIEW,
+                "The original's company, its subject company and its attachment company do not agree; "
+                "the pending evidence is hidden from every company-scoped user until one company is set.",
+            )
+            router.schedule(target, obligation)
 
     def _subject_company_candidates(self, target):
         """Legal company sources of a subject. Reads identity only; grants nothing.
