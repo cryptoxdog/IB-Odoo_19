@@ -885,9 +885,18 @@ class TestLindaPause(_LindaCase):
     # Borrowed through their modules, so those classes are not collected a second time here.
     _mail_sink = po_tests.TestLindaPoIssuance._mail_sink
     _process_queue = po_tests.TestLindaPoIssuance._process_queue
-    _raw = inbound_tests.TestLindaInbound._raw
+    # The inbound email builder is borrowed under its own name: ``_S11Case._raw(fact)`` reads a
+    # stored fact row, and replacing it with the email builder would change what ``_raw`` means here.
+    _raw_email = inbound_tests.TestLindaInbound._raw
     _receive = inbound_tests.TestLindaInbound._receive
-    _reply_to = inbound_tests.TestLindaInbound._reply_to
+
+    def _reply_to(self, request, body, sender=None, **kwargs):
+        """The inbound tests' ``_reply_to``, built with ``_raw_email``."""
+        reference = request.mail_id.message_id
+        raw = self._raw_email(
+            body, sender or request.recipient_email, in_reply_to=reference, references=reference, **kwargs
+        )
+        return self._receive(raw)
 
     @classmethod
     def setUpClass(cls):
