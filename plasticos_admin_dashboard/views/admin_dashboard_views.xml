@@ -599,7 +599,7 @@
             string="By assignee →" class="btn-link" icon="fa-users"/>
 </group>
 
-<group string="📄 Document Processing &amp; Linda" col="5">
+<group string="📄 Document Processing &amp; Linda" col="7">
     <button name="action_open_kpi" type="object" context="{'kpi': 'documents_verified_mtd'}"
             class="btn-light oe_stat_button" icon="fa-check-circle">
         <div class="o_stat_info">
@@ -638,6 +638,26 @@
                 <span class="text-muted" invisible="linda_held_pending_available">n/a</span>
             </span>
             <span class="o_stat_text">Linda Awaiting Approval</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'linda_held_approved_mtd'}"
+            class="btn-light oe_stat_button" icon="fa-check">
+        <div class="o_stat_info">
+            <span class="o_stat_value">
+                <field name="linda_held_approved_mtd" readonly="1" invisible="not linda_held_approved_mtd_available"/>
+                <span class="text-muted" invisible="linda_held_approved_mtd_available">n/a</span>
+            </span>
+            <span class="o_stat_text">Linda Approved MTD</span>
+        </div>
+    </button>
+    <button name="action_open_kpi" type="object" context="{'kpi': 'linda_held_rejected_mtd'}"
+            class="btn-light oe_stat_button" icon="fa-times">
+        <div class="o_stat_info">
+            <span class="o_stat_value">
+                <field name="linda_held_rejected_mtd" readonly="1" invisible="not linda_held_rejected_mtd_available"/>
+                <span class="text-muted" invisible="linda_held_rejected_mtd_available">n/a</span>
+            </span>
+            <span class="o_stat_text">Linda Rejected MTD</span>
         </div>
     </button>
     <div class="oe_stat_button" title="Held / (held + auto-applied). Unavailable: straight-through Linda commands leave no ledger row.">

@@ -4,7 +4,10 @@
 * Ratios drill to their denominator set; unavailable renders "n/a", never 0.
 * The stage funnel partitions open delivered work and drills to the exact transactions.
 * Open exceptions drill by owner role (as the router recorded it) and by assignee.
+* The analytic board ships as a spreadsheet.dashboard record (DEC-001).
 """
+
+import json
 
 from odoo import Command, fields
 from odoo.addons.plasticos_admin_dashboard.models.admin_dashboard import (
@@ -102,10 +105,10 @@ class TestBusinessHealth(TransactionCase):
         cases = {
             "funnel_transaction": self._tx("active"),
             "funnel_shipping": self._tx("in_transit"),
-            "funnel_documents": self._tx("delivered", compliance_status="missing"),
+            "funnel_documents": self._tx("delivered", missing_doc_status="pending"),
             "funnel_invoicing": self._tx("delivered", customer_invoice_id=invoice.id),
         }
-        cases["funnel_invoicing"].write({"compliance_status": "compliant"})
+        cases["funnel_invoicing"].write({"missing_doc_status": "complete"})
         drilled = {stage: self._drill_records(stage) for stage in _FUNNEL}
         for stage, tx in cases.items():
             with self.subTest(stage=stage):
@@ -116,7 +119,7 @@ class TestBusinessHealth(TransactionCase):
                 self.assertEqual(self._read(stage), len(drilled[stage]))
 
     def test_exceptions_drill_by_owner_role_and_assignee(self):
-        tx = self._tx("delivered", compliance_status="missing")
+        tx = self._tx("delivered", missing_doc_status="pending")
         activity_type = self.env.ref("plasticos_documents.activity_type_missing_documents")
         activity = self.env["mail.activity"].create(
             {
@@ -155,3 +158,20 @@ class TestBusinessHealth(TransactionCase):
         else:
             self.assertFalse(kpi.linda_held_mtd_available)
             self.assertEqual(kpi.linda_held_mtd, 0)
+
+    def test_admin_analytic_board_ships_as_module_data(self):
+        board = self.env.ref("plasticos_admin_dashboard.dashboard_admin_business_health")
+        self.assertEqual(board._name, "spreadsheet.dashboard")
+        self.assertIn(self.env.ref("plasticos_security_base.group_system_admin"), board.group_ids)
+        self.assertTrue(board.company_ids)
+        data = json.loads(board.spreadsheet_data)
+        self.assertEqual(set(data["pivots"]), {"1", "2", "3"})
+        for pivot in data["pivots"].values():
+            with self.subTest(pivot=pivot["name"]):
+                model = self.env[pivot["model"]]
+                model.search_count(pivot["domain"])
+                for group in pivot["rows"] + pivot["columns"]:
+                    self.assertIn(group["fieldName"], model._fields)
+        for figure in data["sheets"][0]["figures"]:
+            menu = data["chartOdooMenusReferences"][figure["id"]]
+            self.assertTrue(self.env.ref(menu, raise_if_not_found=False))

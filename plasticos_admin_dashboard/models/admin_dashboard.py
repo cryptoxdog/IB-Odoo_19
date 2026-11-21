@@ -48,6 +48,7 @@ _TX_DELIVERED_STATES = ["delivered", "invoiced"]
 _TX_IN_MOTION_STATES = ["dispatched", "in_progress", "in_transit"]
 _INVOICE_SETTLED_PAYMENT_STATES = ["paid", "in_payment", "reversed"]
 _INTAKE_CLOSED_STATUSES = ["won", "lost", "expired"]
+_DOCS_COMPLETE = "complete"  # plasticos.transaction.missing_doc_status (plasticos_documents)
 
 # Intakes, offers and web leads carry no company, so their KPIs cannot be scoped to the
 # record's company (DEC-008). They are shown as all-company figures, never faked per company.
@@ -184,6 +185,8 @@ KPI_DECLARATIONS = {
     "documents_review_backlog": ("Documents Awaiting Association", PLASTICOS_DOCUMENT, "_kpi_domain_documents_backlog"),
     "linda_held_mtd": ("Linda Commands Held MTD", PLASTICOS_LINDA_APPROVAL, "_kpi_domain_linda_held_mtd"),
     "linda_held_pending": ("Linda Commands Awaiting Approval", PLASTICOS_LINDA_APPROVAL, "_kpi_domain_linda_pending"),
+    "linda_held_approved_mtd": ("Linda Holds Approved MTD", PLASTICOS_LINDA_APPROVAL, "_kpi_domain_linda_approved_mtd"),
+    "linda_held_rejected_mtd": ("Linda Holds Rejected MTD", PLASTICOS_LINDA_APPROVAL, "_kpi_domain_linda_rejected_mtd"),
 }
 
 # Aggregate per KPI; a KPI not listed is a record count.
@@ -470,19 +473,20 @@ class PlasticosAdminKpi(models.Model):
         string="Funnel: Documents",
         compute="_compute_kpis",
         store=False,
-        help="Delivered transactions whose required documents are missing.",
+        help="Delivered/invoiced transactions whose document status (missing_doc_status) is not complete.",
     )
     funnel_invoicing = fields.Integer(
         string="Funnel: Invoicing",
         compute="_compute_kpis",
         store=False,
-        help="Delivered transactions with documents complete and no posted customer invoice.",
+        help="Delivered/invoiced transactions with document status complete and no posted customer invoice.",
     )
     funnel_payment = fields.Integer(
         string="Funnel: Payment",
         compute="_compute_kpis",
         store=False,
-        help="Delivered transactions with documents complete and a posted customer invoice not yet paid.",
+        help="Delivered/invoiced transactions with document status complete and a posted customer invoice "
+        "not yet paid (payment_state not paid, in_payment or reversed).",
     )
     exceptions_operations_open = fields.Integer(
         string="Open Exceptions: Operations",
@@ -518,6 +522,19 @@ class PlasticosAdminKpi(models.Model):
         string="Linda Commands Awaiting Approval",
         compute="_compute_kpis",
         store=False,
+        help="Held Linda commands still pending an Operations Manager decision (plasticos.linda.approval).",
+    )
+    linda_held_approved_mtd = fields.Integer(
+        string="Linda Holds Approved MTD",
+        compute="_compute_kpis",
+        store=False,
+        help="Linda commands held this month that an Operations Manager approved.",
+    )
+    linda_held_rejected_mtd = fields.Integer(
+        string="Linda Holds Rejected MTD",
+        compute="_compute_kpis",
+        store=False,
+        help="Linda commands held this month that an Operations Manager rejected.",
     )
     linda_intervention_rate = fields.Float(
         string="Linda Intervention Rate %",
@@ -542,6 +559,8 @@ class PlasticosAdminKpi(models.Model):
     documents_review_backlog_available = fields.Boolean(compute="_compute_kpis", store=False)
     linda_held_mtd_available = fields.Boolean(compute="_compute_kpis", store=False)
     linda_held_pending_available = fields.Boolean(compute="_compute_kpis", store=False)
+    linda_held_approved_mtd_available = fields.Boolean(compute="_compute_kpis", store=False)
+    linda_held_rejected_mtd_available = fields.Boolean(compute="_compute_kpis", store=False)
     linda_intervention_rate_available = fields.Boolean(compute="_compute_kpis", store=False)
 
     # ══════════════════════════════════════════════════════════════════════════
@@ -885,13 +904,13 @@ class PlasticosAdminKpi(models.Model):
 
     @api.model
     def _kpi_domain_funnel_documents(self):
-        return [("state", "in", _TX_DELIVERED_STATES), ("compliance_status", "=", "missing")]
+        return [("state", "in", _TX_DELIVERED_STATES), ("missing_doc_status", "!=", _DOCS_COMPLETE)]
 
     @api.model
     def _kpi_domain_funnel_invoicing(self):
         return [
             ("state", "in", _TX_DELIVERED_STATES),
-            ("compliance_status", "!=", "missing"),
+            ("missing_doc_status", "=", _DOCS_COMPLETE),
             "|",
             ("customer_invoice_id", "=", False),
             ("customer_invoice_id.state", "!=", "posted"),
@@ -901,7 +920,7 @@ class PlasticosAdminKpi(models.Model):
     def _kpi_domain_funnel_payment(self):
         return [
             ("state", "in", _TX_DELIVERED_STATES),
-            ("compliance_status", "!=", "missing"),
+            ("missing_doc_status", "=", _DOCS_COMPLETE),
             ("customer_invoice_id.state", "=", "posted"),
             ("customer_invoice_id.payment_state", "not in", _INVOICE_SETTLED_PAYMENT_STATES),
         ]
@@ -940,6 +959,14 @@ class PlasticosAdminKpi(models.Model):
     @api.model
     def _kpi_domain_linda_pending(self):
         return [("state", "=", "pending")]
+
+    @api.model
+    def _kpi_domain_linda_approved_mtd(self):
+        return [*self._kpi_domain_linda_held_mtd(), ("state", "=", "approved")]
+
+    @api.model
+    def _kpi_domain_linda_rejected_mtd(self):
+        return [*self._kpi_domain_linda_held_mtd(), ("state", "=", "rejected")]
 
     @api.model
     def _live_closed_domain(self, extra):

@@ -19,6 +19,7 @@ depends:
   - plasticos_security_base
   - plasticos_crm_bridge
   - plasticos_documents
+  - spreadsheet_dashboard
 models_owned:
   - plasticos.admin.kpi
   - plasticos.rep.performance

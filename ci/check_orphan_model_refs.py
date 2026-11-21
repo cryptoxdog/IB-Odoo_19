@@ -168,6 +168,9 @@ def extract_model_names_from_python(root_dir: Path) -> set[str]:
         "documents.share",
         "documents.workflow.rule",
         "documents.workflow.action",
+        # Spreadsheet dashboards (community spreadsheet_dashboard; DEC-001 module-data boards)
+        "spreadsheet.dashboard",
+        "spreadsheet.dashboard.group",
         # Other common models
         "res.groups.privilege",  # Security extension
         "digest.digest",
