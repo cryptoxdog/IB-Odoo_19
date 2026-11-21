@@ -1,8 +1,8 @@
 {
     "name": "PlasticOS Claims",
-    "version": "19.0.1.1.9",
+    "version": "19.0.1.1.10",
     "summary": "QC cases, claims, chargebacks, and compliance workflows",
-    "license": "LGPL-3",
+    "license": "Other proprietary",
     "author": "Igor Beylin",
     "category": "Operations/Quality",
     "post_init_hook": "post_init_hook",

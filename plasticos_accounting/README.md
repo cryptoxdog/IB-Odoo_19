@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_accounting
 component_name: PlasticOS Accounting
-module_version: 19.0.1.6.2
+module_version: 19.0.1.6.3
 layer: 3
 installable: true
 auto_install: true

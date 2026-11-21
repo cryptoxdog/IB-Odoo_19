@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_security_base
 component_name: Plasticos — Security Base
-module_version: 19.0.1.2.30
+module_version: 19.0.1.2.31
 layer: 1
 installable: true
 auto_install: true

@@ -1,8 +1,8 @@
 {
     "name": "PlasticOS Facility Profile",
-    "version": "19.0.5.7.0",
+    "version": "19.0.5.7.1",
     "summary": "Facility capability profiles — capabilities, tolerances, and company role",
-    "license": "LGPL-3",
+    "license": "Other proprietary",
     "author": "Igor Beylin",
     "category": "Hidden",
     "depends": [

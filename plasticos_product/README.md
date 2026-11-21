@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_product
 component_name: PlasticOS Product Catalog
-module_version: 19.0.1.0.3
+module_version: 19.0.1.0.4
 layer: 1
 installable: true
 auto_install: true

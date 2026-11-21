@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_geolocalize
 component_name: PlasticOS Geolocalize
-module_version: 19.0.1.1.1
+module_version: 19.0.1.1.2
 layer: 2
 installable: true
 auto_install: true

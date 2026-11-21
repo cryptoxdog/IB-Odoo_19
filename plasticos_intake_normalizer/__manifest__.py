@@ -1,6 +1,6 @@
 {
     "name": "Plasticos Intake Normalizer",
-    "version": "19.0.1.0.7",
+    "version": "19.0.1.0.8",
     "category": "Operations",
     "summary": "Schema-driven intake normalization — validates, assembles, and stores L9-ready packets.",
     "author": "Igor Beylin",
@@ -19,5 +19,5 @@
     "post_init_hook": "post_init_hook",
     "installable": True,
     "auto_install": True,
-    "license": "LGPL-3",
+    "license": "Other proprietary",
 }

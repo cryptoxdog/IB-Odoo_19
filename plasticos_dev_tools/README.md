@@ -1,7 +1,7 @@
 ---
 component_id: "plasticos_dev_tools"
 component_name: "Plasticos Dev Tools"
-module_version: "19.0.1.0.0"
+module_version: "19.0.1.0.1"
 layer: "dev"
 domain: "plasticos"
 type: "odoo_module"

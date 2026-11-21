@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Commission Engine",
-    "version": "19.0.1.5.1",
+    "version": "19.0.1.5.2",
     "summary": "Commission rules, payout management, and sales rep deal dashboard",
     "description": """
 PlasticOS Commission Engine
@@ -8,7 +8,7 @@ PlasticOS Commission Engine
 Commission rules, payout management, and the sales rep deal dashboard.
 """,
     "author": "Igor Beylin",
-    "license": "LGPL-3",
+    "license": "Other proprietary",
     "category": "Plasticos/Sales",
     "depends": [
         "plasticos_base",

@@ -1,6 +1,6 @@
 {
     "name": "PlasticOS Export",
-    "version": "19.0.1.3.2",
+    "version": "19.0.1.3.3",
     "summary": "Export booking and shipment context over native and PlasticOS owners",
     # The Apps page renders this text as reStructuredText. Without it Odoo renders the
     # Markdown README, whose YAML front matter is not valid reStructuredText.
@@ -10,7 +10,7 @@
     ),
     "category": "PlasticOS",
     "author": "Igor Beylin",
-    "license": "LGPL-3",
+    "license": "Other proprietary",
     # Export depends on its owners, never the reverse. plasticos_documents_native
     # reaches Enterprise documents/documents_account. The owners Export imports or
     # extends directly are named too: Logistics (J1, load guard, Linda), Documents

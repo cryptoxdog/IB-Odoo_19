@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_base
 component_name: PlasticOS Base
-module_version: 19.0.1.1.17
+module_version: 19.0.1.1.18
 layer: 1
 installable: true
 auto_install: true
