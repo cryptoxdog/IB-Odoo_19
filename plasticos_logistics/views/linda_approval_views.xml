@@ -59,11 +59,28 @@
                 <header>
                     <button name="action_approve" string="Approve" type="object" class="btn-primary"
                             invisible="state != 'pending'"/>
+                    <button name="action_view_affected_load" string="Open Load" type="object"
+                            invisible="not affected_load_id"/>
                     <button name="action_reject" string="Reject" type="object"
                             invisible="state != 'pending'"/>
                     <field name="state" widget="statusbar"/>
                 </header>
                 <sheet>
+                    <field name="can_decide" invisible="1"/>
+                    <div class="alert alert-info" role="status" invisible="state != 'pending'">
+                        <field name="next_action" readonly="1"/>
+                    </div>
+                    <group string="Case">
+                        <group>
+                            <field name="affected_load_id"/>
+                            <field name="original_reply_id" invisible="not original_reply_id"/>
+                            <field name="conflict_fact_ref_id" invisible="not conflict_fact_ref_id"/>
+                        </group>
+                        <group>
+                            <field name="routed_role"/>
+                            <field name="edge_reason"/>
+                        </group>
+                    </group>
                     <group>
                         <group string="Held Command">
                             <field name="command"/>

@@ -13,6 +13,16 @@
                   decoration-warning="load_state == 'exception'"
                   decoration-success="load_state == 'delivered'"
                   decoration-muted="load_state == 'closed'">
+                <header>
+                    <button name="action_drill_kpi" type="object" string="Linda Held" display="always"
+                            context="{'control_tower_kpi': 'linda_held'}" class="btn-secondary"/>
+                    <button name="action_drill_kpi" type="object" string="Blocked From Release" display="always"
+                            context="{'control_tower_kpi': 'release_blocked'}" class="btn-secondary"/>
+                    <button name="action_drill_kpi" type="object" string="Unconfirmed Carriers" display="always"
+                            context="{'control_tower_kpi': 'carrier_unconfirmed'}" class="btn-secondary"/>
+                    <button name="action_drill_kpi" type="object" string="Missing BOL" display="always"
+                            context="{'control_tower_kpi': 'missing_bol'}" class="btn-secondary"/>
+                </header>
                 <button name="action_view_transaction" type="object"
                         string="Deal" icon="fa-external-link"
                         class="btn-link"/>
@@ -26,7 +36,12 @@
                        decoration-success="load_state == 'delivered'"
                        decoration-danger="load_state == 'exception'"
                        decoration-muted="load_state == 'closed'"/>
+                <field name="attention_reason" widget="badge" optional="show"
+                       decoration-danger="attention_reason in ('linda', 'exception', 'sla')"
+                       decoration-warning="attention_reason in ('missing_bol', 'carrier')"
+                       decoration-success="attention_reason == 'none'"/>
                 <field name="pickup_datetime" string="Pickup"/>
+                <field name="delivery_datetime" string="Est. Delivery" optional="show"/>
                 <field name="supplier_id" string="Supplier"/>
                 <field name="pickup_partner_id" string="Pickup Loc"/>
                 <field name="buyer_id" string="Buyer"/>
@@ -82,6 +97,21 @@
                 <filter name="filter_missing_bol" string="Missing BOL"
                         domain="['|', ('bol_pickup_attached', '=', False), ('bol_delivery_attached', '=', False)]"/>
                 <separator/>
+                <filter name="filter_needs_attention" string="Needs Attention"
+                        domain="[('needs_attention', '=', True)]"/>
+                <filter name="filter_linda_pending" string="Linda Held"
+                        domain="[('linda_pending', '=', True)]"/>
+                <filter name="filter_carrier_unconfirmed" string="Carrier Unconfirmed"
+                        domain="[('carrier_unconfirmed', '=', True)]"/>
+                <filter name="filter_missing_bol_due" string="Missing BOL (due)"
+                        domain="[('missing_bol', '=', True)]"/>
+                <separator/>
+                <filter name="filter_next_48h" string="Next 48 Hours"
+                        domain="['|',
+                                 '&amp;', ('pickup_datetime', '&gt;=', context_today().strftime('%Y-%m-%d 00:00:00')),
+                                          ('pickup_datetime', '&lt;', (context_today() + datetime.timedelta(days=3)).strftime('%Y-%m-%d 00:00:00')),
+                                 '&amp;', ('delivery_datetime', '&gt;=', context_today().strftime('%Y-%m-%d 00:00:00')),
+                                          ('delivery_datetime', '&lt;', (context_today() + datetime.timedelta(days=3)).strftime('%Y-%m-%d 00:00:00'))]"/>
                 <filter name="filter_today" string="Pickup Today"
                         domain="[('pickup_datetime', '&gt;=', (context_today()).strftime('%Y-%m-%d 00:00:00')),
                                  ('pickup_datetime', '&lt;', (context_today() + datetime.timedelta(days=1)).strftime('%Y-%m-%d 00:00:00'))]"/>
@@ -94,7 +124,72 @@
                 <filter name="group_supplier" string="Supplier" context="{'group_by': 'supplier_id'}"/>
                 <filter name="group_buyer" string="Buyer" context="{'group_by': 'buyer_id'}"/>
                 <filter name="group_pickup_date" string="Pickup Date" context="{'group_by': 'pickup_datetime:day'}"/>
+                <filter name="group_attention" string="Attention" context="{'group_by': 'attention_reason'}"/>
+                <searchpanel>
+                    <field name="attention_reason" icon="fa-exclamation-triangle" enable_counters="1"/>
+                    <field name="load_state" icon="fa-truck" enable_counters="1"/>
+                </searchpanel>
             </search>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         Logistics Control Tower — Kanban (TASK-032): one card per load,
+         progress bar by attention reason, exceptions that threaten the
+         next shipment first.
+    ═══════════════════════════════════════════════════════════════ -->
+    <record id="view_load_dashboard_kanban" model="ir.ui.view">
+        <field name="name">plasticos.load.dashboard.kanban</field>
+        <field name="model">plasticos.load.dashboard</field>
+        <field name="arch" type="xml">
+            <kanban create="0" default_group_by="load_state" group_create="0" group_delete="0" group_edit="0"
+                    records_draggable="0" default_order="pickup_datetime asc">
+                <field name="attention_reason"/>
+                <field name="load_id"/>
+                <progressbar field="attention_reason"
+                             colors='{"linda": "danger", "exception": "danger", "sla": "danger", "missing_bol": "warning", "carrier": "warning", "none": "success"}'/>
+                <templates>
+                    <t t-name="card">
+                        <div class="d-flex justify-content-between">
+                            <field name="load_ref" class="fw-bold"/>
+                            <field name="attention_reason" widget="badge"
+                                   decoration-danger="attention_reason in ('linda', 'exception', 'sla')"
+                                   decoration-warning="attention_reason in ('missing_bol', 'carrier')"
+                                   decoration-success="attention_reason == 'none'"/>
+                        </div>
+                        <div>Pickup <field name="pickup_datetime"/> · <field name="pickup_partner_id"/></div>
+                        <div>Delivery <field name="delivery_datetime"/> · <field name="delivery_partner_id"/></div>
+                        <div><field name="carrier_name"/></div>
+                        <footer>
+                            <field name="user_id" widget="many2one_avatar_user"/>
+                            <button name="action_view_load" type="object" string="Open Load" class="btn btn-link"/>
+                            <button name="action_view_documents" type="object" string="Docs" class="btn btn-link"/>
+                        </footer>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_load_dashboard_pivot" model="ir.ui.view">
+        <field name="name">plasticos.load.dashboard.pivot</field>
+        <field name="model">plasticos.load.dashboard</field>
+        <field name="arch" type="xml">
+            <pivot string="Logistics Control Tower" sample="1">
+                <field name="load_state" type="row"/>
+                <field name="attention_reason" type="col"/>
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_load_dashboard_graph" model="ir.ui.view">
+        <field name="name">plasticos.load.dashboard.graph</field>
+        <field name="model">plasticos.load.dashboard</field>
+        <field name="arch" type="xml">
+            <graph string="Pickups by Day" type="bar" sample="1">
+                <field name="pickup_datetime" interval="day"/>
+                <field name="attention_reason"/>
+            </graph>
         </field>
     </record>
 
@@ -104,9 +199,9 @@
     <record id="action_load_dashboard" model="ir.actions.act_window">
         <field name="name">Logistics Dashboard</field>
         <field name="res_model">plasticos.load.dashboard</field>
-        <field name="view_mode">list</field>
+        <field name="view_mode">kanban,list,pivot,graph</field>
         <field name="search_view_id" ref="view_load_dashboard_search"/>
-        <field name="context">{'search_default_filter_active': 1}</field>
+        <field name="context">{'search_default_filter_active': 1, 'search_default_filter_needs_attention': 1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
                 No loads to display.
