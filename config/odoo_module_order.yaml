@@ -123,6 +123,7 @@ default_install_order:
   - plasticos_crm_sync            # after crm_bridge + security_base
   - plasticos_admin_dashboard
   - plasticos_documents_native    # Enterprise documents + account_invoice_extract; after transaction/logistics/security_base
+  - plasticos_ops_dashboard      # TASK-040 workbench; after documents_native, claims, commission
   - plasticos_export             # Export campaign; after plasticos_documents_native (its dependency)
 
 # Web leads kept as named section for scoped test scripts:

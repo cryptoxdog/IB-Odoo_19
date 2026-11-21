@@ -1,0 +1,2 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_claim_ops_manager_read,plasticos.claim.ops.manager.read,plasticos_claims.model_plasticos_claim,plasticos_security_base.group_operations_manager,1,0,0,0
