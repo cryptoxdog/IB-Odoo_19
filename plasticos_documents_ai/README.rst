@@ -1,7 +1,7 @@
 Plasticos Documents AI
 ######################
 
-DeepSeek Flash provider adapter for Odoo AI server actions used by Documents Auto-Sort
+DeepSeek Flash provider adapter and explicitly activated Auto-Sort prompts for Plasticos Documents
 
 Installing it sends nothing and creates no Auto-Sort rule. An AI server action uses
 DeepSeek Flash only after a system administrator selects it on that action.

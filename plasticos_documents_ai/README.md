@@ -3,7 +3,7 @@ auto_generated: false
 authority: derived-index
 component_id: plasticos_documents_ai
 component_name: Plasticos Documents AI
-module_version: 19.0.1.0.0
+module_version: 19.0.1.1.0
 installable: true
 auto_install: false
 application: false
@@ -12,7 +12,8 @@ depends:
   - plasticos_documents_native
   - ai
   - ai_documents
-models_owned: []
+models_owned:
+  - plasticos.documents.ai.autosort
 models_extended:
   - ir.actions.server
 crons: []
@@ -88,6 +89,24 @@ Odoo 19 `ai` supports only `openai` and `google` (`ai/utils/llm_providers.py`, `
 - `models/ir_actions_server.py` resolves `AI_PROVIDER` / `AI_MODEL` per action. An action whose `plasticos_llm_model` is `deepseek-flash` gets `deepseek` / `deepseek-flash`. Every other action gets Odoo's values through `super()`.
 - `services/deepseek_llm_api_service.py` subclasses `LLMApiService` for provider `deepseek` and overrides only provider-specific methods. One constructor hook makes `LLMApiService(env, provider="deepseek")` build that subclass, and every other provider is constructed exactly as before. Response parsing reuses Odoo's Responses parser, so every `function_call` / `function_call_output` item is sent again on each turn, as DeepSeek's stateless API requires.
 - `services/deepseek_protocol.py` holds the request, upload, retry and deletion rules with no Odoo import.
+
+## Auto-Sort P1: Inbox master classifier (TASK-071)
+
+`services/autosort_prompts.py` builds the versioned P1 prompt (`P1_PROMPT_VERSION`) under Document AI Prompt Requirements v2.0 (DEC-019). It follows the six-step decision procedure and invariants INV-01..INV-07, and its taxonomy matches `AI_PROMPT_INVENTORY.yaml`.
+
+Activation is explicit and admin-only. A system administrator runs **Documents > Configuration > Auto-Sort (AI) > Activate P1 Inbox Classifier**. The server checks that the user is in `base.group_system`. The action:
+
+1. Refuses activation while any P1 tag is missing. Those tags are the DEC-014 types seeded by TASK-069.
+2. Writes the P1 prompt on the Plasticos Inbox folder.
+3. Lets Enterprise `ai_documents` create its rule with exactly two tools, *AI: Move To Folder* and *AI: Add Tags*. No bill or invoice creation, activity, code or webhook tool is attached.
+4. Sets the rule's AI action to DeepSeek Flash.
+5. Posts `prompt_version` in the rule's chatter.
+
+Running the action again with the same version changes nothing. A new prompt version is applied only through this same action. **Deactivate P1 Inbox Classifier** removes the prompt, the rule and the AI action.
+
+Install and upgrade never write a folder prompt or create a rule. An administrator's later edit of the Inbox prompt therefore survives an upgrade. Folder moves are limited to the six Plasticos destination folders named in the prompt. Enterprise enforces this.
+
+The owner activity for review signals belongs to the activity router (TASK-060 / TASK-070), never to the prompt.
 
 ## Tests
 
