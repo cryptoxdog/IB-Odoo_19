@@ -25,7 +25,10 @@ Models created:
 import logging
 from datetime import timedelta
 
+from psycopg2 import errors as pg_errors
+
 from odoo import api, fields, models, tools
+from odoo.exceptions import ConcurrencyError
 
 _logger = logging.getLogger(__name__)
 
@@ -34,6 +37,13 @@ PLASTICOS_OFFER = "plasticos.offer"
 PLASTICOS_WEB_LEAD = "plasticos.web.lead"
 
 _TX_TERMINAL_STATES = ["closed", "cancelled"]
+
+# Intakes, offers and web leads carry no company, so their KPIs cannot be scoped to the
+# record's company (DEC-008). They are shown as all-company figures, never faked per company.
+_ALL_COMPANIES_HELP = (
+    "All companies (not company-scoped): intakes, offers and web leads carry no company, "
+    "so this figure counts every company's records."
+)
 _OFFER_OPEN_STATES = ["draft", "sent", "responded"]
 _LEGACY_SALE_XMLID_PREFIX = "legacy_erp_so_"
 
@@ -68,13 +78,32 @@ URGENCY_KPIS = {
 class PlasticosAdminKpi(models.Model):
     """Singleton record holding all RevOps KPIs for the admin command center.
 
-    One record per company. Refreshed by action_refresh() (button or cron).
-    All fields are stored=False computed fields reading live from the DB.
+    One record per company (DEC-008). Transaction-based KPIs count only
+    transactions whose sale order belongs to the record's company; a
+    transaction without a sale order has no resolvable company and is counted
+    for none. Refreshed by action_refresh() (button or cron). All KPI fields are
+    stored=False computed fields reading live from the DB.
     """
 
     _name = "plasticos.admin.kpi"
     _description = "Admin RevOps KPI Snapshot"
     _rec_name = "id"
+
+    _company_unique = models.Constraint(
+        "UNIQUE(company_id)",
+        "There is exactly one Admin KPI record per company.",
+    )
+
+    company_id = fields.Many2one(
+        "res.company",
+        string="Company",
+        required=True,
+        readonly=True,
+        index=True,
+        ondelete="cascade",
+        default=lambda self: self.env.company,
+        help="Company whose transactions this KPI record counts.",
+    )
 
     # ── Timestamps ────────────────────────────────────────────────────────────
     last_refresh = fields.Datetime(string="Last Refreshed", readonly=True)
@@ -84,22 +113,46 @@ class PlasticosAdminKpi(models.Model):
     # ══════════════════════════════════════════════════════════════════════════
 
     # Intakes
-    intake_draft = fields.Integer(string="Intakes: Draft", compute="_compute_kpis", store=False)
-    intake_matched = fields.Integer(string="Intakes: Matched", compute="_compute_kpis", store=False)
-    intake_offer_sent = fields.Integer(string="Intakes: Offer Sent", compute="_compute_kpis", store=False)
-    intake_processing = fields.Integer(string="Intakes: Processing", compute="_compute_kpis", store=False)
-    intake_won_mtd = fields.Integer(string="Intakes Won (MTD)", compute="_compute_kpis", store=False)
-    intake_lost_mtd = fields.Integer(string="Intakes Lost (MTD)", compute="_compute_kpis", store=False)
-    intake_total_open = fields.Integer(string="Open Intakes", compute="_compute_kpis", store=False)
+    intake_draft = fields.Integer(
+        string="Intakes: Draft", compute="_compute_kpis", store=False, help=_ALL_COMPANIES_HELP
+    )
+    intake_matched = fields.Integer(
+        string="Intakes: Matched", compute="_compute_kpis", store=False, help=_ALL_COMPANIES_HELP
+    )
+    intake_offer_sent = fields.Integer(
+        string="Intakes: Offer Sent", compute="_compute_kpis", store=False, help=_ALL_COMPANIES_HELP
+    )
+    intake_processing = fields.Integer(
+        string="Intakes: Processing", compute="_compute_kpis", store=False, help=_ALL_COMPANIES_HELP
+    )
+    intake_won_mtd = fields.Integer(
+        string="Intakes Won (MTD)", compute="_compute_kpis", store=False, help=_ALL_COMPANIES_HELP
+    )
+    intake_lost_mtd = fields.Integer(
+        string="Intakes Lost (MTD)", compute="_compute_kpis", store=False, help=_ALL_COMPANIES_HELP
+    )
+    intake_total_open = fields.Integer(
+        string="Open Intakes", compute="_compute_kpis", store=False, help=_ALL_COMPANIES_HELP
+    )
 
     # Offers
-    offer_draft = fields.Integer(string="Offers: Draft", compute="_compute_kpis", store=False)
-    offer_sent = fields.Integer(string="Offers: Sent", compute="_compute_kpis", store=False)
-    offer_responded = fields.Integer(string="Offers: Responded", compute="_compute_kpis", store=False)
-    offer_accepted_mtd = fields.Integer(string="Offers Accepted (MTD)", compute="_compute_kpis", store=False)
-    offer_rejected_mtd = fields.Integer(string="Offers Rejected (MTD)", compute="_compute_kpis", store=False)
-    offer_expired_mtd = fields.Integer(string="Offers Expired (MTD)", compute="_compute_kpis", store=False)
-    offer_expiring_soon = fields.Integer(string="Expiring ≤3 Days", compute="_compute_kpis", store=False)
+    offer_draft = fields.Integer(string="Offers: Draft", compute="_compute_kpis", store=False, help=_ALL_COMPANIES_HELP)
+    offer_sent = fields.Integer(string="Offers: Sent", compute="_compute_kpis", store=False, help=_ALL_COMPANIES_HELP)
+    offer_responded = fields.Integer(
+        string="Offers: Responded", compute="_compute_kpis", store=False, help=_ALL_COMPANIES_HELP
+    )
+    offer_accepted_mtd = fields.Integer(
+        string="Offers Accepted (MTD)", compute="_compute_kpis", store=False, help=_ALL_COMPANIES_HELP
+    )
+    offer_rejected_mtd = fields.Integer(
+        string="Offers Rejected (MTD)", compute="_compute_kpis", store=False, help=_ALL_COMPANIES_HELP
+    )
+    offer_expired_mtd = fields.Integer(
+        string="Offers Expired (MTD)", compute="_compute_kpis", store=False, help=_ALL_COMPANIES_HELP
+    )
+    offer_expiring_soon = fields.Integer(
+        string="Expiring ≤3 Days", compute="_compute_kpis", store=False, help=_ALL_COMPANIES_HELP
+    )
 
     # Deal Conversion
     offer_accept_rate_mtd = fields.Float(
@@ -107,17 +160,17 @@ class PlasticosAdminKpi(models.Model):
         compute="_compute_kpis",
         store=False,
         digits=(5, 1),
-        help="Accepted / (Accepted+Rejected) × 100 MTD",
+        help="Accepted / (Accepted+Rejected) × 100 MTD. " + _ALL_COMPANIES_HELP,
     )
     intake_win_rate_mtd = fields.Float(
         string="Intake Win Rate %",
         compute="_compute_kpis",
         store=False,
         digits=(5, 1),
-        help="Won / (Won+Lost) × 100 MTD",
+        help="Won / (Won+Lost) × 100 MTD. " + _ALL_COMPANIES_HELP,
     )
     avg_intake_age_days = fields.Float(
-        string="Avg Intake Age (days)", compute="_compute_kpis", store=False, digits=(5, 1)
+        string="Avg Intake Age (days)", compute="_compute_kpis", store=False, digits=(5, 1), help=_ALL_COMPANIES_HELP
     )
 
     # Transaction Pipeline
@@ -131,13 +184,27 @@ class PlasticosAdminKpi(models.Model):
     tx_closed_mtd = fields.Integer(string="Closed (MTD)", compute="_compute_kpis", store=False)
 
     # Web Leads
-    lead_received_today = fields.Integer(string="Leads Today", compute="_compute_kpis", store=False)
-    lead_received_wtd = fields.Integer(string="Leads WTD", compute="_compute_kpis", store=False)
-    lead_received_mtd = fields.Integer(string="Leads MTD", compute="_compute_kpis", store=False)
-    lead_hot_mtd = fields.Integer(string="HOT Leads MTD", compute="_compute_kpis", store=False)
-    lead_cold_mtd = fields.Integer(string="COLD Leads MTD", compute="_compute_kpis", store=False)
-    lead_error_open = fields.Integer(string="Lead Errors (open)", compute="_compute_kpis", store=False)
-    lead_hot_rate_mtd = fields.Float(string="Lead→HOT Rate %", compute="_compute_kpis", store=False, digits=(5, 1))
+    lead_received_today = fields.Integer(
+        string="Leads Today", compute="_compute_kpis", store=False, help=_ALL_COMPANIES_HELP
+    )
+    lead_received_wtd = fields.Integer(
+        string="Leads WTD", compute="_compute_kpis", store=False, help=_ALL_COMPANIES_HELP
+    )
+    lead_received_mtd = fields.Integer(
+        string="Leads MTD", compute="_compute_kpis", store=False, help=_ALL_COMPANIES_HELP
+    )
+    lead_hot_mtd = fields.Integer(
+        string="HOT Leads MTD", compute="_compute_kpis", store=False, help=_ALL_COMPANIES_HELP
+    )
+    lead_cold_mtd = fields.Integer(
+        string="COLD Leads MTD", compute="_compute_kpis", store=False, help=_ALL_COMPANIES_HELP
+    )
+    lead_error_open = fields.Integer(
+        string="Lead Errors (open)", compute="_compute_kpis", store=False, help=_ALL_COMPANIES_HELP
+    )
+    lead_hot_rate_mtd = fields.Float(
+        string="Lead→HOT Rate %", compute="_compute_kpis", store=False, digits=(5, 1), help=_ALL_COMPANIES_HELP
+    )
 
     # ══════════════════════════════════════════════════════════════════════════
     # SECTION B — FINANCIAL SNAPSHOT
@@ -169,45 +236,49 @@ class PlasticosAdminKpi(models.Model):
         string="AI Normalized MTD",
         compute="_compute_kpis",
         store=False,
-        help="Leads processed with ai_normalized != null MTD",
+        help="Leads processed with ai_normalized != null MTD" + " " + _ALL_COMPANIES_HELP,
     )
     ai_leads_vision_mtd = fields.Integer(
         string="Vision Analyzed MTD",
         compute="_compute_kpis",
         store=False,
-        help="Leads with ai_vision_results != null MTD",
+        help="Leads with ai_vision_results != null MTD" + " " + _ALL_COMPANIES_HELP,
     )
     ai_hot_auto_mtd = fields.Integer(
         string="Auto-HOT MTD",
         compute="_compute_kpis",
         store=False,
-        help="HOT leads auto-classified by AI (not manually overridden)",
+        help="HOT leads auto-classified by AI (not manually overridden)" + " " + _ALL_COMPANIES_HELP,
     )
-    ai_cold_auto_mtd = fields.Integer(string="Auto-COLD MTD", compute="_compute_kpis", store=False)
+    ai_cold_auto_mtd = fields.Integer(
+        string="Auto-COLD MTD", compute="_compute_kpis", store=False, help=_ALL_COMPANIES_HELP
+    )
     ai_error_mtd = fields.Integer(
         string="AI Errors MTD",
         compute="_compute_kpis",
         store=False,
-        help="Leads that hit state=error during triage MTD",
+        help="Leads that hit state=error during triage MTD" + " " + _ALL_COMPANIES_HELP,
     )
-    ai_hot_rate_mtd = fields.Float(string="AI HOT Rate %", compute="_compute_kpis", store=False, digits=(5, 1))
+    ai_hot_rate_mtd = fields.Float(
+        string="AI HOT Rate %", compute="_compute_kpis", store=False, digits=(5, 1), help=_ALL_COMPANIES_HELP
+    )
     ai_intakes_auto_created = fields.Integer(
         string="Auto-Intakes MTD",
         compute="_compute_kpis",
         store=False,
-        help="Intakes created automatically from HOT web leads MTD",
+        help="Intakes created automatically from HOT web leads MTD" + " " + _ALL_COMPANIES_HELP,
     )
     ai_manual_override_mtd = fields.Integer(
         string="Manual Overrides MTD",
         compute="_compute_kpis",
         store=False,
-        help="Cold leads manually forced to HOT by admin MTD",
+        help="Cold leads manually forced to HOT by admin MTD" + " " + _ALL_COMPANIES_HELP,
     )
     ai_pending_review = fields.Integer(
         string="Pending Review",
         compute="_compute_kpis",
         store=False,
-        help="HOT intakes from web leads with no partner yet (need buyer-match action)",
+        help="HOT intakes from web leads with no partner yet (need buyer-match action)" + " " + _ALL_COMPANIES_HELP,
     )
     ai_normalized_enabled = fields.Boolean(string="AI Normalizer Active", compute="_compute_ai_config", store=False)
     ai_vision_enabled = fields.Boolean(string="Vision Active", compute="_compute_ai_config", store=False)
@@ -219,11 +290,11 @@ class PlasticosAdminKpi(models.Model):
 
     @api.depends()
     def _compute_kpis(self):
-        urgency_counts = {name: self._urgency_count(name) for name in URGENCY_KPIS}
         for rec in self:
             cr = self.env.cr
-            for name, count in urgency_counts.items():
-                rec[name] = count
+            company_id = rec.company_id.id
+            for name in URGENCY_KPIS:
+                rec[name] = rec._urgency_count(name)
 
             # ── Date helpers ──────────────────────────────────────────────────
             cr.execute("""
@@ -319,8 +390,9 @@ class PlasticosAdminKpi(models.Model):
                     SUM(revenue_total) FILTER (WHERE state NOT IN ('closed','cancelled')
                                               AND revenue_total > 0)                   AS pipeline_val
                 FROM plasticos_transaction
+                WHERE sale_order_id IN (SELECT so.id FROM sale_order so WHERE so.company_id = %s)
             """,
-                (mtd,),
+                (mtd, company_id),
             )
             r = cr.dictfetchone()
             rec.tx_open = r["tx_open"] or 0
@@ -342,6 +414,7 @@ class PlasticosAdminKpi(models.Model):
                     SUM(commission_amount) FILTER (WHERE write_date >= %s) AS comm_ytd
                 FROM plasticos_transaction
                 WHERE state='closed' AND legacy_erp_history = FALSE
+                  AND sale_order_id IN (SELECT so.id FROM sale_order so WHERE so.company_id = %s)
                   AND NOT EXISTS (
                     SELECT 1 FROM ir_model_data import_id
                     WHERE import_id.model = 'sale.order'
@@ -350,7 +423,7 @@ class PlasticosAdminKpi(models.Model):
                       AND import_id.name LIKE 'legacy_erp_so_%%'
                   )
             """,
-                (mtd, ytd, mtd, ytd, mtd, ytd, mtd, ytd),
+                (mtd, ytd, mtd, ytd, mtd, ytd, mtd, ytd, company_id),
             )
             r = cr.dictfetchone()
             rec.revenue_mtd = r["rev_mtd"] or 0.0
@@ -476,12 +549,20 @@ class PlasticosAdminKpi(models.Model):
     # ── Singleton helper ──────────────────────────────────────────────────────
 
     @api.model
-    def _get_or_create(self):
-        """Return singleton record, creating if missing."""
-        rec = self.search([], limit=1)
-        if not rec:
-            rec = self.create({})
-        return rec
+    def _get_or_create(self, company=None):
+        """Return the KPI record of ``company`` (default: the current company), creating it if missing."""
+        company = company or self.env.company
+        rec = self.search([("company_id", "=", company.id)], limit=1)
+        if rec:
+            return rec
+        try:
+            with self.env.cr.savepoint():
+                return self.create({"company_id": company.id})
+        except pg_errors.UniqueViolation as exc:
+            # A concurrent request created this company's record first. Under REPEATABLE READ
+            # this transaction cannot see it, so Odoo's request retry (service.model.retrying)
+            # re-runs the request, which then finds the committed record.
+            raise ConcurrencyError(f"Admin KPI record for company {company.id} was created concurrently") from exc
 
     # ── Actions ───────────────────────────────────────────────────────────────
 
@@ -525,18 +606,28 @@ class PlasticosAdminKpi(models.Model):
 
     # ── DEC-007 urgency declarations ─────────────────────────────────────────
 
-    @api.model
-    def _urgency_domain(self, kpi_name):
-        """Return the one domain that both counts and drills the urgency KPI."""
-        _title, _model, builder = URGENCY_KPIS[kpi_name]
-        return getattr(self, builder)()
+    def _kpi_company(self):
+        """The company a KPI record counts for; the current company outside a single record."""
+        if len(self) == 1 and self.company_id:
+            return self.company_id
+        return self.env.company
 
-    @api.model
+    def _urgency_domain(self, kpi_name):
+        """Return the one domain that both counts and drills the urgency KPI.
+
+        Transaction KPIs are scoped to the record's company through the sale
+        order (DEC-008). Offers and web leads carry no company.
+        """
+        _title, model_name, builder = URGENCY_KPIS[kpi_name]
+        domain = getattr(self, builder)()
+        if model_name == PLASTICOS_TRANSACTION:
+            domain = [("sale_order_id.company_id", "=", self._kpi_company().id), *domain]
+        return domain
+
     def _urgency_count(self, kpi_name):
         _title, model_name, _builder = URGENCY_KPIS[kpi_name]
         return self.env[model_name].search_count(self._urgency_domain(kpi_name))
 
-    @api.model
     def _urgency_drill(self, kpi_name):
         title, model_name, _builder = URGENCY_KPIS[kpi_name]
         return {
@@ -683,7 +774,7 @@ class PlasticosAdminKpi(models.Model):
 
     @api.model
     def action_open_admin_dashboard(self):
-        """Main entry point: ensure singleton exists and open form."""
+        """Main entry point: open the current company's KPI record, creating it if missing."""
         rec = self._get_or_create()
         return {
             "type": "ir.actions.act_window",

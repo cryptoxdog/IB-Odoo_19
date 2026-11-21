@@ -23,7 +23,9 @@ class TestUrgencyDrillParity(TransactionCase):
         cls.buyer = cls.env["res.partner"].create({"name": "Parity Buyer", "customer_rank": 1})
 
     def _tx(self, state=None, **vals):
-        tx = self.Tx.create({"user_id": self.env.user.id})
+        # DEC-008: a transaction's company is its sale order's company.
+        order = self.env["sale.order"].create({"partner_id": self.buyer.id, "company_id": self.env.company.id})
+        tx = self.Tx.create({"user_id": self.env.user.id, "sale_order_id": order.id})
         if state:
             tx.with_context(**_BYPASS).write({"state": state})
         if vals:
