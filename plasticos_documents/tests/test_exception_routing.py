@@ -250,3 +250,23 @@ class TestExceptionRouting(TransactionCase):
         second = reroute.reroute_open_escalations()
         self.assertEqual(second.rerouted, 0)
         self.assertEqual(second.before, second.after)
+
+    def test_current_ticket_closes_the_escalation_and_rearms_it(self):
+        """A resolved gap closes its activity and clears the flag, so a later gap escalates again."""
+        if not self.env["plasticos.document.tag"].search([("code", "=", "SCALE")], limit=1):
+            self.env["plasticos.document.tag"].create({"name": "Scale Ticket", "code": "SCALE"})
+        load = self._delivered_load("TX-ROUTE-SCALE-REARM")
+        summary = f"ESCALATION: Missing scale ticket on {load.name}"
+        self._run_scale_cron(load)
+        self.assertTrue(load.scale_ticket_escalated)
+        self.assertEqual(len(self._open(load, summary)), 1)
+        model = type(self.env["plasticos.transaction"])
+        with patch.object(model, "_load_has_current_scale_ticket", lambda self, load, tag: True):
+            self._run_scale_cron(load)
+        self.assertFalse(load.scale_ticket_escalated)
+        self.assertFalse(self._open(load, summary))
+        # The ticket is later invalidated: the still-missing ticket is escalated again, once.
+        self._run_scale_cron(load)
+        self._run_scale_cron(load)
+        self.assertTrue(load.scale_ticket_escalated)
+        self.assertEqual(len(self._open(load, summary)), 1)

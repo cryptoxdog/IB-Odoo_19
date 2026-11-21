@@ -27,7 +27,6 @@ import logging
 from collections import namedtuple
 
 from odoo import api, fields, models
-from odoo.addons.plasticos_base.models.res_users import EXCLUDE_CONTEXT_KEY
 from odoo.tools import html2plaintext
 
 _logger = logging.getLogger(__name__)
@@ -215,6 +214,13 @@ class PlasticosExceptionRouter(models.AbstractModel):
         return excluded
 
     @api.model
+    def exclusion_context(self, role):
+        """Context for the plasticos_base resolver naming the users who may not own ``role`` work."""
+        from odoo.addons.plasticos_base.models.res_users import EXCLUDE_CONTEXT_KEY
+
+        return {EXCLUDE_CONTEXT_KEY: self._excluded_ids(role)}
+
+    @api.model
     def owner(self, route, company=None, group=None):
         """The one eligible owner of ``route`` in ``company``, or an empty recordset.
 
@@ -226,9 +232,9 @@ class PlasticosExceptionRouter(models.AbstractModel):
             return users  # conflicting companies: nobody can own it (POS-INV-05)
         if group is None:
             group = self.env.ref(route.group_xmlid, raise_if_not_found=False)
-        found = users.with_context(
-            **{EXCLUDE_CONTEXT_KEY: self._excluded_ids(route.role)}
-        )._plasticos_escalation_manager_in_group(group, company)
+        found = users.with_context(**self.exclusion_context(route.role))._plasticos_escalation_manager_in_group(
+            group, company
+        )
         return users.browse(found.ids)
 
     @api.model
@@ -240,7 +246,7 @@ class PlasticosExceptionRouter(models.AbstractModel):
             group = self.env.ref(route.group_xmlid, raise_if_not_found=False)
         if not group:
             return False
-        users = self.env["res.users"].with_context(**{EXCLUDE_CONTEXT_KEY: self._excluded_ids(route.role)})
+        users = self.env["res.users"].with_context(**self.exclusion_context(route.role))
         domain = [("id", "=", user.id), *users._plasticos_escalation_domain(group, company or None)]
         return bool(users.sudo().search_count(domain, limit=1))  # sudo: read-only membership check
 
