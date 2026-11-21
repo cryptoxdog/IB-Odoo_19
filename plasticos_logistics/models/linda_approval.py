@@ -538,8 +538,7 @@ class PlasticosLindaApproval(models.Model):
         return users._plasticos_escalation_manager_in_group(group, self.company_id)
 
     def _activity_doc(self):
-        # sudo: activity bookkeeping on a read-only ledger row, after the gate filed it or a decider was authorized
-        return self.sudo()
+        return self.sudo()  # sudo: activity bookkeeping on a read-only ledger row, never a decision
 
     def _close_owner_activities(self, feedback):
         for rec in self:
